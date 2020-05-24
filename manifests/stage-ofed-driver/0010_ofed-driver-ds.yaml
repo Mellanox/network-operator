@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: ofed-driver-ubuntu20
+  name: ofed-driver-ubuntu20-ds
+spec:
+  selector:
+    matchLabels:
+      app: ofed-driver-ubuntu20
+  template:
+    metadata:
+      # Mark this pod as a critical add-on; when enabled, the critical add-on scheduler
+      # reserves resources for critical add-on pods so that they can be rescheduled after
+      # a failure.  This annotation works in tandem with the toleration below.
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        app: ofed-driver-ubuntu20
+    spec:
+      tolerations:
+        - operator: Exists
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      hostNetwork: true
+      containers:
+        - image: ofed-driver-5.0-2.1.8.0:amd64-ubuntu20.04-kver5.4.0-29-generic
+          imagePullPolicy: Never
+          name: ofed-driver-container
+          securityContext:
+            privileged: true
+            seLinuxOptions:
+              level: "s0"
+          volumeMounts:
+            - name: run-mlnx-ofed
+              mountPath: /run/mellanox/drivers
+              mountPropagation: Bidirectional
+      volumes:
+        - name: run-mlnx-ofed
+          hostPath:
+            path: /run/mellanox/drivers
+      nodeSelector:
+        #node-role.kubernetes.io/worker: ""
+        feature.node.kubernetes.io/pci-15b3_1017.present: "true"
+        feature.node.kubernetes.io/kernel-version.full: "5.4.0-29-generic"

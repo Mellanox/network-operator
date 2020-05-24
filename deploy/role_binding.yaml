@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nic-operator
+subjects:
+- kind: ServiceAccount
+  name: nic-operator
+roleRef:
+  kind: Role
+  name: nic-operator
+  apiGroup: rbac.authorization.k8s.io

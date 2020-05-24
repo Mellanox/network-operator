@@ -1,0 +1,9 @@
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
+metadata:
+  name: example-nicclusterpolicy
+  namespace: mlnx-nic-operator
+spec:
+  deployDevicePlugin: true
+  deployNvPeer: true
+  deployOfed: true
