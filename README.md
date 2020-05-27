@@ -1,3 +1,7 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/adrianchiris/nic-operator)](https://goreportcard.com/report/github.com/adrianchiris/nicoperator)
+[![Build Status](https://travis-ci.com/adrianchiris/nic-operator.svg?branch=master)](https://travis-ci.com/adrianchiris/nic-operator)
+
 # [WIP] Nvidia Mellanox NIC Operator
 
 Nvidia Mellanox NIC Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
