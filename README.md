@@ -1,17 +1,17 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Go Report Card](https://goreportcard.com/badge/github.com/adrianchiris/nic-operator)](https://goreportcard.com/report/github.com/adrianchiris/nicoperator)
-[![Build Status](https://travis-ci.com/adrianchiris/nic-operator.svg?branch=master)](https://travis-ci.com/adrianchiris/nic-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/mellanox-network-operator)](https://goreportcard.com/report/github.com/Mellanox/mellanox-network-operator)
+[![Build Status](https://travis-ci.com/Mellanox/mellanox-network-operator.svg?branch=master)](https://travis-ci.com/Mellanox/mellanox-network-operator)
 
-# [WIP] Nvidia Mellanox NIC Operator
+# [WIP] Nvidia Mellanox Network Operator
 
-Nvidia Mellanox NIC Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking, 
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 
 ## Prerequisites
 
 ### Kubernetes Node Feature Discovery (NFD)
-Mellanox NIC operator relies on Node labeling to get the cluster to the desired state.
+Mellanox Network operator relies on Node labeling to get the cluster to the desired state.
 [Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.6.0` or newer is expected to be deployed to provide the appropriate labeling:
 
 - PCI vendor and device information

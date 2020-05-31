@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nic-operator
+  name: network-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: nic-operator
+      name: network-operator
   template:
     metadata:
       labels:
-        name: nic-operator
+        name: network-operator
     spec:
-      serviceAccountName: nic-operator
+      serviceAccountName: network-operator
       containers:
-        - name: nic-operator
+        - name: network-operator
           # Replace this with the built image name
           image: REPLACE_IMAGE
           command:
-          - nic-operator
+          - network-operator
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -30,4 +30,4 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "nic-operator"
+              value: "network-operator"

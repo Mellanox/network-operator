@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Mellanox/nic-operator/pkg/apis"
-	"github.com/Mellanox/nic-operator/pkg/controller"
-	"github.com/Mellanox/nic-operator/version"
+	"github.com/Mellanox/mellanox-network-operator/pkg/apis"
+	"github.com/Mellanox/mellanox-network-operator/pkg/controller"
+	"github.com/Mellanox/mellanox-network-operator/version"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -81,7 +81,7 @@ func main() {
 
 	ctx := context.TODO()
 	// Become the leader before proceeding
-	err = leader.Become(ctx, "nic-operator-lock")
+	err = leader.Become(ctx, "network-operator-lock")
 	if err != nil {
 		log.Error(err, "")
 		os.Exit(1)

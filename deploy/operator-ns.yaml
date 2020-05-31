@@ -1,4 +1,4 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: mlnx-nic-operator
+  name: mlnx-network-operator

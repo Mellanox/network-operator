@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/Mellanox/nic-operator/pkg/controller/nicclusterpolicy"
+	"github.com/Mellanox/mellanox-network-operator/pkg/controller/nicclusterpolicy"
 )
 
 func init() {

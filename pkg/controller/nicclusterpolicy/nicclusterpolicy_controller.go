@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	mellanoxv1alpha1 "github.com/Mellanox/nic-operator/pkg/apis/mellanox/v1alpha1"
+	mellanoxv1alpha1 "github.com/Mellanox/mellanox-network-operator/pkg/apis/mellanox/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
