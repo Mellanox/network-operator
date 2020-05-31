@@ -4,7 +4,7 @@ go:
   - "1.13"
 
 env:
-  - IMAGE_NAME=mellanox/nic-operator
+  - IMAGE_NAME=mellanox/network-operator
 
 before_script:
   - go get -u github.com/mattn/goveralls
@@ -12,7 +12,7 @@ before_script:
 script:
   - make lint
   - make test-coverage
-    #  - goveralls -coverprofile=nic-operator.cover -service=travis-ci
+    #  - goveralls -coverprofile=network-operator.cover -service=travis-ci
   - make image
 
 before_deploy:

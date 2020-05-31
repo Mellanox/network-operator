@@ -1,6 +1,6 @@
 # Package related
-BINARY_NAME=nic-operator
-PACKAGE=nic-operator
+BINARY_NAME=network-operator
+PACKAGE=mellanox-network-operator
 ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH=$(CURDIR)/.gopath
@@ -18,7 +18,7 @@ export GOBIN
 IMAGE_BUILDER?=@docker
 IMAGEDIR=$(BASE)/images
 DOCKERFILE?=$(CURDIR)/build/Dockerfile
-TAG?=mellanox/nic-operator
+TAG?=mellanox/network-operator
 IMAGE_BUILD_OPTS?=
 # Accept proxy settings for docker
 # To pass proxy for Docker invoke it as 'make image HTTP_POXY=http://192.168.0.1:8080'
@@ -99,7 +99,7 @@ COVERAGE_MODE = count
 test-coverage-tools: | $(GOVERALLS)
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
 test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...) @ ## Run coverage tests
-	$Q cd $(BASE); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=nic-operator.cover ./...
+	$Q cd $(BASE); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
 .PHONY: image
