@@ -11,14 +11,14 @@ import (
 	"github.com/Mellanox/nic-operator/pkg/apis"
 	"github.com/Mellanox/nic-operator/pkg/controller"
 	"github.com/Mellanox/nic-operator/version"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -28,10 +28,12 @@ import (
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost               = "0.0.0.0"
-	metricsPort         int32 = 8383
-	operatorMetricsPort int32 = 8686
+	metricsHost       = "0.0.0.0"
+	metricsPort int32 = 8383
+
+//	operatorMetricsPort int32 = 8686
 )
+
 var log = logf.Log.WithName("cmd")
 
 func printVersion() {
@@ -123,7 +125,7 @@ func main() {
 
 	// Add the Metrics Service
 	// Note(Adrianc):  Not needed for now
-	//addMetrics(ctx, cfg)
+	// addMetrics(ctx, cfg)
 
 	log.Info("Starting the Cmd.")
 
@@ -154,8 +156,10 @@ func addMetrics(ctx context.Context, cfg *rest.Config) {
 
 	// Add to the below struct any other metrics ports you want to expose.
 	servicePorts := []v1.ServicePort{
-		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
-		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
+		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP,
+		    TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
+		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP,
+		    TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
 	}
 
 	// Create Service object to expose the metrics port(s).
@@ -175,7 +179,8 @@ func addMetrics(ctx context.Context, cfg *rest.Config) {
 		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
 		// ErrServiceMonitorNotPresent, which can be used to safely skip ServiceMonitor creation.
 		if err == metrics.ErrServiceMonitorNotPresent {
-			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
+			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects",
+			    "error", err.Error())
 		}
 	}
 }
@@ -183,7 +188,8 @@ func addMetrics(ctx context.Context, cfg *rest.Config) {
 // serveCRMetrics gets the Operator/CustomResource GVKs and generates metrics based on those types.
 // It serves those metrics on "http://metricsHost:operatorMetricsPort".
 func serveCRMetrics(cfg *rest.Config, operatorNs string) error {
-	// The function below returns a list of filtered operator/CR specific GVKs. For more control, override the GVK list below
+	// The function below returns a list of filtered operator/CR specific GVKs. For more control,
+	// override the GVK list below
 	// with your own custom logic. Note that if you are adding third party API schemas, probably you will need to
 	// customize this implementation to avoid permissions issues.
 	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)

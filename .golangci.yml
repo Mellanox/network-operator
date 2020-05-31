@@ -24,7 +24,7 @@ linters-settings:
   gocognit:
     min-complexity: 30
   goimports:
-    local-prefixes: github.com/Mellanox/rdma-cni
+    local-prefixes: github.com/Mellanox/nic-operator
   golint:
     min-confidence: 0
   gomnd:
@@ -61,8 +61,8 @@ linters:
     - dupl
     - errcheck
     - funlen
-    - gochecknoinits
-    - goconst
+      #- gochecknoinits
+      #- goconst
     - gocritic
     - gocognit
     - gofmt
@@ -72,7 +72,7 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
-    - govet
+      #- govet
     - ineffassign
     - lll
     - misspell

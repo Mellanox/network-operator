@@ -45,7 +45,7 @@ type NicClusterPolicySpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 
-	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`
+	OFEDDriver   *OFEDDriverSpec   `json:"ofedDriver,omitempty"`
 	NVPeerDriver *NVPeerDriverSpec `json:"nvPeerDriver,omitempty"`
 	DevicePlugin *DevicePluginSpec `json:"devicePluginSpec,omitempty"`
 }
@@ -54,8 +54,8 @@ type State string
 
 const (
 	StateNotReady State = "notReady"
-	StateReady State = "ready"
-	StateError State = "error"
+	StateReady    State = "ready"
+	StateError    State = "error"
 )
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

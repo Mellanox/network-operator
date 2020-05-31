@@ -33,8 +33,8 @@ var log = logf.Log.WithName("controller_nicclusterpolicy")
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new NicClusterPolicy Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new NicClusterPolicy Controller and adds it to the Manager.
+// The Manager will set fields on the Controller and Start it when the Manager is started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
@@ -107,7 +107,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 	stateToUpdate := mellanoxv1alpha1.StateNotReady
-	defer func(){
+	defer func() {
 		if instance.Status.State != stateToUpdate {
 			// Update CR state
 			reqLogger.Info("Updating CR", "Status", stateToUpdate)
@@ -131,7 +131,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 
 	// handle case where OFED is no longer required
 	if instance.Spec.OFEDDriver == nil {
-		if err == nil  {
+		if err == nil {
 			err := r.client.Delete(context.TODO(), found)
 			if err != nil {
 				return reconcile.Result{RequeueAfter: 5 * time.Second}, err
@@ -173,7 +173,8 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, nil
 	}
 
-	reqLogger.Info("DaemonSet already exists but is not yet running, requeue after 5 Sec", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	reqLogger.Info("DaemonSet already exists but is not yet running, requeue after 5 Sec",
+		"Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
