@@ -1,7 +1,7 @@
 package render
 
 /*
- Render package renders k8s API objects from a given set of templated .yaml files
+ Render package renders k8s API objects from a given set of template .yaml files
  provided in a source directory and a RenderData struct to be used in the rendering process
 
  The objects are rendered in `Unstructured` format provided by
@@ -20,7 +20,7 @@ type Renderer interface {
 	RenderObjects() ([]*unstructured.Unstructured, error)
 }
 
-// TemplatingData is used by the template engine to render templates
+// TemplatingData is used by the templating engine to render templates
 type TemplatingData struct {
 	// Funcs are additional Functions used during the templating process
 	Funcs template.FuncMap
@@ -28,7 +28,7 @@ type TemplatingData struct {
 	Data interface{}
 }
 
-// NewRenderer creates a Renderer object, that will render all templated files in manifestDirPath utilizing renderData
+// NewRenderer creates a Renderer object, that will render all template files in manifestDirPath utilizing renderData
 // in the templating engine.
 func NewRenderer(manifestDirPath string, data TemplatingData) Renderer {
 	return &textTemplateRenderer{
