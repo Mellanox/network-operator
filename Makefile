@@ -75,7 +75,7 @@ $(GOBIN)/goveralls: | $(BASE) ; $(info  building goveralls...)
 lint: | $(BASE) $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint
 	$Q mkdir -p $(BASE)/test
 	$Q cd $(BASE) && ret=0 && \
-		test -z "$$($(GOLANGCI_LINT) run | tee $(BASE)/test/lint.out)" || ret=1 ; \
+		test -z "$$($(GOLANGCI_LINT) run --timeout=10m | tee $(BASE)/test/lint.out)" || ret=1 ; \
 		cat $(BASE)/test/lint.out ; rm -rf $(BASE)/test ; \
 	 exit $$ret
 
