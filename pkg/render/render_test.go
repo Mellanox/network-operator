@@ -51,7 +51,7 @@ var _ = Describe("Test Renderer via API", func() {
 
 	Context("Render objects from existing dir with no files", func() {
 		It("Should return no objects", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "emptyDir"))
+			r := render.NewRenderer(filepath.Join(manifestsTestDir, "emptyManifests"))
 			objs, err := r.RenderObjects(t)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(objs).To(BeEmpty())
