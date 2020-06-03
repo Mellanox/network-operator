@@ -10,28 +10,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: fill correct labels
-
 // MellanoxNICListOptions will match on Mellanox NIC bearing Nodes when queried via k8s client
 var MellanoxNICListOptions = []client.ListOption{
-	client.MatchingLabels{"feature.node.kubernetes.io/pci-15b3-1019.present": "true"}}
+	client.MatchingLabels{nodeLabelMlnxNIC: "true"}}
 
-type AttributeType int
-
-const (
-	AttrTypeOS = iota
-	AttrTypeKernel
-)
-
-// NodeAttributes provides attributes of a specific node
-type NodeAttributes struct {
-	// Node Name
-	Name string
-	// Node Attributes
-	Attributes map[AttributeType]string
-}
-
-// Provider provides Node information
+// Provider provides Node attributes
 type Provider interface {
 	// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
 	GetNodesAttributes(filters ...Filter) []NodeAttributes
@@ -47,7 +30,14 @@ type provider struct {
 	nodes []*corev1.Node
 }
 
-// GetNodesKernelVersion gets kernel versions of provided nodes
-func (p *provider) GetNodesAttributes(filters ...Filter) []NodeAttributes {
-	return []NodeAttributes{}
+// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
+func (p *provider) GetNodesAttributes(filters ...Filter) (attrs []NodeAttributes) {
+	filtered := p.nodes
+	for _, filter := range filters {
+		filtered = filter.Apply(filtered)
+	}
+	for _, node := range filtered {
+		attrs = append(attrs, newNodeAttributes(node))
+	}
+	return attrs
 }
