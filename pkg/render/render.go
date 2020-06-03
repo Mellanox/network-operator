@@ -12,9 +12,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -37,54 +35,35 @@ type TemplatingData struct {
 	Data interface{}
 }
 
-// NewRenderer creates a Renderer object, that will render all template files in manifestDirPath.
-func NewRenderer(manifestDirPath string) Renderer {
+// NewRenderer creates a Renderer object, that will render all template files provided.
+// file format needs to be either json or yaml.
+func NewRenderer(files []string) Renderer {
 	return &textTemplateRenderer{
-		dirPath: manifestDirPath,
+		files: files,
 	}
 }
 
 // textTemplateRenderer is an implementation of the Renderer interface using golang builtin text/template package
 // as its templating engine
 type textTemplateRenderer struct {
-	dirPath string
+	files []string
 }
 
 // RenderObjects renders kubernetes objects utilizing the provided TemplatingData.
 func (r *textTemplateRenderer) RenderObjects(data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	objs := []*unstructured.Unstructured{}
-	err := filepath.Walk(r.dirPath, func(path string, info os.FileInfo, err error) error {
-		// Error during traversal
+
+	for _, file := range r.files {
+		out, err := r.renderFile(file, data)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		// Skip non [yml, yaml, json] files
-		if base := info.Name(); !(strings.HasSuffix(base, ".yml") ||
-			strings.HasSuffix(base, ".yaml") ||
-			strings.HasSuffix(base, ".json")) {
-			return nil
-		}
-
-		out, err := r.renderFile(path, data)
-		if err != nil {
-			return err
-		}
-
 		objs = append(objs, out...)
-		return nil
-	})
-
-	if err != nil {
-		return nil, errors.Wrapf(err, "error renedring manifests")
 	}
 	return objs, nil
 }
 
+// renderFile renders a single file to a list of k8s unstructured objects
 func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	// Read file
 	txt, err := ioutil.ReadFile(filePath)

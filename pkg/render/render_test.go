@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/Mellanox/mellanox-network-operator/pkg/render"
+	"github.com/Mellanox/mellanox-network-operator/pkg/utils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,6 +29,14 @@ func checkRenderedUnstructured(objs []*unstructured.Unstructured, t *templateDat
 	}
 }
 
+func getFilesFromDir(dirPath string) []string {
+	files, err := utils.GetFilesWithSuffix(dirPath, "json", "yaml", "yml")
+	if err != nil {
+		panic(err)
+	}
+	return files
+}
+
 var _ = Describe("Test Renderer via API", func() {
 	t := &render.TemplatingData{
 		Funcs: nil,
@@ -40,36 +49,48 @@ var _ = Describe("Test Renderer via API", func() {
 	}
 	manifestsTestDir := filepath.Join(cwd, "testdata")
 
-	Context("Render objects from non existing dir", func() {
+	Context("Render objects without files", func() {
+		It("Should return no objects", func() {
+			r := render.NewRenderer([]string{})
+			objs, err := r.RenderObjects(t)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(objs).To(BeEmpty())
+		})
+	})
+
+	Context("Render objects from non-existent files", func() {
 		It("Should fail", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "doesNotExist"))
+			r := render.NewRenderer([]string{filepath.Join(manifestsTestDir, "doesNotExist.yaml")})
 			objs, err := r.RenderObjects(t)
 			Expect(err).To(HaveOccurred())
 			Expect(objs).To(BeNil())
 		})
 	})
 
-	Context("Render objects from existing dir with no files", func() {
-		It("Should return no objects", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "emptyManifests"))
-			objs, err := r.RenderObjects(t)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(objs).To(BeEmpty())
+	Context("Render objects from mal formatted files", func() {
+		It("Should fail", func() {
+			files := getFilesFromDir(filepath.Join(manifestsTestDir, "badManifests"))
+			for _, file := range files {
+				r := render.NewRenderer([]string{file})
+				objs, err := r.RenderObjects(t)
+				Expect(err).To(HaveOccurred())
+				Expect(objs).To(BeNil())
+			}
 		})
 	})
 
-	Context("Render objects from existing dir with empty file", func() {
-		It("Should return no objects", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "emptyManifests"))
+	Context("Render objects from template with invalid template data", func() {
+		It("Should fail", func() {
+			r := render.NewRenderer(getFilesFromDir(filepath.Join(manifestsTestDir, "invalidManifests")))
 			objs, err := r.RenderObjects(t)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(objs).To(BeEmpty())
+			Expect(err).To(HaveOccurred())
+			Expect(objs).To(BeNil())
 		})
 	})
 
 	Context("Render objects from valid manifests dir", func() {
 		It("Should return objects in order as appear in the directory lexicographically", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "manifests"))
+			r := render.NewRenderer(getFilesFromDir(filepath.Join(manifestsTestDir, "manifests")))
 			objs, err := r.RenderObjects(t)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(objs)).To(Equal(3))
@@ -79,7 +100,7 @@ var _ = Describe("Test Renderer via API", func() {
 
 	Context("Render objects from valid manifests dir with mixed file suffixes", func() {
 		It("Should return objects in order as appear in the directory lexicographically", func() {
-			r := render.NewRenderer(filepath.Join(manifestsTestDir, "mixedManifests"))
+			r := render.NewRenderer(getFilesFromDir(filepath.Join(manifestsTestDir, "mixedManifests")))
 			objs, err := r.RenderObjects(t)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(objs)).To(Equal(3))
