@@ -32,7 +32,6 @@ sources:
       - "12"
     deviceLabelFields:
       - "vendor"
-      - "device"
 ```
 
 >\* Required for GPUDirect driver container deployment 
