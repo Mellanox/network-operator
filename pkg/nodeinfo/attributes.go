@@ -24,12 +24,25 @@ const (
 
 type AttributeType int
 
+// Attribute type Enum, add new types before Last and update the mapping below
 const (
 	AttrTypeOS = iota
 	AttrTypeKernel
 	AttrTypeHostname
 	AttrTypeCPUArch
+	AttrTypeLast
 )
+
+var attrToLabel = [...][]string{
+	// AttrTypeOS
+	{nodeLabelOSName, nodeLabelOSVer},
+	// AttrTypeKernel
+	{nodeLabelKernelVerFull},
+	// AttrTypeHostname
+	{nodeLabelHostname},
+	// AttrTypeCPUArch
+	{nodeLabelCPUArch},
+}
 
 // NodeAttributes provides attributes of a specific node
 type NodeAttributes struct {
@@ -71,29 +84,11 @@ func newNodeAttributes(node *corev1.Node) NodeAttributes {
 	var err error
 
 	nLabels := node.GetLabels()
-	// OS name
-	err = attr.fromLabels(AttrTypeOS, nLabels, []string{nodeLabelOSName, nodeLabelOSVer}, "")
-	if err != nil {
-		log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttributes, %v", err)
+	for attrType, labels := range attrToLabel {
+		err = attr.fromLabels(AttributeType(attrType), nLabels, labels, "")
+		if err != nil {
+			log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttribute(%x), %v", attrType, err)
+		}
 	}
-
-	// Kernel
-	err = attr.fromLabels(AttrTypeKernel, nLabels, []string{nodeLabelKernelVerFull}, "")
-	if err != nil {
-		log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttributes, %v", err)
-	}
-
-	// CPU Arch
-	err = attr.fromLabels(AttrTypeCPUArch, nLabels, []string{nodeLabelCPUArch}, "")
-	if err != nil {
-		log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttributes, %v", err)
-	}
-
-	// Hostname
-	err = attr.fromLabels(AttrTypeHostname, nLabels, []string{nodeLabelHostname}, "")
-	if err != nil {
-		log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttributes, %v", err)
-	}
-
 	return attr
 }
