@@ -4,6 +4,7 @@ metadata:
   name: example-nicclusterpolicy
   namespace: mlnx-network-operator
 spec:
-  deployDevicePlugin: true
-  deployNvPeer: true
-  deployOfed: true
+  ofedDriver:
+    image: "ofed-driver"
+    repository: "adriancdockerhub"
+    version: "5.0-2.1.8.1"

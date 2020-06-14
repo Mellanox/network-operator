@@ -7,6 +7,22 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const (
+	NicClusterPolicyCRDName = "NicClusterPolicy"
+)
+
+// Represents reconcile state of the system
+type State string
+
+// TODO: use state.SyncState, but avoid circular dependency
+
+const (
+	StateReady    = "ready"
+	StateNotReady = "notReady"
+	StateIgnore   = "ignore"
+	StateError    = "error"
+)
+
 // ImageSpec Contains container image specifications
 type ImageSpec struct {
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\-]+
@@ -47,21 +63,13 @@ type NicClusterPolicySpec struct {
 
 	OFEDDriver   *OFEDDriverSpec   `json:"ofedDriver,omitempty"`
 	NVPeerDriver *NVPeerDriverSpec `json:"nvPeerDriver,omitempty"`
-	DevicePlugin *DevicePluginSpec `json:"devicePluginSpec,omitempty"`
+	DevicePlugin *DevicePluginSpec `json:"devicePlugin,omitempty"`
 }
-
-type State string
-
-const (
-	StateNotReady State = "notReady"
-	StateReady    State = "ready"
-	StateError    State = "error"
-)
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy
 type AppliedState struct {
 	Name string `json:"name"`
-	// +kubebuilder:validation:Enum={"notReady", "ready", "error"}
+	// +kubebuilder:validation:Enum={"ready", "notReady", "ignore", "error"}
 	State State `json:"state"`
 }
 
