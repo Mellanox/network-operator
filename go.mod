@@ -3,6 +3,7 @@ module github.com/Mellanox/mellanox-network-operator
 go 1.13
 
 require (
+	github.com/caarlos0/env/v6 v6.2.2
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/operator-framework/operator-sdk v0.17.1
