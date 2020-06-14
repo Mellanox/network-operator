@@ -1,10 +1,15 @@
 package state
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	mellanoxv1alpha1 "github.com/Mellanox/mellanox-network-operator/pkg/apis/mellanox/v1alpha1"
+	"github.com/Mellanox/mellanox-network-operator/pkg/config"
 	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
 )
 
@@ -34,5 +39,24 @@ func NewManager(crdKind string, k8sAPIClient client.Client, scheme *runtime.Sche
 // newStates creates States that compose a State manager
 // nolint:unparam
 func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
-	return []Group{}, nil
+	switch crdKind {
+	case mellanoxv1alpha1.NicClusterPolicyCRDName:
+		return newNicClusterPolicyStates(k8sAPIClient, scheme)
+	default:
+		break
+	}
+	return nil, fmt.Errorf("unsupported CRD for states factory: %s", crdKind)
+}
+
+// newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
+func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	var states []State = make([]State, 0, 1)
+	s, err := NewStateOFED(
+		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-ofed-driver"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create OFED driver State")
+	}
+	states = append(states, s)
+
+	return []Group{NewStateGroup(states)}, nil
 }
