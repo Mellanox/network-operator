@@ -53,7 +53,6 @@ func NewManager(crdKind string, k8sAPIClient client.Client, scheme *runtime.Sche
 }
 
 // newStates creates States that compose a State manager
-// nolint:unparam
 func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
 	switch crdKind {
 	case mellanoxv1alpha1.NicClusterPolicyCRDName:
@@ -66,13 +65,20 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 
 // newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
 func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
-	var states []State = make([]State, 0, 1)
-	s, err := NewStateOFED(
+	ofedState, err := NewStateOFED(
 		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-ofed-driver"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create OFED driver State")
 	}
-	states = append(states, s)
 
-	return []Group{NewStateGroup(states)}, nil
+	sharedDpState, err := NewStateSharedDp(
+		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-rdma-device-plugin"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Device plugin State")
+	}
+
+	return []Group{
+		NewStateGroup([]State{ofedState}),
+		NewStateGroup([]State{sharedDpState}),
+	}, nil
 }

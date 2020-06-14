@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rdma-devices
+  namespace: {{ .RuntimeSpec.Namespace }}
+data:
+  config.json: '{{ .CrSpec.Config }}'

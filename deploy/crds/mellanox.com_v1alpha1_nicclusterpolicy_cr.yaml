@@ -18,6 +18,18 @@ metadata:
   namespace: mlnx-network-operator
 spec:
   ofedDriver:
-    image: "ofed-driver"
-    repository: "adriancdockerhub"
-    version: "5.0-2.1.8.1"
+    image: ofed-driver
+    repository: adriancdockerhub
+    version: 5.0-2.1.8.1
+  devicePlugin:
+    image: k8s-rdma-shared-dev-plugin
+    repository: rdma
+    version: latest
+    config: |
+      {
+        "configList": [{
+        "resourceName": "hca_shared_devices_a",
+        "rdmaHcaMax": 1000,
+        "devices": ["enp5s0f0"]
+      }]
+      }
