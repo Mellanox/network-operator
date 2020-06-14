@@ -2,12 +2,13 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    app: ofed-driver-ubuntu20
-  name: ofed-driver-ubuntu20-ds
+    app: ofed-driver-{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}-kver{{ .RuntimeSpec.KernelVerFull }}
+  name: ofed-driver-{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}-kver{{ .RuntimeSpec.KernelVerFull }}-ds
+  namespace: {{ .RuntimeSpec.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: ofed-driver-ubuntu20
+      app: ofed-driver-{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}-kver{{ .RuntimeSpec.KernelVerFull }}
   template:
     metadata:
       # Mark this pod as a critical add-on; when enabled, the critical add-on scheduler
@@ -16,7 +17,7 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
       labels:
-        app: ofed-driver-ubuntu20
+        app: ofed-driver-{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}-kver{{ .RuntimeSpec.KernelVerFull }}
     spec:
       tolerations:
         - operator: Exists
@@ -25,8 +26,8 @@ spec:
           effect: NoSchedule
       hostNetwork: true
       containers:
-        - image: ofed-driver-5.0-2.1.8.0:amd64-ubuntu20.04-kver5.4.0-29-generic
-          imagePullPolicy: Never
+        - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}-kver{{ .RuntimeSpec.KernelVerFull }}
+          imagePullPolicy: IfNotPresent
           name: ofed-driver-container
           securityContext:
             privileged: true
@@ -41,6 +42,5 @@ spec:
           hostPath:
             path: /run/mellanox/drivers
       nodeSelector:
-        #node-role.kubernetes.io/worker: ""
-        feature.node.kubernetes.io/pci-15b3_1017.present: "true"
-        feature.node.kubernetes.io/kernel-version.full: "5.4.0-29-generic"
+        feature.node.kubernetes.io/pci-15b3.present: "true"
+        feature.node.kubernetes.io/kernel-version.full: {{ .RuntimeSpec.KernelVerFull }}
