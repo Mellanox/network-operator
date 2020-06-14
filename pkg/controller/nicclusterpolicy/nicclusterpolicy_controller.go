@@ -106,7 +106,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	stateToUpdate := mellanoxv1alpha1.StateNotReady
+	var stateToUpdate mellanoxv1alpha1.State = mellanoxv1alpha1.StateNotReady
 	defer func() {
 		if instance.Status.State != stateToUpdate {
 			// Update CR state
