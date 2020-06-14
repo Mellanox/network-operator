@@ -31,7 +31,7 @@ spec:
         spec:
           description: NicClusterPolicySpec defines the desired state of NicClusterPolicy
           properties:
-            devicePluginSpec:
+            devicePlugin:
               description: DevicePluginSpec describes configuration options for device
                 plugin
               properties:
@@ -105,9 +105,11 @@ spec:
                   name:
                     type: string
                   state:
+                    description: Represents reconcile state of the system
                     enum:
-                    - notReady
                     - ready
+                    - notReady
+                    - ignore
                     - error
                     type: string
                 required:
