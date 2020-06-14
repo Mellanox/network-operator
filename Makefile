@@ -7,12 +7,18 @@ GOPATH=$(CURDIR)/.gopath
 GOBIN =$(CURDIR)/bin
 BUILDDIR=$(CURDIR)/build/_output
 BASE=$(GOPATH)/src/$(REPO_PATH)
-GOFILES=$(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
+GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
 PKGS=$(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
 export GOPATH
 export GOBIN
+
+# Version
+VERSION?=master
+DATE=`date -Iseconds`
+COMMIT?=`git rev-parse --verify HEAD`
+LDFLAGS="-X github.com/Mellanox/mellanox-network-operator/version.Version=$(VERSION) -X github.com/Mellanox/mellanox-network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/mellanox-network-operator/version.Date=$(DATE)"
 
 # Docker
 IMAGE_BUILDER?=@docker
@@ -58,7 +64,7 @@ build: $(BUILDDIR)/$(BINARY_NAME) ; $(info Building $(BINARY_NAME)...) @ ## Buil
 	$(info Done!)
 
 $(BUILDDIR)/$(BINARY_NAME): $(GOFILES) | $(BUILDDIR)
-	@cd $(BASE)/cmd/manager && CGO_ENABLED=0 $(GO) build -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v
+	@cd $(BASE)/cmd/manager && CGO_ENABLED=0 $(GO) build -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v -ldflags=$(LDFLAGS)
 
 # Tools
 
