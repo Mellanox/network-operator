@@ -1,6 +1,7 @@
 package state
 
 import (
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -14,6 +15,8 @@ const (
 	SyncStateReset    = "reset"
 	SyncStateError    = "error"
 )
+
+var log = logf.Log.WithName("state")
 
 // State Represents a single State that requires a set of k8s API operations to be performed.
 // A state is associated with a set of resources, it checks the system state against the given set of resources
