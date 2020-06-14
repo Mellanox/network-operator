@@ -19,7 +19,7 @@ const (
 	nodeLabelKernelVerFull = "feature.node.kubernetes.io/kernel-version.full"
 	nodeLabelHostname      = "kubernetes.io/hostname"
 	nodeLabelCPUArch       = "kubernetes.io/arch"
-	nodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
+	NodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
 )
 
 type AttributeType int
