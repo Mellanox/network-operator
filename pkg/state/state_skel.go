@@ -124,10 +124,13 @@ func (s *stateSkel) daemonsetReady(uds *unstructured.Unstructured) (bool, error)
 
 	log.V(consts.LogLevelDebug).Info(
 		"Check daemonset state",
-		"Desired:", ds.Status.DesiredNumberScheduled,
-		"Current:", ds.Status.CurrentNumberScheduled,
+		"DesiredNodes:", ds.Status.DesiredNumberScheduled,
+		"CurrentNodes:", ds.Status.CurrentNumberScheduled,
+		"PodsAvailable:", ds.Status.NumberAvailable,
+		"PodsUnavailable:", ds.Status.NumberUnavailable,
+		"PodsReady:", ds.Status.NumberReady,
 		"Conditions:", ds.Status.Conditions)
-	if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled {
+	if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable {
 		return true, nil
 	}
 	return false, nil
