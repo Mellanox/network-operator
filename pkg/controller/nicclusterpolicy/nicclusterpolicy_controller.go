@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/mellanox-network-operator/pkg/apis/mellanox/v1alpha1"
+	"github.com/Mellanox/mellanox-network-operator/pkg/config"
 	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
 	"github.com/Mellanox/mellanox-network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/mellanox-network-operator/pkg/state"
@@ -138,7 +139,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 	}
 	if managerStatus.Status != state.SyncStateReady {
 		return reconcile.Result{
-			RequeueAfter: 5 * time.Second,
+			RequeueAfter: config.FromEnv().Controller.RequeueTimeSeconds * time.Second,
 		}, nil
 	}
 	return reconcile.Result{}, nil
