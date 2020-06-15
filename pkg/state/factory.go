@@ -11,7 +11,6 @@ import (
 // NewStateManager creates a state.Manager for the given CRD Kind
 func NewManager(crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme) (Manager, error) {
 	stateGroups, err := newStates(crdKind, k8sAPIClient, scheme)
-
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create state manager")
 	}

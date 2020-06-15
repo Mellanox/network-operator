@@ -73,15 +73,15 @@ func (smgr *stateManager) SyncState(customResource interface{}, serviceCatalog S
 	for i, stateGroup := range smgr.stateGroups {
 		log.V(consts.LogLevelInfo).Info("Sync State group", "index", i)
 		results := stateGroup.Sync(customResource, serviceCatalog)
-		done, err := stateGroup.SyncDone()
 		managerResult.StatesStatus = append(managerResult.StatesStatus, results...)
 
+		done, err := stateGroup.SyncDone()
 		if err != nil {
 			log.V(consts.LogLevelError).Info("Error while syncing states", "Error:", err)
 			return managerResult, err
 		}
 		if !done {
-			log.V(consts.LogLevelError).Info("State Group Not ready, requeue after 5 seconds")
+			log.V(consts.LogLevelError).Info("State Group Not ready")
 			return managerResult, nil
 		}
 		log.V(consts.LogLevelInfo).Info("Sync Completed successfully for State group", "index", i)

@@ -41,7 +41,7 @@ func (sg *Group) Sync(customResource interface{}, serviceCatalog ServiceCatalog)
 func (sg *Group) SyncDone() (done bool, err error) {
 	done = false
 	for _, result := range sg.results {
-		if result.ErrInfo != nil || (result.Status != SyncStateReady && result.Status != SyncStateIgnore) {
+		if result.Status == SyncStateNotReady || result.Status == SyncStateError {
 			err = result.ErrInfo
 			return done, err
 		}
