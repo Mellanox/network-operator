@@ -55,7 +55,7 @@ type ofedManifestRenderData struct {
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *stateOFED) Sync(customResource interface{}, serviceCatalog ServiceCatalog) (SyncState, error) {
+func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
@@ -68,7 +68,7 @@ func (s *stateOFED) Sync(customResource interface{}, serviceCatalog ServiceCatal
 		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
-	nodeInfo := serviceCatalog.GetNodeInfoProvider()
+	nodeInfo := infoCatalog.GetNodeInfoProvider()
 	if nodeInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
