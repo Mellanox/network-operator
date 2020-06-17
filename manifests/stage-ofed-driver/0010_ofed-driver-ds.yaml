@@ -37,10 +37,16 @@ spec:
             - name: run-mlnx-ofed
               mountPath: /run/mellanox/drivers
               mountPropagation: Bidirectional
+            - name: etc-network
+              mountPath: /etc/network
       volumes:
         - name: run-mlnx-ofed
           hostPath:
             path: /run/mellanox/drivers
+        - name: etc-network
+          hostPath:
+            path: /etc/network
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         feature.node.kubernetes.io/kernel-version.full: {{ .RuntimeSpec.KernelVerFull }}
+
