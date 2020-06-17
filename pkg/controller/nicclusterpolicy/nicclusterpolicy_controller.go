@@ -109,7 +109,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Create a new State service catalog
-	sc := state.NewServiceCatalog()
+	sc := state.NewInfoCatalog()
 	if instance.Spec.OFEDDriver != nil || instance.Spec.NVPeerDriver != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
@@ -128,7 +128,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 		}
 		reqLogger.V(consts.LogLevelDebug).Info("Node info provider with", "Nodes:", nodeNames)
 		infoProvider := nodeinfo.NewProvider(nodePtrList)
-		sc.Add(state.ServiceTypeNodeInfo, infoProvider)
+		sc.Add(state.InfoTypeNodeInfo, infoProvider)
 	}
 	// Create manager
 	managerStatus, err := r.stateManager.SyncState(instance, sc)
