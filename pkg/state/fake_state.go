@@ -22,7 +22,7 @@ func (s *fakeState) Description() string {
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *fakeState) Sync(customResource interface{}, serviceCatalog ServiceCatalog) (SyncState, error) {
+func (s *fakeState) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	return SyncStateReady, nil
 }
 
