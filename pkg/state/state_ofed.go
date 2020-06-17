@@ -16,6 +16,9 @@ import (
 	"github.com/Mellanox/mellanox-network-operator/pkg/utils"
 )
 
+const stateOFEDName = "state-OFED"
+const stateOFEDDescription = "OFED driver deployed in the cluster"
+
 // NewStateOFED creates a new OFED driver state
 func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
@@ -26,8 +29,8 @@ func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDi
 	renderer := render.NewRenderer(files)
 	return &stateOFED{
 		stateSkel: stateSkel{
-			name:        "state-OFED",
-			description: "OFED driver deployed in the cluster",
+			name:        stateOFEDName,
+			description: stateOFEDDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
@@ -55,7 +58,7 @@ type ofedManifestRenderData struct {
 func (s *stateOFED) Sync(customResource interface{}, serviceCatalog ServiceCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
-		"State: OFED-driver Sync Custom resource", "Name", cr.Name, "Namespace:", cr.Namespace)
+		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.OFEDDriver == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
@@ -69,11 +72,15 @@ func (s *stateOFED) Sync(customResource interface{}, serviceCatalog ServiceCatal
 	if nodeInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
+
 	objs, err := s.getManifestObjects(cr, nodeInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
 	if len(objs) == 0 {
+		// getManifestObjects returned no objects, this means that no objects need to be applied to the cluster
+		// as (most likely) no Mellanox hardware is found (No mellanox labels where found).
+		// Return SyncStateNotReady so we retry the Sync.
 		return SyncStateNotReady, nil
 	}
 

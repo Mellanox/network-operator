@@ -39,43 +39,67 @@ func (s *stateSkel) Description() string {
 	return s.description
 }
 
+func (s *stateSkel) getObj(obj *unstructured.Unstructured) error {
+	log.V(consts.LogLevelInfo).Info("Get Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+	err := s.client.Get(
+		context.TODO(), types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
+	if k8serrors.IsNotFound(err) {
+		// does not exist (yet)
+		log.V(consts.LogLevelInfo).Info("Object Does not Exists")
+	}
+	return err
+}
+
+func (s *stateSkel) createObj(obj *unstructured.Unstructured) error {
+	log.V(consts.LogLevelInfo).Info("Creating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+	toCreate := obj.DeepCopy()
+	if err := s.client.Create(context.TODO(), toCreate); err != nil {
+		if k8serrors.IsAlreadyExists(err) {
+			log.V(consts.LogLevelInfo).Info("Object Already Exists")
+		}
+		return err
+	}
+	log.V(consts.LogLevelInfo).Info("Object created successfully")
+	return nil
+}
+
+func (s *stateSkel) updateObj(obj *unstructured.Unstructured) error {
+	log.V(consts.LogLevelInfo).Info("Updating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+	// Note: Some objects may require update of the resource version
+	// TODO: using Patch preserves runtime attributes. In the future consider using patch if relevant
+	desired := obj.DeepCopy()
+	if err := s.client.Update(context.TODO(), desired); err != nil {
+		return errors.Wrap(err, "failed to update resource")
+	}
+	log.V(consts.LogLevelInfo).Info("Object updated successfully")
+	return nil
+}
+
 func (s *stateSkel) createOrUpdateObjs(
 	setControllerReference func(obj *unstructured.Unstructured) error,
 	objs []*unstructured.Unstructured) error {
-	for _, obj := range objs {
-		log.V(consts.LogLevelInfo).Info("Handling manifest object", "Kind:", obj.GetKind(), "Name", obj.GetName())
+	for _, desiredObj := range objs {
+		log.V(consts.LogLevelInfo).Info("Handling manifest object", "Kind:", desiredObj.GetKind(),
+			"Name", desiredObj.GetName())
 		// Set controller reference for object to allow cleanup on CR deletion
-		if err := setControllerReference(obj); err != nil {
+		if err := setControllerReference(desiredObj); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
-		// Check if this object already exists
-		found := obj.DeepCopy()
-		err := s.client.Get(
-			context.TODO(), types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, found)
-		if err != nil && k8serrors.IsNotFound(err) {
-			// does not exist, create it.
-			log.V(consts.LogLevelInfo).Info("Object does not exist, Creating object")
-			if err = s.client.Create(context.TODO(), obj); err != nil {
-				return errors.Wrap(err, "failed to create object")
-			}
-			log.V(consts.LogLevelInfo).Info("Object created successfully")
+
+		err := s.createObj(desiredObj)
+		if err == nil {
+			// object created successfully
 			continue
-		} else if err != nil {
-			// error occurred fetching object
-			return errors.Wrapf(
-				err, "failed to get object: Name: %s, Namespace: %s", obj.GetName(), obj.GetNamespace())
+		}
+		if !k8serrors.IsAlreadyExists(err) {
+			// Some error occurred
+			return err
 		}
 
-		log.V(consts.LogLevelInfo).Info("Object found, Updating object.")
 		// Object found, Update it
-		// Note: Some objects may require update of the resource version
-		// TODO: using Patch preserves runtime attributes. consider using patch if relevant
-		required := obj.DeepCopy()
-
-		if err := s.client.Update(context.TODO(), required); err != nil {
-			return errors.Wrap(err, "failed to update resource")
+		if err := s.updateObj(desiredObj); err != nil {
+			return err
 		}
-		log.V(consts.LogLevelInfo).Info("Object updated successfully")
 	}
 	return nil
 }
@@ -87,20 +111,20 @@ func (s *stateSkel) getSyncState(objs []*unstructured.Unstructured) (SyncState, 
 		log.V(consts.LogLevelInfo).Info("Checking object", "Kind:", obj.GetKind(), "Name", obj.GetName())
 		// Check if object exists
 		found := obj.DeepCopy()
-		err := s.client.Get(
-			context.TODO(), types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, found)
+		err := s.getObj(found)
 		if err != nil {
-			log.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 			if k8serrors.IsNotFound(err) {
 				// does not exist (yet)
+				log.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 				return SyncStateNotReady, nil
 			}
 			// other error
 			return SyncStateNotReady, errors.Wrapf(err, "failed to get object")
 		}
+
 		// Object exists, check for Kind specific readiness
 		if found.GetKind() == "DaemonSet" {
-			if ready, err := s.daemonsetReady(found); err != nil || !ready {
+			if ready, err := s.isDaemonSetReady(found); err != nil || !ready {
 				log.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 				return SyncStateNotReady, err
 			}
@@ -110,8 +134,8 @@ func (s *stateSkel) getSyncState(objs []*unstructured.Unstructured) (SyncState, 
 	return SyncStateReady, nil
 }
 
-// daemonsetReady checks if daemonset is ready
-func (s *stateSkel) daemonsetReady(uds *unstructured.Unstructured) (bool, error) {
+// isDaemonSetReady checks if daemonset is ready
+func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured) (bool, error) {
 	buf, err := uds.MarshalJSON()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to marshall unstructured daemonset object")
@@ -130,6 +154,10 @@ func (s *stateSkel) daemonsetReady(uds *unstructured.Unstructured) (bool, error)
 		"PodsUnavailable:", ds.Status.NumberUnavailable,
 		"PodsReady:", ds.Status.NumberReady,
 		"Conditions:", ds.Status.Conditions)
+	// Note(adrianc): We check for DesiredNumberScheduled!=0 as we expect to have at least one node that would need
+	// to have DaemonSet Pods deployed onto it. DesiredNumberScheduled == 0 then indicates that this field was not yet
+	// updated by the DaemonSet controller
+	// TODO: Check if we can use another field maybe to indicate it was processed by the DaemonSet controller.
 	if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable {
 		return true, nil
 	}

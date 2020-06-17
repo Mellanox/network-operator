@@ -14,11 +14,11 @@ var log = logf.Log.WithName("nodeinfo")
 
 // Node labels used by nodeinfo package
 const (
-	nodeLabelOSName        = "feature.node.kubernetes.io/system-os_release.ID"
-	nodeLabelOSVer         = "feature.node.kubernetes.io/system-os_release.VERSION_ID"
-	nodeLabelKernelVerFull = "feature.node.kubernetes.io/kernel-version.full"
-	nodeLabelHostname      = "kubernetes.io/hostname"
-	nodeLabelCPUArch       = "kubernetes.io/arch"
+	NodeLabelOSName        = "feature.node.kubernetes.io/system-os_release.ID"
+	NodeLabelOSVer         = "feature.node.kubernetes.io/system-os_release.VERSION_ID"
+	NodeLabelKernelVerFull = "feature.node.kubernetes.io/kernel-version.full"
+	NodeLabelHostname      = "kubernetes.io/hostname"
+	NodeLabelCPUArch       = "kubernetes.io/arch"
 	NodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
 )
 
@@ -35,13 +35,13 @@ const (
 
 var attrToLabel = [...][]string{
 	// AttrTypeOS
-	{nodeLabelOSName, nodeLabelOSVer},
+	{NodeLabelOSName, NodeLabelOSVer},
 	// AttrTypeKernel
-	{nodeLabelKernelVerFull},
+	{NodeLabelKernelVerFull},
 	// AttrTypeHostname
-	{nodeLabelHostname},
+	{NodeLabelHostname},
 	// AttrTypeCPUArch
-	{nodeLabelCPUArch},
+	{NodeLabelCPUArch},
 }
 
 // NodeAttributes provides attributes of a specific node
