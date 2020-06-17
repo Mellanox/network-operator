@@ -15,7 +15,7 @@ func (m *fakeMananger) GetWatchSources() []*source.Kind {
 }
 
 // SyncState reconciles the state of the system for the custom resource
-func (m *fakeMananger) SyncState(customResource interface{}, serviceCatalog ServiceCatalog) (Results, error) {
+func (m *fakeMananger) SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error) {
 	return Results{
 		Status:       SyncStateNotReady,
 		StatesStatus: nil,

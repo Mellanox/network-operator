@@ -19,12 +19,12 @@ func NewStateGroup(states []State) Group {
 }
 
 // SyncGroup sync and update status for a list of states
-func (sg *Group) Sync(customResource interface{}, serviceCatalog ServiceCatalog) (results []Result) {
+func (sg *Group) Sync(customResource interface{}, infoCatalog InfoCatalog) (results []Result) {
 	// sync and update status for the list of states
 	for i := range sg.states {
 		log.V(consts.LogLevelInfo).Info(
 			"Sync State", "Name:", sg.states[i].Name(), "Description:", sg.states[i].Description())
-		status, err := sg.states[i].Sync(customResource, serviceCatalog)
+		status, err := sg.states[i].Sync(customResource, infoCatalog)
 		sg.results[&sg.states[i]] = Result{
 			StateName: sg.states[i].Name(),
 			Status:    status,

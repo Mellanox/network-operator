@@ -13,9 +13,9 @@ type Manager interface {
 	// GetWatchSources gets Resources that should be watched by a Controller for this state manager
 	GetWatchSources() []*source.Kind
 	// SyncState reconciles the state of the system and returns a list of status of the applied states
-	// ServiceCatalog is provided to optionally provide a State additional services required for it to perform
+	// InfoCatalog is provided to optionally provide a State additional information sources required for it to perform
 	// the Sync operation.
-	SyncState(customResource interface{}, serviceCatalog ServiceCatalog) (Results, error)
+	SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error)
 }
 
 // Represent a Result of a single State.Sync() invocation
@@ -63,7 +63,7 @@ func (smgr *stateManager) GetWatchSources() []*source.Kind {
 }
 
 // SyncState attempts to reconcile the system by invoking Sync on each of the states
-func (smgr *stateManager) SyncState(customResource interface{}, serviceCatalog ServiceCatalog) (Results, error) {
+func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error) {
 	// Sync groups of states, transition from one group to the other when a group finishes
 	log.V(consts.LogLevelInfo).Info("Syncing system state")
 	managerResult := Results{
@@ -72,7 +72,7 @@ func (smgr *stateManager) SyncState(customResource interface{}, serviceCatalog S
 
 	for i, stateGroup := range smgr.stateGroups {
 		log.V(consts.LogLevelInfo).Info("Sync State group", "index", i)
-		results := stateGroup.Sync(customResource, serviceCatalog)
+		results := stateGroup.Sync(customResource, infoCatalog)
 		managerResult.StatesStatus = append(managerResult.StatesStatus, results...)
 
 		done, err := stateGroup.SyncDone()
