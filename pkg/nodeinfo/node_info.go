@@ -12,7 +12,7 @@ import (
 
 // MellanoxNICListOptions will match on Mellanox NIC bearing Nodes when queried via k8s client
 var MellanoxNICListOptions = []client.ListOption{
-	client.MatchingLabels{nodeLabelMlnxNIC: "true"}}
+	client.MatchingLabels{NodeLabelMlnxNIC: "true"}}
 
 // Provider provides Node attributes
 type Provider interface {

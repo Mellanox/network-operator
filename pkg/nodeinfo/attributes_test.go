@@ -18,28 +18,28 @@ var _ = Describe("NodeAttributes tests", func() {
 
 	Context("Create NodeAttributes from node with all relevant labels", func() {
 		It("Should return NodeAttributes with all attributes", func() {
-			testNode.Labels[nodeLabelCPUArch] = "amd64"
-			testNode.Labels[nodeLabelHostname] = "test-host"
-			testNode.Labels[nodeLabelKernelVerFull] = "5.4.0-generic"
-			testNode.Labels[nodeLabelOSName] = "ubuntu"
-			testNode.Labels[nodeLabelOSVer] = "20.04"
+			testNode.Labels[NodeLabelCPUArch] = "amd64"
+			testNode.Labels[NodeLabelHostname] = "test-host"
+			testNode.Labels[NodeLabelKernelVerFull] = "5.4.0-generic"
+			testNode.Labels[NodeLabelOSName] = "ubuntu"
+			testNode.Labels[NodeLabelOSVer] = "20.04"
 			attr := newNodeAttributes(&testNode)
 
 			Expect(attr.Name).To(Equal("test-node"))
-			Expect(attr.Attributes[AttrTypeHostname]).To(Equal(testNode.Labels[nodeLabelHostname]))
+			Expect(attr.Attributes[AttrTypeHostname]).To(Equal(testNode.Labels[NodeLabelHostname]))
 			Expect(attr.Attributes[AttrTypeOS]).To(Equal(
-				testNode.Labels[nodeLabelOSName] + testNode.Labels[nodeLabelOSVer]))
-			Expect(attr.Attributes[AttrTypeKernel]).To(Equal(testNode.Labels[nodeLabelKernelVerFull]))
-			Expect(attr.Attributes[AttrTypeCPUArch]).To(Equal(testNode.Labels[nodeLabelCPUArch]))
+				testNode.Labels[NodeLabelOSName] + testNode.Labels[NodeLabelOSVer]))
+			Expect(attr.Attributes[AttrTypeKernel]).To(Equal(testNode.Labels[NodeLabelKernelVerFull]))
+			Expect(attr.Attributes[AttrTypeCPUArch]).To(Equal(testNode.Labels[NodeLabelCPUArch]))
 
 		})
 	})
 
 	Context("Create NodeAttributes from node with some relevant labels", func() {
 		It("Should return NodeAttributes with some attributes", func() {
-			testNode.Labels[nodeLabelHostname] = "test-host"
-			testNode.Labels[nodeLabelOSName] = "ubuntu"
-			testNode.Labels[nodeLabelOSVer] = "20.04"
+			testNode.Labels[NodeLabelHostname] = "test-host"
+			testNode.Labels[NodeLabelOSName] = "ubuntu"
+			testNode.Labels[NodeLabelOSVer] = "20.04"
 			attr := newNodeAttributes(&testNode)
 
 			var exist bool
@@ -56,7 +56,7 @@ var _ = Describe("NodeAttributes tests", func() {
 
 	Context("Create NodeAttributes from node with no OS name", func() {
 		It("Should return NodeAttributes with no AttrTypeOS", func() {
-			testNode.Labels[nodeLabelOSName] = "ubuntu"
+			testNode.Labels[NodeLabelOSName] = "ubuntu"
 			attr := newNodeAttributes(&testNode)
 
 			_, exist := attr.Attributes[AttrTypeOS]
@@ -66,7 +66,7 @@ var _ = Describe("NodeAttributes tests", func() {
 
 	Context("Create NodeAttributes from node with no OS version", func() {
 		It("Should return NodeAttributes with no AttrTypeOS", func() {
-			testNode.Labels[nodeLabelOSVer] = "20.04"
+			testNode.Labels[NodeLabelOSVer] = "20.04"
 			attr := newNodeAttributes(&testNode)
 
 			_, exist := attr.Attributes[AttrTypeOS]

@@ -21,6 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+var ManifestFileSuffix = []string{"yaml", "yml", "json"}
+
 // Renderer renders k8s objects from a manifest source dir and TemplatingData used by the templating engine
 type Renderer interface {
 	// RenderObjects renders kubernetes objects using provided TemplatingData
