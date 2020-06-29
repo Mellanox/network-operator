@@ -1,4 +1,4 @@
-module github.com/Mellanox/mellanox-network-operator
+module github.com/Mellanox/network-operator
 
 go 1.13
 

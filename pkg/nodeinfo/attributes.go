@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 var log = logf.Log.WithName("nodeinfo")

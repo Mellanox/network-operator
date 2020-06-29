@@ -29,9 +29,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
-	"github.com/Mellanox/mellanox-network-operator/pkg/nodeinfo"
-	"github.com/Mellanox/mellanox-network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/nodeinfo"
+	"github.com/Mellanox/network-operator/pkg/render"
 )
 
 // a state skeleton intended to be embedded in structs implementing the State interface
