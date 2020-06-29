@@ -36,6 +36,7 @@ const (
 	NodeLabelHostname      = "kubernetes.io/hostname"
 	NodeLabelCPUArch       = "kubernetes.io/arch"
 	NodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
+	NodeLabelNvGPU         = "feature.node.kubernetes.io/pci-10de.present"
 )
 
 type AttributeType int
