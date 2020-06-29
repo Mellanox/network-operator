@@ -18,7 +18,6 @@ package config
 
 import (
 	"sync"
-	"time"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -41,7 +40,7 @@ type StateConfig struct {
 type ControllerConfig struct {
 	//nolint:stylecheck
 	// Request requeue time(seconds) in case the system still needs to be reconciled
-	RequeueTimeSeconds time.Duration `env:"CONTROLLER_REQUEST_REQUEUE_SECONDS" envDefault:5`
+	RequeueTimeSeconds uint `env:"CONTROLLER_REQUEST_REQUEUE_SECONDS" envDefault:"5"`
 }
 
 func FromEnv() *OperatorConfig {

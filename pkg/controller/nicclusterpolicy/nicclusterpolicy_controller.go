@@ -155,7 +155,7 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 	}
 	if managerStatus.Status != state.SyncStateReady {
 		return reconcile.Result{
-			RequeueAfter: config.FromEnv().Controller.RequeueTimeSeconds * time.Second,
+			RequeueAfter: time.Duration(config.FromEnv().Controller.RequeueTimeSeconds) * time.Second,
 		}, nil
 	}
 	return reconcile.Result{}, nil
