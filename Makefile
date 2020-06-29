@@ -14,7 +14,7 @@
 
 # Package related
 BINARY_NAME=network-operator
-PACKAGE=mellanox-network-operator
+PACKAGE=network-operator
 ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH=$(CURDIR)/.gopath
@@ -32,7 +32,7 @@ export GOBIN
 VERSION?=master
 DATE=`date -Iseconds`
 COMMIT?=`git rev-parse --verify HEAD`
-LDFLAGS="-X github.com/Mellanox/mellanox-network-operator/version.Version=$(VERSION) -X github.com/Mellanox/mellanox-network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/mellanox-network-operator/version.Date=$(DATE)"
+LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
 
 # Docker
 IMAGE_BUILDER?=@docker
