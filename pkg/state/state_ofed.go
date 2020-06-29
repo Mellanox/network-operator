@@ -57,7 +57,7 @@ type stateOFED struct {
 	stateSkel
 }
 
-type runtimeSpec struct {
+type ofedRuntimeSpec struct {
 	CPUArch       string
 	OSNameFull    string
 	KernelVerFull string
@@ -66,7 +66,7 @@ type runtimeSpec struct {
 
 type ofedManifestRenderData struct {
 	CrSpec      *mellanoxv1alpha1.OFEDDriverSpec
-	RuntimeSpec *runtimeSpec
+	RuntimeSpec *ofedRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -143,7 +143,7 @@ func (s *stateOFED) getManifestObjects(
 
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
-		RuntimeSpec: &runtimeSpec{
+		RuntimeSpec: &ofedRuntimeSpec{
 			Namespace:     cr.Namespace,
 			CPUArch:       attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSNameFull:    attrs[0].Attributes[nodeinfo.AttrTypeOS],
