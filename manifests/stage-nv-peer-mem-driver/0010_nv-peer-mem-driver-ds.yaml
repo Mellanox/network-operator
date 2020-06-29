@@ -37,6 +37,7 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
+      hostNetwork: true
       containers:
         - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}
           imagePullPolicy: IfNotPresent

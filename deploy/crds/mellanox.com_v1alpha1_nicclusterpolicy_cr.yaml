@@ -33,3 +33,8 @@ spec:
         "devices": ["enp5s0f0"]
       }]
       }
+  nvPeerDriver:
+    image: REPLACE_IMAGE
+    repository: REPLACE_REPOSITORY
+    version: REPLACE_VERSION
+    gpuDriverSourcePath: /run/nvidia/driver
