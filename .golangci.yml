@@ -24,7 +24,7 @@ linters-settings:
   gocognit:
     min-complexity: 30
   goimports:
-    local-prefixes: github.com/Mellanox/nic-operator
+    local-prefixes: github.com/Mellanox/network-operator
   golint:
     min-confidence: 0
   gomnd:
