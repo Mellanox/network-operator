@@ -17,7 +17,7 @@ limitations under the License.
 package state
 
 import (
-	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 // Group Represents a set of disjoint States that are Synced (Reconciled) together

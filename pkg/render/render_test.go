@@ -23,8 +23,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/Mellanox/mellanox-network-operator/pkg/render"
-	"github.com/Mellanox/mellanox-network-operator/pkg/utils"
+	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/utils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

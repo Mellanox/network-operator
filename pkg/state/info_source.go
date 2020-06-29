@@ -17,7 +17,7 @@ limitations under the License.
 package state
 
 import (
-	"github.com/Mellanox/mellanox-network-operator/pkg/nodeinfo"
+	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 )
 
 type InfoType uint

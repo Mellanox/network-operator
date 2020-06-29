@@ -17,7 +17,7 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/Mellanox/mellanox-network-operator/pkg/controller/nicclusterpolicy"
+	"github.com/Mellanox/network-operator/pkg/controller/nicclusterpolicy"
 )
 
 func init() {

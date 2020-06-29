@@ -24,10 +24,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Mellanox/mellanox-network-operator/pkg/apis"
-	"github.com/Mellanox/mellanox-network-operator/pkg/controller"
-	"github.com/Mellanox/mellanox-network-operator/version"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -40,6 +36,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"github.com/Mellanox/network-operator/pkg/apis"
+	"github.com/Mellanox/network-operator/pkg/controller"
+	"github.com/Mellanox/network-operator/version"
 )
 
 // Change below variables to serve metrics on different host or port.

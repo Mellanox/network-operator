@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 // StateManager manages a collection of states and handles transitions from State to State.

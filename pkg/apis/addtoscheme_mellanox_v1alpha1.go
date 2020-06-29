@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"github.com/Mellanox/mellanox-network-operator/pkg/apis/mellanox/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/apis/mellanox/v1alpha1"
 )
 
 func init() {

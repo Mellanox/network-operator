@@ -24,9 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	mellanoxv1alpha1 "github.com/Mellanox/mellanox-network-operator/pkg/apis/mellanox/v1alpha1"
-	"github.com/Mellanox/mellanox-network-operator/pkg/config"
-	"github.com/Mellanox/mellanox-network-operator/pkg/consts"
+	mellanoxv1alpha1 "github.com/Mellanox/network-operator/pkg/apis/mellanox/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
+	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 // NewStateManager creates a state.Manager for the given CRD Kind
