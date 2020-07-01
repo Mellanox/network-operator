@@ -35,6 +35,8 @@ spec:
           - network-operator
           imagePullPolicy: Always
           env:
+            - name: STATE_MANIFEST_BASE_DIR
+              value: "/etc/manifests"
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:
