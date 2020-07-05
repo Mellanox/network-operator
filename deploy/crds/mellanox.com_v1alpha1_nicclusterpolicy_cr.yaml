@@ -15,16 +15,16 @@ apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
   name: example-nicclusterpolicy
-  namespace: mlnx-network-operator
+  namespace: REPLACE_NAMESPACE
 spec:
   ofedDriver:
-    image: ofed-driver
-    repository: adriancdockerhub
-    version: 5.0-2.1.8.1
+    image: REPLACE_IMAGE
+    repository: REPLACE_REPOSITORY
+    version: REPLACE_VERSION
   devicePlugin:
-    image: k8s-rdma-shared-dev-plugin
-    repository: rdma
-    version: latest
+    image: REPLACE_IMAGE
+    repository: REPLACE_REPOSITORY
+    version: REPLACE_VERSION
     config: |
       {
         "configList": [{

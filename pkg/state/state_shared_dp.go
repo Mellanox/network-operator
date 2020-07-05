@@ -67,7 +67,7 @@ type sharedDpManifestRenderData struct {
 func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
-		"State: state-RDMA-device-plugin Sync Custom resource", "Name", cr.Name, "Namespace:", cr.Namespace)
+		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.DevicePlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
