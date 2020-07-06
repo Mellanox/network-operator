@@ -11,25 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: mellanox.com/v1alpha1
-kind: NicClusterPolicy
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: example-nicclusterpolicy
-  namespace: REPLACE_NAMESPACE
-spec:
-  ofedDriver:
-    image: REPLACE_IMAGE
-    repository: REPLACE_REPOSITORY
-    version: REPLACE_VERSION
-  devicePlugin:
-    image: REPLACE_IMAGE
-    repository: REPLACE_REPOSITORY
-    version: REPLACE_VERSION
-    config: |
-      {
-        "configList": [{
-        "resourceName": "hca_shared_devices_a",
-        "rdmaHcaMax": 1000,
-        "devices": ["enp5s0f0"]
-      }]
-      }
+  name: rdma-devices
+  namespace: {{ .RuntimeSpec.Namespace }}
+data:
+  config.json: '{{ .CrSpec.Config }}'
