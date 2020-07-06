@@ -1,19 +1,3 @@
-/*
-Copyright 2020 NVIDIA
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package state
 
 import (
@@ -32,56 +16,57 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-const stateOFEDName = "state-OFED"
-const stateOFEDDescription = "OFED driver deployed in the cluster"
+const stateNVPeerName = "state-NV-Peer"
+const stateNVPeerDescription = "Nvidia Peer Memory driver deployed in the cluster"
 
-// NewStateOFED creates a new OFED driver state
-func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+//TODO: Refine a base struct that implements a driver container as this is pretty much identical to OFED state
+
+// NewStateNVPeer creates a new NVPeer driver state
+func NewStateNVPeer(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateOFED{
+	return &stateNVPeer{
 		stateSkel: stateSkel{
-			name:        stateOFEDName,
-			description: stateOFEDDescription,
+			name:        stateNVPeerName,
+			description: stateNVPeerDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
 		}}, nil
 }
 
-type stateOFED struct {
+type stateNVPeer struct {
 	stateSkel
 }
 
-type ofedRuntimeSpec struct {
-	CPUArch       string
-	OSNameFull    string
-	KernelVerFull string
-	Namespace     string
+type nvPeerRuntimeSpec struct {
+	CPUArch    string
+	OSNameFull string
+	Namespace  string
 }
 
-type ofedManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.OFEDDriverSpec
-	RuntimeSpec *ofedRuntimeSpec
+type nvPeerManifestRenderData struct {
+	CrSpec      *mellanoxv1alpha1.NVPeerDriverSpec
+	RuntimeSpec *nvPeerRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
 //nolint:dupl
-func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if cr.Spec.OFEDDriver == nil {
+	if cr.Spec.NVPeerDriver == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		// TODO: Support the latter case
-		log.V(consts.LogLevelInfo).Info("OFED driver spec in CR is nil, no action required")
+		log.V(consts.LogLevelInfo).Info("NV Peer driver spec in CR is nil, no action required")
 		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
@@ -96,7 +81,7 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 	}
 	if len(objs) == 0 {
 		// getManifestObjects returned no objects, this means that no objects need to be applied to the cluster
-		// as (most likely) no Mellanox hardware is found (No mellanox labels where found).
+		// as (most likely) no Mellanox/Nvidia hardware is found (No Mellanox and Nvidia labels where found).
 		// Return SyncStateNotReady so we retry the Sync.
 		return SyncStateNotReady, nil
 	}
@@ -120,35 +105,37 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateOFED) GetWatchSources() map[string]*source.Kind {
+func (s *stateNVPeer) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
 	return wr
 }
 
-func (s *stateOFED) getManifestObjects(
+func (s *stateNVPeer) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy,
 	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
 	attrs := nodeInfo.GetNodesAttributes(
-		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
+		nodeinfo.NewNodeLabelFilterBuilder().
+			WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").
+			WithLabel(nodeinfo.NodeLabelNvGPU, "true").
+			Build())
 	if len(attrs) == 0 {
-		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs and Nvidia GPUs where found in the cluster.")
 		return []*unstructured.Unstructured{}, nil
 	}
 
-	// TODO: Render daemonset multiple times according to CPUXOSXKernel matrix (ATM assume all nodes are the same)
+	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
 	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOS, nodeinfo.AttrTypeKernel); err != nil {
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOS); err != nil {
 		return nil, err
 	}
 
-	renderData := &ofedManifestRenderData{
-		CrSpec: cr.Spec.OFEDDriver,
-		RuntimeSpec: &ofedRuntimeSpec{
-			Namespace:     cr.Namespace,
-			CPUArch:       attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSNameFull:    attrs[0].Attributes[nodeinfo.AttrTypeOS],
-			KernelVerFull: attrs[0].Attributes[nodeinfo.AttrTypeKernel],
+	renderData := &nvPeerManifestRenderData{
+		CrSpec: cr.Spec.NVPeerDriver,
+		RuntimeSpec: &nvPeerRuntimeSpec{
+			Namespace:  cr.Namespace,
+			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOS],
 		},
 	}
 	// render objects

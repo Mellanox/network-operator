@@ -76,9 +76,14 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Device plugin State")
 	}
+	nvPeerMemState, err := NewStateNVPeer(
+		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-nv-peer-mem-driver"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create NV peer memory driver State")
+	}
 
 	return []Group{
 		NewStateGroup([]State{ofedState}),
-		NewStateGroup([]State{sharedDpState}),
+		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
 	}, nil
 }
