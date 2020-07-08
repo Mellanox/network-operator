@@ -1,0 +1,4 @@
+# Persistent netdev example using PCI
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", KERNELS=="0000:03:00.1", NAME="mlnx_rdma0"
+# Persistent netdev example using MAC
+#SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="1c:34:da:73:45:8b", NAME="mlnx_rdma0"

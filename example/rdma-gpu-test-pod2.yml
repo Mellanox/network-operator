@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rdma-gpu-test-pod-2
+  annotations:
+    k8s.v1.cni.cncf.io/networks: rdma-net-ipam
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: ubuntu00
+  restartPolicy: OnFailure
+  containers:
+  - image: adriancdockerhub/cuda-perftest
+    name: rdma-gpu-test-ctr
+    securityContext:
+      capabilities:
+        add: [ "IPC_LOCK","NET_ADMIN" ]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+        rdma/hca_shared_devices_a: 1
+      requests:
+        nvidia.com/gpu: 1
+        rdma/hca_shared_devices_a: 1
