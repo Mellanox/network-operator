@@ -52,6 +52,29 @@ spec:
               mountPropagation: Bidirectional
             - name: etc-network
               mountPath: /etc/network
+          startupProbe:
+            exec:
+              command:
+                [sh, -c, 'ls /.driver-ready']
+            initialDelaySeconds: 10
+            failureThreshold: 60
+            successThreshold: 1
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                [sh, -c, 'lsmod | grep mlx5_core']
+            periodSeconds: 30
+            initialDelaySeconds: 30
+            failureThreshold: 1
+            successThreshold: 1
+          readinessProbe:
+            exec:
+              command:
+                [sh, -c, 'lsmod | grep mlx5_core']
+            periodSeconds: 30
+            initialDelaySeconds: 10
+            failureThreshold: 1
       volumes:
         - name: run-mlnx-ofed
           hostPath:
