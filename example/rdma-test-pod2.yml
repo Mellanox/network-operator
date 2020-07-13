@@ -4,8 +4,16 @@ metadata:
   name: rdma-test-pod-2
   annotations:
     k8s.v1.cni.cncf.io/networks: rdma-net-ipam
+    # If a network with static IPAM is used replace network annotation with the below.
+    #k8s.v1.cni.cncf.io/networks: '[
+    #  { "name": "rmda-net",
+    #    "ips": ["192.168.111.101/24"],
+    #    "gateway": ["192.168.111.1"]
+    #  }
+    #]'
 spec:
   nodeSelector:
+    # Note: Replace hostname or remove selector altogether
     kubernetes.io/hostname: ubuntu00
   restartPolicy: OnFailure
   containers:
@@ -13,7 +21,7 @@ spec:
     name: rdma-test-ctr
     securityContext:
       capabilities:
-        add: [ "IPC_LOCK","NET_ADMIN" ]
+        add: [ "IPC_LOCK" ]
     resources:
       limits:
         rdma/hca_shared_devices_a: 1
@@ -23,5 +31,4 @@ spec:
     - sh
     - -c
     - |
-      ls -l /dev/infiniband /sys/class/net
-      sleep 1000000
+      sleep infinity

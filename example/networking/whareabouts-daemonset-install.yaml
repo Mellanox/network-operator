@@ -65,7 +65,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: whereabouts
-        image: dougbtv/whereabouts:latest
+        image: dougbtv/whereabouts:v0.3
         env:
         - name: WHEREABOUTS_NAMESPACE
           valueFrom:

@@ -6,6 +6,8 @@ metadata:
   name: rdma-net-ipam
   namespace: default
 spec:
+  # Configuration below assumes 'ens2f0' as master device for macvlan CNI,
+  # replace with (RDMA capable) netdevice of your choice.
   config: |-
     {
         "cniVersion": "0.3.1",
