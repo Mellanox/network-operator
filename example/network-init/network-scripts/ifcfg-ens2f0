@@ -1,0 +1,6 @@
+# if your system uses network-scripts then create a new file for
+# The RDMA capable net device as demonstrated below.
+TYPE=Ethernet
+DEVICE=ens2f0
+MTU=9000
+ONBOOT=yes

@@ -1,0 +1,25 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: rdma/hca_shared_devices_a
+  name: rdma-net
+spec:
+  # Configuration below assumes 'ens2f0' as master netdevice for macvlan CNI,
+  # replace with (RDMA capable) netdevice of your choice.
+  # Note IPAM type is static, so IP configuration should be provided in pod spec of RDMA workloads.
+  config: '{
+    "cniVersion": "0.3.1",
+    "name": "rdma-net",
+    "plugins": [
+      {
+        "type": "macvlan",
+        "master": "ens2f0",
+        "mode": "bridge",
+        "mtu": 9000
+        "ipam": {
+          "type": "static"
+        }
+      }
+    ]
+  }'

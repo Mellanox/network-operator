@@ -1,0 +1,11 @@
+# Persistent and predictable network device is required as both RDMA shared device plugin
+# and macvlan CNI rely on netdevice name in its configuration. This name needs to be the same
+# for all hosts running RDMA workloads.
+# This file is an example of udev rules (https://wiki.debian.org/udev) to achieve predictable and persistent
+# netdev name based either via PCI or MAC address.
+# Uncomment and edit the relevant line then place it in udev rules folder (/etc/udev/rules.d/).
+
+# Persistent netdev example using PCI
+#SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", KERNELS=="0000:03:00.1", NAME="mlnx_rdma0"
+# Persistent netdev example using MAC
+#SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="1c:34:da:73:45:8b", NAME="mlnx_rdma0"
