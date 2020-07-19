@@ -30,7 +30,7 @@ spec:
       containers:
         - name: network-operator
           # Replace this with the built image name
-          image: adriancdockerhub/network-operator
+          image: mellanox/network-operator
           command:
           - network-operator
           imagePullPolicy: IfNotPresent

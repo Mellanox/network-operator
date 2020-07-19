@@ -17,7 +17,7 @@ spec:
     kubernetes.io/hostname: ubuntu
   restartPolicy: OnFailure
   containers:
-  - image: adriancdockerhub/cuda-perftest
+  - image: mellanox/cuda-perftest
     name: rdma-gpu-test-ctr
     securityContext:
       capabilities:
