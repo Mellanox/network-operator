@@ -115,7 +115,7 @@ func (s *stateSharedDp) getManifestObjects(
 	renderData := &sharedDpManifestRenderData{
 		CrSpec: cr.Spec.DevicePlugin,
 		RuntimeSpec: &sharedDpRuntimeSpec{
-			Namespace: cr.Namespace,
+			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}
 	// render objects

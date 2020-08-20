@@ -26,3 +26,7 @@ const (
 	LogLevelInfo    = 3
 	LogLevelDebug   = 4
 )
+
+const (
+	NetworkOperatorResourceNamespace = "mlnx-network-operator-resources"
+)

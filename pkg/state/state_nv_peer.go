@@ -133,7 +133,7 @@ func (s *stateNVPeer) getManifestObjects(
 	renderData := &nvPeerManifestRenderData{
 		CrSpec: cr.Spec.NVPeerDriver,
 		RuntimeSpec: &nvPeerRuntimeSpec{
-			Namespace:  cr.Namespace,
+			Namespace:  consts.NetworkOperatorResourceNamespace,
 			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOS],
 		},

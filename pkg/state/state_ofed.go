@@ -145,7 +145,7 @@ func (s *stateOFED) getManifestObjects(
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
-			Namespace:     cr.Namespace,
+			Namespace:     consts.NetworkOperatorResourceNamespace,
 			CPUArch:       attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSNameFull:    attrs[0].Attributes[nodeinfo.AttrTypeOS],
 			KernelVerFull: attrs[0].Attributes[nodeinfo.AttrTypeKernel],
