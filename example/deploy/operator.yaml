@@ -30,7 +30,7 @@ spec:
       containers:
         - name: network-operator
           # Replace this with the built image name
-          image: mellanox/network-operator:v0.1.0
+          image: mellanox/network-operator
           command:
           - network-operator
           imagePullPolicy: IfNotPresent
@@ -38,9 +38,7 @@ spec:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/etc/manifests"
             - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              value: "mlnx-network-operator-resources"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
