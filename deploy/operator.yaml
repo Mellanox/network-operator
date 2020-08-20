@@ -38,9 +38,7 @@ spec:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/etc/manifests"
             - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              value: "mlnx-network-operator-resources"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
