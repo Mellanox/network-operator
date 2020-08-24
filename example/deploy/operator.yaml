@@ -30,7 +30,7 @@ spec:
       containers:
         - name: network-operator
           # Replace this with the built image name
-          image: mellanox/network-operator
+          image: mellanox/network-operator:v0.1.0
           command:
           - network-operator
           imagePullPolicy: IfNotPresent
