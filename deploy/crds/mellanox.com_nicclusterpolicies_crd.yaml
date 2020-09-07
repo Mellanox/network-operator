@@ -22,7 +22,7 @@ spec:
     listKind: NicClusterPolicyList
     plural: nicclusterpolicies
     singular: nicclusterpolicy
-  scope: Namespaced
+  scope: Cluster
   subresources:
     status: {}
   validation:

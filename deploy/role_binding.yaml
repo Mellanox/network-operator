@@ -17,9 +17,9 @@ metadata:
   name: network-operator
   namespace: REPLACE_NAMESPACE
 subjects:
-- kind: ServiceAccount
-  name: network-operator
-  namespace: REPLACE_NAMESPACE
+  - kind: ServiceAccount
+    name: network-operator
+    namespace: REPLACE_NAMESPACE
 roleRef:
   kind: Role
   name: network-operator
