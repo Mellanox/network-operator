@@ -108,7 +108,7 @@ type NicClusterPolicyStatus struct {
 
 // NicClusterPolicy is the Schema for the nicclusterpolicies API
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=nicclusterpolicies,scope=Namespaced
+// +kubebuilder:resource:path=nicclusterpolicies,scope=Cluster
 type NicClusterPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
