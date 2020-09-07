@@ -1,0 +1,18 @@
+apiVersion: v2
+appVersion: v0.2.0
+dependencies:
+- condition: nfd.enabled
+  name: node-feature-discovery
+  repository: ""
+  version: 0.1.0
+description: Nvidia Mellanox network operator
+home: https://github.com/Mellanox/network-operator
+keywords:
+- gpu-direct
+- rdma
+kubeVersion: '>= 1.15.0'
+name: network-operator
+sources:
+- https://github.com/Mellanox/network-operator
+type: application
+version: 0.2.0

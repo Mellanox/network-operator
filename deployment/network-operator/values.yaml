@@ -1,0 +1,85 @@
+# Copyright 2020 NVIDIA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for network-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nfd:
+  enabled: true
+
+# Node Feature discovery chart related values
+node-feature-discovery:
+  worker:
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      - key: "nvidia.com/gpu"
+        operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+    options:
+      sources:
+        pci:
+          deviceClassWhitelist:
+            - "02"
+            - "0200"
+            - "0207"
+          deviceLabelFields:
+            - vendor
+
+# General Operator related values
+# The operator element allows to deploy network operator from an alternate location
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  repository: mellanox
+  image: network-operator
+  nameOverride: ""
+  fullnameOverride: ""
+  # tag, if defined will use the given image tag, else Chart.AppVersion will be used
+  # tag
+
+# NicClusterPolicy CR values:
+deployCR: false
+ofedDriver:
+  deploy: false
+  image: ofed-driver
+  repository: mellanox
+  version: 5.0-2.1.8.0
+
+nvPeerDriver:
+  deploy: false
+  image: nv-peer-mem-driver
+  repository: mellanox
+  version: 1.0-9
+  gpuDriverSourcePath: /run/nvidia/driver
+
+devicePlugin:
+  deploy: true
+  image: k8s-rdma-shared-dev-plugin
+  repository: mellanox
+  version: v1.0.0
+  # The following defines the RDMA resources in the cluster
+  # it must be provided by the user when deploying the chart
+  # each entry in the resources element will create a resource with the provided <name> and list of devices
+  # example:
+  resources:
+    - name: rdma_shared_device_a
+      devices: [enp5s0f0]
