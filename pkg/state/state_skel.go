@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -91,32 +92,103 @@ func (s *stateSkel) updateObj(obj *unstructured.Unstructured) error {
 	return nil
 }
 
+// When updating, not all resources need an updated ResourceVersion
+func needToUpdateResourceVersion(kind string) bool {
+	if kind == "SecurityContextConstraints" ||
+		kind == "Service" ||
+		kind == "ServiceMonitor" ||
+		kind == "Route" ||
+		kind == "BuildConfig" ||
+		kind == "ImageStream" ||
+		kind == "PrometheusRule" {
+		return true
+	}
+	return false
+}
+
+func checkNestedFields(found bool, err error) {
+	if !found || err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+}
+
+func updateResourceVersion(req, found *unstructured.Unstructured) error {
+	kind := found.GetKind()
+
+	if needToUpdateResourceVersion(kind) {
+		version, fnd, err := unstructured.NestedString(found.Object, "metadata", "resourceVersion")
+		checkNestedFields(fnd, err)
+
+		if err := unstructured.SetNestedField(req.Object, version, "metadata", "resourceVersion"); err != nil {
+			return errors.Wrap(err, "Couldn't update ResourceVersion")
+		}
+	}
+
+	if kind == "Service" {
+		clusterIP, fnd, err := unstructured.NestedString(found.Object, "spec", "clusterIP")
+		checkNestedFields(fnd, err)
+
+		if err := unstructured.SetNestedField(req.Object, clusterIP, "spec", "clusterIP"); err != nil {
+			return errors.Wrap(err, "Couldn't update clusterIP")
+		}
+		return nil
+	}
+
+	return nil
+}
+
 func (s *stateSkel) createOrUpdateObjs(
 	setControllerReference func(obj *unstructured.Unstructured) error,
 	objs []*unstructured.Unstructured) error {
 	for _, desiredObj := range objs {
 		log.V(consts.LogLevelInfo).Info("Handling manifest object", "Kind:", desiredObj.GetKind(),
 			"Name", desiredObj.GetName())
+		found := desiredObj.DeepCopy()
+
 		// Set controller reference for object to allow cleanup on CR deletion
 		if err := setControllerReference(desiredObj); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
 
-		err := s.createObj(desiredObj)
-		if err == nil {
-			// object created successfully
-			continue
+		err := s.getObj(found)
+		if k8serrors.IsNotFound(err) {
+			log.V(consts.LogLevelInfo).Info("Object not found, creating", "Kind:", desiredObj.GetKind(),
+				"Name", desiredObj.GetName())
+			if err := s.createObj(desiredObj); err != nil {
+				return errors.Wrap(err, "couldn't create resource")
+			}
+			return nil
 		}
-		if !k8serrors.IsAlreadyExists(err) {
-			// Some error occurred
-			return err
+
+		if k8serrors.IsForbidden(err) {
+			return errors.Wrap(err, "forbidden, check operator RBAC permissions")
+		}
+
+		if err != nil {
+			return errors.Wrap(err, "unexpected error")
+		}
+
+		// Short circuit updating ServiceAccounts and Pods
+		if desiredObj.GetKind() == "ServiceAccount" || desiredObj.GetKind() == "Pod" {
+			return nil
+		}
+
+		log.V(consts.LogLevelInfo).Info("Object found, updating", "Kind:", desiredObj.GetKind(),
+			"Name", desiredObj.GetName())
+
+		required := desiredObj.DeepCopy()
+		// required.ResourceVersion = found.ResourceVersion this is only needed on resource updates
+		if err := updateResourceVersion(required, found); err != nil {
+			return errors.Wrap(err, "couldn't update ResourceVersion")
 		}
 
 		// Object found, Update it
-		if err := s.updateObj(desiredObj); err != nil {
+		if err := s.updateObj(required); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
