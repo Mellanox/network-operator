@@ -15,7 +15,6 @@ apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
   name: example-nicclusterpolicy
-  namespace: mlnx-network-operator-resources
 spec:
   ofedDriver:
     image: REPLACE_IMAGE

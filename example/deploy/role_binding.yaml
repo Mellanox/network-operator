@@ -17,9 +17,9 @@ metadata:
   name: network-operator
   namespace: mlnx-network-operator
 subjects:
-- kind: ServiceAccount
-  name: network-operator
-  namespace: mlnx-network-operator
+  - kind: ServiceAccount
+    name: network-operator
+    namespace: mlnx-network-operator
 roleRef:
   kind: Role
   name: network-operator
