@@ -21,10 +21,11 @@ package consts
 */
 
 const (
-	LogLevelError   = 1
-	LogLevelWarning = 2
-	LogLevelInfo    = 3
-	LogLevelDebug   = 4
+	// Note: if a different logger is used than zap (operator-sdk default), these values would probably need to change.
+	LogLevelError = iota - 2
+	LogLevelWarning
+	LogLevelInfo
+	LogLevelDebug
 )
 
 const (
