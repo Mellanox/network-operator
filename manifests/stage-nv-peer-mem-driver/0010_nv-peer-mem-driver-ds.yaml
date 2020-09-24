@@ -33,7 +33,13 @@ spec:
         app: nv-peer-mem-driver-{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSNameFull }}
     spec:
       tolerations:
-        - operator: Exists
+        # Allow this pod to be rescheduled while the node is in "critical add-ons only" mode.
+        # This, along with the annotation above marks this pod as a critical add-on.
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
