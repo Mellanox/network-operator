@@ -42,7 +42,7 @@ $ helm repo add mellanox https://mellanox.github.io/network-operator
 $ helm repo update
 
 # Install Operator
-$ helm install -n network-operator --create-namespace --wait mellanox/network-operator
+$ helm install -n network-operator --create-namespace --wait mellanox/network-operator network-operator
 
 # View deployed resources
 $ kubectl -n network-operator get pods
@@ -123,7 +123,7 @@ override to the parameter via CLI it would simply be cumbersome.
 Below are several deployment examples `values.yaml` provided to helm during installation
 of the network operator in the following manner:
 
-`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait mellanox/network-operator `
+`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait mellanox/network-operator network-operator`
 
 #### Example 1
 Network Operator deployment with a specific version of OFED driver and a single RDMA resource mapped to `enp1`
