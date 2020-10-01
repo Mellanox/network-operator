@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -108,8 +107,7 @@ func needToUpdateResourceVersion(kind string) bool {
 
 func checkNestedFields(found bool, err error) {
 	if !found || err != nil {
-		log.Error(err, "")
-		os.Exit(1)
+		return errors.Wrap(err, "nested field error")
 	}
 }
 
@@ -170,6 +168,8 @@ func (s *stateSkel) createOrUpdateObjs(
 		}
 
 		// Short circuit updating ServiceAccounts and Pods
+		// For Pods we can only update image and some minor fields
+		// ServiceAccounts cannot be updated
 		if desiredObj.GetKind() == "ServiceAccount" || desiredObj.GetKind() == "Pod" {
 			return nil
 		}

@@ -2,15 +2,15 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ofed-driver
-  namespace: mlnx-network-operator
+  namespace: {{ .RuntimeSpec.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: ofed-driver
-  namespace: mlnx-network-operator
+  namespace: {{ .RuntimeSpec.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: ofed-driver
-  namespace: mlnx-network-operator
+  namespace: {{ .RuntimeSpec.Namespace }}
 userNames:
 - system:serviceaccount:mlnx-network-operator:ofed-driver
