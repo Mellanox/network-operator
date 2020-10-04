@@ -7,6 +7,9 @@ the lifecycle of Nvidia Mellanox network operator.
 Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking, 
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
+Network Operator works in conjunction with [GPU-Operator](https://github.com/NVIDIA/gpu-operator) to enable GPU-Direct RDMA
+on compatible systems.
+
 
 The Goal of Network Operator is to manage _all_ networking related components to enable execution of
 RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
@@ -16,19 +19,24 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 
 ## QuickStart
 
+### System Requirements
+* RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
+* NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
+(GPU-Direct only)
+* Operating System: Ubuntu18.04 with kernel `4.15.0-109-generic`.
+
 ### Prerequisites
 
 - Kubernetes v1.15+
 - Helm v3
 - Ubuntu 18.04LTS
 
-
 ### Install Helm
 
 Helm provides an install script to copy helm binary to your system:
 ```
 $ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-$ chmod 700 get_helm.sh
+$ chmod 500 get_helm.sh
 $ ./get_helm.sh
 ```
 
@@ -64,7 +72,7 @@ We have introduced the following Chart parameters.
 | `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
 | `operator.repository` | string | `mellanox` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
-| `operator.tag` | string | `None` | Network Operator image tag |
+| `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters |
 
 ### Custom resource parameters

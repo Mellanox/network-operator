@@ -135,6 +135,7 @@ Status:
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
+(GPU-Direct only)
 * Operating System: Ubuntu18.04 with kernel `4.15.0-109-generic`.
 
 >__NOTE__: As more driver containers are built the operator will be able to support additional platforms.
