@@ -36,6 +36,16 @@ spec:
           }
         ]
       }
+  secondaryNetwork:
+    cniPlugins:
+      image: containernetworking-plugins
+      repository: mellanox
+      version: v0.8.7
+    multus:
+      image: multus
+      repository: nfvpe
+      version: v3.6
+      config: ''
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox
