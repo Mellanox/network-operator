@@ -1,0 +1,22 @@
+apiVersion: v2
+name: network-operator
+version: 0.2.0-beta
+kubeVersion: '>= 1.15.0'
+appVersion: v0.2.0
+description: Nvidia Mellanox network operator
+type: application
+keywords:
+  - gpu-direct
+  - rdma
+home: https://mellanox.github.io/network-operator
+sources:
+  - https://github.com/Mellanox/network-operator
+dependencies:
+- condition: nfd.enabled
+  name: node-feature-discovery
+  repository: ""
+  version: 0.1.0
+
+
+
+

@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: v0.6.0
+description: |
+  Detects hardware features available on each node in a Kubernetes cluster, and advertises
+  those features using node labels.
+name: node-feature-discovery
+type: application
+version: 0.1.0

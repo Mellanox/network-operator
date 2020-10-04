@@ -1,0 +1,57 @@
+{{/*
+  Copyright 2020 NVIDIA
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+*/}}
+{{- if .Values.deployCR }}
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
+metadata:
+  name: clusterpolicy
+spec:
+  {{- if .Values.ofedDriver.deploy }}
+  ofedDriver:
+    image: {{ .Values.ofedDriver.image }}
+    repository: {{ .Values.ofedDriver.repository }}
+    version: {{ .Values.ofedDriver.version }}
+  {{- end }}
+  {{- if .Values.nvPeerDriver.deploy }}
+  nvPeerDriver:
+    image: {{ .Values.nvPeerDriver.image }}
+    repository: {{ .Values.nvPeerDriver.repository }}
+    version: {{ .Values.nvPeerDriver.version }}
+    gpuDriverSourcePath: {{ .Values.nvPeerDriver.gpuDriverSourcePath }}
+  {{- end }}
+  {{- if .Values.devicePlugin.deploy }}
+  devicePlugin:
+    # {{ required "A valid value for .Values.devicePlugin.resources is required" .Values.devicePlugin.resources }}
+    image: {{ .Values.devicePlugin.image }}
+    repository: {{ .Values.devicePlugin.repository }}
+    version: {{ .Values.devicePlugin.version }}
+    # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
+    # Replace 'devices' with your (RDMA capable) netdevice name.
+    config: |
+      {
+        "configList": [
+          {{- $length := len .Values.devicePlugin.resources }}
+          {{- range $index, $element := .Values.devicePlugin.resources }}
+          {
+            "resourceName": {{ $element.name | quote }},
+            "rdmaHcaMax": 1000,
+            "devices": {{ $element.devices | toJson }}
+          } {{- if ne $length (add1 $index) }},{{ end }}
+          {{- end }}
+        ]
+      }
+  {{- end }}
+{{ end }}

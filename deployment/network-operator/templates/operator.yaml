@@ -1,0 +1,55 @@
+{{/*
+  Copyright 2020 NVIDIA
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "network-operator.fullname" . }}
+  labels:
+    {{- include "network-operator.labels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "network-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "network-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.operator.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "network-operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          # Replace this with the built image name
+          image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
+          command:
+          - network-operator
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: STATE_MANIFEST_BASE_DIR
+              value: "/etc/manifests"
+            - name: WATCH_NAMESPACE
+              value: ""
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "network-operator"
