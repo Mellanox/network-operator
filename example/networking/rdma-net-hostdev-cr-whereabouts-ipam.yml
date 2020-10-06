@@ -1,0 +1,31 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: rdma/hca_shared_devices_a
+  name: rdma-net-hostdev-ipam
+  namespace: default
+spec:
+  # Configuration below assumes 'ens2f0' as device for host-device CNI,
+  # replace with (RDMA capable) netdevice of your choice.
+  config: |-
+    {
+        "cniVersion": "0.3.1",
+        "name": "rdma-net-hostdev-ipam",
+        "plugins": [
+            {
+                "ipam": {
+                    "datastore": "kubernetes",
+                    "kubernetes": {
+                        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+                    },
+                    "log_file": "/tmp/whereabouts.log",
+                    "log_level": "debug",
+                    "range": "192.168.111.0/24",
+                    "type": "whereabouts"
+                },
+                "type": "host-device",
+                "device": "ens2f0"
+            }
+        ]
+    }
