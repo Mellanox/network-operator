@@ -1,0 +1,21 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{.NetworkName}}
+  namespace: {{.NetworkNamespace}}
+spec:
+  config: '{
+  "cniVersion":"0.4.0",
+  "name":"{{.NetworkName}}",
+  "type":"macvlan",
+{{- if .Master -}}
+  "master": "{{.Master}}",
+{{- end -}}
+{{- if .Mode -}}
+  "mode" : "{{.Mode}}",
+{{- end -}}
+{{- if .Mtu -}}
+  "mtu" : {{.Mtu}},
+{{- end -}}
+  {{.Ipam}}
+}'

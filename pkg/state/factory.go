@@ -57,6 +57,8 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 	switch crdKind {
 	case mellanoxv1alpha1.NicClusterPolicyCRDName:
 		return newNicClusterPolicyStates(k8sAPIClient, scheme)
+	case mellanoxv1alpha1.MacvlanNetworkCRDName:
+		return newMacvlanNetworkStates(k8sAPIClient, scheme)
 	default:
 		break
 	}
@@ -102,5 +104,19 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
 		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
+	}, nil
+}
+
+// newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD
+func newMacvlanNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
+
+	macvlanNetworkState, err := NewStateMacvlanNetwork(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-macvlan-network"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create MacvlanNetwork CRD State")
+	}
+	return []Group{
+		NewStateGroup([]State{macvlanNetworkState}),
 	}, nil
 }
