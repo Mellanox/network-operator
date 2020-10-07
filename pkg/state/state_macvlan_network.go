@@ -17,15 +17,19 @@ limitations under the License.
 package state
 
 import (
-	"encoding/json"
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	netattdefv1 "github.com/Mellanox/network-operator/pkg/apis/k8s/v1"
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/pkg/apis/mellanox/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
@@ -35,6 +39,7 @@ import (
 const (
 	stateMacvlanNetworkName        = "state-Macvlan-Network"
 	stateMacvlanNetworkDescription = "Macvlan net-attach-def CR deployed in cluster"
+	lastNetworkNamespaceAnnot      = "operator.macvlannetwork.mellanox.com/last-network-namespace"
 )
 
 // NewStateMacvlanNetwork creates a new state for MacvlanNetwork CR
@@ -71,16 +76,62 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 		cr.Status.Reason = "failed to render MacvlanNetwork"
 		return SyncStateError, errors.Wrap(err, "failed to render MacvlanNetwork")
 	}
-	raw, _ := json.Marshal(objs[0])
-	cr.Status.MacvlanNetworkAttachmentDef = string(raw)
 
-	return SyncStateReady, nil
+	if len(objs) == 0 {
+		cr.Status.Reason = "no rendered objects found"
+		return SyncStateError, errors.Wrap(err, "no rendered objects found")
+	}
+
+	netAttDef := objs[0]
+	if netAttDef.GetKind() != "NetworkAttachmentDefinition" {
+		cr.Status.Reason = "no NetworkAttachmentDefinition object found"
+		return SyncStateError, errors.Wrap(err, "no NetworkAttachmentDefinition object found")
+	}
+
+	// Delete NetworkAttachmentDefinition if not in desired namespace
+	if err = s.handleNamespaceChange(cr, netAttDef); err != nil {
+		cr.Status.Reason = "Couldn't delete NetworkAttachmentDefinition CR"
+		return SyncStateError, errors.Wrap(err, "Couldn't delete NetworkAttachmentDefinition CR")
+	}
+
+	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
+			return errors.Wrap(err, "failed to set controller reference for object")
+		}
+		return nil
+	}, objs)
+
+	if err != nil {
+		cr.Status.Reason = "failed to create/update objects"
+		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
+	}
+
+	// Check objects status
+	syncState, err := s.getSyncState(objs)
+	if err != nil {
+		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
+	}
+
+	if err := s.updateNetAttDefNamespace(cr, netAttDef); err != nil {
+		return SyncStateError, err
+	}
+
+	// Get NetworkAttachmentDefinition SelfLink
+	if err := s.getObj(netAttDef); err != nil {
+		// TODO handling MacvlanNetwork CR Status should be done in the controller
+		cr.Status.Reason = "failed to get NetworkAttachmentDefinition"
+		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
+	}
+	cr.Status.MacvlanNetworkAttachmentDef = netAttDef.GetSelfLink()
+
+	return syncState, nil
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *stateMacvlanNetwork) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["MacvlanNetwork"] = &source.Kind{Type: &mellanoxv1alpha1.MacvlanNetwork{}}
+	wr["NetworkAttachmentDefinition"] = &source.Kind{Type: &netattdefv1.NetworkAttachmentDefinition{}}
 	return wr
 }
 
@@ -112,4 +163,39 @@ func (s *stateMacvlanNetwork) getManifestObjects(
 	}
 	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
+}
+
+func (s *stateMacvlanNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.MacvlanNetwork,
+	netAttDef *unstructured.Unstructured) error {
+	// Delete NetworkAttachmentDefinition if not in desired namespace
+	lnns, lnnsExists := cr.GetAnnotations()[lastNetworkNamespaceAnnot]
+	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
+	if netAttDefChangedNamespace {
+		err := s.client.Delete(context.TODO(), &netattdefv1.NetworkAttachmentDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cr.GetName(),
+				Namespace: lnns,
+			},
+		})
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *stateMacvlanNetwork) updateNetAttDefNamespace(cr *mellanoxv1alpha1.MacvlanNetwork,
+	netAttDef *unstructured.Unstructured) error {
+	lnns, lnnsExists := cr.GetAnnotations()[lastNetworkNamespaceAnnot]
+	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
+	if !lnnsExists || netAttDefChangedNamespace {
+		anno := map[string]string{lastNetworkNamespaceAnnot: netAttDef.GetNamespace()}
+		cr.SetAnnotations(anno)
+		if err := s.client.Update(context.Background(), cr); err != nil {
+			cr.Status.Reason = "failed to update MacvlanNetwork annotations"
+			return errors.Wrap(err, "failed to update MacvlanNetwork annotations")
+		}
+	}
+	return nil
 }
