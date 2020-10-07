@@ -42,6 +42,10 @@ spec:
       repository: REPLACE_REPOSITORY
       version: REPLACE_VERSION
       config: ''
+    ipamPlugin:
+      image: REPLACE_IMAGE
+      repository: REPLACE_REPOSITORY
+      version: REPLACE_VERSION
   nvPeerDriver:
     image: REPLACE_IMAGE
     repository: REPLACE_REPOSITORY

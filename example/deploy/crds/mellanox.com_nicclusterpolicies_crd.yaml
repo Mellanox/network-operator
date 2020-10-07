@@ -126,6 +126,23 @@ spec:
                   - repository
                   - version
                   type: object
+                ipamPlugin:
+                  description: Image information for IPAM plugin
+                  properties:
+                    image:
+                      pattern: '[a-zA-Z0-9\-]+'
+                      type: string
+                    repository:
+                      pattern: '[a-zA-Z0-9\.\-\/]+'
+                      type: string
+                    version:
+                      pattern: '[a-zA-Z0-9\.-]+'
+                      type: string
+                  required:
+                  - image
+                  - repository
+                  - version
+                  type: object
                 multus:
                   description: Image and configuration information for multus
                   properties:

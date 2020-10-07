@@ -239,6 +239,11 @@ func (in *SecondaryNetworkSpec) DeepCopyInto(out *SecondaryNetworkSpec) {
 		*out = new(ImageSpec)
 		**out = **in
 	}
+	if in.IpamPlugin != nil {
+		in, out := &in.IpamPlugin, &out.IpamPlugin
+		*out = new(ImageSpec)
+		**out = **in
+	}
 	return
 }
 

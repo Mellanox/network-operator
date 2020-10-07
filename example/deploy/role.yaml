@@ -258,3 +258,15 @@ rules:
     - create
     - patch
     - update
+- apiGroups:
+    - whereabouts.cni.cncf.io
+  resources:
+    - ippools
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete

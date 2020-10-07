@@ -92,10 +92,15 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
+	whereaboutState, err := NewStateWhereaboutsCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-whereabouts-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
+	}
 
 	return []Group{
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
-		NewStateGroup([]State{multusState, cniPluginsState}),
+		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
 	}, nil
 }
