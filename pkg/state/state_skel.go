@@ -105,10 +105,11 @@ func needToUpdateResourceVersion(kind string) bool {
 	return false
 }
 
-func checkNestedFields(found bool, err error) {
+func checkNestedFields(found bool, err error) error {
 	if !found || err != nil {
 		return errors.Wrap(err, "nested field error")
 	}
+	return nil
 }
 
 func updateResourceVersion(req, found *unstructured.Unstructured) error {
@@ -116,7 +117,9 @@ func updateResourceVersion(req, found *unstructured.Unstructured) error {
 
 	if needToUpdateResourceVersion(kind) {
 		version, fnd, err := unstructured.NestedString(found.Object, "metadata", "resourceVersion")
-		checkNestedFields(fnd, err)
+		if err := checkNestedFields(fnd, err); err != nil {
+			return errors.Wrap(err, "Couldn't check nested fields.")
+		}
 
 		if err := unstructured.SetNestedField(req.Object, version, "metadata", "resourceVersion"); err != nil {
 			return errors.Wrap(err, "Couldn't update ResourceVersion")
@@ -125,7 +128,9 @@ func updateResourceVersion(req, found *unstructured.Unstructured) error {
 
 	if kind == "Service" {
 		clusterIP, fnd, err := unstructured.NestedString(found.Object, "spec", "clusterIP")
-		checkNestedFields(fnd, err)
+		if err := checkNestedFields(fnd, err); err != nil {
+			return errors.Wrap(err, "Couldn't check nested service fields.")
+		}
 
 		if err := unstructured.SetNestedField(req.Object, clusterIP, "spec", "clusterIP"); err != nil {
 			return errors.Wrap(err, "Couldn't update clusterIP")
