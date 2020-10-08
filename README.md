@@ -61,6 +61,8 @@ The Operator Acts on the following CRDs:
 ### NICClusterPolicy CRD
 CRD that defines a Cluster state for Mellanox Network devices.
 
+>__NOTE__: The operator will act on a NicClusterPolicy instance with a predefined name "nic-cluster-policy", instances with different names will be ignored.
+
 #### NICClusterPolicy spec:
 NICClusterPolicy CRD Spec includes the following sub-states/stages:
 - `ofedDriver`: [OFED driver container](https://github.com/Mellanox/ofed-docker) to be deployed on Mellanox supporting nodes.
@@ -79,7 +81,7 @@ but without NV Peer Memory driver.
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
-  name: example-nicclusterpolicy
+  name: nic-cluster-policy
   namespace: mlnx-network-operator
 spec:
   ofedDriver:

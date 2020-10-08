@@ -30,4 +30,5 @@ const (
 
 const (
 	NetworkOperatorResourceNamespace = "mlnx-network-operator-resources"
+	NicClusterPolicyResourceName     = "nic-cluster-policy"
 )

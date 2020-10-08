@@ -17,7 +17,7 @@
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
-  name: clusterpolicy
+  name: nic-cluster-policy
 spec:
   {{- if .Values.ofedDriver.deploy }}
   ofedDriver:
