@@ -136,6 +136,7 @@ spec:
             state:
               description: Reflects the current state of the cluster policy
               enum:
+              - ignore
               - notReady
               - ready
               - error

@@ -18,8 +18,10 @@ package nicclusterpolicy
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -124,6 +126,11 @@ func (r *ReconcileNicClusterPolicy) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
+	if request.Name != consts.NicClusterPolicyResourceName {
+		err := r.handleUnsupportedInstance(instance, request, reqLogger)
+		return reconcile.Result{}, err
+	}
+
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
 	if instance.Spec.OFEDDriver != nil || instance.Spec.NVPeerDriver != nil {
@@ -186,4 +193,22 @@ NextResult:
 	if err != nil {
 		log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
 	}
+}
+
+func (r *ReconcileNicClusterPolicy) handleUnsupportedInstance(instance *mellanoxv1alpha1.NicClusterPolicy,
+	request reconcile.Request, reqLogger logr.Logger) error {
+	reqLogger.V(consts.LogLevelWarning).Info("unsupported NicClusterPolicy instance", "instance name:", request.Name)
+	reqLogger.V(consts.LogLevelWarning).Info("NicClusterPolicy supports instance with predefined name",
+		"supported instance name:", consts.NicClusterPolicyResourceName)
+
+	instance.Status.State = mellanoxv1alpha1.StateIgnore
+	instance.Status.Reason = fmt.Sprintf("Unsupported NicClusterPolicy instance %s. Only instance with name %s is"+
+		" supported", instance.Name, consts.NicClusterPolicyResourceName)
+
+	err := r.client.Status().Update(context.TODO(), instance)
+	if err != nil {
+		log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
+	}
+
+	return err
 }

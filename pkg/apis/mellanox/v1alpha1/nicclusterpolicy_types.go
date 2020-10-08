@@ -96,7 +96,7 @@ type NicClusterPolicyStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 
 	// Reflects the current state of the cluster policy
-	// +kubebuilder:validation:Enum={"notReady", "ready", "error"}
+	// +kubebuilder:validation:Enum={"ignore", "notReady", "ready", "error"}
 	State State `json:"state"`
 	// Informative string in case the observed state is error
 	Reason string `json:"reason,omitempty"`
