@@ -43,11 +43,11 @@ var _ = Describe("NodeAttributes tests", func() {
 
 			Expect(attr.Name).To(Equal("test-node"))
 			Expect(attr.Attributes[AttrTypeHostname]).To(Equal(testNode.Labels[NodeLabelHostname]))
-			Expect(attr.Attributes[AttrTypeOS]).To(Equal(
+			Expect(attr.Attributes[AttrTypeOSName]).To(Equal(testNode.Labels[NodeLabelOSName]))
+			Expect(attr.Attributes[AttrTypeOSVer]).To(Equal(testNode.Labels[NodeLabelOSVer]))
+			Expect(attr.Attributes[AttrTypeOSNameFull]).To(Equal(
 				testNode.Labels[NodeLabelOSName] + testNode.Labels[NodeLabelOSVer]))
-			Expect(attr.Attributes[AttrTypeKernel]).To(Equal(testNode.Labels[NodeLabelKernelVerFull]))
 			Expect(attr.Attributes[AttrTypeCPUArch]).To(Equal(testNode.Labels[NodeLabelCPUArch]))
-
 		})
 	})
 
@@ -61,11 +61,13 @@ var _ = Describe("NodeAttributes tests", func() {
 			var exist bool
 			_, exist = attr.Attributes[AttrTypeHostname]
 			Expect(exist).To(BeTrue())
-			_, exist = attr.Attributes[AttrTypeOS]
+			_, exist = attr.Attributes[AttrTypeOSNameFull]
+			Expect(exist).To(BeTrue())
+			_, exist = attr.Attributes[AttrTypeOSName]
+			Expect(exist).To(BeTrue())
+			_, exist = attr.Attributes[AttrTypeOSVer]
 			Expect(exist).To(BeTrue())
 			_, exist = attr.Attributes[AttrTypeCPUArch]
-			Expect(exist).To(BeFalse())
-			_, exist = attr.Attributes[AttrTypeKernel]
 			Expect(exist).To(BeFalse())
 		})
 	})
@@ -75,7 +77,7 @@ var _ = Describe("NodeAttributes tests", func() {
 			testNode.Labels[NodeLabelOSName] = "ubuntu"
 			attr := newNodeAttributes(&testNode)
 
-			_, exist := attr.Attributes[AttrTypeOS]
+			_, exist := attr.Attributes[AttrTypeOSNameFull]
 			Expect(exist).To(BeFalse())
 		})
 	})
@@ -85,7 +87,7 @@ var _ = Describe("NodeAttributes tests", func() {
 			testNode.Labels[NodeLabelOSVer] = "20.04"
 			attr := newNodeAttributes(&testNode)
 
-			_, exist := attr.Attributes[AttrTypeOS]
+			_, exist := attr.Attributes[AttrTypeOSNameFull]
 			Expect(exist).To(BeFalse())
 		})
 	})
