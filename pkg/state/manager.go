@@ -97,7 +97,7 @@ func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog Info
 			return managerResult, err
 		}
 		if !done {
-			log.V(consts.LogLevelError).Info("State Group Not ready")
+			log.V(consts.LogLevelInfo).Info("State Group Not ready")
 			return managerResult, nil
 		}
 		log.V(consts.LogLevelInfo).Info("Sync Completed successfully for State group", "index", i)
