@@ -126,7 +126,7 @@ func (s *stateNVPeer) getManifestObjects(
 
 	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
 	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOS); err != nil {
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSNameFull); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +135,7 @@ func (s *stateNVPeer) getManifestObjects(
 		RuntimeSpec: &nvPeerRuntimeSpec{
 			Namespace:  consts.NetworkOperatorResourceNamespace,
 			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOS],
+			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOSNameFull],
 		},
 	}
 	// render objects
