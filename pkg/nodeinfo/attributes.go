@@ -43,22 +43,25 @@ type AttributeType int
 
 // Attribute type Enum, add new types before Last and update the mapping below
 const (
-	AttrTypeOS = iota
-	AttrTypeKernel
+	AttrTypeOSNameFull = iota
 	AttrTypeHostname
 	AttrTypeCPUArch
+	AttrTypeOSName
+	AttrTypeOSVer
 	AttrTypeLast
 )
 
 var attrToLabel = [...][]string{
 	// AttrTypeOS
 	{NodeLabelOSName, NodeLabelOSVer},
-	// AttrTypeKernel
-	{NodeLabelKernelVerFull},
 	// AttrTypeHostname
 	{NodeLabelHostname},
 	// AttrTypeCPUArch
 	{NodeLabelCPUArch},
+	// AttrTypeOSName
+	{NodeLabelOSName},
+	// AttrTypeOSVer
+	{NodeLabelOSVer},
 }
 
 // NodeAttributes provides attributes of a specific node

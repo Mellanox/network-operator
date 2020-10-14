@@ -58,10 +58,11 @@ type stateOFED struct {
 }
 
 type ofedRuntimeSpec struct {
-	CPUArch       string
-	OSNameFull    string
-	KernelVerFull string
-	Namespace     string
+	CPUArch    string
+	OSNameFull string
+	OSName     string
+	OSVer      string
+	Namespace  string
 }
 
 type ofedManifestRenderData struct {
@@ -136,19 +137,22 @@ func (s *stateOFED) getManifestObjects(
 		return []*unstructured.Unstructured{}, nil
 	}
 
-	// TODO: Render daemonset multiple times according to CPUXOSXKernel matrix (ATM assume all nodes are the same)
+	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
+	// Note: it is assumed MOFED driver container is able to handle multiple kernel version e.g by triggering DKMS
+	// if driver was compiled against a missmatching kernel to begin with.
 	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOS, nodeinfo.AttrTypeKernel); err != nil {
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSNameFull); err != nil {
 		return nil, err
 	}
 
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
-			Namespace:     consts.NetworkOperatorResourceNamespace,
-			CPUArch:       attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSNameFull:    attrs[0].Attributes[nodeinfo.AttrTypeOS],
-			KernelVerFull: attrs[0].Attributes[nodeinfo.AttrTypeKernel],
+			Namespace:  consts.NetworkOperatorResourceNamespace,
+			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOSNameFull],
+			OSName:     attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:      attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
 		},
 	}
 	// render objects
