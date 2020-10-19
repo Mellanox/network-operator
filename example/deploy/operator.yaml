@@ -26,6 +26,12 @@ spec:
       labels:
         name: network-operator
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
       serviceAccountName: network-operator
       containers:
         - name: network-operator

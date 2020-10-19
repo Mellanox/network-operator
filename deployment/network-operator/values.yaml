@@ -49,6 +49,8 @@ operator:
       operator: "Equal"
       value: ""
       effect: "NoSchedule"
+  nodeSelector:
+    node-role.kubernetes.io/master: ""
   repository: mellanox
   image: network-operator
   nameOverride: ""

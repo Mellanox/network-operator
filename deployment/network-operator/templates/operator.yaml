@@ -30,6 +30,10 @@ spec:
       labels:
         {{- include "network-operator.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.operator.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.operator.tolerations }}
       tolerations:
       {{- toYaml . | nindent 8 }}
