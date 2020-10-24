@@ -53,13 +53,9 @@ type stateSharedDp struct {
 	stateSkel
 }
 
-type sharedDpRuntimeSpec struct {
-	Namespace string
-}
-
 type sharedDpManifestRenderData struct {
 	CrSpec      *mellanoxv1alpha1.DevicePluginSpec
-	RuntimeSpec *sharedDpRuntimeSpec
+	RuntimeSpec *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -114,7 +110,7 @@ func (s *stateSharedDp) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &sharedDpManifestRenderData{
 		CrSpec: cr.Spec.DevicePlugin,
-		RuntimeSpec: &sharedDpRuntimeSpec{
+		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}

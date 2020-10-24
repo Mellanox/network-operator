@@ -44,10 +44,10 @@ type stateNVPeer struct {
 }
 
 type nvPeerRuntimeSpec struct {
-	CPUArch   string
-	OSName    string
-	OSVer     string
-	Namespace string
+	runtimeSpec
+	CPUArch string
+	OSName  string
+	OSVer   string
 }
 
 type nvPeerManifestRenderData struct {
@@ -134,10 +134,10 @@ func (s *stateNVPeer) getManifestObjects(
 	renderData := &nvPeerManifestRenderData{
 		CrSpec: cr.Spec.NVPeerDriver,
 		RuntimeSpec: &nvPeerRuntimeSpec{
-			Namespace: consts.NetworkOperatorResourceNamespace,
-			CPUArch:   attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSName:    attrs[0].Attributes[nodeinfo.AttrTypeOSName],
-			OSVer:     attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
+			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
+			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
 		},
 	}
 	// render objects

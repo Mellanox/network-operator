@@ -58,10 +58,10 @@ type stateOFED struct {
 }
 
 type ofedRuntimeSpec struct {
-	CPUArch   string
-	OSName    string
-	OSVer     string
-	Namespace string
+	runtimeSpec
+	CPUArch string
+	OSName  string
+	OSVer   string
 }
 
 type ofedManifestRenderData struct {
@@ -147,10 +147,10 @@ func (s *stateOFED) getManifestObjects(
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
-			Namespace: consts.NetworkOperatorResourceNamespace,
-			CPUArch:   attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSName:    attrs[0].Attributes[nodeinfo.AttrTypeOSName],
-			OSVer:     attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
+			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
+			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
 		},
 	}
 	// render objects
