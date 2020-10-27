@@ -34,7 +34,6 @@ spec:
       annotations:
         {{- toYaml .Values.worker.annotations | nindent 8 }}
     spec:
-      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
