@@ -17,8 +17,6 @@ limitations under the License.
 package nodeinfo
 
 import (
-	"strings"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -43,25 +41,22 @@ type AttributeType int
 
 // Attribute type Enum, add new types before Last and update the mapping below
 const (
-	AttrTypeOSNameFull = iota
-	AttrTypeHostname
+	AttrTypeHostname = iota
 	AttrTypeCPUArch
 	AttrTypeOSName
 	AttrTypeOSVer
 	AttrTypeLast
 )
 
-var attrToLabel = [...][]string{
-	// AttrTypeOS
-	{NodeLabelOSName, NodeLabelOSVer},
+var attrToLabel = []string{
 	// AttrTypeHostname
-	{NodeLabelHostname},
+	NodeLabelHostname,
 	// AttrTypeCPUArch
-	{NodeLabelCPUArch},
+	NodeLabelCPUArch,
 	// AttrTypeOSName
-	{NodeLabelOSName},
+	NodeLabelOSName,
 	// AttrTypeOSVer
-	{NodeLabelOSVer},
+	NodeLabelOSVer,
 }
 
 // NodeAttributes provides attributes of a specific node
@@ -72,23 +67,12 @@ type NodeAttributes struct {
 	Attributes map[AttributeType]string
 }
 
-// fromLabels adds a new attribute of type attrT to NodeAttributes by joining value of selectedLabels
-// using delim delimiter
-//nolint:unparam
-func (a *NodeAttributes) fromLabels(
-	attrT AttributeType, nodeLabels map[string]string, selectedLabels []string, delim string) error {
-	var attrVal string
-
-	//nolint:prealloc
-	var labelVals []string
-	for _, selectedLabel := range selectedLabels {
-		selectedLabelVal, ok := nodeLabels[selectedLabel]
-		if !ok {
-			return errors.Errorf("cannot create node attribute, missing label: %s", selectedLabel)
-		}
-		labelVals = append(labelVals, selectedLabelVal)
+// fromLabel adds a new attribute of type attrT to NodeAttributes by extracting value of selectedLabel
+func (a *NodeAttributes) fromLabel(attrT AttributeType, nodeLabels map[string]string, selectedLabel string) error {
+	attrVal, ok := nodeLabels[selectedLabel]
+	if !ok {
+		return errors.Errorf("cannot create node attribute, missing label: %s", selectedLabel)
 	}
-	attrVal = strings.Join(labelVals, delim)
 
 	// Note: attrVal may be empty, this could indicate a binary attribute which relies on key existence
 	a.Attributes[attrT] = attrVal
@@ -104,8 +88,8 @@ func newNodeAttributes(node *corev1.Node) NodeAttributes {
 	var err error
 
 	nLabels := node.GetLabels()
-	for attrType, labels := range attrToLabel {
-		err = attr.fromLabels(AttributeType(attrType), nLabels, labels, "")
+	for attrType, label := range attrToLabel {
+		err = attr.fromLabel(AttributeType(attrType), nLabels, label)
 		if err != nil {
 			log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttribute(%x), %v", attrType, err)
 		}
