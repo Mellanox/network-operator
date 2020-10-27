@@ -58,11 +58,10 @@ type stateOFED struct {
 }
 
 type ofedRuntimeSpec struct {
-	CPUArch    string
-	OSNameFull string
-	OSName     string
-	OSVer      string
-	Namespace  string
+	CPUArch   string
+	OSName    string
+	OSVer     string
+	Namespace string
 }
 
 type ofedManifestRenderData struct {
@@ -141,18 +140,17 @@ func (s *stateOFED) getManifestObjects(
 	// Note: it is assumed MOFED driver container is able to handle multiple kernel version e.g by triggering DKMS
 	// if driver was compiled against a missmatching kernel to begin with.
 	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSNameFull); err != nil {
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
 		return nil, err
 	}
 
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
-			Namespace:  consts.NetworkOperatorResourceNamespace,
-			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOSNameFull],
-			OSName:     attrs[0].Attributes[nodeinfo.AttrTypeOSName],
-			OSVer:      attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
+			Namespace: consts.NetworkOperatorResourceNamespace,
+			CPUArch:   attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSName:    attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:     attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
 		},
 	}
 	// render objects

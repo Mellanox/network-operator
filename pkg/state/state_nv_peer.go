@@ -44,9 +44,10 @@ type stateNVPeer struct {
 }
 
 type nvPeerRuntimeSpec struct {
-	CPUArch    string
-	OSNameFull string
-	Namespace  string
+	CPUArch   string
+	OSName    string
+	OSVer     string
+	Namespace string
 }
 
 type nvPeerManifestRenderData struct {
@@ -126,16 +127,17 @@ func (s *stateNVPeer) getManifestObjects(
 
 	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
 	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSNameFull); err != nil {
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
 		return nil, err
 	}
 
 	renderData := &nvPeerManifestRenderData{
 		CrSpec: cr.Spec.NVPeerDriver,
 		RuntimeSpec: &nvPeerRuntimeSpec{
-			Namespace:  consts.NetworkOperatorResourceNamespace,
-			CPUArch:    attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSNameFull: attrs[0].Attributes[nodeinfo.AttrTypeOSNameFull],
+			Namespace: consts.NetworkOperatorResourceNamespace,
+			CPUArch:   attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSName:    attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:     attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
 		},
 	}
 	// render objects

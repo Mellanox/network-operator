@@ -45,8 +45,6 @@ var _ = Describe("NodeAttributes tests", func() {
 			Expect(attr.Attributes[AttrTypeHostname]).To(Equal(testNode.Labels[NodeLabelHostname]))
 			Expect(attr.Attributes[AttrTypeOSName]).To(Equal(testNode.Labels[NodeLabelOSName]))
 			Expect(attr.Attributes[AttrTypeOSVer]).To(Equal(testNode.Labels[NodeLabelOSVer]))
-			Expect(attr.Attributes[AttrTypeOSNameFull]).To(Equal(
-				testNode.Labels[NodeLabelOSName] + testNode.Labels[NodeLabelOSVer]))
 			Expect(attr.Attributes[AttrTypeCPUArch]).To(Equal(testNode.Labels[NodeLabelCPUArch]))
 		})
 	})
@@ -61,8 +59,6 @@ var _ = Describe("NodeAttributes tests", func() {
 			var exist bool
 			_, exist = attr.Attributes[AttrTypeHostname]
 			Expect(exist).To(BeTrue())
-			_, exist = attr.Attributes[AttrTypeOSNameFull]
-			Expect(exist).To(BeTrue())
 			_, exist = attr.Attributes[AttrTypeOSName]
 			Expect(exist).To(BeTrue())
 			_, exist = attr.Attributes[AttrTypeOSVer]
@@ -72,30 +68,29 @@ var _ = Describe("NodeAttributes tests", func() {
 		})
 	})
 
-	Context("Create NodeAttributes from node with no OS name", func() {
-		It("Should return NodeAttributes with no AttrTypeOS", func() {
-			testNode.Labels[NodeLabelOSName] = "ubuntu"
-			attr := newNodeAttributes(&testNode)
-
-			_, exist := attr.Attributes[AttrTypeOSNameFull]
-			Expect(exist).To(BeFalse())
-		})
-	})
-
-	Context("Create NodeAttributes from node with no OS version", func() {
-		It("Should return NodeAttributes with no AttrTypeOS", func() {
-			testNode.Labels[NodeLabelOSVer] = "20.04"
-			attr := newNodeAttributes(&testNode)
-
-			_, exist := attr.Attributes[AttrTypeOSNameFull]
-			Expect(exist).To(BeFalse())
-		})
-	})
-
 	Context("Create NodeAttributes with no labels", func() {
 		It("Should return NodeAttributes with no attributes", func() {
 			attr := newNodeAttributes(&testNode)
 			Expect(attr.Attributes).To(BeEmpty())
+		})
+	})
+
+	Context("Node Attributes from labels", func() {
+		It("Should return Node Attribute from labels", func() {
+			testNode.Labels[NodeLabelOSName] = "ubuntu"
+			attr := NodeAttributes{Attributes: make(map[AttributeType]string)}
+
+			nLabels := testNode.GetLabels()
+			err := attr.fromLabel(AttrTypeOSName, nLabels, NodeLabelOSName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(attr.Attributes[AttrTypeOSName]).To(Equal("ubuntu"))
+		})
+		It("Should return no Node Attribute from labels", func() {
+			attr := NodeAttributes{Attributes: make(map[AttributeType]string)}
+
+			nLabels := testNode.GetLabels()
+			err := attr.fromLabel(AttrTypeOSName, nLabels, NodeLabelOSName)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
