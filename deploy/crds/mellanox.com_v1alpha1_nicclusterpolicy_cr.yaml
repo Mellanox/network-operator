@@ -29,7 +29,11 @@ spec:
         "configList": [{
         "resourceName": "hca_shared_devices_a",
         "rdmaHcaMax": 1000,
-        "devices": ["enp5s0f0"]
+        "selectors": {
+          "vendors": ["15b3"],
+          "deviceIDs": ["1017"],
+          "ifNames": ["enp5s0f0"]
+        }
       }]
       }
   secondaryNetwork:

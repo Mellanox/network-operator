@@ -107,7 +107,11 @@ spec:
           {
             "resourceName": "hca_shared_devices_a",
             "rdmaHcaMax": 1000,
-            "devices": ["ens2f0"]
+            "selectors": {
+              "vendors": ["15b3"],
+              "deviceIDs": ["1017"],
+              "ifNames": ["ens2f0"]
+            }
           }
         ]
       }
