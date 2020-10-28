@@ -112,6 +112,17 @@ func (s *stateSkel) createOrUpdateObjs(
 			return err
 		}
 
+		// Set resource version
+		// ResourceVersion must be passed unmodified back to the server.
+		// ResourceVersion helps the kubernetes API server to implement optimistic concurrency for PUT operations
+		// when two PUT requests are specifying the resourceVersion, one of the PUTs will fail.
+		currentObj := desiredObj.DeepCopy()
+		if err := s.getObj(currentObj); err != nil {
+			// Some error occurred
+			return err
+		}
+		desiredObj.SetResourceVersion(currentObj.GetResourceVersion())
+
 		// Object found, Update it
 		if err := s.updateObj(desiredObj); err != nil {
 			return err
