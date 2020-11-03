@@ -1,0 +1,12 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: default
+  labels:
+    {{- include "sriov-network-operator.labels" . | nindent 4 }}
+spec:
+  priority: 99
+  numVfs: 0
+  resourceName: ""
+  nicSelector: {}
+  nodeSelector: {}

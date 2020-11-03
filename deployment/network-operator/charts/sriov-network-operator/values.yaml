@@ -1,0 +1,35 @@
+# Default values for sriov-network-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  nodeSelector:
+    node-role.kubernetes.io/master: ""
+  nameOverride: ""
+  fullnameOverride: ""
+  # tag, if defined will use the given image tag, else Chart.AppVersion will be used
+  # tag
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Image URIs for sriov-network-operator components
+images:
+  operator: adriancdockerhub/sriov-network-operator:latest
+  sriovConfigDaemon: adriancdockerhub/sriov-network-config-daemon:latest
+  sriovCni: nfvpe/sriov-cni:v2.5
+  ibSriovCni: mellanox/ib-sriov-cni:v1.0.0
+  sriovDevicePlugin: nfvpe/sriov-device-plugin:v3.2

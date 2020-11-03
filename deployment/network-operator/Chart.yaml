@@ -16,6 +16,10 @@ dependencies:
   name: node-feature-discovery
   repository: ""
   version: 0.1.0
+- condition: sriovNetworkOperator.enabled
+  name: sriov-network-operator
+  repository: ""
+  version: 0.1.0
 
 
 

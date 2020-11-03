@@ -19,6 +19,9 @@
 nfd:
   enabled: true
 
+sriovNetworkOperator:
+  enabled: false
+
 # Node Feature discovery chart related values
 node-feature-discovery:
   worker:

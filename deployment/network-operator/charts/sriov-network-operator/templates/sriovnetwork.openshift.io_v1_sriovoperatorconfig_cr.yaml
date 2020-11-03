@@ -1,0 +1,11 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovOperatorConfig
+metadata:
+  name: default
+  labels:
+    {{- include "sriov-network-operator.labels" . | nindent 4 }}
+spec:
+  # Add fields here
+  enableInjector: false
+  enableOperatorWebhook: false
+  configDaemonNodeSelector: {}
