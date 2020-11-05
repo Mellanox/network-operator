@@ -71,15 +71,35 @@ type DevicePluginSpec struct {
 	Config string `json:"config"`
 }
 
+// MultusSpec describes configuration options for Multus CNI
+type MultusSpec struct {
+	// Image information for device plugin
+	ImageSpec `json:""`
+	// Multus CNI config if config is missing or empty then multus config will be automatically generated from the CNI
+	// configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
+	Config string `json:"config,omitempty"`
+}
+
+// SecondaryNetwork describes configuration options for secondary network
+type SecondaryNetworkSpec struct {
+	// Image and configuration information for multus
+	Multus *MultusSpec `json:"multus,omitempty"`
+	// Image information for CNI plugins
+	CniPlugins *ImageSpec `json:"cniPlugins,omitempty"`
+	// Image information for IPAM plugin
+	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 
-	OFEDDriver   *OFEDDriverSpec   `json:"ofedDriver,omitempty"`
-	NVPeerDriver *NVPeerDriverSpec `json:"nvPeerDriver,omitempty"`
-	DevicePlugin *DevicePluginSpec `json:"devicePlugin,omitempty"`
+	OFEDDriver       *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
+	NVPeerDriver     *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
+	DevicePlugin     *DevicePluginSpec     `json:"devicePlugin,omitempty"`
+	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

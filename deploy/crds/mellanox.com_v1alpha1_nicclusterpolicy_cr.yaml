@@ -32,6 +32,20 @@ spec:
         "devices": ["enp5s0f0"]
       }]
       }
+  secondaryNetwork:
+    cniPlugins:
+      image: REPLACE_IMAGE
+      repository: REPLACE_REPOSITORY
+      version: REPLACE_VERSION
+    multus:
+      image: REPLACE_IMAGE
+      repository: REPLACE_REPOSITORY
+      version: REPLACE_VERSION
+      config: ''
+    ipamPlugin:
+      image: REPLACE_IMAGE
+      repository: REPLACE_REPOSITORY
+      version: REPLACE_VERSION
   nvPeerDriver:
     image: REPLACE_IMAGE
     repository: REPLACE_REPOSITORY

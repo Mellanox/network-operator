@@ -21,9 +21,18 @@ metadata:
   namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
+  - apiGroups:
       - ""
     resources:
       - pods
+      - pods/status
       - services
       - services/finalizers
       - endpoints
@@ -102,6 +111,7 @@ rules:
     resources:
       - pods
       - services
+      - serviceaccounts
       - services/finalizers
       - endpoints
       - persistentvolumeclaims
@@ -201,3 +211,64 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - k8s.cni.cncf.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - escalate
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/status
+    verbs:
+      - get
+      - update
+  - apiGroups:
+      - ""
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
+  - apiGroups:
+      - whereabouts.cni.cncf.io
+    resources:
+      - ippools
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete

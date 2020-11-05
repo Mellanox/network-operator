@@ -31,45 +31,50 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-// NewStateSharedDp creates a new shared device plugin state
-func NewStateSharedDp(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+// NewStateWhereaboutsCNI creates a new state for Whereabouts
+func NewStateWhereaboutsCNI(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateSharedDp{
+	return &stateWhereaboutsCNI{
 		stateSkel: stateSkel{
-			name:        "state-RDMA-device-plugin",
-			description: "RDMA shared device plugin deployed in the cluster",
+			name:        "state-whereabouts-cni",
+			description: "whereabouts IPAM CNI deployed in the cluster",
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
 		}}, nil
 }
 
-type stateSharedDp struct {
+type stateWhereaboutsCNI struct {
 	stateSkel
 }
 
-type sharedDpManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.DevicePluginSpec
-	RuntimeSpec *runtimeSpec
+type WhereaboutsRuntimeSpec struct {
+	Namespace string
+}
+
+type WhereaboutsManifestRenderData struct {
+	CrSpec      *mellanoxv1alpha1.ImageSpec
+	RuntimeSpec *WhereaboutsRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+//nolint:dupl
+func (s *stateWhereaboutsCNI) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if cr.Spec.DevicePlugin == nil {
+	if cr.Spec.SecondaryNetwork == nil || cr.Spec.SecondaryNetwork.IpamPlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		// TODO: Support the latter case
-		log.V(consts.LogLevelInfo).Info("Device plugin spec in CR is nil, no action required")
+		log.V(consts.LogLevelInfo).Info("Secondary Network Whereabouts spec in CR is nil, no action required")
 		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
@@ -100,17 +105,17 @@ func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateSharedDp) GetWatchSources() map[string]*source.Kind {
+func (s *stateWhereaboutsCNI) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
 	return wr
 }
 
-func (s *stateSharedDp) getManifestObjects(
+func (s *stateWhereaboutsCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
-	renderData := &sharedDpManifestRenderData{
-		CrSpec: cr.Spec.DevicePlugin,
-		RuntimeSpec: &runtimeSpec{
+	renderData := &WhereaboutsManifestRenderData{
+		CrSpec: cr.Spec.SecondaryNetwork.IpamPlugin,
+		RuntimeSpec: &WhereaboutsRuntimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}

@@ -57,6 +57,8 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 	switch crdKind {
 	case mellanoxv1alpha1.NicClusterPolicyCRDName:
 		return newNicClusterPolicyStates(k8sAPIClient, scheme)
+	case mellanoxv1alpha1.MacvlanNetworkCRDName:
+		return newMacvlanNetworkStates(k8sAPIClient, scheme)
 	default:
 		break
 	}
@@ -65,25 +67,56 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 
 // newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
 func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 	ofedState, err := NewStateOFED(
-		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-ofed-driver"))
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-ofed-driver"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create OFED driver State")
 	}
 
 	sharedDpState, err := NewStateSharedDp(
-		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-rdma-device-plugin"))
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-rdma-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Device plugin State")
 	}
 	nvPeerMemState, err := NewStateNVPeer(
-		k8sAPIClient, scheme, filepath.Join(config.FromEnv().State.ManifestBaseDir, "stage-nv-peer-mem-driver"))
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-nv-peer-mem-driver"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create NV peer memory driver State")
+	}
+	multusState, err := NewStateMultusCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-multus-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Multus CNI State")
+	}
+	cniPluginsState, err := NewStateCNIPlugins(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-container-networking-plugins"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
+	}
+	whereaboutState, err := NewStateWhereaboutsCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-whereabouts-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
 	}
 
 	return []Group{
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
+		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
+	}, nil
+}
+
+// newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD
+func newMacvlanNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
+
+	macvlanNetworkState, err := NewStateMacvlanNetwork(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-macvlan-network"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create MacvlanNetwork CRD State")
+	}
+	return []Group{
+		NewStateGroup([]State{macvlanNetworkState}),
 	}, nil
 }

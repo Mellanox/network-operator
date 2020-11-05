@@ -11,6 +11,9 @@
         * [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource)
       - [NICClusterPolicy status](#nicclusterpolicy-status)
         * [Example Status field of a NICClusterPolicy instance:](#example-status-field-of-a-nicclusterpolicy-instance)
+    + [MacvlanNetwork CRD](#macvlannetwork-crd)
+      - [MacvlanNetwork spec](#macvlannetwork-spec)
+        * [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource)
   * [System Requirements](#system-requirements)
   * [Deployment Example](#deployment-example)
   * [Driver Containers](#driver-containers)
@@ -19,7 +22,7 @@
 
 # Nvidia Mellanox Network Operator
 Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
-and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking, 
+and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking,
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 
 The Goal of Network Operator is to manage _all_ networking related components to enable execution of
@@ -53,7 +56,7 @@ sources:
       - "vendor"
 ```
 
->\* Required for GPUDirect driver container deployment 
+>\* Required for GPUDirect driver container deployment
 
 ## Resource Definitions
 The Operator Acts on the following CRDs:
@@ -70,6 +73,10 @@ NICClusterPolicy CRD Spec includes the following sub-states/stages:
 and related configurations.
 - `nvPeerDriver`: [Nvidia Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
+- `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
+    - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
+    - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
+    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/openshift/whereabouts-cni) is supported
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
@@ -104,6 +111,21 @@ spec:
           }
         ]
       }
+  secondaryNetwork:
+    cniPlugins:
+      image: containernetworking-plugins
+      repository: mellanox
+      version: v0.8.7
+    multus:
+      image: multus
+      repository: nfvpe
+      version: v3.6
+      # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
+      config: ''
+    ipamPlugin:
+      image: whereabouts
+      repository: dougbtv
+      version: latest
 ```
 
 Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
@@ -120,7 +142,7 @@ The global state reflects the logical _AND_ of each inidvidual sub-state.
 
 ##### Example Status field of a NICClusterPolicy instance
 ```
-Status:                                    
+Status:
   Applied States:
     Name:   state-OFED
     State:  ready
@@ -128,11 +150,61 @@ Status:
     State:  ready
     Name:   state-NV-Peer
     State:  ignore
+    Name:   state-cni-plugins
+    State:  ignore
+    Name:   state-Multus
+    State:  ready
+    Name:   state-whereabouts
+    State:  ready
   State:    ready
 ```
 
 >__NOTE__: An `ignore` State indicates that the sub-state was not defined in the custom resource
 > thus it is ignored.
+
+### MacvlanNetwork CRD
+This CRD defines a MacVlan secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
+
+#### MacvlanNetwork spec:
+MacvlanNetwork CRD Spec includes the following fields:
+- `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this MacvlanNetwork CRD.
+- `master`: Name of the host interface to enslave. Defaults to default route interface.
+- `mode`: Mode of interface one of "bridge", "private", "vepa", "passthru", default "bridge".
+- `mtu`: MTU of interface to the specified value. 0 for master's MTU.
+- `ipam`: IPAM configuration to be used for this network.
+
+##### Example for MacvlanNetwork resource:
+In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, mtu 1500, default route interface as master, with resouce "rdma/hca_shared_devices_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
+
+```
+apiVersion: mellanox.com/v1alpha1
+kind: MacvlanNetwork
+metadata:
+  name: example-macvlannetwork
+spec:
+  networkNamespace: "default"
+  master: "ens2f0"
+  mode: "bridge"
+  mtu: 1500
+  ipam: |
+    {
+      "type": "whereabouts",
+      "datastore": "kubernetes",
+      "kubernetes": {
+        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+      },
+      "range": "192.168.2.225/28",
+      "exclude": [
+       "192.168.2.229/30",
+       "192.168.2.236/32"
+      ],
+      "log_file" : "/var/log/whereabouts.log",
+      "log_level" : "info",
+      "gateway": "192.168.2.1"
+    }
+```
+
+Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
@@ -144,11 +216,16 @@ Status:
 
 ## Deployment Example
 Deployment of network-operator consists of:
-* Deploying netowrk-operator CRD found under `./deploy/crds/mellanox.com_nicclusterpolicies_crd.yaml`
-* Deploying network operator resources found under `./deploy/` e.g operator namespace, 
+* Deploying network-operator CRDs found under `./deploy/crds/`:
+    * mellanox.com_nicclusterpolicies_crd.yaml
+    * mellanox.com_macvlan_crds.yaml
+    * k8s.cni.cncf.io-networkattachmentdefinitions-crd.yaml
+* Deploying network operator resources found under `./deploy/` e.g operator namespace,
 role, role binding, service account and the network-operator daemonset
 * Defining and deploying a NICClusterPolicy custom resource.
 Template can be found under `./deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
+* Defining and deploying a MacvlanNetwork custom resource.
+Template can be found under `./deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
 A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/example/README.md).
 

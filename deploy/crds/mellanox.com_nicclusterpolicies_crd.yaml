@@ -105,6 +105,68 @@ spec:
               - repository
               - version
               type: object
+            secondaryNetwork:
+              description: SecondaryNetwork describes configuration options for secondary
+                network
+              properties:
+                cniPlugins:
+                  description: Image information for CNI plugins
+                  properties:
+                    image:
+                      pattern: '[a-zA-Z0-9\-]+'
+                      type: string
+                    repository:
+                      pattern: '[a-zA-Z0-9\.\-\/]+'
+                      type: string
+                    version:
+                      pattern: '[a-zA-Z0-9\.-]+'
+                      type: string
+                  required:
+                  - image
+                  - repository
+                  - version
+                  type: object
+                ipamPlugin:
+                  description: Image information for IPAM plugin
+                  properties:
+                    image:
+                      pattern: '[a-zA-Z0-9\-]+'
+                      type: string
+                    repository:
+                      pattern: '[a-zA-Z0-9\.\-\/]+'
+                      type: string
+                    version:
+                      pattern: '[a-zA-Z0-9\.-]+'
+                      type: string
+                  required:
+                  - image
+                  - repository
+                  - version
+                  type: object
+                multus:
+                  description: Image and configuration information for multus
+                  properties:
+                    config:
+                      description: Multus CNI config if config is missing or empty
+                        then multus config will be automatically generated from the
+                        CNI configuration file of the master plugin (the first file
+                        in lexicographical order in cni-conf-dir)
+                      type: string
+                    image:
+                      pattern: '[a-zA-Z0-9\-]+'
+                      type: string
+                    repository:
+                      pattern: '[a-zA-Z0-9\.\-\/]+'
+                      type: string
+                    version:
+                      pattern: '[a-zA-Z0-9\.-]+'
+                      type: string
+                  required:
+                  - image
+                  - repository
+                  - version
+                  type: object
+              type: object
           type: object
         status:
           description: NicClusterPolicyStatus defines the observed state of NicClusterPolicy
