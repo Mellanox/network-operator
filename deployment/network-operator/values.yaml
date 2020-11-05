@@ -85,3 +85,22 @@ devicePlugin:
   resources:
     - name: rdma_shared_device_a
       devices: [enp5s0f0]
+
+secondaryNetwork:
+  deploy: true
+  cniPlugins:
+    deploy: true
+    image: containernetworking-plugins
+    repository: mellanox
+    version: v0.8.7
+  multus:
+    deploy: true
+    image: multus
+    repository: nfvpe
+    version: v3.6
+    config: ""
+  ipamPlugin:
+    deploy: true
+    image: whereabouts
+    repository: dougbtv
+    version: latest

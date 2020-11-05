@@ -54,4 +54,28 @@ spec:
         ]
       }
   {{- end }}
+  {{- if .Values.secondaryNetwork.deploy }}
+  secondaryNetwork:
+    {{- if .Values.secondaryNetwork.cniPlugins.deploy }}
+    cniPlugins:
+      image: {{ .Values.secondaryNetwork.cniPlugins.image }}
+      repository: {{ .Values.secondaryNetwork.cniPlugins.repository }}
+      version: {{ .Values.secondaryNetwork.cniPlugins.version }}
+    {{- end }}
+    {{- if .Values.secondaryNetwork.multus.deploy }}
+    multus:
+      image: {{ .Values.secondaryNetwork.multus.image }}
+      repository: {{ .Values.secondaryNetwork.multus.repository }}
+      version: {{ .Values.secondaryNetwork.multus.version }}
+      {{- if .Values.secondaryNetwork.multus.config | empty | not }}
+      config: {{ .Values.secondaryNetwork.multus.config }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.secondaryNetwork.ipamPlugin.deploy }}
+    ipamPlugin:
+      image: {{ .Values.secondaryNetwork.ipamPlugin.image }}
+      repository: {{ .Values.secondaryNetwork.ipamPlugin.repository }}
+      version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
+    {{- end }}
+  {{- end }}
 {{ end }}
