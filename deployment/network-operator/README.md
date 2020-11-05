@@ -56,8 +56,8 @@ $ helm install -n network-operator --create-namespace --wait mellanox/network-op
 $ kubectl -n network-operator get pods
 ```
 
->__Note:__ By default the operator is deployed without an instance of `NicClusterPolicy`
-custom resource. The user is required to create it later with configuration matching the cluster or use
+>__Note:__ By default the operator is deployed without an instance of `NicClusterPolicy` and `MacvlanNetwork`
+custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
 ## Chart parameters
@@ -75,7 +75,7 @@ We have introduced the following Chart parameters.
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters |
 
-### Custom resource parameters
+### NicClusterPolicy Custom resource parameters
 
 #### Mellanox OFED driver
 
@@ -121,6 +121,45 @@ resources:
 
 >__Note__: The parameter listed are non-exahustive, for the full list of chart parameters refer to
 the file: `values.yaml`
+
+#### Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `secondaryNetwork.deploy` | bool | `true` | Deploy Secondary Network  |
+
+Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
+  - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
+  - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
+  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/openshift/whereabouts-cni) is supported
+
+##### CNI Plugin Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `cniPlugins.deploy` | bool | `true` | Deploy CNI Plugins Secondary Network  |
+| `cniPlugins.image` | string | `containernetworking-plugins` | CNI Plugins image name  |
+| `cniPlugins.repository` | string | `mellanox` | CNI Plugins image repository  |
+| `cniPlugins.version` | string | `v0.8.7` | CNI Plugins image version  |
+
+##### Multus CNI Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
+| `multus.image` | string | `multus` | Multus image name  |
+| `multus.repository` | string | `nfvpe` | Multus image repository  |
+| `multus.version` | string | `v3.6` | Multus image version  |
+| `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
+
+##### IPAM CNI Plugin Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
+| `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
+| `ipamPlugin.repository` | string | `dougbtv` | IPAM CNI Plugin image repository  |
+| `ipamPlugin.version` | string | `latest` | IPAM CNI Plugin image version  |
 
 ## Deployment Examples
 
@@ -168,4 +207,39 @@ devicePlugin:
       devices: [enp1, enp2]
     - name: rdma_shared_device_b
       devices: [ib0]
+```
+
+#### Example 3
+Network Operator deployment with:
+- RDMA device plugin, single RDMA resource mapped to `ib0`
+- Secondary network
+    - Mutlus CNI
+    - Containernetworking-plugins CNI plugins
+    - Whereabouts IPAM CNI Plugin
+
+__values.yaml:__
+```:yaml
+deployCR: true
+devicePlugin:
+  deploy: true
+  reources:
+    - name: rdma_shared_device_a
+      devices: [ib0]
+secondaryNetwork:
+  deploy: true
+  multus:
+    deploy: true
+    image: multus
+    repository: nfvpe
+    version: v3.6
+  cniPlugins:
+    deploy: true
+    image: containernetworking-plugins
+    repository: mellanox
+    version: v0.8.7
+  ipamPlugin:
+    deploy: true
+    image: whereabouts
+    repository: dougbtv
+    version: latest
 ```
