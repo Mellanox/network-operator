@@ -49,8 +49,16 @@ operator:
       operator: "Equal"
       value: ""
       effect: "NoSchedule"
-  nodeSelector:
-    node-role.kubernetes.io/master: ""
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: In
+                values: [""]
   repository: mellanox
   image: network-operator
   nameOverride: ""
