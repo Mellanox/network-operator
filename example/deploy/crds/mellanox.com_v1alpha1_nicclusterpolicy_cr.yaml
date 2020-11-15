@@ -23,7 +23,7 @@ spec:
   devicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
-    version: v1.0.0
+    version: v1.1.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -49,7 +49,7 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: dougbtv
-      version: latest
+      version: v0.3
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox

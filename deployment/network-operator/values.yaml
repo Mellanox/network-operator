@@ -85,7 +85,7 @@ devicePlugin:
   deploy: true
   image: k8s-rdma-shared-dev-plugin
   repository: mellanox
-  version: v1.0.0
+  version: v1.1.0
   # The following defines the RDMA resources in the cluster
   # it must be provided by the user when deploying the chart
   # each entry in the resources element will create a resource with the provided <name> and list of devices
@@ -111,4 +111,4 @@ secondaryNetwork:
     deploy: true
     image: whereabouts
     repository: dougbtv
-    version: latest
+    version: v0.3

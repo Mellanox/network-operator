@@ -23,13 +23,13 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating System: Ubuntu18.04 with kernel `4.15.0-109-generic`.
+* Operating Systems: Ubuntu 18.04LTS, 20.04LTS.
 
 ### Prerequisites
 
-- Kubernetes v1.15+
+- Kubernetes v1.17+
 - Helm v3
-- Ubuntu 18.04LTS
+- Ubuntu 18.04LTS, 20.04LTS
 
 ### Install Helm
 
@@ -55,6 +55,26 @@ $ helm install -n network-operator --create-namespace --wait mellanox/network-op
 # View deployed resources
 $ kubectl -n network-operator get pods
 ```
+
+#### Deploy Network Operator without Node Feature Discovery
+
+By default the network operator deploys [Node Feature Discovery (NFD)](https://github.com/kubernetes-sigs/node-feature-discovery)
+in order to perform node labeling in the cluster to allow proper scheduling of Network Operator resources.
+If the nodes where already labeled by other means, it is possible to disable the deployment of NFD by setting
+`nfd.enabled=false` chart parameter.
+
+```
+$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait mellanox/network-operator network-operator
+```
+
+##### Currently the following NFD labels are used:
+
+| Label | Where |
+| ----- | ----- |
+| `feature.node.kubernetes.io/pci-15b3.present` | Nodes bearing Nvidia Mellanox Networking hardware |
+| `feature.node.kubernetes.io/pci-10de.present` | Nodes bearing Nvidia GPU hardware |
+
+>__Note:__ The labels which Network Operator depends on may change between releases.
 
 >__Note:__ By default the operator is deployed without an instance of `NicClusterPolicy` and `MacvlanNetwork`
 custom resources. The user is required to create it later with configuration matching the cluster or use
@@ -103,7 +123,7 @@ We have introduced the following Chart parameters.
 | `devicePlugin.deploy` | bool | `true` | Deploy device plugin  |
 | `devicePlugin.repository` | string | `mellanox` | Device plugin image repository |
 | `devicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
-| `devicePlugin.version` | string | `v1.0.0` | Device plugin version  |
+| `devicePlugin.version` | string | `v1.1.0` | Device plugin version  |
 | `devicePlugin.resources` | list | See below | Device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
@@ -119,7 +139,7 @@ resources:
       devices: [ib0, ib1]
 ``` 
 
->__Note__: The parameter listed are non-exahustive, for the full list of chart parameters refer to
+>__Note__: The parameter listed are non-exhaustive, for the full list of chart parameters refer to
 the file: `values.yaml`
 
 #### Secondary Network
@@ -128,10 +148,10 @@ the file: `values.yaml`
 | ---- | ---- | ------- | ----------- |
 | `secondaryNetwork.deploy` | bool | `true` | Deploy Secondary Network  |
 
-Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
+Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
   - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
   - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/openshift/whereabouts-cni) is supported
+  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts) is supported
 
 ##### CNI Plugin Secondary Network
 
@@ -159,7 +179,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
 | `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `dougbtv` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `latest` | IPAM CNI Plugin image version  |
+| `ipamPlugin.version` | string | `v0.3` | IPAM CNI Plugin image version  |
 
 ## Deployment Examples
 
@@ -229,17 +249,8 @@ secondaryNetwork:
   deploy: true
   multus:
     deploy: true
-    image: multus
-    repository: nfvpe
-    version: v3.6
   cniPlugins:
     deploy: true
-    image: containernetworking-plugins
-    repository: mellanox
-    version: v0.8.7
   ipamPlugin:
     deploy: true
-    image: whereabouts
-    repository: dougbtv
-    version: latest
 ```
