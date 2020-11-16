@@ -45,9 +45,12 @@ type stateNVPeer struct {
 
 type nvPeerRuntimeSpec struct {
 	runtimeSpec
-	CPUArch string
-	OSName  string
-	OSVer   string
+	CPUArch    string
+	OSName     string
+	OSVer      string
+	HTTPProxy  string
+	HTTPSProxy string
+	NoProxy    string
 }
 
 type nvPeerManifestRenderData struct {
@@ -138,6 +141,9 @@ func (s *stateNVPeer) getManifestObjects(
 			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
+			HTTPProxy:   utils.GetEnv(consts.HTTPProxy),
+			HTTPSProxy:  utils.GetEnv(consts.HTTPSProxy),
+			NoProxy:     utils.GetEnv(consts.NoProxy),
 		},
 	}
 	// render objects

@@ -38,7 +38,7 @@ spec:
           # Replace this with the built image name
           image: REPLACE_IMAGE
           command:
-          - network-operator
+            - network-operator
           imagePullPolicy: Always
           env:
             - name: STATE_MANIFEST_BASE_DIR
@@ -51,3 +51,9 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "network-operator"
+            - name: HTTP_PROXY
+              value: ""
+            - name: HTTPS_PROXY
+              value: ""
+            - name: NO_PROXY
+              value: ""

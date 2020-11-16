@@ -58,3 +58,8 @@ func GetFilesWithSuffix(baseDir string, suffixes ...string) ([]string, error) {
 func IsCRD(obj *unstructured.Unstructured) bool {
 	return obj.GetKind() == "CustomResourceDefinition"
 }
+
+// Getenv retrieves the value of the environment variable
+func GetEnv(name string) string {
+	return os.Getenv(name)
+}

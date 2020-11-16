@@ -66,6 +66,11 @@ operator:
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
   # tag
 
+proxy:
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""
+
 # NicClusterPolicy CR values:
 deployCR: false
 ofedDriver:
