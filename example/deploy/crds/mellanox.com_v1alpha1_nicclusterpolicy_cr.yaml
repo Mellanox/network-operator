@@ -23,7 +23,7 @@ spec:
   devicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
-    version: v1.0.0
+    version: v1.1.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -32,7 +32,9 @@ spec:
           {
             "resourceName": "hca_shared_devices_a",
             "rdmaHcaMax": 1000,
-            "devices": ["ens2f0"]
+            "selectors": {
+              "ifNames": ["ens2f0"]
+            }
           }
         ]
       }

@@ -108,15 +108,19 @@ We have introduced the following Chart parameters.
 
 ##### RDMA Device Plugin Resource configurations
 
-Consists of a list of RDMA resources each with a name a a list of RDMA capable network devices
-to be associated with the resource.
+Consists of a list of RDMA resources each with a name and selector of RDMA capable network devices
+to be associated with the resource. Refer to [RDMA Shared Device Plugin Selectors](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin#devices-selectors) for supported selectors.
 
 ```
 resources:
     - name: rdma_shared_device_a
-      devices: [enp5s0f0]
+      vendors: [15b3]
+      deviceIDs: [1017]
+      ifNames: [enp5s0f0]
     - name: rdma_shared_device_b
-      devices: [ib0, ib1]
+      vendors: [15b3]
+      deviceIDs: [1017]
+      ifNames: [ib0, ib1]
 ``` 
 
 >__Note__: The parameter listed are non-exahustive, for the full list of chart parameters refer to
@@ -186,7 +190,7 @@ devicePlugin:
   deploy: true
   reources:
     - name: rdma_shared_device_a
-      devices: [enp1]
+      ifNames: [enp1]
 ```
 
 #### Example 2
@@ -204,9 +208,9 @@ devicePlugin:
   deploy: true
   reources:
     - name: rdma_shared_device_a
-      devices: [enp1, enp2]
+      ifNames: [enp1, enp2]
     - name: rdma_shared_device_b
-      devices: [ib0]
+      ifNames: [ib0]
 ```
 
 #### Example 3
@@ -224,7 +228,7 @@ devicePlugin:
   deploy: true
   reources:
     - name: rdma_shared_device_a
-      devices: [ib0]
+      ifNames: [ib0]
 secondaryNetwork:
   deploy: true
   multus:
@@ -242,4 +246,19 @@ secondaryNetwork:
     image: whereabouts
     repository: dougbtv
     version: latest
+```
+
+#### Example 4
+Network Operator deployment with the default version of RDMA device plugin with RDMA resource
+mapped to Mellanox ConnectX-5.
+
+__values.yaml:__
+```:yaml
+deployCR: true
+devicePlugin:
+  deploy: true
+  resources:
+    - name: rdma_shared_device_a
+      vendors: [15b3]
+      deviceIDs: [1017]
 ```
