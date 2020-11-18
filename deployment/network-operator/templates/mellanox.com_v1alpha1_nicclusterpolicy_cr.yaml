@@ -53,7 +53,7 @@ spec:
               "deviceIDs": {{ $element.deviceIDs | default list | toJson }},
               "drivers": {{ $element.drivers | default list | toJson }},
               "ifNames": {{ $element.ifNames | default list | toJson }},
-              "linkTypes": {{ $element.ifNames | default list | toJson }}
+              "linkTypes": {{ $element.linkTypes | default list | toJson }}
             }
           } {{- if ne $length (add1 $index) }},{{ end }}
           {{- end }}
