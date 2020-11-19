@@ -45,7 +45,7 @@ spec:
           effect: NoSchedule
       hostNetwork: true
       containers:
-              - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.CPUArch }}
+        - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.CPUArch }}
           imagePullPolicy: IfNotPresent
           name: ofed-driver-container
           securityContext:
