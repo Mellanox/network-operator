@@ -76,7 +76,7 @@ to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads)
 - `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/openshift/whereabouts-cni) is supported
+    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts-cni) is supported
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
@@ -98,7 +98,7 @@ spec:
   devicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
-    version: latest
+    version: v1.1.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -129,7 +129,7 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: dougbtv
-      version: latest
+      version: v0.3.0
 ```
 
 Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
@@ -142,7 +142,7 @@ The sub-state `status` indicates if the cluster has transitioned to the desired
 state for that sub-state, e.g OFED driver container deployed and loaded on relevant nodes,
 RDMA device plugin deployed and running on relevant nodes.
 
-The global state reflects the logical _AND_ of each inidvidual sub-state.
+The global state reflects the logical _AND_ of each individual sub-state.
 
 ##### Example Status field of a NICClusterPolicy instance
 ```
@@ -178,7 +178,8 @@ MacvlanNetwork CRD Spec includes the following fields:
 - `ipam`: IPAM configuration to be used for this network.
 
 ##### Example for MacvlanNetwork resource:
-In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, mtu 1500, default route interface as master, with resouce "rdma/hca_shared_devices_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
+In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, mtu 1500, default route interface as master,
+with resouce "rdma/hca_shared_devices_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
 
 ```
 apiVersion: mellanox.com/v1alpha1
@@ -214,7 +215,7 @@ Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.ya
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating System: Ubuntu18.04 with kernel `4.15.0-109-generic`.
+* Operating Systems: Ubuntu 18.04LTS, 20.04.LTS
 
 >__NOTE__: As more driver containers are built the operator will be able to support additional platforms.
 

@@ -116,4 +116,4 @@ secondaryNetwork:
     deploy: true
     image: whereabouts
     repository: dougbtv
-    version: latest
+    version: v0.3
