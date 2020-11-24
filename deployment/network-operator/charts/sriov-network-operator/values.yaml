@@ -1,3 +1,17 @@
+# Copyright 2020 NVIDIA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Default values for sriov-network-operator.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
@@ -28,8 +42,9 @@ resources: {}
 
 # Image URIs for sriov-network-operator components
 images:
-  operator: adriancdockerhub/sriov-network-operator:latest
-  sriovConfigDaemon: adriancdockerhub/sriov-network-config-daemon:latest
+  operator: quay.io/openshift/origin-sriov-network-operator:4.8
+  sriovConfigDaemon: quay.io/openshift/origin-sriov-network-config-daemon:4.8
   sriovCni: nfvpe/sriov-cni:v2.5
   ibSriovCni: mellanox/ib-sriov-cni:v1.0.0
-  sriovDevicePlugin: nfvpe/sriov-device-plugin:v3.2
+  # Upstream image nfvpe/sriov-device-plugin:v3.2 failing
+  sriovDevicePlugin: quay.io/openshift/origin-sriov-network-device-plugin:4.8
