@@ -43,6 +43,9 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
+{{if eq .RuntimeSpec.OSName "rhcos"}}
+      serviceAccountName: ofed-driver
+{{end}}
       hostNetwork: true
       containers:
         - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.CPUArch }}

@@ -27,6 +27,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
@@ -53,13 +54,18 @@ type stateSharedDp struct {
 	stateSkel
 }
 
+type sharedDpRuntimeSpec struct {
+	runtimeSpec
+	OSName string
+}
 type sharedDpManifestRenderData struct {
 	CrSpec      *mellanoxv1alpha1.DevicePluginSpec
-	RuntimeSpec *runtimeSpec
+	RuntimeSpec *sharedDpRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
+//nolint:dupl
 func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
@@ -72,7 +78,12 @@ func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog
 		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr)
+	nodeInfo := infoCatalog.GetNodeInfoProvider()
+	if nodeInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
+	}
+
+	objs, err := s.getManifestObjects(cr, nodeInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -106,11 +117,28 @@ func (s *stateSharedDp) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateSharedDp) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.NicClusterPolicy,
+	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	attrs := nodeInfo.GetNodesAttributes(
+		nodeinfo.NewNodeLabelFilterBuilder().
+			WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").
+			Build())
+	if len(attrs) == 0 {
+		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		return []*unstructured.Unstructured{}, nil
+	}
+
+	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
+	if err := s.checkAttributesExist(attrs[0],
+		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
+		return nil, err
+	}
+
 	renderData := &sharedDpManifestRenderData{
 		CrSpec: cr.Spec.RdmaSharedDevicePlugin,
-		RuntimeSpec: &runtimeSpec{
-			Namespace: consts.NetworkOperatorResourceNamespace,
+		RuntimeSpec: &sharedDpRuntimeSpec{
+			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
+			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 		},
 	}
 	// render objects

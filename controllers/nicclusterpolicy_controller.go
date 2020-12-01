@@ -78,7 +78,8 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
-	if instance.Spec.OFEDDriver != nil || instance.Spec.NVPeerDriver != nil {
+	if instance.Spec.OFEDDriver != nil || instance.Spec.NVPeerDriver != nil ||
+		instance.Spec.RdmaSharedDevicePlugin != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
 		nodeList := &corev1.NodeList{}

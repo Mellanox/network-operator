@@ -72,12 +72,12 @@ tools to test RDMA and GPU-Direct RDMA traffic.
 ##### RDMA
 __Pod1:__ Run `ib_write_bw` as server
 ```bash
-# ib_write_bw -d <RDMA device e.g mlx5_0> -a -F --report_gbits -R -q 2
+# ib_write_bw -d <RDMA device e.g mlx5_0> -a -F --report_gbits -R
 ```
 
 __Pod2:__ Run `ib_write_bw` as client
 ```bash
-# ib_write_bw -d <RDMA device e.g mlx5_0> -a -F --report_gbits -R -q 2 <Pod1 IP address>
+# ib_write_bw -d <RDMA device e.g mlx5_0> -a -F --report_gbits -R <Pod1 IP address>
 ```
 
 ##### GPU-Direct RDMA
