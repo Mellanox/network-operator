@@ -92,9 +92,9 @@ metadata:
   namespace: mlnx-network-operator
 spec:
   ofedDriver:
-    image: ofed-driver
+    image: mofed
     repository: mellanox
-    version: 5.0-2.1.8.0
+    version: 5.2-1.0.4.0
   devicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
