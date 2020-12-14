@@ -72,7 +72,7 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 | Label | Where |
 | ----- | ----- |
 | `feature.node.kubernetes.io/pci-15b3.present` | Nodes bearing Nvidia Mellanox Networking hardware |
-| `feature.node.kubernetes.io/pci-10de.present` | Nodes bearing Nvidia GPU hardware |
+| `nvidia.com/gpu.present` | Nodes bearing Nvidia GPU hardware |
 
 >__Note:__ The labels which Network Operator depends on may change between releases.
 
