@@ -183,7 +183,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
 | `multus.image` | string | `multus` | Multus image name  |
 | `multus.repository` | string | `nfvpe` | Multus image repository  |
-| `multus.version` | string | `v3.6` | Multus image version  |
+| `multus.version` | string | `v3.4.1` | Multus image version  |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
 ##### IPAM CNI Plugin Secondary Network
