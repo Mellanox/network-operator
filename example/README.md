@@ -9,7 +9,10 @@ network-operator, at this stage, deploys and configures the follwoing components
 * [Mellanox OFED](https://www.mellanox.com/products/infiniband-drivers/linux/mlnx_ofed) driver container
 * [RDMA device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
 * [NVIDIA peer memory client](https://github.com/Mellanox/nv_peer_memory) driver container
-
+* SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
+    - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
+    - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
+    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts-cni) is supported
 There are still additional pieces that need to be setup before _RDMA_ or _GPU-Direct RDMA_ workloads
 can run on a Kubernetes cluster.
 
@@ -18,22 +21,14 @@ __Those being:__
 2. Network device initialization upon system boot via network init mechanism
 (e.g `network-scripts`, `NetworkManager`, `netplan`)
 3. Deployment of Kubernetes secondary network of type `macvlan` on the RDMA device's netdev.
-4. Secondary network IPAM.
-5. Proper definition of workloads to request RDMA device and its corresponding secondary network, GPU.
 
 This example aims to address the points above in a basic manner.
 
 ## Content
 * `deploy-operator.sh`: Deploy network operator and related resources.
-* `deploy-rdma-net.sh`: Deploy secondary network for RDMA traffic with static IPAM.
-* `deploy-rdma-net-ipam.sh`: Deploy secondary network for RDMA traffic with cluster IPAM
-([wherabouts](https://github.com/openshift/whereabouts-cni)).
 * `delete-operator.sh`: Delete network operator and related resources.
-* `delete-rdma-net.sh`: Delete secondary network for RDMA traffic with static IPAM.
-* `delete-rdma-net-ipam.sh`: Delete secondary network for RDMA traffic with cluster IPAM
-([wherabouts](https://github.com/openshift/whereabouts-cni)).
 * `deploy`: network-operator related deployment files
-* `networking`: kubernetes secondary network and IPAM related deployment files 
+* `networking`: kubernetes secondary network and IPAM related deployment files
 * `network-init`: Example files on how to configure network device initialization.
 * `udev`: Example udev rules for persistend and predictable network device names.
 * `README.md`: This file.
@@ -52,9 +47,11 @@ __The example assumes the follwoing:__
  ```
 # ./deploy-operator.sh
 ...
-# ./deploy-rdma-net-ipam.sh
-...
 # kubectl apply -f ./deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml
+```
+Deploy a kubernetes secondary network from `networking` folder, there are `macvlan` and `host-device` networks each has example file for deploying with/without IPAM Whereabouts
+```bash
+# kubectl apply -f ./networking/<file-name>
 ```
 At this point you should wait for the defined Custom resource to be ready.
 Once ready, deploying RDMA workloads or GPU-Direct RDMA workloads should be possible.
@@ -99,5 +96,4 @@ __Pod2:__ Run `ib_write_bw` as client
 ```bash
 # // delete workloads
 # ./delete-operator.sh
-# ./delete-rdma-net-ipam.sh
 ```
