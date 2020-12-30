@@ -123,7 +123,7 @@ spec:
     multus:
       image: multus
       repository: nfvpe
-      version: v3.6
+      version: v3.4.1
       # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
       config: ''
     ipamPlugin:

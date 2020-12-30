@@ -46,7 +46,7 @@ spec:
     multus:
       image: multus
       repository: nfvpe
-      version: v3.6
+      version: v3.4.1
       config: ''
     ipamPlugin:
       image: whereabouts
