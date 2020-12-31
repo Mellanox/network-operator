@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2020 NVIDIA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-echo "Deleting Secondary Network with Whereabouts IPAM"
-echo "################################################"
-kubectl delete -f networking/rdma-net-cr-whereabouts-ipam.yml
-kubectl delete -f networking/whareabouts-daemonset-install.yaml
-kubectl delete -f networking/whereabouts.cni.cncf.io_ippools.yaml
-kubectl delete -f networking/multus-daemonset.yml
+apiVersion: mellanox.com/v1alpha1
+kind: MacvlanNetwork
+metadata:
+  name: rdma-net
+spec:
+  networkNamespace: "default"
+  master: "ens2f0"
+  mode: "bridge"
+  mtu: 9000
+  ipam: |
+    {
+      "type": "static"
+    }

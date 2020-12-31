@@ -14,12 +14,12 @@
 apiVersion: mellanox.com/v1alpha1
 kind: MacvlanNetwork
 metadata:
-  name: example-macvlannetwork
+  name: rdma-net-ipam
 spec:
   networkNamespace: "default"
   master: "ens2f0"
   mode: "bridge"
-  mtu: 1500
+  mtu: 9000
   ipam: |
     {
       "type": "whereabouts",
