@@ -23,13 +23,13 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating System: Ubuntu18.04 with kernel `4.15.0-109-generic`.
+* Operating Systems: Ubuntu 18.04LTS, 20.04LTS.
 
 ### Prerequisites
 
-- Kubernetes v1.15+
+- Kubernetes v1.17+
 - Helm v3
-- Ubuntu 18.04LTS
+- Ubuntu 18.04LTS, 20.04LTS
 
 ### Install Helm
 
@@ -56,8 +56,28 @@ $ helm install -n network-operator --create-namespace --wait mellanox/network-op
 $ kubectl -n network-operator get pods
 ```
 
->__Note:__ By default the operator is deployed without an instance of `NicClusterPolicy`
-custom resource. The user is required to create it later with configuration matching the cluster or use
+#### Deploy Network Operator without Node Feature Discovery
+
+By default the network operator deploys [Node Feature Discovery (NFD)](https://github.com/kubernetes-sigs/node-feature-discovery)
+in order to perform node labeling in the cluster to allow proper scheduling of Network Operator resources.
+If the nodes where already labeled by other means, it is possible to disable the deployment of NFD by setting
+`nfd.enabled=false` chart parameter.
+
+```
+$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait mellanox/network-operator network-operator
+```
+
+##### Currently the following NFD labels are used:
+
+| Label | Where |
+| ----- | ----- |
+| `feature.node.kubernetes.io/pci-15b3.present` | Nodes bearing Nvidia Mellanox Networking hardware |
+| `nvidia.com/gpu.present` | Nodes bearing Nvidia GPU hardware |
+
+>__Note:__ The labels which Network Operator depends on may change between releases.
+
+>__Note:__ By default the operator is deployed without an instance of `NicClusterPolicy` and `MacvlanNetwork`
+custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
 ## Chart parameters
@@ -75,7 +95,17 @@ We have introduced the following Chart parameters.
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters |
 
-### Custom resource parameters
+### Proxy parameters
+These proxy parameter will translate to HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables to be used by the network operator and relevant resources it deploys.
+Production cluster environment can deny direct access to the Internet and instead have an HTTP or HTTPS proxy available.
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `proxy.httpProxy` | string | `None` | proxy URL to use for creating HTTP connections outside the cluster. The URL scheme must be http |
+| `proxy.httpsProxy` | string | `None` | proxy URL to use for creating HTTPS connections outside the cluster |
+| `proxy.noProxy` | string | `None` | A comma-separated list of destination domain names, domains, IP addresses or other network CIDRs to exclude proxying |
+
+### NicClusterPolicy Custom resource parameters
 
 #### Mellanox OFED driver
 
@@ -83,8 +113,8 @@ We have introduced the following Chart parameters.
 | ---- | ---- | ------- | ----------- |
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
-| `ofedDriver.image` | string | `ofed-driver` | Mellanox OFED driver image name  |
-| `ofedDriver.version` | string | `5.0-2.1.8.0` | Mellanox OFED driver version  |
+| `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name  |
+| `ofedDriver.version` | string | `5.2-1.0.4.0` | Mellanox OFED driver version  |
 
 #### NVIDIA Peer memory driver
 
@@ -103,24 +133,67 @@ We have introduced the following Chart parameters.
 | `devicePlugin.deploy` | bool | `true` | Deploy device plugin  |
 | `devicePlugin.repository` | string | `mellanox` | Device plugin image repository |
 | `devicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
-| `devicePlugin.version` | string | `v1.0.0` | Device plugin version  |
+| `devicePlugin.version` | string | `v1.1.0` | Device plugin version  |
 | `devicePlugin.resources` | list | See below | Device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
 
-Consists of a list of RDMA resources each with a name a a list of RDMA capable network devices
-to be associated with the resource.
+Consists of a list of RDMA resources each with a name and selector of RDMA capable network devices
+to be associated with the resource. Refer to [RDMA Shared Device Plugin Selectors](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin#devices-selectors) for supported selectors.
 
 ```
 resources:
     - name: rdma_shared_device_a
-      devices: [enp5s0f0]
+      vendors: [15b3]
+      deviceIDs: [1017]
+      ifNames: [enp5s0f0]
     - name: rdma_shared_device_b
-      devices: [ib0, ib1]
+      vendors: [15b3]
+      deviceIDs: [1017]
+      ifNames: [ib0, ib1]
 ``` 
 
->__Note__: The parameter listed are non-exahustive, for the full list of chart parameters refer to
+>__Note__: The parameter listed are non-exhaustive, for the full list of chart parameters refer to
 the file: `values.yaml`
+
+#### Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `secondaryNetwork.deploy` | bool | `true` | Deploy Secondary Network  |
+
+Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
+  - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
+  - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
+  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts) is supported
+
+##### CNI Plugin Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `cniPlugins.deploy` | bool | `true` | Deploy CNI Plugins Secondary Network  |
+| `cniPlugins.image` | string | `containernetworking-plugins` | CNI Plugins image name  |
+| `cniPlugins.repository` | string | `mellanox` | CNI Plugins image repository  |
+| `cniPlugins.version` | string | `v0.8.7` | CNI Plugins image version  |
+
+##### Multus CNI Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
+| `multus.image` | string | `multus` | Multus image name  |
+| `multus.repository` | string | `nfvpe` | Multus image repository  |
+| `multus.version` | string | `v3.4.1` | Multus image version  |
+| `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
+
+##### IPAM CNI Plugin Secondary Network
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
+| `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
+| `ipamPlugin.repository` | string | `dougbtv` | IPAM CNI Plugin image repository  |
+| `ipamPlugin.version` | string | `v0.3` | IPAM CNI Plugin image version  |
 
 ## Deployment Examples
 
@@ -142,12 +215,12 @@ __values.yaml:__
 deployCR: true
 ofedDriver:
   deploy: true
-  version: 5.0-2.1.8.0
+  version: 5.2-1.0.4.0
 devicePlugin:
   deploy: true
   reources:
     - name: rdma_shared_device_a
-      devices: [enp1]
+      ifNames: [enp1]
 ```
 
 #### Example 2
@@ -165,7 +238,48 @@ devicePlugin:
   deploy: true
   reources:
     - name: rdma_shared_device_a
-      devices: [enp1, enp2]
+      ifNames: [enp1, enp2]
     - name: rdma_shared_device_b
-      devices: [ib0]
+      ifNames: [ib0]
+```
+
+#### Example 3
+Network Operator deployment with:
+- RDMA device plugin, single RDMA resource mapped to `ib0`
+- Secondary network
+    - Mutlus CNI
+    - Containernetworking-plugins CNI plugins
+    - Whereabouts IPAM CNI Plugin
+
+__values.yaml:__
+```:yaml
+deployCR: true
+devicePlugin:
+  deploy: true
+  reources:
+    - name: rdma_shared_device_a
+      ifNames: [ib0]
+secondaryNetwork:
+  deploy: true
+  multus:
+    deploy: true
+  cniPlugins:
+    deploy: true
+  ipamPlugin:
+    deploy: true
+```
+
+#### Example 4
+Network Operator deployment with the default version of RDMA device plugin with RDMA resource
+mapped to Mellanox ConnectX-5.
+
+__values.yaml:__
+```:yaml
+deployCR: true
+devicePlugin:
+  deploy: true
+  resources:
+    - name: rdma_shared_device_a
+      vendors: [15b3]
+      deviceIDs: [1017]
 ```
