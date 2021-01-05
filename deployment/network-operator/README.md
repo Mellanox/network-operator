@@ -113,8 +113,8 @@ Production cluster environment can deny direct access to the Internet and instea
 | ---- | ---- | ------- | ----------- |
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
-| `ofedDriver.image` | string | `ofed-driver` | Mellanox OFED driver image name  |
-| `ofedDriver.version` | string | `5.0-2.1.8.0` | Mellanox OFED driver version  |
+| `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name  |
+| `ofedDriver.version` | string | `5.2-1.0.4.0` | Mellanox OFED driver version  |
 
 #### NVIDIA Peer memory driver
 
@@ -215,7 +215,7 @@ __values.yaml:__
 deployCR: true
 ofedDriver:
   deploy: true
-  version: 5.0-2.1.8.0
+  version: 5.2-1.0.4.0
 devicePlugin:
   deploy: true
   reources:

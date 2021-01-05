@@ -75,9 +75,9 @@ proxy:
 deployCR: false
 ofedDriver:
   deploy: false
-  image: ofed-driver
+  image: mofed
   repository: mellanox
-  version: 5.0-2.1.8.0
+  version: 5.2-1.0.4.0
 
 nvPeerDriver:
   deploy: false
