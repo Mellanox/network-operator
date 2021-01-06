@@ -50,7 +50,7 @@ $ helm repo add mellanox https://mellanox.github.io/network-operator
 $ helm repo update
 
 # Install Operator
-$ helm install --devel -n network-operator --create-namespace --wait mellanox/network-operator network-operator
+$ helm install --devel -n network-operator --create-namespace --wait network-operator mellanox/network-operator
 
 # View deployed resources
 $ kubectl -n network-operator get pods
@@ -64,7 +64,7 @@ If the nodes where already labeled by other means, it is possible to disable the
 `nfd.enabled=false` chart parameter.
 
 ```
-$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait mellanox/network-operator network-operator
+$ helm install --devel --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator mellanox/network-operator
 ```
 
 ##### Currently the following NFD labels are used:
@@ -204,7 +204,7 @@ override to the parameter via CLI it would simply be cumbersome.
 Below are several deployment examples `values.yaml` provided to helm during installation
 of the network operator in the following manner:
 
-`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait mellanox/network-operator network-operator`
+`$ helm install --devel -f ./values.yaml -n network-operator --create-namespace --wait network-operator mellanox/network-operator`
 
 #### Example 1
 Network Operator deployment with a specific version of OFED driver and a single RDMA resource mapped to `enp1`
