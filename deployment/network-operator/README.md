@@ -50,7 +50,7 @@ $ helm repo add mellanox https://mellanox.github.io/network-operator
 $ helm repo update
 
 # Install Operator
-$ helm install -n network-operator --create-namespace --wait mellanox/network-operator network-operator
+$ helm install -n network-operator --create-namespace --wait --devel mellanox/network-operator network-operator
 
 # View deployed resources
 $ kubectl -n network-operator get pods
