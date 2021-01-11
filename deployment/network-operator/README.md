@@ -17,6 +17,26 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes device plugins to provide hardware resources for fast network
 * Kubernetes secondary network for Network intensive workloads
 
+## Additional components
+
+### Node Feature Discovery
+Nvidia Network Operator relies on the existance of specific node labels to operate properly.
+e.g label a node as having Nvidia networking hardware available.
+This can be achieved by either manually labeling Kubernetes nodes or using
+[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) to perform the labeling.
+
+To allow zero touch deployment of the Operator we provide a helm chart to be used to
+optionally deploy Node Feature Discovery in the cluster. This is enabled via `nfd.enabled` chart parameter.
+
+### SR-IOV Network Operator
+Nvidia Network Operator can operate in unison with SR-IOV Network Operator
+to enable SR-IOV workloads in a Kubernetes cluster. We provide a helm chart to be used to optionally
+deploy [SR-IOV Network Operator](https://github.com/openshift/sriov-network-operator) in the cluster.
+This is enabled via `sriovNetworkOperator.enabled` chart parameter.
+
+For more information on how to configure SR-IOV in your Kubernetes cluster using SR-IOV Network Operator
+refer to the project's github.
+
 ## QuickStart
 
 ### System Requirements
@@ -90,6 +110,7 @@ We have introduced the following Chart parameters.
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
+| `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator |
 | `operator.repository` | string | `mellanox` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
