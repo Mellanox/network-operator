@@ -52,6 +52,12 @@ spec:
                 - netdevice
                 - vfio-pci
                 type: string
+              eSwitchMode:
+                description: NIC Device Mode. Allowed value "legacy","switchdev".
+                enum:
+                - legacy
+                - switchdev
+                type: string
               isRdma:
                 description: RDMA mode. Defaults to false.
                 type: boolean
