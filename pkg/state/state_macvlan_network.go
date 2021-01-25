@@ -73,24 +73,20 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 
 	objs, err := s.getManifestObjects(cr)
 	if err != nil {
-		cr.Status.Reason = "failed to render MacvlanNetwork"
 		return SyncStateError, errors.Wrap(err, "failed to render MacvlanNetwork")
 	}
 
 	if len(objs) == 0 {
-		cr.Status.Reason = "no rendered objects found"
 		return SyncStateError, errors.Wrap(err, "no rendered objects found")
 	}
 
 	netAttDef := objs[0]
 	if netAttDef.GetKind() != "NetworkAttachmentDefinition" {
-		cr.Status.Reason = "no NetworkAttachmentDefinition object found"
 		return SyncStateError, errors.Wrap(err, "no NetworkAttachmentDefinition object found")
 	}
 
 	// Delete NetworkAttachmentDefinition if not in desired namespace
 	if err = s.handleNamespaceChange(cr, netAttDef); err != nil {
-		cr.Status.Reason = "Couldn't delete NetworkAttachmentDefinition CR"
 		return SyncStateError, errors.Wrap(err, "Couldn't delete NetworkAttachmentDefinition CR")
 	}
 
@@ -102,7 +98,6 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 	}, objs)
 
 	if err != nil {
-		cr.Status.Reason = "failed to create/update objects"
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
 
@@ -118,10 +113,9 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 
 	// Get NetworkAttachmentDefinition SelfLink
 	if err := s.getObj(netAttDef); err != nil {
-		// TODO handling MacvlanNetwork CR Status should be done in the controller
-		cr.Status.Reason = "failed to get NetworkAttachmentDefinition"
 		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
 	}
+	// TODO handling MacvlanNetwork CR Status should be done in the controller
 	cr.Status.MacvlanNetworkAttachmentDef = netAttDef.GetSelfLink()
 
 	return syncState, nil
@@ -193,7 +187,6 @@ func (s *stateMacvlanNetwork) updateNetAttDefNamespace(cr *mellanoxv1alpha1.Macv
 		anno := map[string]string{lastNetworkNamespaceAnnot: netAttDef.GetNamespace()}
 		cr.SetAnnotations(anno)
 		if err := s.client.Update(context.Background(), cr); err != nil {
-			cr.Status.Reason = "failed to update MacvlanNetwork annotations"
 			return errors.Wrap(err, "failed to update MacvlanNetwork annotations")
 		}
 	}

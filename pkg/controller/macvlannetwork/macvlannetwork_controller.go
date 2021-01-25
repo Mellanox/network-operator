@@ -122,7 +122,7 @@ func (r *ReconcileMacvlanNetwork) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	managerStatus, err := r.stateManager.SyncState(instance, nil)
-	r.updateCrStatus(instance, managerStatus)
+	r.updateCrStatus(instance, managerStatus, err)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -135,8 +135,12 @@ func (r *ReconcileMacvlanNetwork) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMacvlanNetwork) updateCrStatus(cr *mellanoxv1alpha1.MacvlanNetwork, status state.Results) {
+func (r *ReconcileMacvlanNetwork) updateCrStatus(cr *mellanoxv1alpha1.MacvlanNetwork, status state.Results,
+	syncError error) {
 	cr.Status.State = mellanoxv1alpha1.State(status.StatesStatus[0].Status)
+	if syncError != nil {
+		cr.Status.Reason = syncError.Error()
+	}
 
 	// send status update request to k8s API
 	log.V(consts.LogLevelInfo).Info(
