@@ -63,6 +63,10 @@ spec:
                   rate limiting)
                 minimum: 0
                 type: integer
+              metaPlugins:
+                description: MetaPluginsConfig configuration to be used in order to
+                  chain metaplugins to the sriov interface returned by the operator.
+                type: string
               minTxRate:
                 description: Minimum tx rate, in Mbps, for the VF. Defaults to 0 (no
                   rate limiting). min_tx_rate should be <= max_tx_rate.
