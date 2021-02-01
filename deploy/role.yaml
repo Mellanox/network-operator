@@ -16,7 +16,7 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: network-operator
-  namespace: REPLACE_NAMESPACE
+  namespace: mlnx-network-operator
 rules:
   - apiGroups:
       - events.k8s.io

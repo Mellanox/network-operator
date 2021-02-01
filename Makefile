@@ -181,11 +181,11 @@ uninstall: manifests	## Uninstall CRDs from a cluster
 
 .PHONY: deploy
 deploy: manifests	## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	@example/deploy-operator.sh
+	@scripts/deploy-operator.sh
 
 .PHONY: undeploy
 undeploy: manifests	## UnDeploy controller from the configured Kubernetes cluster in ~/.kube/config
-	@example/delete-operator.sh
+	@scripts/delete-operator.sh
 
 .PHONY: manifests
 manifests: controller-gen	## Generate manifests e.g. CRD, RBAC etc.

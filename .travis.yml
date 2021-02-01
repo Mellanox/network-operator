@@ -22,13 +22,13 @@ deploy:
   # Push image to Dockerhub on merge to master
   - provider: script
     skip_cleanup: true
-    script: bash scripts/deploy.sh $IMAGE_NAME latest $TRAVIS_CPU_ARCH
+    script: bash scripts/docker-push.sh $IMAGE_NAME latest $TRAVIS_CPU_ARCH
     on:
       branch: master
   # Push image to Dockerhub on tag
   - provider: script
     skip_cleanup: true
-    script: bash scripts/deploy.sh $IMAGE_NAME $TRAVIS_TAG $TRAVIS_CPU_ARCH
+    script: bash scripts/docker-push.sh $IMAGE_NAME $TRAVIS_TAG $TRAVIS_CPU_ARCH
     on:
       tags: true
       all_branches: true

@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+repo_dir=$(dirname $0)/..
+
 echo "Deploying Network Operator:"
 echo "###########################"
-kubectl apply -f deploy/operator-ns.yaml
-kubectl apply -f deploy/operator-resources-ns.yaml
-kubectl apply -f deploy/crds/mellanox.com_nicclusterpolicies_crd.yaml
-kubectl apply -f deploy/crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml
-kubectl apply -f deploy/crds/mellanox.com_macvlannetworks_crd.yaml
-kubectl apply -f deploy/role.yaml
-kubectl apply -f deploy/service_account.yaml
-kubectl apply -f deploy/role_binding.yaml
-kubectl apply -f deploy/operator.yaml
+kubectl apply -f $repo_dir/deploy/operator-ns.yaml
+kubectl apply -f $repo_dir/deploy/operator-resources-ns.yaml
+kubectl apply -f $repo_dir/config/crd/bases/mellanox.com_nicclusterpolicies.yaml
+kubectl apply -f $repo_dir/config/crd/bases/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml
+kubectl apply -f $repo_dir/config/crd/bases/mellanox.com_macvlannetworks.yaml
+kubectl apply -f $repo_dir/deploy/role.yaml
+kubectl apply -f $repo_dir/deploy/service_account.yaml
+kubectl apply -f $repo_dir/deploy/role_binding.yaml
+kubectl apply -f $repo_dir/deploy/operator.yaml

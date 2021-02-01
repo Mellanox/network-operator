@@ -15,7 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: network-operator
-  namespace: REPLACE_NAMESPACE
+  namespace: mlnx-network-operator
 spec:
   replicas: 1
   selector:
@@ -36,10 +36,10 @@ spec:
       containers:
         - name: network-operator
           # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: mellanox/network-operator
           command:
-            - network-operator
-          imagePullPolicy: Always
+          - network-operator
+          imagePullPolicy: IfNotPresent
           env:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/etc/manifests"
@@ -51,9 +51,3 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "network-operator"
-            - name: HTTP_PROXY
-              value: ""
-            - name: HTTPS_PROXY
-              value: ""
-            - name: NO_PROXY
-              value: ""
