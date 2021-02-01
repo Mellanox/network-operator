@@ -1,0 +1,24 @@
+# permissions for end users to edit macvlannetworks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: macvlannetwork-editor-role
+rules:
+- apiGroups:
+  - mellanox.com
+  resources:
+  - macvlannetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - macvlannetworks/status
+  verbs:
+  - get
