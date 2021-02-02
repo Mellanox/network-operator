@@ -120,3 +120,6 @@ secondaryNetwork:
     image: whereabouts
     repository: dougbtv
     version: v0.3
+
+test:
+  pf: ens2f0

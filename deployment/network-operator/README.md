@@ -100,6 +100,23 @@ $ helm install --devel --set nfd.enabled=false -n network-operator --create-name
 custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
+## Helm Tests
+
+Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `devicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
+Supported Tests:
+- Device Plugin Resource: This test creates a pod that requests the first resource in `devicePlugin.resources`
+- RDMA Traffic: This test creates a pod that test loopback RDMA traffic with `rping`
+
+Run the helm test with following command after deploying network operator with helm
+```
+$ helm test -n network-operator network-operator --timeout=5m
+```
+Notes:
+- Test will keeping running endlessly if pod creating failed so it is recommended to use `--timeout` which fails test after exceeding given timeout
+- Default PF to run test is `ens2f0` to override it add `--set test.pf=<pf_name>` to `helm install/upgrade`
+- Tests should be executed after `NicClusterPolicy` custom resource state is `Ready`
+- In case of a test failed it is possible to collect the logs with `kubectl logs -n <namespace> <test-pod-name>`
+
 ## Chart parameters
 
 In order to tailor the deployment of the network operator to your cluster needs
