@@ -25,8 +25,6 @@ __Those being:__
 This example aims to address the points above in a basic manner.
 
 ## Content
-* `deploy-operator.sh`: Deploy network operator and related resources.
-* `delete-operator.sh`: Delete network operator and related resources.
 * `deploy`: network-operator related deployment files
 * `networking`: kubernetes secondary network and IPAM related deployment files
 * `network-init`: Example files on how to configure network device initialization.
@@ -45,9 +43,9 @@ __The example assumes the follwoing:__
 
 ### Setup cluster
  ```
-# ./deploy-operator.sh
+# make -C ./.. deploy
 ...
-# kubectl apply -f ./deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml
+# kubectl apply -f ./crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml
 ```
 Deploy a kubernetes secondary network from `networking` folder, there are `macvlan` and `host-device` networks each has example file for deploying with/without IPAM Whereabouts
 ```bash
@@ -95,5 +93,5 @@ __Pod2:__ Run `ib_write_bw` as client
 ### Cleanup
 ```bash
 # // delete workloads
-# ./delete-operator.sh
+# make -C ./.. undeploy
 ```

@@ -132,7 +132,7 @@ spec:
       version: v0.3.0
 ```
 
-Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
+Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
 
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
@@ -209,7 +209,7 @@ spec:
     }
 ```
 
-Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
+Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
@@ -221,16 +221,16 @@ Can be found at: `example/deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.ya
 
 ## Deployment Example
 Deployment of network-operator consists of:
-* Deploying network-operator CRDs found under `./deploy/crds/`:
+* Deploying network-operator CRDs found under `./config/crd/bases`:
     * mellanox.com_nicclusterpolicies_crd.yaml
     * mellanox.com_macvlan_crds.yaml
     * k8s.cni.cncf.io-networkattachmentdefinitions-crd.yaml
 * Deploying network operator resources found under `./deploy/` e.g operator namespace,
 role, role binding, service account and the network-operator daemonset
 * Defining and deploying a NICClusterPolicy custom resource.
-Template can be found under `./deploy/crds/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
+Example can be found under `./example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
 * Defining and deploying a MacvlanNetwork custom resource.
-Template can be found under `./deploy/crds/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
+Example can be found under `./example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
 A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/example/README.md).
 

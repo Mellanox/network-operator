@@ -15,11 +15,11 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: network-operator
-  namespace: REPLACE_NAMESPACE
+  namespace: mlnx-network-operator
 subjects:
   - kind: ServiceAccount
     name: network-operator
-    namespace: REPLACE_NAMESPACE
+    namespace: mlnx-network-operator
 roleRef:
   kind: Role
   name: network-operator
@@ -33,7 +33,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: network-operator
-    namespace: REPLACE_NAMESPACE
+    namespace: mlnx-network-operator
 roleRef:
   kind: Role
   name: network-operator
@@ -46,7 +46,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: network-operator
-  namespace: REPLACE_NAMESPACE
+  namespace: mlnx-network-operator
 roleRef:
   kind: ClusterRole
   name: network-operator
