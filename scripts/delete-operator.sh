@@ -22,8 +22,5 @@ kubectl delete -f $repo_dir/deploy/operator.yaml
 kubectl delete -f $repo_dir/deploy/role_binding.yaml
 kubectl delete -f $repo_dir/deploy/service_account.yaml
 kubectl delete -f $repo_dir/deploy/role.yaml
-kubectl delete -f $repo_dir/config/crd/bases/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml
-kubectl delete -f $repo_dir/config/crd/bases/mellanox.com_nicclusterpolicies.yaml
-kubectl delete -f $repo_dir/config/crd/bases/mellanox.com_macvlannetworks.yaml
 kubectl delete -f $repo_dir/deploy/operator-resources-ns.yaml
 kubectl delete -f $repo_dir/deploy/operator-ns.yaml
