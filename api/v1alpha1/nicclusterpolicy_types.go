@@ -123,6 +123,7 @@ type NicClusterPolicyStatus struct {
 // kubebuilder:object:generate
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`,priority=0
 
 // NicClusterPolicy is the Schema for the nicclusterpolicies API
 type NicClusterPolicy struct {

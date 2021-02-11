@@ -55,6 +55,7 @@ type MacvlanNetworkStatus struct {
 // kubebuilder:object:generate
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`,priority=0
 
 // MacvlanNetwork is the Schema for the macvlannetworks API
 type MacvlanNetwork struct {

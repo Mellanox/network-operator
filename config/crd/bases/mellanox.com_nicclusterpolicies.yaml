@@ -16,7 +16,11 @@ spec:
     singular: nicclusterpolicy
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: NicClusterPolicy is the Schema for the nicclusterpolicies API

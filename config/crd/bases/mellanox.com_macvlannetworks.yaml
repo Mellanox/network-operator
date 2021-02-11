@@ -16,7 +16,11 @@ spec:
     singular: macvlannetwork
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: MacvlanNetwork is the Schema for the macvlannetworks API
