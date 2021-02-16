@@ -35,7 +35,15 @@ spec:
           command: ["/entrypoint.sh"]
           args:
             - "--cni-version=0.4.0"
+            # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
+            # /host/etc/cni/net.d/00-multus.conf
             - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
+          # Remove multus config file to prevent failing of creating/deleting pods since multus will fail due to
+          # permission issue, https://github.com/intel/multus-cni/issues/592
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -f /host/etc/cni/net.d/00-multus.conf"]
           resources:
             requests:
               cpu: "100m"
