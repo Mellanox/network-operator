@@ -74,7 +74,7 @@ spec:
       repository: {{ .Values.secondaryNetwork.multus.repository }}
       version: {{ .Values.secondaryNetwork.multus.version }}
       {{- if .Values.secondaryNetwork.multus.config | empty | not }}
-      config: {{ .Values.secondaryNetwork.multus.config }}
+      config: {{ .Values.secondaryNetwork.multus.config | quote }}
       {{- end }}
     {{- end }}
     {{- if .Values.secondaryNetwork.ipamPlugin.deploy }}
