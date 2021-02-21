@@ -114,7 +114,7 @@ secondaryNetwork:
     image: multus
     repository: nfvpe
     version: v3.6
-    config: ""
+    config: ''
   ipamPlugin:
     deploy: true
     image: whereabouts
