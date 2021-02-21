@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 */}}
-{{- if .Values.deployCR }}
+  {{- if and (or .Values.ofedDriver.deploy .Values.nvPeerDriver.deploy .Values.devicePlugin.deploy (and .Values.secondaryNetwork.deploy (or .Values.secondaryNetwork.cniPlugins.deploy .Values.secondaryNetwork.multus.deploy .Values.secondaryNetwork.ipamPlugin.deploy))) .Values.deployCR }}
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
