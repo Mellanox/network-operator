@@ -44,6 +44,9 @@ type ImageSpec struct {
 	Repository string `json:"repository"`
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.-]+
 	Version string `json:"version"`
+	// +optional
+	// +kubebuilder:default:={}
+	ImagePullSecrets []string `json:"imagePullSecrets"`
 }
 
 type PodProbeSpec struct {

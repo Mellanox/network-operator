@@ -29,6 +29,12 @@ spec:
                   - key: node-role.kubernetes.io/master
                     operator: DoesNotExist
       serviceAccountName: multus
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
         - name: kube-multus
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}

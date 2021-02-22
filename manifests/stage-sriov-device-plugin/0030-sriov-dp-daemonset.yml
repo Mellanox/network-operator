@@ -46,6 +46,12 @@ spec:
           operator: Exists
           effect: NoSchedule
       serviceAccountName: sriov-device-plugin
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
 {{if .DeployInitContainer}}
       initContainers:
         - name: ofed-driver-validation

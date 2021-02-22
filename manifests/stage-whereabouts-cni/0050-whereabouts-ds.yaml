@@ -43,6 +43,12 @@ spec:
               - matchExpressions:
                   - key: node-role.kubernetes.io/master
                     operator: DoesNotExist
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
       - name: whereabouts
         image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
