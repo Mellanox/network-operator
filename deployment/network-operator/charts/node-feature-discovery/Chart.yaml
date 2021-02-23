@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: master
+appVersion: v0.6.0-233-g3e00bfb
 description: |
   Detects hardware features available on each node in a Kubernetes cluster, and advertises
   those features using node labels.
