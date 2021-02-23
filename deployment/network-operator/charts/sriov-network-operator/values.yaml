@@ -42,8 +42,8 @@ resources: {}
 
 # Image URIs for sriov-network-operator components
 images:
-  operator: quay.io/openshift/origin-sriov-network-operator:4.8
-  sriovConfigDaemon: quay.io/openshift/origin-sriov-network-config-daemon:4.8
+  operator: mellanox/sriov-operator:4.8
+  sriovConfigDaemon: mellanox/sriov-operator-daemon:4.8
   sriovCni: nfvpe/sriov-cni:v2.5
   ibSriovCni: mellanox/ib-sriov-cni:v1.0.0
   # Upstream image nfvpe/sriov-device-plugin:v3.2 failing
