@@ -58,6 +58,10 @@ spec:
                 - enable
                 - disable
                 type: string
+              metaPlugins:
+                description: MetaPluginsConfig configuration to be used in order to
+                  chain metaplugins to the sriov interface returned by the operator.
+                type: string
               networkNamespace:
                 description: Namespace of the NetworkAttachmentDefinition custom resource
                 type: string
