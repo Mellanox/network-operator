@@ -4,7 +4,7 @@
 
 - [Nvidia Network Operator](#nvidia-network-operator)
   * [Prerequisites](#prerequisites)
-    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
+    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery-nfd)
   * [Resource Definitions](#resource-definitions)
     + [NICClusterPolicy CRD](#nicclusterpolicy-crd)
       - [NICClusterPolicy spec](#nicclusterpolicy-spec)
@@ -14,6 +14,9 @@
     + [MacvlanNetwork CRD](#macvlannetwork-crd)
       - [MacvlanNetwork spec](#macvlannetwork-spec)
         * [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource)
+    + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
+      - [HostDeviceNetwork spec](#hostdevicenetwork-spec)
+        * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
   * [System Requirements](#system-requirements)
   * [Deployment Example](#deployment-example)
   * [Driver Containers](#driver-containers)
@@ -115,6 +118,23 @@ spec:
           }
         ]
       }
+  sriovDevicePlugin:
+    image: sriov-device-plugin
+    repository: docker.io/nfvpe
+    version: v3.3
+    config: |
+      {
+        "resourceList": [
+            {
+                "resourcePrefix": "nvidia.com",
+                "resourceName": "hostdev",
+                "selectors": {
+                    "vendors": ["15b3"],
+                    "isRdma": true
+                }
+            }
+        ]
+      }
   secondaryNetwork:
     cniPlugins:
       image: containernetworking-plugins
@@ -210,6 +230,45 @@ spec:
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
+
+### HostDeviceNetwork CRD
+This CRD defines a HostDevice secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
+
+#### HostDeviceNetwork spec:
+HostDeviceNetwork CRD Spec includes the following fields:
+- `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
+- `ResourceName`: Host device resource pool.
+- `ipam`: IPAM configuration to be used for this network.
+
+##### Example for HostDeviceNetwork resource:
+In the example below we deploy HostDeviceNetwork CRD instance with "hostdev" resource pool, that will be used to deploy NetworkAttachmentDefinition for HostDevice network to default namespace.
+
+```
+apiVersion: mellanox.com/v1alpha1
+kind: HostDeviceNetwork
+metadata:
+  name: example-hostdevice-network
+spec:
+  networkNamespace: "default"
+  ResourceName: "hostdev"
+  ipam: |
+    {
+      "type": "whereabouts",
+      "datastore": "kubernetes",
+      "kubernetes": {
+        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+      },
+      "range": "192.168.3.225/28",
+      "exclude": [
+       "192.168.3.229/30",
+       "192.168.3.236/32"
+      ],
+      "log_file" : "/var/log/whereabouts.log",
+      "log_level" : "info"
+    }
+```
+
+Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.

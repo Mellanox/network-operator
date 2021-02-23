@@ -13,7 +13,7 @@ network-operator, at this stage, deploys and configures the follwoing components
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
     - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts-cni) is supported
-There are still additional pieces that need to be setup before _RDMA_ or _GPU-Direct RDMA_ workloads
+There are still additional    pieces that need to be setup before _RDMA_ or _GPU-Direct RDMA_ workloads
 can run on a Kubernetes cluster.
 
 __Those being:__

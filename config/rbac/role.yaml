@@ -9,6 +9,26 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - hostdevicenetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - hostdevicenetworks/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - macvlannetworks
   verbs:
   - create

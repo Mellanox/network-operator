@@ -38,6 +38,23 @@ spec:
           }
         ]
       }
+  sriovDevicePlugin:
+    image: sriov-device-plugin
+    repository: docker.io/nfvpe
+    version: v3.3
+    config: |
+      {
+        "resourceList": [
+            {
+                "resourcePrefix": "nvidia.com",
+                "resourceName": "hostdev",
+                "selectors": {
+                    "vendors": ["15b3"],
+                    "isRdma": true
+                }
+            }
+        ]
+      }
   secondaryNetwork:
     cniPlugins:
       image: containernetworking-plugins

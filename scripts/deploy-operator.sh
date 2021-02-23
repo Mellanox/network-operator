@@ -19,6 +19,7 @@ echo "Deploying Network Operator:"
 echo "###########################"
 kubectl apply -f $repo_dir/deploy/operator-ns.yaml
 kubectl apply -f $repo_dir/deploy/operator-resources-ns.yaml
+kubectl apply -f $repo_dir/config/crd/bases//mellanox.com_hostdevicenetworks.yaml
 kubectl apply -f $repo_dir/config/crd/bases/mellanox.com_nicclusterpolicies.yaml
 kubectl apply -f $repo_dir/config/crd/bases/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml
 kubectl apply -f $repo_dir/config/crd/bases/mellanox.com_macvlannetworks.yaml

@@ -13,24 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package controllers //nolint:dupl
 
 import (
 	"context"
 	"time"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -39,8 +38,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-// MacvlanNetworkReconciler reconciles a MacvlanNetwork object
-type MacvlanNetworkReconciler struct {
+// HostDeviceNetworkReconciler reconciles a HostDeviceNetwork object
+type HostDeviceNetworkReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -48,18 +47,18 @@ type MacvlanNetworkReconciler struct {
 	stateManager state.Manager
 }
 
-// +kubebuilder:rbac:groups=mellanox.com,resources=macvlannetworks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=mellanox.com,resources=macvlannetworks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=mellanox.com,resources=hostdevicenetworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mellanox.com,resources=hostdevicenetworks/status,verbs=get;update;patch
 
 //nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("macvlannetwork", req.NamespacedName)
-	reqLogger.Info("Reconciling MacvlanNetwork")
+func (r *HostDeviceNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	reqLogger := r.Log.WithValues("hostdevicenetwork", req.NamespacedName)
+	reqLogger.Info("Reconciling HostDeviceNetwork")
 
-	// Fetch the MacvlanNetwork instance
-	instance := &mellanoxcomv1alpha1.MacvlanNetwork{}
+	// Fetch the HostDeviceNetwork instance
+	instance := &mellanoxcomv1alpha1.HostDeviceNetwork{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -73,7 +72,7 @@ func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	managerStatus, err := r.stateManager.SyncState(instance, nil)
-	r.updateCrStatus(instance, managerStatus, err)
+	r.updateCrStatus(instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -87,12 +86,24 @@ func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.MacvlanNetwork, status state.Results,
-	syncError error) {
-	cr.Status.State = mellanoxcomv1alpha1.State(status.StatesStatus[0].Status)
-	if syncError != nil {
-		cr.Status.Reason = syncError.Error()
+//nolint:dupl
+func (r *HostDeviceNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.HostDeviceNetwork, status state.Results) {
+NextResult:
+	for _, stateStatus := range status.StatesStatus {
+		// basically iterate over results and add/update crStatus.AppliedStates
+		for i := range cr.Status.AppliedStates {
+			if cr.Status.AppliedStates[i].Name == stateStatus.StateName {
+				cr.Status.AppliedStates[i].State = mellanoxcomv1alpha1.State(stateStatus.Status)
+				continue NextResult
+			}
+		}
+		cr.Status.AppliedStates = append(cr.Status.AppliedStates, mellanoxcomv1alpha1.AppliedState{
+			Name:  stateStatus.StateName,
+			State: mellanoxcomv1alpha1.State(stateStatus.Status),
+		})
 	}
+	// Update global State
+	cr.Status.State = mellanoxcomv1alpha1.State(status.Status)
 
 	if cr.Status.State == state.SyncStateReady {
 		netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
@@ -105,7 +116,7 @@ func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.Macvla
 		if err != nil {
 			r.Log.V(consts.LogLevelError).Info("Can not retrieve NetworkAttachmentDefinition object", "error:", err)
 		} else {
-			cr.Status.MacvlanNetworkAttachmentDef = utils.GetNetworkAttachmentDefLink(netAttachDef)
+			cr.Status.HostDeviceNetworkAttachmentDef = utils.GetNetworkAttachmentDefLink(netAttachDef)
 		}
 	}
 
@@ -118,11 +129,11 @@ func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.Macvla
 	}
 }
 
-// SetupWithManager sets up the controller with the Manager.
 //nolint:dupl
-func (r *MacvlanNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
+// SetupWithManager sets up the controller with the Manager.
+func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.MacvlanNetworkCRDName, mgr.GetClient(), mgr.GetScheme())
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(), mgr.GetScheme())
 	if err != nil {
 		// Error creating stateManager
 		r.Log.V(consts.LogLevelError).Info("Error creating state manager.", "error:", err)
@@ -131,17 +142,17 @@ func (r *MacvlanNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.stateManager = stateManager
 
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&mellanoxcomv1alpha1.MacvlanNetwork{}).
-		// Watch for changes to primary resource MacvlanNetwork
-		Watches(&source.Kind{Type: &mellanoxcomv1alpha1.MacvlanNetwork{}}, &handler.EnqueueRequestForObject{})
+		For(&mellanoxcomv1alpha1.HostDeviceNetwork{}).
+		// Watch for changes to primary resource HostDeviceNetwork
+		Watches(&source.Kind{Type: &mellanoxcomv1alpha1.HostDeviceNetwork{}}, &handler.EnqueueRequestForObject{})
 
-	// Watch for changes to secondary resource DaemonSet and requeue the owner MacvlanNetwork
+	// Watch for changes to secondary resource DaemonSet and requeue the owner HostDeviceNetwork
 	ws := stateManager.GetWatchSources()
 	r.Log.V(consts.LogLevelInfo).Info("Watch Sources", "Kind:", ws)
 	for i := range ws {
 		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
-			OwnerType:    &mellanoxcomv1alpha1.MacvlanNetwork{},
+			OwnerType:    &mellanoxcomv1alpha1.HostDeviceNetwork{},
 		})
 	}
 

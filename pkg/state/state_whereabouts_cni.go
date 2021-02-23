@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state
+package state //nolint:dupl
 
 import (
 	"github.com/pkg/errors"
@@ -53,13 +53,9 @@ type stateWhereaboutsCNI struct {
 	stateSkel
 }
 
-type WhereaboutsRuntimeSpec struct {
-	Namespace string
-}
-
 type WhereaboutsManifestRenderData struct {
 	CrSpec      *mellanoxv1alpha1.ImageSpec
-	RuntimeSpec *WhereaboutsRuntimeSpec
+	RuntimeSpec *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -115,7 +111,7 @@ func (s *stateWhereaboutsCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &WhereaboutsManifestRenderData{
 		CrSpec: cr.Spec.SecondaryNetwork.IpamPlugin,
-		RuntimeSpec: &WhereaboutsRuntimeSpec{
+		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}

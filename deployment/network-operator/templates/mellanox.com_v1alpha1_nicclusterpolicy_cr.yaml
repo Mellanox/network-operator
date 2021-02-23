@@ -60,6 +60,28 @@ spec:
         ]
       }
   {{- end }}
+  {{- if .Values.sriovDevicePlugin.deploy }}
+  sriovDevicePlugin:
+    image: {{ .Values.sriovDevicePlugin.image }}
+    repository: {{ .Values.sriovDevicePlugin.repository }}
+    version: {{ .Values.sriovDevicePlugin.version }}
+    config: |
+      {
+        "resourceList": [
+          {{- $length := len .Values.sriovDevicePlugin.resources }}
+          {{- range $index, $element := .Values.sriovDevicePlugin.resources }}
+          {
+            "resourcePrefix": "nvidia.com",
+            "resourceName": {{ $element.name | quote }},
+            "selectors": {
+              "vendors": {{ $element.vendors | default list | toJson }},
+              "isRdma": true
+            }
+          } {{- if ne $length (add1 $index) }},{{ end }}
+          {{- end }}
+        ]
+      }
+  {{- end }}
   {{- if .Values.secondaryNetwork.deploy }}
   secondaryNetwork:
     {{- if .Values.secondaryNetwork.cniPlugins.deploy }}

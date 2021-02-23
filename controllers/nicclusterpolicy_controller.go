@@ -114,6 +114,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return ctrl.Result{}, nil
 }
 
+//nolint:dupl
 func (r *NicClusterPolicyReconciler) updateCrStatus(cr *mellanoxv1alpha1.NicClusterPolicy, status state.Results) {
 NextResult:
 	for _, stateStatus := range status.StatesStatus {
