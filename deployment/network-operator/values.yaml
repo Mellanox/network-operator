@@ -24,6 +24,10 @@ sriovNetworkOperator:
 
 # Node Feature discovery chart related values
 node-feature-discovery:
+  image:
+    pullPolicy: IfNotPresent
+  master:
+    instance: "nvidia.networking"
   worker:
     tolerations:
       - key: "node-role.kubernetes.io/master"
@@ -34,15 +38,16 @@ node-feature-discovery:
         operator: "Equal"
         value: "present"
         effect: "NoSchedule"
-    options:
+    config: |
       sources:
-        pci:
-          deviceClassWhitelist:
-            - "02"
-            - "0200"
-            - "0207"
-          deviceLabelFields:
-            - vendor
+          pci:
+            deviceClassWhitelist:
+              - "02"
+              - "0200"
+              - "0207"
+            deviceLabelFields:
+              - vendor
+
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
