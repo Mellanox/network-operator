@@ -1,2 +1,2 @@
 For additional instructions on how to use SR-IOV network operator,
-refer to: https://github.com/openshift/sriov-network-operator
+refer to: https://github.com/k8snetworkplumbingwg/sriov-network-operator
