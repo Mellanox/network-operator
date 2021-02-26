@@ -1,6 +1,8 @@
 package state
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -141,9 +143,9 @@ func (s *stateNVPeer) getManifestObjects(
 			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
-			HTTPProxy:   utils.GetEnv(consts.HTTPProxy),
-			HTTPSProxy:  utils.GetEnv(consts.HTTPSProxy),
-			NoProxy:     utils.GetEnv(consts.NoProxy),
+			HTTPProxy:   os.Getenv(consts.HTTPProxy),
+			HTTPSProxy:  os.Getenv(consts.HTTPSProxy),
+			NoProxy:     os.Getenv(consts.NoProxy),
 		},
 	}
 	// render objects
