@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // GetFilesWithSuffix returns all files under a given base directory that have a specific suffix
@@ -53,13 +52,4 @@ func GetFilesWithSuffix(baseDir string, suffixes ...string) ([]string, error) {
 		return nil, errors.Wrapf(err, "error traversing directory tree")
 	}
 	return files, nil
-}
-
-func IsCRD(obj *unstructured.Unstructured) bool {
-	return obj.GetKind() == "CustomResourceDefinition"
-}
-
-// Getenv retrieves the value of the environment variable
-func GetEnv(name string) string {
-	return os.Getenv(name)
 }
