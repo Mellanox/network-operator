@@ -23,7 +23,7 @@ Please do not remove items from the checklist
 - [ ] Update gh-pages branch
   - [ ] Create Helm package (master branch on release tag commit):
     ```
-        > helm package deployments/network-operator
+        > helm package deployment/network-operator
     ```
   - [ ] Place Helm package under gh-pages branch in `release` dir
   - [ ] Update `index.yaml` file under gh-pages branch in `release` dir:
@@ -34,7 +34,7 @@ Please do not remove items from the checklist
   - [ ] Submit PR against `gh-pages` branch:
     ```
         > git add <helm .tgz package> <release/index.yaml> <README.md>
-        > git commit --signoff -m "Release Network-Operator vx.y.z"
+        > git commit -s -m "Release Network-Operator vx.y.z"
         > git push ...
     ```
 - [ ] Add a link to the release in this issue
