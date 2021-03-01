@@ -104,7 +104,7 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: {{ include "network-operator.fullname" . }}
-  namespace: mlnx-network-operator-resources
+  namespace: nvidia-network-operator-resources
 rules:
   - apiGroups:
       - ""

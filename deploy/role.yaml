@@ -16,7 +16,7 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: network-operator
-  namespace: mlnx-network-operator
+  namespace: nvidia-network-operator
 rules:
   - apiGroups:
       - events.k8s.io
@@ -102,7 +102,7 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: network-operator
-  namespace: mlnx-network-operator-resources
+  namespace: nvidia-network-operator-resources
 rules:
   - apiGroups:
       - ""

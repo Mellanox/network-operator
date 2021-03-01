@@ -1,10 +1,10 @@
-# Nvidia Mellanox Network Operator Helm Chart
+# Nvidia Network Operator Helm Chart
 
-Nvidia Mellanox Network Operator Helm Chart provides an easy way to install, configure and manage
+Nvidia Network Operator Helm Chart provides an easy way to install, configure and manage
 the lifecycle of Nvidia Mellanox network operator.
 
-## Nvidia Mellanox Network Operator
-Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+## Nvidia Network Operator
+Nvidia Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking, 
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 Network Operator works in conjunction with [GPU-Operator](https://github.com/NVIDIA/gpu-operator) to enable GPU-Direct RDMA
