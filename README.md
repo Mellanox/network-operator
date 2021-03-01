@@ -34,7 +34,7 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
 Mellanox Network operator relies on Node labeling to get the cluster to the desired state.
-[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.6.0` or newer is expected to be deployed to provide the appropriate labeling:
+[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.6.0-233-g3e00bfb` or newer is expected to be deployed to provide the appropriate labeling:
 
 - PCI vendor and device information
 - RDMA capability
