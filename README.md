@@ -17,6 +17,26 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes device plugins to provide hardware resources for fast network
 * Kubernetes secondary network for Network intensive workloads
 
+## Additional components
+
+### Node Feature Discovery
+Nvidia Network Operator relies on the existance of specific node labels to operate properly.
+e.g label a node as having Nvidia networking hardware available.
+This can be achieved by either manually labeling Kubernetes nodes or using
+[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) to perform the labeling.
+
+To allow zero touch deployment of the Operator we provide a helm chart to be used to
+optionally deploy Node Feature Discovery in the cluster. This is enabled via `nfd.enabled` chart parameter.
+
+### SR-IOV Network Operator
+Nvidia Network Operator can operate in unison with SR-IOV Network Operator
+to enable SR-IOV workloads in a Kubernetes cluster. We provide a helm chart to be used to optionally
+deploy [SR-IOV Network Operator](https://github.com/openshift/sriov-network-operator) in the cluster.
+This is enabled via `sriovNetworkOperator.enabled` chart parameter.
+
+For more information on how to configure SR-IOV in your Kubernetes cluster using SR-IOV Network Operator
+refer to the project's github.
+
 ## QuickStart
 
 ### System Requirements
@@ -80,6 +100,23 @@ $ helm install --devel --set nfd.enabled=false -n network-operator --create-name
 custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
+## Helm Tests
+
+Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `devicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
+Supported Tests:
+- Device Plugin Resource: This test creates a pod that requests the first resource in `devicePlugin.resources`
+- RDMA Traffic: This test creates a pod that test loopback RDMA traffic with `rping`
+
+Run the helm test with following command after deploying network operator with helm
+```
+$ helm test -n network-operator network-operator --timeout=5m
+```
+Notes:
+- Test will keeping running endlessly if pod creating failed so it is recommended to use `--timeout` which fails test after exceeding given timeout
+- Default PF to run test is `ens2f0` to override it add `--set test.pf=<pf_name>` to `helm install/upgrade`
+- Tests should be executed after `NicClusterPolicy` custom resource state is `Ready`
+- In case of a test failed it is possible to collect the logs with `kubectl logs -n <namespace> <test-pod-name>`
+
 ## Chart parameters
 
 In order to tailor the deployment of the network operator to your cluster needs
@@ -90,6 +127,7 @@ We have introduced the following Chart parameters.
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
+| `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator |
 | `operator.repository` | string | `mellanox` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
@@ -183,7 +221,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
 | `multus.image` | string | `multus` | Multus image name  |
 | `multus.repository` | string | `nfvpe` | Multus image repository  |
-| `multus.version` | string | `v3.4.1` | Multus image version  |
+| `multus.version` | string | `v3.6` | Multus image version  |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
 ##### IPAM CNI Plugin Secondary Network
