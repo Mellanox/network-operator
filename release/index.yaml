@@ -2,6 +2,32 @@ apiVersion: v1
 entries:
   network-operator:
   - apiVersion: v2
+    appVersion: v0.3.0
+    created: "2021-03-02T17:15:54.329405714+02:00"
+    dependencies:
+    - condition: nfd.enabled
+      name: node-feature-discovery
+      repository: ""
+      version: 0.1.0
+    - condition: sriovNetworkOperator.enabled
+      name: sriov-network-operator
+      repository: ""
+      version: 0.1.0
+    description: Nvidia Mellanox network operator
+    digest: f789a6160feed316f7425d0b2fc615ece98ae6281fb5a110ae62b8ce78f1981c
+    home: https://mellanox.github.io/network-operator
+    keywords:
+    - gpu-direct
+    - rdma
+    kubeVersion: '>= 1.17.0'
+    name: network-operator
+    sources:
+    - https://github.com/Mellanox/network-operator
+    type: application
+    urls:
+    - https://mellanox.github.io/network-operator/release/network-operator-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
     appVersion: v0.2.0
     created: "2021-01-05T12:36:04.481706778Z"
     dependencies:
@@ -23,4 +49,4 @@ entries:
     urls:
     - https://mellanox.github.io/network-operator/release/network-operator-0.2.0-beta.tgz
     version: 0.2.0-beta
-generated: "2021-01-05T12:36:04.477369645Z"
+generated: "2021-03-02T17:15:54.323340996+02:00"
