@@ -28,7 +28,10 @@ Please do not remove items from the checklist
   - [ ] Place Helm package under gh-pages branch in `release` dir
   - [ ] Update `index.yaml` file under gh-pages branch in `release` dir:
     ```
-        > helm repo index . --url https://mellanox.github.io/network-operator/release
+        > # assuming we are under release dir
+        > mkdir tmpdir; cp <helm-package.tgz> ./tmpdir
+        > helm repo index ./tmpdir --url https://mellanox.github.io/network-operator/release --merge ./index.yaml
+        > mv -f ./tmpdir/index.yaml ./; rm -rf ./tmpdir
     ```
   - [ ] Update gh-pages branch README.md with `deployment/README.md` from master branch (on release tag commit)
   - [ ] Submit PR against `gh-pages` branch:
