@@ -232,7 +232,7 @@ Example can be found under `./example/crs/mellanox.com_v1alpha1_nicclusterpolicy
 * Defining and deploying a MacvlanNetwork custom resource.
 Example can be found under `./example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
-A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/example/README.md).
+A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/blob/master/example/README.md).
 
 ## Driver Containers
 Driver containers are essentially containers that have or yield kernel modules compatible
