@@ -256,7 +256,7 @@ ofedDriver:
   version: 5.2-1.0.4.0
 devicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [enp1]
 ```
@@ -274,7 +274,7 @@ nvPeerDriver:
   deploy: true
 devicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [enp1, enp2]
     - name: rdma_shared_device_b
@@ -294,7 +294,7 @@ __values.yaml:__
 deployCR: true
 devicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [ib0]
 secondaryNetwork:
