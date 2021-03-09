@@ -31,7 +31,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "network-operator.fullname" . }}
-  namespace: mlnx-network-operator-resources
+  namespace: nvidia-network-operator-resources
 subjects:
   - kind: ServiceAccount
     name: {{ include "network-operator.fullname" . }}

@@ -15,7 +15,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: network-operator
-  namespace: mlnx-network-operator
+  namespace: nvidia-network-operator
 spec:
   replicas: 1
   selector:

@@ -29,7 +29,7 @@ const (
 )
 
 const (
-	NetworkOperatorResourceNamespace = "mlnx-network-operator-resources"
+	NetworkOperatorResourceNamespace = "nvidia-network-operator-resources"
 	NicClusterPolicyResourceName     = "nic-cluster-policy"
 )
 

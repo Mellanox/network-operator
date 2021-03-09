@@ -2,7 +2,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
 [![Build Status](https://travis-ci.com/Mellanox/network-operator.svg?branch=master)](https://travis-ci.com/Mellanox/network-operator)
 
-- [Nvidia Mellanox Network Operator](#nvidia-mellanox-network-operator)
+- [Nvidia Network Operator](#nvidia-network-operator)
   * [Prerequisites](#prerequisites)
     + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
   * [Resource Definitions](#resource-definitions)
@@ -20,8 +20,8 @@
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-# Nvidia Mellanox Network Operator
-Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+# Nvidia Network Operator
+Nvidia Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking,
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 
@@ -33,7 +33,7 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
-Mellanox Network operator relies on Node labeling to get the cluster to the desired state.
+Nvidia Network operator relies on Node labeling to get the cluster to the desired state.
 [Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.6.0-233-g3e00bfb` or newer is expected to be deployed to provide the appropriate labeling:
 
 - PCI vendor and device information
@@ -89,7 +89,7 @@ apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
   name: nic-cluster-policy
-  namespace: mlnx-network-operator
+  namespace: nvidia-network-operator
 spec:
   ofedDriver:
     image: mofed
