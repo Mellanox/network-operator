@@ -263,8 +263,8 @@ func (in *NicClusterPolicySpec) DeepCopyInto(out *NicClusterPolicySpec) {
 		*out = new(NVPeerDriverSpec)
 		**out = **in
 	}
-	if in.DevicePlugin != nil {
-		in, out := &in.DevicePlugin, &out.DevicePlugin
+	if in.RdmaSharedDevicePlugin != nil {
+		in, out := &in.RdmaSharedDevicePlugin, &out.RdmaSharedDevicePlugin
 		*out = new(DevicePluginSpec)
 		**out = **in
 	}

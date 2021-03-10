@@ -32,19 +32,19 @@ spec:
     version: {{ .Values.nvPeerDriver.version }}
     gpuDriverSourcePath: {{ .Values.nvPeerDriver.gpuDriverSourcePath }}
   {{- end }}
-  {{- if .Values.devicePlugin.deploy }}
-  devicePlugin:
-    # {{ required "A valid value for .Values.devicePlugin.resources is required" .Values.devicePlugin.resources }}
-    image: {{ .Values.devicePlugin.image }}
-    repository: {{ .Values.devicePlugin.repository }}
-    version: {{ .Values.devicePlugin.version }}
+  {{- if .Values.rdmaSharedDevicePlugin.deploy }}
+  rdmaSharedDevicePlugin:
+    # {{ required "A valid value for .Values.rdmaSharedDevicePlugin.resources is required" .Values.rdmaSharedDevicePlugin.resources }}
+    image: {{ .Values.rdmaSharedDevicePlugin.image }}
+    repository: {{ .Values.rdmaSharedDevicePlugin.repository }}
+    version: {{ .Values.rdmaSharedDevicePlugin.version }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
       {
         "configList": [
-          {{- $length := len .Values.devicePlugin.resources }}
-          {{- range $index, $element := .Values.devicePlugin.resources }}
+          {{- $length := len .Values.rdmaSharedDevicePlugin.resources }}
+          {{- range $index, $element := .Values.rdmaSharedDevicePlugin.resources }}
           {
             "resourceName": {{ $element.name | quote }},
             "rdmaHcaMax": 1000,

@@ -102,9 +102,9 @@ chart parameters to deploy it together with the operator.
 
 ## Helm Tests
 
-Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `devicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
+Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `rdmaSharedDevicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
 Supported Tests:
-- Device Plugin Resource: This test creates a pod that requests the first resource in `devicePlugin.resources`
+- Device Plugin Resource: This test creates a pod that requests the first resource in `rdmaSharedDevicePlugin.resources`
 - RDMA Traffic: This test creates a pod that test loopback RDMA traffic with `rping`
 
 Run the helm test with following command after deploying network operator with helm
@@ -168,11 +168,11 @@ Production cluster environment can deny direct access to the Internet and instea
 
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
-| `devicePlugin.deploy` | bool | `true` | Deploy device plugin  |
-| `devicePlugin.repository` | string | `mellanox` | Device plugin image repository |
-| `devicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
-| `devicePlugin.version` | string | `v1.1.0` | Device plugin version  |
-| `devicePlugin.resources` | list | See below | Device plugin resources |
+| `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy device plugin  |
+| `rdmaSharedDevicePlugin.repository` | string | `mellanox` | Device plugin image repository |
+| `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
+| `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | Device plugin version  |
+| `rdmaSharedDevicePlugin.resources` | list | See below | Device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
 
@@ -254,7 +254,7 @@ deployCR: true
 ofedDriver:
   deploy: true
   version: 5.2-1.0.4.0
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   resources:
     - name: rdma_shared_device_a
@@ -272,7 +272,7 @@ ofedDriver:
   deploy: true
 nvPeerDriver:
   deploy: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   resources:
     - name: rdma_shared_device_a
@@ -292,7 +292,7 @@ Network Operator deployment with:
 __values.yaml:__
 ```:yaml
 deployCR: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   resources:
     - name: rdma_shared_device_a
@@ -314,7 +314,7 @@ mapped to Mellanox ConnectX-5.
 __values.yaml:__
 ```:yaml
 deployCR: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   resources:
     - name: rdma_shared_device_a

@@ -65,7 +65,7 @@ func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if cr.Spec.DevicePlugin == nil {
+	if cr.Spec.RdmaSharedDevicePlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		// TODO: Support the latter case
@@ -109,7 +109,7 @@ func (s *stateSharedDp) GetWatchSources() map[string]*source.Kind {
 func (s *stateSharedDp) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &sharedDpManifestRenderData{
-		CrSpec: cr.Spec.DevicePlugin,
+		CrSpec: cr.Spec.RdmaSharedDevicePlugin,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},

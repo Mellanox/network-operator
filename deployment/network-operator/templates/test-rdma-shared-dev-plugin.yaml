@@ -1,4 +1,4 @@
-{{- if and .Values.deployCR .Values.devicePlugin.deploy  }}
+{{- if and .Values.deployCR .Values.rdmaSharedDevicePlugin.deploy  }}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -16,9 +16,9 @@ spec:
           add: [ "IPC_LOCK" ]
       resources:
         requests:
-          rdma/{{ (index .Values.devicePlugin.resources 0).name }}: '1'
+          rdma/{{ (index .Values.rdmaSharedDevicePlugin.resources 0).name }}: '1'
         limits:
-          rdma/{{ (index .Values.devicePlugin.resources 0).name }}: '1'
+          rdma/{{ (index .Values.rdmaSharedDevicePlugin.resources 0).name }}: '1'
       command:
         - sh
         - -c

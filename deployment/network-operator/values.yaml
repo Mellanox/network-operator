@@ -94,7 +94,7 @@ nvPeerDriver:
   version: 1.0-9
   gpuDriverSourcePath: /run/nvidia/driver
 
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   image: k8s-rdma-shared-dev-plugin
   repository: mellanox
