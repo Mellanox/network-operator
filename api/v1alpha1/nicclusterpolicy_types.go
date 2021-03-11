@@ -92,10 +92,10 @@ type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	OFEDDriver       *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
-	NVPeerDriver     *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
-	DevicePlugin     *DevicePluginSpec     `json:"devicePlugin,omitempty"`
-	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
+	OFEDDriver             *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
+	NVPeerDriver           *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
+	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
+	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

@@ -1,4 +1,4 @@
-{{- if and .Values.deployCR .Values.devicePlugin.deploy .Values.secondaryNetwork.deploy .Values.secondaryNetwork.multus.deploy .Values.secondaryNetwork.cniPlugins.deploy }}
+{{- if and .Values.deployCR .Values.rdmaSharedDevicePlugin .deploy .Values.secondaryNetwork.deploy .Values.secondaryNetwork.multus.deploy .Values.secondaryNetwork.cniPlugins.deploy }}
 apiVersion: mellanox.com/v1alpha1
 kind: MacvlanNetwork
 metadata:
@@ -35,9 +35,9 @@ spec:
           add: [ "IPC_LOCK" ]
       resources:
         requests:
-          rdma/{{ (index .Values.devicePlugin.resources 0).name }}: '1'
+          rdma/{{ (index .Values.rdmaSharedDevicePlugin.resources 0).name }}: '1'
         limits:
-          rdma/{{ (index .Values.devicePlugin.resources 0).name }}: '1'
+          rdma/{{ (index .Values.rdmaSharedDevicePlugin.resources 0).name }}: '1'
       command:
         - sh
         - -c

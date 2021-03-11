@@ -20,7 +20,7 @@ spec:
     image: mofed
     repository: mellanox
     version: 5.2-1.0.4.0
-  devicePlugin:
+  rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
     version: v1.1.0

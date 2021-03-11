@@ -69,7 +69,7 @@ CRD that defines a Cluster state for Mellanox Network devices.
 #### NICClusterPolicy spec:
 NICClusterPolicy CRD Spec includes the following sub-states/stages:
 - `ofedDriver`: [OFED driver container](https://github.com/Mellanox/ofed-docker) to be deployed on Mellanox supporting nodes.
-- `devicePlugin`: [RDMA shared device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
+- `rdmaSharedDevicePlugin`: [RDMA shared device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
 and related configurations.
 - `nvPeerDriver`: [Nvidia Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
@@ -95,7 +95,7 @@ spec:
     image: mofed
     repository: mellanox
     version: 5.2-1.0.4.0
-  devicePlugin:
+  rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
     version: v1.1.0
