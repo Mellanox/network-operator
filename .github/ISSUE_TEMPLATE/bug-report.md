@@ -19,9 +19,9 @@ labels: bug
 
 **Logs**:
 - NicClusterPolicy CR spec and state:
-- Output of: `kubectl -n mlnx-network-operator-resources get -A`:
+- Output of: `kubectl -n nvidia-network-operator-resources get -A`:
 - Logs of Network Operator controller:
-- Logs of the various Pods in `mlnx-network-operator-resources` namespace:
+- Logs of the various Pods in `nvidia-network-operator-resources` namespace:
 - Helm Configuration (if applicable):
 
 **Environment**:
