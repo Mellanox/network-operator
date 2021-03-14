@@ -1,3 +1,4 @@
+Testing the new logs link
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
 [![Build Status](https://travis-ci.com/Mellanox/network-operator.svg?branch=master)](https://travis-ci.com/Mellanox/network-operator)
