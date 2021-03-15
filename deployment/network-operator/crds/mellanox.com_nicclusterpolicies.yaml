@@ -20,6 +20,9 @@ spec:
     - jsonPath: .status.state
       name: Status
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
