@@ -23,16 +23,20 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
 // MacvlanNetworkReconciler reconciles a MacvlanNetwork object
@@ -89,10 +93,23 @@ func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.Macvla
 		cr.Status.Reason = syncError.Error()
 	}
 
+	netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
+	err := r.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      cr.Name,
+			Namespace: cr.Spec.NetworkNamespace,
+		}, netAttachDef)
+
+	if err != nil {
+		r.Log.V(consts.LogLevelError).Info("Can not retrieve NetworkAttachmentDefinition object", "error:", err)
+	} else {
+		cr.Status.MacvlanNetworkAttachmentDef = utils.GetNetworkAttachmentDefLink(netAttachDef)
+	}
+
 	// send status update request to k8s API
 	r.Log.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
-	err := r.Status().Update(context.TODO(), cr)
+	err = r.Status().Update(context.TODO(), cr)
 	if err != nil {
 		r.Log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
 	}
