@@ -190,6 +190,7 @@ undeploy: manifests	## UnDeploy controller from the configured Kubernetes cluste
 .PHONY: manifests
 manifests: controller-gen	## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	cp config/crd/bases/* deployment/network-operator/crds/
 
 generate: controller-gen ## Generate code
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
