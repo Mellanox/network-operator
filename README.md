@@ -31,7 +31,7 @@ optionally deploy Node Feature Discovery in the cluster. This is enabled via `nf
 ### SR-IOV Network Operator
 Nvidia Network Operator can operate in unison with SR-IOV Network Operator
 to enable SR-IOV workloads in a Kubernetes cluster. We provide a helm chart to be used to optionally
-deploy [SR-IOV Network Operator](https://github.com/openshift/sriov-network-operator) in the cluster.
+deploy [SR-IOV Network Operator](https://github.com/k8snetworkplumbingwg/sriov-network-operator) in the cluster.
 This is enabled via `sriovNetworkOperator.enabled` chart parameter.
 
 For more information on how to configure SR-IOV in your Kubernetes cluster using SR-IOV Network Operator
@@ -201,9 +201,9 @@ the file: `values.yaml`
 | `secondaryNetwork.deploy` | bool | `true` | Deploy Secondary Network  |
 
 Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
-  - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
+  - [Multus-CNI](https://github.com/k8snetworkplumbingwg/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
   - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts) is supported
+  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
 
 ##### CNI Plugin Secondary Network
 
