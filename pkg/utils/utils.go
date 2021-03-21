@@ -17,11 +17,14 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 )
 
 // GetFilesWithSuffix returns all files under a given base directory that have a specific suffix
@@ -52,4 +55,10 @@ func GetFilesWithSuffix(baseDir string, suffixes ...string) ([]string, error) {
 		return nil, errors.Wrapf(err, "error traversing directory tree")
 	}
 	return files, nil
+}
+
+func GetNetworkAttachmentDefLink(netAttDef *netattdefv1.NetworkAttachmentDefinition) (link string) {
+	link = fmt.Sprintf("%s/namespaces/%s/%s/%s",
+		netAttDef.APIVersion, netAttDef.Namespace, netAttDef.Kind, netAttDef.Name)
+	return
 }

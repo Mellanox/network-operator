@@ -115,9 +115,6 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 	if err := s.getObj(netAttDef); err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
 	}
-	// TODO handling MacvlanNetwork CR Status should be done in the controller
-	cr.Status.MacvlanNetworkAttachmentDef = netAttDef.GetSelfLink()
-
 	return syncState, nil
 }
 
