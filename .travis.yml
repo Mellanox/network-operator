@@ -12,6 +12,8 @@ before_script:
 script:
   - make scripts/check-manifests.sh
   - make lint
+  - make lint-dockerfile
+  - make lint-helm
   - make test-coverage
     #  - goveralls -coverprofile=network-operator.cover -service=travis-ci
   - make image

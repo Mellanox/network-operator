@@ -13,13 +13,13 @@
 # limitations under the License.
 FROM golang:alpine as builder
 
-ADD . /usr/src/network-operator
+COPY . /usr/src/network-operator
 
 ENV HTTP_PROXY $http_proxy
 ENV HTTPS_PROXY $https_proxy
 
-RUN apk add --update --virtual build-dependencies build-base linux-headers git && \
-    cd /usr/src/network-operator && \
+WORKDIR /usr/src/network-operator
+RUN apk add --no-cache --virtual build-dependencies build-base linux-headers git && \
     make clean && \
     make build
 
