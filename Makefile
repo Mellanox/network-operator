@@ -19,6 +19,7 @@ ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH?=$(CURDIR)/.gopath
 GOBIN =$(CURDIR)/bin
+TOOLSDIR=$(CURDIR)/bin
 BUILDDIR=$(CURDIR)/build/_output
 BASE=$(GOPATH)/src/$(REPO_PATH)
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
@@ -58,6 +59,10 @@ GOLANGCI_LINT = $(GOBIN)/golangci-lint
 # we keep it fixed to avoid it from unexpectedly failing on the project
 # in case of a version bump
 GOLANGCI_LINT_VER = v1.23.8
+
+HADOLINT = $(TOOLSDIR)/hadolint
+HADOLINT_VER = v1.23.0
+
 TIMEOUT = 15
 Q = $(if $(filter 1,$V),,@)
 
@@ -87,7 +92,7 @@ $(BASE): ; $(info  setting GOPATH...)
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
 
-$(GOBIN):
+$(GOBIN) $(TOOLSDIR):
 	@mkdir -p $@
 
 $(BUILDDIR): | $(BASE) ; $(info Creating build directory...)
@@ -108,6 +113,11 @@ GOVERALLS = $(GOBIN)/goveralls
 $(GOBIN)/goveralls: | $(BASE) ; $(info  building goveralls...)
 	$Q go get github.com/mattn/goveralls
 
+
+$(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
+	$Q curl -sSfL -o $(HADOLINT)  https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-Linux-x86_64
+	$Q chmod +x $(HADOLINT)
+
 # Tests
 
 .PHONY: lint
@@ -117,6 +127,12 @@ lint: | $(BASE) $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run go
 		test -z "$$($(GOLANGCI_LINT) run --timeout=10m | tee $(BASE)/test/lint.out)" || ret=1 ; \
 		cat $(BASE)/test/lint.out ; rm -rf $(BASE)/test ; \
 	 exit $$ret
+
+.PHONY: lint-dockerfile
+lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
+# DL3018 - allow installing apks without explicit version
+# DL3007 - allow using "latest" tag for images
+	$Q $(HADOLINT) --ignore DL3018 --ignore DL3007 Dockerfile
 
 TEST_TARGETS := test-default test-bench test-short test-verbose test-race
 .PHONY: $(TEST_TARGETS) test-xml check test tests
