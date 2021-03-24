@@ -17,6 +17,7 @@ BINARY_NAME=network-operator
 PACKAGE=network-operator
 ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
+CHART_PATH=$(CURDIR)/deployment/$(PACKAGE)
 GOPATH?=$(CURDIR)/.gopath
 GOBIN =$(CURDIR)/bin
 TOOLSDIR=$(CURDIR)/bin
@@ -62,6 +63,9 @@ GOLANGCI_LINT_VER = v1.23.8
 
 HADOLINT = $(TOOLSDIR)/hadolint
 HADOLINT_VER = v1.23.0
+
+HELM = $(TOOLSDIR)/helm
+HELM_VER = v3.5.3
 
 TIMEOUT = 15
 Q = $(if $(filter 1,$V),,@)
@@ -118,6 +122,10 @@ $(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
 	$Q curl -sSfL -o $(HADOLINT)  https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-Linux-x86_64
 	$Q chmod +x $(HADOLINT)
 
+$(HELM): | $(TOOLSDIR) ; $(info  install helm...)
+	$Q curl -sSfL https://get.helm.sh/helm-$(HELM_VER)-linux-amd64.tar.gz -o - | tar xz -C $(TOOLSDIR) --strip-components=1 linux-amd64/helm 
+	$Q chmod +x $(HADOLINT)
+
 # Tests
 
 .PHONY: lint
@@ -133,6 +141,10 @@ lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...)
 # DL3018 - allow installing apks without explicit version
 # DL3007 - allow using "latest" tag for images
 	$Q $(HADOLINT) --ignore DL3018 --ignore DL3007 Dockerfile
+
+.PHONY: lint-helm
+lint-helm: $(HELM) ; $(info  running lint with helm charts...) @ ## Run helm lint
+	$Q $(HELM) lint $(CHART_PATH)
 
 TEST_TARGETS := test-default test-bench test-short test-verbose test-race
 .PHONY: $(TEST_TARGETS) test-xml check test tests
