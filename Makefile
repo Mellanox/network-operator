@@ -65,6 +65,7 @@ HADOLINT = $(TOOLSDIR)/hadolint
 HADOLINT_VER = v1.23.0
 
 HELM = $(TOOLSDIR)/helm
+GET_HELM = $(TOOLSDIR)/get_helm.sh
 HELM_VER = v3.5.3
 
 TIMEOUT = 15
@@ -123,8 +124,10 @@ $(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
 	$Q chmod +x $(HADOLINT)
 
 $(HELM): | $(TOOLSDIR) ; $(info  install helm...)
-	$Q curl -sSfL https://get.helm.sh/helm-$(HELM_VER)-linux-amd64.tar.gz -o - | tar xz -C $(TOOLSDIR) --strip-components=1 linux-amd64/helm 
-	$Q chmod +x $(HADOLINT)
+	$Q curl -fsSL -o $(GET_HELM) https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+	$Q chmod +x $(GET_HELM)
+	$Q env HELM_INSTALL_DIR=$(TOOLSDIR) PATH=$(PATH):$(TOOLSDIR) $(GET_HELM) --no-sudo -v $(HELM_VER)
+	$Q rm -f $(GET_HELM)
 
 # Tests
 
@@ -143,7 +146,7 @@ lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...)
 	$Q $(HADOLINT) --ignore DL3018 --ignore DL3007 Dockerfile
 
 .PHONY: lint-helm
-lint-helm: $(HELM) ; $(info  running lint with helm charts...) @ ## Run helm lint
+lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
 	$Q $(HELM) lint $(CHART_PATH)
 
 TEST_TARGETS := test-default test-bench test-short test-verbose test-race
