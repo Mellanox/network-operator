@@ -99,3 +99,12 @@ spec:
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         nvidia.com/gpu.present: "true"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu.count
+                operator: Gt
+                values:
+                  - "0"
