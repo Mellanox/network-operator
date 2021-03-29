@@ -44,6 +44,24 @@ spec:
           operator: Exists
           effect: NoSchedule
       hostNetwork: true
+      initContainers:
+      - name: gpu-driver-validation
+        image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c']
+        args: ["export SYS_LIBRARY_PATH=$(ldconfig -v 2>/dev/null | grep -v '^[[:space:]]' | cut -d':' -f1 | tr '[[:space:]]' ':'); \
+        export NVIDIA_LIBRARY_PATH=/run/nvidia/drivers/usr/lib/x86_64-linux-gnu/:/run/nvidia/drivers/usr/lib64; \
+        export LD_LIBRARY_PATH=${SYS_LIBRARY_PATH}:${NVIDIA_LIBRARY_PATH}; echo ${LD_LIBRARY_PATH}; \
+        export PATH=/run/nvidia/drivers/usr/bin/:${PATH}; \
+        until nvidia-smi; do echo waiting for nvidia drivers to be loaded; sleep 5; done"]
+        securityContext:
+          privileged: true
+          seLinuxOptions:
+            level: "s0"
+        volumeMounts:
+          - name: run-nvidia
+            mountPath: /run/nvidia/drivers
+            mountPropagation: HostToContainer
       containers:
         - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
           imagePullPolicy: IfNotPresent
@@ -99,3 +117,12 @@ spec:
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         nvidia.com/gpu.present: "true"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu.count
+                operator: Gt
+                values:
+                  - "0"
