@@ -67,7 +67,7 @@ spec:
       config: ''
     ipamPlugin:
       image: whereabouts
-      repository: dougbtv
+      repository: mellanox
       version: v0.3
   nvPeerDriver:
     image: nv-peer-mem-driver
