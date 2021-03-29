@@ -1,5 +1,5 @@
 /*
-Copyright 2020 NVIDIA
+Copyright 2021 NVIDIA
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,90 +31,103 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-// NewStateMultusCNI creates a new state for Multus
-func NewStateMultusCNI(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+const (
+	stateHostDeviceNetworkName        = "state-host-device-network"
+	stateHostDeviceNetworkDescription = "Host Device net-attach-def CR deployed in cluster"
+)
+
+// NewStateHostDeviceNetwork creates a new state for HostDeviceNetwork CR
+func NewStateHostDeviceNetwork(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateMultusCNI{
+	return &stateHostDeviceNetwork{
 		stateSkel: stateSkel{
-			name:        "state-multus-cni",
-			description: "multus CNI deployed in the cluster",
+			name:        stateHostDeviceNetworkName,
+			description: stateHostDeviceNetworkDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
 		}}, nil
 }
 
-type stateMultusCNI struct {
+type stateHostDeviceNetwork struct {
 	stateSkel
 }
 
-type MultusManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.MultusSpec
-	RuntimeSpec *runtimeSpec
+type HostDeviceManifestRenderData struct {
+	HostDeviceNetworkName string
+	CrSpec                mellanoxv1alpha1.HostDeviceNetworkSpec
+	RuntimeSpec           *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-//nolint:dupl
-func (s *stateMultusCNI) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
-	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
+func (s *stateHostDeviceNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	cr := customResource.(*mellanoxv1alpha1.HostDeviceNetwork)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if cr.Spec.SecondaryNetwork == nil || cr.Spec.SecondaryNetwork.Multus == nil {
-		// Either this state was not required to run or an update occurred and we need to remove
-		// the resources that where created.
-		// TODO: Support the latter case
-		log.V(consts.LogLevelInfo).Info("Secondary Network Multus spec in CR is nil, no action required")
-		return SyncStateIgnore, nil
-	}
-	// Fill ManifestRenderData and render objects
 	objs, err := s.getManifestObjects(cr)
 	if err != nil {
-		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
-	}
-	if len(objs) == 0 {
-		return SyncStateNotReady, nil
+		return SyncStateError, errors.Wrap(err, "failed to render HostDeviceNetwork")
 	}
 
-	// Create objects if they dont exist, Update objects if they do exist
+	if len(objs) == 0 {
+		return SyncStateError, errors.Wrap(err, "no rendered objects found")
+	}
+
+	netAttDef := objs[0]
+	if netAttDef.GetKind() != "NetworkAttachmentDefinition" {
+		return SyncStateError, errors.Wrap(err, "no NetworkAttachmentDefinition object found")
+	}
+
 	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
 		return nil
 	}, objs)
+
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
+
 	// Check objects status
 	syncState, err := s.getSyncState(objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
+
+	// Get NetworkAttachmentDefinition SelfLink
+	if err := s.getObj(netAttDef); err != nil {
+		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
+	}
+
 	return syncState, nil
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateMultusCNI) GetWatchSources() map[string]*source.Kind {
+func (s *stateHostDeviceNetwork) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
-	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
+	wr["HostDeviceNetwork"] = &source.Kind{Type: &mellanoxv1alpha1.HostDeviceNetwork{}}
+	wr["NetworkAttachmentDefinition"] = &source.Kind{Type: &netattdefv1.NetworkAttachmentDefinition{}}
 	return wr
 }
 
-func (s *stateMultusCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
-	renderData := &MultusManifestRenderData{
-		CrSpec: cr.Spec.SecondaryNetwork.Multus,
+func (s *stateHostDeviceNetwork) getManifestObjects(
+	cr *mellanoxv1alpha1.HostDeviceNetwork) ([]*unstructured.Unstructured, error) {
+	renderData := &HostDeviceManifestRenderData{
+		HostDeviceNetworkName: cr.Name,
+		CrSpec:                cr.Spec,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}
+
 	// render objects
 	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})

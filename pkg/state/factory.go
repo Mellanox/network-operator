@@ -59,6 +59,8 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 		return newNicClusterPolicyStates(k8sAPIClient, scheme)
 	case mellanoxv1alpha1.MacvlanNetworkCRDName:
 		return newMacvlanNetworkStates(k8sAPIClient, scheme)
+	case mellanoxv1alpha1.HostDeviceNetworkCRDName:
+		return newHostDeviceNetworkStates(k8sAPIClient, scheme)
 	default:
 		break
 	}
@@ -77,7 +79,12 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	sharedDpState, err := NewStateSharedDp(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-rdma-device-plugin"))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create Device plugin State")
+		return nil, errors.Wrapf(err, "failed to create Shared Device plugin State")
+	}
+	sriovDpState, err := NewStateSriovDp(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-sriov-device-plugin"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create SR-IOV Device plugin State")
 	}
 	nvPeerMemState, err := NewStateNVPeer(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-nv-peer-mem-driver"))
@@ -102,6 +109,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 
 	return []Group{
 		NewStateGroup([]State{ofedState}),
+		NewStateGroup([]State{sriovDpState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
 		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
 	}, nil
@@ -118,5 +126,19 @@ func newMacvlanNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme)
 	}
 	return []Group{
 		NewStateGroup([]State{macvlanNetworkState}),
+	}, nil
+}
+
+// newHostDeviceNetworkStates creates states that reconcile HostDeviceNetwork CRD
+func newHostDeviceNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
+
+	hostdeviceNetworkState, err := NewStateHostDeviceNetwork(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-hostdevice-network"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
+	}
+	return []Group{
+		NewStateGroup([]State{hostdeviceNetworkState}),
 	}, nil
 }

@@ -166,6 +166,28 @@ spec:
                     - version
                     type: object
                 type: object
+              sriovDevicePlugin:
+                description: DevicePluginSpec describes configuration options for
+                  device plugin
+                properties:
+                  config:
+                    description: Device plugin configuration
+                    type: string
+                  image:
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  repository:
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  version:
+                    pattern: '[a-zA-Z0-9\.-]+'
+                    type: string
+                required:
+                - config
+                - image
+                - repository
+                - version
+                type: object
             type: object
           status:
             description: NicClusterPolicyStatus defines the observed state of NicClusterPolicy

@@ -168,11 +168,11 @@ Production cluster environment can deny direct access to the Internet and instea
 
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
-| `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy device plugin  |
-| `rdmaSharedDevicePlugin.repository` | string | `mellanox` | Device plugin image repository |
-| `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
-| `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | Device plugin version  |
-| `rdmaSharedDevicePlugin.resources` | list | See below | Device plugin resources |
+| `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
+| `rdmaSharedDevicePlugin.repository` | string | `mellanox` | RDMA Shared device plugin image repository |
+| `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
+| `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | RDMA Shared device plugin version  |
+| `rdmaSharedDevicePlugin.resources` | list | See below | RDMA Shared device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
 
@@ -189,6 +189,27 @@ resources:
       vendors: [15b3]
       deviceIDs: [1017]
       ifNames: [ib0, ib1]
+```
+
+#### SR-IOV Network Device plugin
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `sriovDevicePlugin.deploy` | bool | `true` | Deploy SR-IOV Network device plugin  |
+| `sriovDevicePlugin.repository` | string | `docker.io/nfvpe` | SR-IOV Network device plugin image repository |
+| `sriovDevicePlugin.image` | string | `sriov-device-plugin` | SR-IOV Network device plugin image name  |
+| `sriovDevicePlugin.version` | string | `v3.3` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
+
+##### SR-IOV Network Device Plugin Resource configurations
+
+Consists of a list of RDMA resources each with a name and selector of RDMA capable network devices
+to be associated with the resource. Refer to [SR-IOV Network Device Plugin Selectors](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin#device-selectors) for supported selectors.
+
+```
+resources:
+    - name: hostdev
+      vendors: [15b3]
 ``` 
 
 >__Note__: The parameter listed are non-exhaustive, for the full list of chart parameters refer to

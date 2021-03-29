@@ -95,6 +95,7 @@ type NicClusterPolicySpec struct {
 	OFEDDriver             *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
 	NVPeerDriver           *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
+	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
 }
 

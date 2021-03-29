@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state
+package state //nolint:dupl
 
 import (
 	"github.com/pkg/errors"
@@ -68,7 +68,6 @@ func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog
 	if cr.Spec.RdmaSharedDevicePlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		// TODO: Support the latter case
 		log.V(consts.LogLevelInfo).Info("Device plugin spec in CR is nil, no action required")
 		return SyncStateIgnore, nil
 	}

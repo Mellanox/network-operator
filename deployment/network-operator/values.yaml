@@ -107,6 +107,15 @@ rdmaSharedDevicePlugin:
     - name: rdma_shared_device_a
       vendors: [15b3]
 
+sriovDevicePlugin:
+  deploy: true
+  image: sriov-device-plugin
+  repository: docker.io/nfvpe
+  version: v3.3
+  resources:
+    - name: hostdev
+      vendors: [15b3]
+
 secondaryNetwork:
   deploy: true
   cniPlugins:
