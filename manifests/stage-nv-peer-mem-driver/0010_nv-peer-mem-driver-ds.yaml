@@ -78,8 +78,11 @@ spec:
             - name: NO_PROXY
               value: {{ .RuntimeSpec.NoProxy }}
           volumeMounts:
-            - name: run-mlnx-ofed
-              mountPath: /run/mellanox/drivers
+            - name: mlnx-ofed-usr-src
+              mountPath: /run/mellanox/drivers/usr/src
+              mountPropagation: HostToContainer
+            - name: mlnx-ofed-lib-modules
+              mountPath: /run/mellanox/drivers/lib/modules
               mountPropagation: HostToContainer
             - name: run-nvidia
               mountPath: /run/nvidia/drivers
@@ -110,11 +113,14 @@ spec:
       volumes:
         {{ $ofedPath := "/run/mellanox/drivers" }}
         {{ if .RuntimeSpec.UseHostOFED }}
-          {{ $ofedPath = "/" }}
+          {{ $ofedPath = "" }}
         {{end}}
-        - name: run-mlnx-ofed
+        - name: mlnx-ofed-usr-src
           hostPath:
-            path: {{ $ofedPath }}
+            path: {{ $ofedPath }}/usr/src
+        - name: mlnx-ofed-lib-modules
+          hostPath:
+            path: {{ $ofedPath }}/lib/modules
         - name: run-nvidia
           hostPath:
             path: {{ .CrSpec.GPUDriverSourcePath }}
