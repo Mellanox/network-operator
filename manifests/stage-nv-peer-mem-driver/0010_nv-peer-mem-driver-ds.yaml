@@ -108,9 +108,13 @@ spec:
             initialDelaySeconds: 10
             failureThreshold: 1
       volumes:
+        {{ $ofedPath := "/run/mellanox/drivers" }}
+        {{ if .RuntimeSpec.UseHostOFED }}
+          {{ $ofedPath = "/" }}
+        {{end}}
         - name: run-mlnx-ofed
           hostPath:
-            path: /run/mellanox/drivers
+            path: {{ $ofedPath }}
         - name: run-nvidia
           hostPath:
             path: {{ .CrSpec.GPUDriverSourcePath }}
