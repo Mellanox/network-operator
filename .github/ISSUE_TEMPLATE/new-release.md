@@ -15,12 +15,18 @@ Please do not remove items from the checklist
   - [ ] Manifest related component default versions
 - [ ] Example folder is up to date (otherwise submit PR to update)
 - [ ] Update network-operator Helm `Chart.yaml` with the release version (`appVersion`, `version` fields)
+  ```
+       > ./scripts/releases/prepare-release.sh v0.1.2 "Jane Doe <jane.doe@example.com>"
+  ```
   - [ ] Ensure Helm CI is passing on updated Chart.
 - [ ] Tag release
 - [ ] Create a new github release
   - [ ] Release title: vx.y.z, Release description: Changelog from this issue
   - [ ] Release artifacts for current release
 - [ ] Update gh-pages branch
+  ```
+       > ./scripts/releases/update-gh-pages.sh network-operator-0.1.2.tgz
+  ```
   - [ ] Create Helm package (master branch on release tag commit):
     ```
         > helm package deployment/network-operator
