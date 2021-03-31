@@ -96,10 +96,6 @@ else
     exit 1
 fi
 
-## Patch deployment files
-sed -e s"/image:.*/image: mellanox\/network-operator:$release/" \
-    -i deploy/operator.yaml
-
 # Patch Helm chart
 chart=`echo $release | cut -c 2-`
 sed -e s"/appVersion:.*/appVersion: $release/" \
@@ -113,9 +109,8 @@ git add .
 git commit -S -m "Release $release"
 
 if [ -n "$push_remote" ]; then
-    echo "Pushing gh-pages to $push_remote"
-    git push "$push_remote" gh-pages
-
+    echo "Pushing to $push_remote"
+    git push "$push_remote"
 fi
 
 #

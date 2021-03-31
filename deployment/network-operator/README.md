@@ -224,7 +224,7 @@ the file: `values.yaml`
 Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
   - [Multus-CNI](https://github.com/k8snetworkplumbingwg/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
   - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-  - IPAM CNI: Currently only [Whereabout IPAM CNI](httpso://github.com/k8snetworkplumbingwg/whereabouts) is supported
+  - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
 
 ##### CNI Plugin Secondary Network
 

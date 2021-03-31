@@ -50,7 +50,6 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-exit 2
 chart="$1"
 release=${chart::-4}
 
