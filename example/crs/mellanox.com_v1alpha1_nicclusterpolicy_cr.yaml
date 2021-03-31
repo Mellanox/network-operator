@@ -19,7 +19,7 @@ spec:
   ofedDriver:
     image: mofed
     repository: mellanox
-    version: 5.2-1.0.4.0
+    version: 5.3-1.0.0.1
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
