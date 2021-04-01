@@ -1,10 +1,10 @@
-# Nvidia Mellanox Network Operator Helm Chart
+# Nvidia Network Operator Helm Chart
 
-Nvidia Mellanox Network Operator Helm Chart provides an easy way to install, configure and manage
+Nvidia Network Operator Helm Chart provides an easy way to install, configure and manage
 the lifecycle of Nvidia Mellanox network operator.
 
-## Nvidia Mellanox Network Operator
-Nvidia Mellanox Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+## Nvidia Network Operator
+Nvidia Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking, 
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 Network Operator works in conjunction with [GPU-Operator](https://github.com/NVIDIA/gpu-operator) to enable GPU-Direct RDMA
@@ -102,9 +102,9 @@ chart parameters to deploy it together with the operator.
 
 ## Helm Tests
 
-Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `devicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
+Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `rdmaSharedDevicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
 Supported Tests:
-- Device Plugin Resource: This test creates a pod that requests the first resource in `devicePlugin.resources`
+- Device Plugin Resource: This test creates a pod that requests the first resource in `rdmaSharedDevicePlugin.resources`
 - RDMA Traffic: This test creates a pod that test loopback RDMA traffic with `rping`
 
 Run the helm test with following command after deploying network operator with helm
@@ -152,7 +152,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name  |
-| `ofedDriver.version` | string | `5.2-1.0.4.0` | Mellanox OFED driver version  |
+| `ofedDriver.version` | string | `5.3-1.0.0.1` | Mellanox OFED driver version  |
 
 #### NVIDIA Peer memory driver
 
@@ -168,11 +168,11 @@ Production cluster environment can deny direct access to the Internet and instea
 
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
-| `devicePlugin.deploy` | bool | `true` | Deploy device plugin  |
-| `devicePlugin.repository` | string | `mellanox` | Device plugin image repository |
-| `devicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | Device plugin image name  |
-| `devicePlugin.version` | string | `v1.1.0` | Device plugin version  |
-| `devicePlugin.resources` | list | See below | Device plugin resources |
+| `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
+| `rdmaSharedDevicePlugin.repository` | string | `mellanox` | RDMA Shared device plugin image repository |
+| `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
+| `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | RDMA Shared device plugin version  |
+| `rdmaSharedDevicePlugin.resources` | list | See below | RDMA Shared device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
 
@@ -189,6 +189,27 @@ resources:
       vendors: [15b3]
       deviceIDs: [1017]
       ifNames: [ib0, ib1]
+```
+
+#### SR-IOV Network Device plugin
+
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `sriovDevicePlugin.deploy` | bool | `true` | Deploy SR-IOV Network device plugin  |
+| `sriovDevicePlugin.repository` | string | `docker.io/nfvpe` | SR-IOV Network device plugin image repository |
+| `sriovDevicePlugin.image` | string | `sriov-device-plugin` | SR-IOV Network device plugin image name  |
+| `sriovDevicePlugin.version` | string | `v3.3` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
+
+##### SR-IOV Network Device Plugin Resource configurations
+
+Consists of a list of RDMA resources each with a name and selector of RDMA capable network devices
+to be associated with the resource. Refer to [SR-IOV Network Device Plugin Selectors](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin#device-selectors) for supported selectors.
+
+```
+resources:
+    - name: hostdev
+      vendors: [15b3]
 ``` 
 
 >__Note__: The parameter listed are non-exhaustive, for the full list of chart parameters refer to
@@ -253,10 +274,10 @@ __values.yaml:__
 deployCR: true
 ofedDriver:
   deploy: true
-  version: 5.2-1.0.4.0
-devicePlugin:
+  version: 5.3-1.0.0.1
+rdmaSharedDevicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [enp1]
 ```
@@ -272,9 +293,9 @@ ofedDriver:
   deploy: true
 nvPeerDriver:
   deploy: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [enp1, enp2]
     - name: rdma_shared_device_b
@@ -292,9 +313,9 @@ Network Operator deployment with:
 __values.yaml:__
 ```:yaml
 deployCR: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
-  reources:
+  resources:
     - name: rdma_shared_device_a
       ifNames: [ib0]
 secondaryNetwork:
@@ -314,7 +335,7 @@ mapped to Mellanox ConnectX-5.
 __values.yaml:__
 ```:yaml
 deployCR: true
-devicePlugin:
+rdmaSharedDevicePlugin:
   deploy: true
   resources:
     - name: rdma_shared_device_a
