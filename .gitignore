@@ -24,3 +24,7 @@ build/_output/
 *.swp
 *.swo
 *~
+
+# Helm charts
+deployment/network-operator/Chart.lock
+deployment/network-operator/charts/*.tgz
