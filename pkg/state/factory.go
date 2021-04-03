@@ -108,10 +108,10 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	}
 
 	return []Group{
+		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sriovDpState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
-		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
 	}, nil
 }
 
