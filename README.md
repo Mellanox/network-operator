@@ -278,6 +278,9 @@ Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
 
 >__NOTE__: As more driver containers are built the operator will be able to support additional platforms.
 
+## Compatibility Notes
+* network-operator is compatible with NVIDIA GPU Operator v1.5.2 and above
+
 ## Deployment Example
 Deployment of network-operator consists of:
 * Deploying network-operator CRDs found under `./config/crd/bases`:

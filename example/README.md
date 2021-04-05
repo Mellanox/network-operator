@@ -35,6 +35,7 @@ This example aims to address the points above in a basic manner.
 ## Example
 __The example assumes the follwoing:__
 1. [GPU operator](https://github.com/NVIDIA/gpu-operator) is already deployed in the cluster
+>__NOTE__: network-operator is compatible with NVIDIA GPU Operator v1.5.2 and above
 2. Nodes with Mellanox Ethernet NICs are already labeled with `feature.node.kubernetes.io/pci-15b3.present=true`
 3. RDMA network device name is `ens2f0` on all relevant nodes, interface is up with MTU of 9000
 
