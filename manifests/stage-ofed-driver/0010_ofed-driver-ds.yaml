@@ -88,6 +88,8 @@ spec:
             periodSeconds: 30
             initialDelaySeconds: 10
             failureThreshold: 1
+      # unloading OFED modules can take more time than default terminationGracePeriod (30 sec)
+      terminationGracePeriodSeconds: 120
       volumes:
         - name: run-mlnx-ofed
           hostPath:
