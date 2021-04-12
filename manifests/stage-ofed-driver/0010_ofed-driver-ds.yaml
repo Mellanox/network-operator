@@ -78,7 +78,10 @@ spec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
             periodSeconds: 30
-            initialDelaySeconds: 30
+            # starting from  v1.21, Kubernetes doesn't use startupProbe during POD restarts
+            # to prevent crash loop after POD restarts, we should grant enough time to POD to
+            # fully boot before we start liveness checking
+            initialDelaySeconds: 570
             failureThreshold: 1
             successThreshold: 1
           readinessProbe:
