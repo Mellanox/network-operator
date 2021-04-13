@@ -43,6 +43,9 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
+{{if eq .RuntimeSpec.OSName "rhcos"}}
+      serviceAccountName: nv-peer-mem-driver
+{{end}}
       hostNetwork: true
       initContainers:
       - name: gpu-driver-validation

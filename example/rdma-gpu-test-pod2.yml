@@ -6,15 +6,15 @@ metadata:
     k8s.v1.cni.cncf.io/networks: rdma-net-ipam
     # If a network with static IPAM is used replace network annotation with the below.
     #k8s.v1.cni.cncf.io/networks: '[
-    #  { "name": "rmda-net",
-    #    "ips": ["192.168.111.101/24"],
+    #  { "name": "rdma-net",
+    #    "ips": ["192.168.111.102/24"],
     #    "gateway": ["192.168.111.1"]
     #  }
     #]'
 spec:
   nodeSelector:
     # Note: Replace hostname or remove selector altogether
-    kubernetes.io/hostname: ubuntu00
+    kubernetes.io/hostname: worker02
   restartPolicy: OnFailure
   containers:
   - image: mellanox/cuda-perftest

@@ -31,6 +31,9 @@ spec:
         app: rdma-shared-dp
     spec:
       hostNetwork: true
+{{if eq .RuntimeSpec.OSName "rhcos"}}
+      serviceAccountName: rdma-shared
+{{end}}
       tolerations:
       # Allow this pod to be rescheduled while the node is in "critical add-ons only" mode.
       # This, along with the annotation above marks this pod as a critical add-on.
