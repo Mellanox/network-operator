@@ -42,7 +42,7 @@ resources: {}
 
 # Image URIs for sriov-network-operator components
 images:
-  operator: mellanox/sriov-operator:7ad0f8e
+  operator: mellanox/sriov-operator:7ad0f8e-rel1
   sriovConfigDaemon: mellanox/sriov-operator-daemon:4.8
   sriovCni: nfvpe/sriov-cni:v2.6
   ibSriovCni: mellanox/ib-sriov-cni:faa9e36
