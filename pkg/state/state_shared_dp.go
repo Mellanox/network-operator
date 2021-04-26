@@ -59,8 +59,9 @@ type sharedDpRuntimeSpec struct {
 	OSName string
 }
 type sharedDpManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.DevicePluginSpec
-	RuntimeSpec *sharedDpRuntimeSpec
+	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
+	DeployInitContainer bool
+	RuntimeSpec         *sharedDpRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -135,7 +136,8 @@ func (s *stateSharedDp) getManifestObjects(
 	}
 
 	renderData := &sharedDpManifestRenderData{
-		CrSpec: cr.Spec.RdmaSharedDevicePlugin,
+		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
+		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sharedDpRuntimeSpec{
 			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
 			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],

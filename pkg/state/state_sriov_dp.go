@@ -54,8 +54,9 @@ type stateSriovDp struct {
 }
 
 type sriovDpManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.DevicePluginSpec
-	RuntimeSpec *runtimeSpec
+	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
+	DeployInitContainer bool
+	RuntimeSpec         *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -108,7 +109,8 @@ func (s *stateSriovDp) GetWatchSources() map[string]*source.Kind {
 func (s *stateSriovDp) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &sriovDpManifestRenderData{
-		CrSpec: cr.Spec.SriovDevicePlugin,
+		CrSpec:              cr.Spec.SriovDevicePlugin,
+		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
