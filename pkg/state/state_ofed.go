@@ -149,6 +149,27 @@ func (s *stateOFED) getManifestObjects(
 		return nil, err
 	}
 
+	if cr.Spec.OFEDDriver.StartupProbe == nil {
+		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       10,
+		}
+	}
+
+	if cr.Spec.OFEDDriver.LivenessProbe == nil {
+		cr.Spec.OFEDDriver.LivenessProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 30,
+			PeriodSeconds:       30,
+		}
+	}
+
+	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
+		cr.Spec.OFEDDriver.ReadinessProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       30,
+		}
+	}
+
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{

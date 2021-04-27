@@ -98,6 +98,15 @@ spec:
     image: mofed
     repository: mellanox
     version: 5.3-1.0.0.1
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
