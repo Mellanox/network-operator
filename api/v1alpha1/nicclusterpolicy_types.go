@@ -46,10 +46,21 @@ type ImageSpec struct {
 	Version string `json:"version"`
 }
 
+type PodProbeSpec struct {
+	InitialDelaySeconds int `json:"initialDelaySeconds"`
+	PeriodSeconds       int `json:"periodSeconds"`
+}
+
 // OFEDDriverSpec describes configuration options for OFED driver
 type OFEDDriverSpec struct {
 	// Image information for ofed driver container
 	ImageSpec `json:""`
+	// Pod startup probe settings
+	StartupProbe *PodProbeSpec `json:"startupProbe,omitempty"`
+	// Pod liveness probe settings
+	LivenessProbe *PodProbeSpec `json:"livenessProbe,omitempty"`
+	// Pod readiness probe settings
+	ReadinessProbe *PodProbeSpec `json:"readinessProbe,omitempty"`
 }
 
 // NVPeerDriverSpec describes configuration options for NV Peer Memory driver

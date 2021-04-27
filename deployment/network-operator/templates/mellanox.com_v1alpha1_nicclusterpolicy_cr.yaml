@@ -24,6 +24,15 @@ spec:
     image: {{ .Values.ofedDriver.image }}
     repository: {{ .Values.ofedDriver.repository }}
     version: {{ .Values.ofedDriver.version }}
+    startupProbe:
+      initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
+      periodSeconds: {{ .Values.ofedDriver.startupProbe.periodSeconds }}
+    livenessProbe:
+      initialDelaySeconds: {{ .Values.ofedDriver.livenessProbe.initialDelaySeconds }}
+      periodSeconds: {{ .Values.ofedDriver.livenessProbe.periodSeconds }}
+    readinessProbe:
+      initialDelaySeconds: {{ .Values.ofedDriver.readinessProbe.initialDelaySeconds }}
+      periodSeconds: {{ .Values.ofedDriver.readinessProbe.periodSeconds }}
   {{- end }}
   {{- if .Values.nvPeerDriver.deploy }}
   nvPeerDriver:

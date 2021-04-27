@@ -71,9 +71,42 @@ spec:
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
+                  livenessProbe:
+                    description: Pod liveness probe settings
+                    properties:
+                      initialDelaySeconds:
+                        type: integer
+                      periodSeconds:
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
+                  readinessProbe:
+                    description: Pod readiness probe settings
+                    properties:
+                      initialDelaySeconds:
+                        type: integer
+                      periodSeconds:
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
+                  startupProbe:
+                    description: Pod startup probe settings
+                    properties:
+                      initialDelaySeconds:
+                        type: integer
+                      periodSeconds:
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
                   version:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string

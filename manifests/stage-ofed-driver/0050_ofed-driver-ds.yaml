@@ -72,25 +72,25 @@ spec:
             exec:
               command:
                 [sh, -c, 'ls /.driver-ready']
-            initialDelaySeconds: 10
+            initialDelaySeconds: {{ .CrSpec.StartupProbe.InitialDelaySeconds }}
             failureThreshold: 60
             successThreshold: 1
-            periodSeconds: 10
+            periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
           livenessProbe:
             exec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
-            periodSeconds: 30
-            initialDelaySeconds: 30
+            initialDelaySeconds: {{ .CrSpec.LivenessProbe.InitialDelaySeconds }}
             failureThreshold: 1
             successThreshold: 1
+            periodSeconds: {{ .CrSpec.LivenessProbe.PeriodSeconds }}
           readinessProbe:
             exec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
-            periodSeconds: 30
-            initialDelaySeconds: 10
+            initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: 1
+            periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
       # unloading OFED modules can take more time than default terminationGracePeriod (30 sec)
       terminationGracePeriodSeconds: 120
       volumes:
