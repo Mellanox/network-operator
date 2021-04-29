@@ -22,9 +22,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -60,7 +63,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	instance := &mellanoxv1alpha1.NicClusterPolicy{}
 	err := r.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -106,6 +109,12 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	err = r.updateNodeLabels(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if managerStatus.Status != state.SyncStateReady {
 		return reconcile.Result{
 			RequeueAfter: time.Duration(config.FromEnv().Controller.RequeueTimeSeconds) * time.Second,
@@ -113,6 +122,52 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// updateNodeLabels updates nodes labels to mark device plugins should wait for OFED pod
+// Set nvidia.com/ofed.wait=false if OFED is not deployed.
+func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicClusterPolicy) error {
+	if cr.Spec.OFEDDriver != nil {
+		pods := &corev1.PodList{}
+		podLabel := "mofed-" + cr.Spec.OFEDDriver.Version
+		_ = r.Client.List(context.TODO(), pods, client.MatchingLabels{"driver-pod": podLabel})
+		for i := range pods.Items {
+			pod := pods.Items[i]
+			labelValue := "true"
+			// We assume that OFED pod contains only one container to simplify the logic.
+			// We can revisit this logic in the future if needed
+			if pod.Status.ContainerStatuses[0].Ready {
+				labelValue = "false"
+			}
+			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{"%s":"%s"}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
+			err := r.Client.Patch(context.TODO(), &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pod.Spec.NodeName,
+				},
+			}, client.RawPatch(types.StrategicMergePatchType, patch))
+
+			if err != nil {
+				return errors.New("unable to update node label")
+			}
+		}
+	} else {
+		nodes := &corev1.NodeList{}
+		// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
+		err := r.Client.List(context.TODO(), nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
+		if err != nil {
+			return errors.New("unable to get nodes")
+		}
+
+		for i := range nodes.Items {
+			nodes.Items[i].Labels[nodeinfo.NodeLabelWaitOFED] = "false"
+			err = r.Client.Update(context.TODO(), &nodes.Items[i])
+			if err != nil {
+				return errors.New("unable to update node label")
+			}
+		}
+	}
+
+	return nil
 }
 
 //nolint:dupl

@@ -97,7 +97,9 @@ rules:
     verbs:
       - get
       - list
+      - patch
       - watch
+      - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -175,7 +177,9 @@ rules:
     verbs:
       - get
       - list
+      - patch
       - watch
+      - update
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -209,7 +213,9 @@ rules:
     verbs:
       - get
       - list
+      - patch
       - watch
+      - update
   - apiGroups:
       - apps
     resources:
@@ -257,7 +263,9 @@ rules:
       - pods/status
     verbs:
       - get
+      - list
       - update
+      - watch
   - apiGroups:
       - ""
       - events.k8s.io

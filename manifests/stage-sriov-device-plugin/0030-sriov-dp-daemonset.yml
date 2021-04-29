@@ -33,6 +33,7 @@ spec:
       hostNetwork: true
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
+        network.nvidia.com/operator.mofed.wait: "false"
       tolerations:
         # Allow this pod to be rescheduled while the node is in "critical add-ons only" mode.
         # This, along with the annotation above marks this pod as a critical add-on.
