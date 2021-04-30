@@ -67,7 +67,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		reqLogger.V(consts.LogLevelError).Info("Error occurred on GET CRD request from API server.", "error:", err)
+		reqLogger.V(consts.LogLevelError).Info("Error occurred on GET CRD request from server.", "error:", err)
 		return reconcile.Result{}, err
 	}
 
