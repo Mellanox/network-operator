@@ -41,5 +41,5 @@ spec:
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox
-    version: 1.0-9
+    version: 1.1-0
     gpuDriverSourcePath: /run/nvidia/driver
