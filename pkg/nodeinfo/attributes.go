@@ -35,6 +35,7 @@ const (
 	NodeLabelCPUArch       = "kubernetes.io/arch"
 	NodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
 	NodeLabelNvGPU         = "nvidia.com/gpu.present"
+	NodeLabelWaitOFED      = "network.nvidia.com/operator.mofed.wait"
 )
 
 type AttributeType int

@@ -81,3 +81,4 @@ spec:
             path: /dev/
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
+        network.nvidia.com/operator.mofed.wait: "false"
