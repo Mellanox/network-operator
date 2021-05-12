@@ -11,19 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: sriovnetwork.openshift.io/v1
-kind: SriovNetworkNodePolicy
+apiVersion: v1
+kind: Pod
 metadata:
-  name: example-sriov-node-policy-switchdev
+  name: test-pod
   namespace: network-operator
+  annotations:
+    k8s.v1.cni.cncf.io/networks: example-network
 spec:
-  resourceName: sriov-switchdev
+  containers:
+    - name: test-hostdev-pod
+      image: centos/tools
+      imagePullPolicy: IfNotPresent
+      command: [ "/bin/bash", "-c", "--" ]
+      args: [ "while true; do sleep 300; done;" ]
+      resources:
+        requests:
+          nvidia.com/sriov-legacy: "1"
+        limits:
+          nvidia.com/sriov-legacy: "1"
   nodeSelector:
-    feature.node.kubernetes.io/network-sriov.capable: "true"
-  numVfs: 1
-  nicSelector:
-    vendor: "15b3"
-  isRdma: true
-  # To get switchdev mode working you need to
-  # manually configure https://github.com/kubevirt/ovs-cni
-  eSwitchMode: switchdev
+    feature.node.kubernetes.io/pci-15b3.sriov.capable: "true"
+
