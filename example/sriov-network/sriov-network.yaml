@@ -32,4 +32,4 @@ spec:
       "log_level" : "info"
     }
   vlan: 0
-  resourceName: nvidia.com/sriov-switchdev
+  resourceName: sriov-switchdev

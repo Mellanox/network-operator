@@ -17,7 +17,7 @@ metadata:
   name: example-sriov-node-policy-legacy
   namespace: network-operator
 spec:
-  resourceName: nvidia.com/sriov-legacy
+  resourceName: sriov-legacy
   nodeSelector:
     feature.node.kubernetes.io/network-sriov.capable: "true"
   numVfs: 1
