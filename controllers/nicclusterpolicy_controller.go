@@ -136,7 +136,7 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 			labelValue := "true"
 			// We assume that OFED pod contains only one container to simplify the logic.
 			// We can revisit this logic in the future if needed
-			if pod.Status.ContainerStatuses[0].Ready {
+			if len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].Ready {
 				labelValue = "false"
 			}
 			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{"%s":"%s"}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
