@@ -85,6 +85,7 @@ func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog Info
 	managerResult := Results{
 		Status: SyncStateNotReady,
 	}
+	statesReady := true
 
 	for i, stateGroup := range smgr.stateGroups {
 		log.V(consts.LogLevelInfo).Info("Sync State group", "index", i)
@@ -96,14 +97,20 @@ func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog Info
 			log.V(consts.LogLevelError).Info("Error while syncing states", "Error:", err)
 			return managerResult, err
 		}
+
 		if !done {
+			// We need to have at lease one not ready state to mark CR as notReady
+			statesReady = false
 			log.V(consts.LogLevelInfo).Info("State Group Not ready")
-			return managerResult, nil
+		} else {
+			log.V(consts.LogLevelInfo).Info("Sync Completed successfully for State group", "index", i)
 		}
-		log.V(consts.LogLevelInfo).Info("Sync Completed successfully for State group", "index", i)
 	}
-	// Done Syncing CR
-	managerResult.Status = SyncStateReady
-	log.V(consts.LogLevelInfo).Info("Sync Done for custom resource")
+	if statesReady {
+		// Done Syncing CR
+		managerResult.Status = SyncStateReady
+		log.V(consts.LogLevelInfo).Info("Sync Done for custom resource")
+	}
+
 	return managerResult, nil
 }
