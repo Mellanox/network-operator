@@ -43,6 +43,9 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "network-operator.fullname" . }}
+      {{- if .Values.operator.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml .Values.operator.imagePullSecrets | indent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           # Replace this with the built image name

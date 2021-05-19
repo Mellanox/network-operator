@@ -69,6 +69,7 @@ operator:
                 values: [""]
   repository: mellanox
   image: network-operator
+  imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
@@ -86,6 +87,7 @@ ofedDriver:
   image: mofed
   repository: mellanox
   version: 5.3-1.0.0.1
+  imagePullSecrets: []
   startupProbe:
     initialDelaySeconds: 10
     periodSeconds: 10
@@ -101,6 +103,7 @@ nvPeerDriver:
   image: nv-peer-mem-driver
   repository: mellanox
   version: 1.1-0
+  imagePullSecrets: []
   gpuDriverSourcePath: /run/nvidia/driver
 
 rdmaSharedDevicePlugin:
@@ -108,6 +111,7 @@ rdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: mellanox
   version: v1.1.0
+  imagePullSecrets: []
   # The following defines the RDMA resources in the cluster
   # it must be provided by the user when deploying the chart
   # each entry in the resources element will create a resource with the provided <name> and list of devices
@@ -121,6 +125,7 @@ sriovDevicePlugin:
   image: sriov-device-plugin
   repository: docker.io/nfvpe
   version: v3.3
+  imagePullSecrets: []
   resources:
     - name: hostdev
       vendors: [15b3]
@@ -132,17 +137,20 @@ secondaryNetwork:
     image: containernetworking-plugins
     repository: mellanox
     version: v0.8.7
+    imagePullSecrets: []
   multus:
     deploy: true
     image: multus
     repository: nfvpe
     version: v3.6
+    imagePullSecrets: []
     config: ''
   ipamPlugin:
     deploy: true
     image: whereabouts
     repository: mellanox
     version: v0.3
+    imagePullSecrets: []
 
 test:
   pf: ens2f0

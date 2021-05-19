@@ -53,6 +53,10 @@ spec:
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
@@ -71,6 +75,10 @@ spec:
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
                   livenessProbe:
                     description: Pod liveness probe settings
                     properties:
@@ -125,6 +133,10 @@ spec:
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
@@ -147,6 +159,10 @@ spec:
                       image:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
+                      imagePullSecrets:
+                        items:
+                          type: string
+                        type: array
                       repository:
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
@@ -164,6 +180,10 @@ spec:
                       image:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
+                      imagePullSecrets:
+                        items:
+                          type: string
+                        type: array
                       repository:
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
@@ -187,6 +207,10 @@ spec:
                       image:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
+                      imagePullSecrets:
+                        items:
+                          type: string
+                        type: array
                       repository:
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
@@ -209,6 +233,10 @@ spec:
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string

@@ -47,6 +47,12 @@ spec:
       serviceAccountName: nv-peer-mem-driver
 {{end}}
       hostNetwork: true
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       initContainers:
       - name: gpu-driver-validation
         image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.CPUArch }}-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
