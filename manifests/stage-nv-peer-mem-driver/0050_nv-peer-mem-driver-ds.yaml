@@ -136,6 +136,7 @@ spec:
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         nvidia.com/gpu.present: "true"
+        network.nvidia.com/operator.mofed.wait: "false"
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
