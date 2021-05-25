@@ -169,7 +169,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `nvPeerDriver.deploy` | bool | `false` | deploy NVIDIA Peer memory driver container |
 | `nvPeerDriver.repository` | string | `mellanox` | NVIDIA Peer memory driver image repository |
 | `nvPeerDriver.image` | string | `nv-peer-mem-driver` | NVIDIA Peer memory driver image name  |
-| `nvPeerDriver.version` | string | `1.0-9` | NVIDIA Peer memory driver version  |
+| `nvPeerDriver.version` | string | `1.1-0` | NVIDIA Peer memory driver version  |
 | `nvPeerDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the NVIDIA Peer memory driver image |
 | `nvPeerDriver.gpuDriverSourcePath` | string | `/run/nvidia/driver` | GPU driver soruces root filesystem path(usually used in tandem with [gpu-operator](https://github.com/NVIDIA/gpu-operator)) |
 
