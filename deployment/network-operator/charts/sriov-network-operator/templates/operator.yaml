@@ -18,7 +18,7 @@ kind: Deployment
 metadata:
   name: {{ include "sriov-network-operator.fullname" . }}
   labels:
-    {{- include "sriov-network-operator.labels" . | nindent 4 }}
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
@@ -39,10 +39,10 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
       containers:
-        - name: sriov-network-operator
+        - name: {{ include "sriov-network-operator.fullname" . }}
           image: {{ .Values.images.operator }}
           command:
-          - sriov-network-operator
+            - sriov-network-operator
           imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE
@@ -56,17 +56,17 @@ spec:
             - name: SRIOV_DEVICE_PLUGIN_IMAGE
               value: {{ .Values.images.sriovDevicePlugin }}
             - name: NETWORK_RESOURCES_INJECTOR_IMAGE
-              value: ""
+              value: {{ .Values.images.resourcesInjector }}
             - name: OPERATOR_NAME
               value: sriov-network-operator
             - name: SRIOV_NETWORK_CONFIG_DAEMON_IMAGE
               value: {{ .Values.images.sriovConfigDaemon }}
             - name: SRIOV_NETWORK_WEBHOOK_IMAGE
-              value: ""
+              value: {{ .Values.images.webhook }}
             - name: RESOURCE_PREFIX
-              value: nvidia.com
+              value: {{ .Values.operator.resourcePrefix }}
             - name: ENABLE_ADMISSION_CONTROLLER
-              value: "false"
+              value: {{ .Values.operator.enableAdmissionController | quote }}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -78,6 +78,4 @@ spec:
             - name: RELEASE_VERSION
               value: {{ .Release.AppVersion }}
             - name: SRIOV_CNI_BIN_PATH
-              value: /opt/cni/bin
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+              value: {{ .Values.operator.cniBinPath }}
