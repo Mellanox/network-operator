@@ -14,22 +14,21 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test-pod
-  namespace: network-operator
+  name: test-sriov-pod
   annotations:
-    k8s.v1.cni.cncf.io/networks: example-network
+    k8s.v1.cni.cncf.io/networks: example-sriov-network
+
 spec:
   containers:
-    - name: test-hostdev-pod
+    - name: test-sriov-pod
       image: centos/tools
       imagePullPolicy: IfNotPresent
       command: [ "/bin/bash", "-c", "--" ]
       args: [ "while true; do sleep 300; done;" ]
       resources:
         requests:
-          nvidia.com/sriov-legacy: "1"
+          nvidia.com/sriovlegacy: "1"
         limits:
-          nvidia.com/sriov-legacy: "1"
+          nvidia.com/sriovlegacy: "1"
   nodeSelector:
     feature.node.kubernetes.io/pci-15b3.sriov.capable: "true"
-

@@ -15,6 +15,7 @@ apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetwork
 metadata:
   name: example-sriov-network
+  namespace: network-operator
 spec:
   ipam: |
     {
@@ -32,4 +33,5 @@ spec:
       "log_level" : "info"
     }
   vlan: 0
-  resourceName: sriov-switchdev
+  resourceName: sriovlegacy
+  networkNamespace: default
