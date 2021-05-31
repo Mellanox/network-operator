@@ -47,6 +47,10 @@ spec:
                 description: NVPeerDriverSpec describes configuration options for
                   NV Peer Memory driver
                 properties:
+                  fromGPUDriver:
+                    description: Allow to use builtin nvidia_peermem module from GPU
+                      driver
+                    type: boolean
                   gpuDriverSourcePath:
                     description: GPU driver sources path - Optional
                     type: string

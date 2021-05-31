@@ -86,6 +86,8 @@ spec:
               value: {{ .RuntimeSpec.HTTPSProxy }}
             - name: NO_PROXY
               value: {{ .RuntimeSpec.NoProxy }}
+            - name: ALLOW_MOD_FROM_GPU_DRIVER
+              value: '{{ .CrSpec.FromGPUDriver }}'
           volumeMounts:
             - name: mlnx-ofed-usr-src
               mountPath: /run/mellanox/drivers/usr/src
@@ -107,7 +109,7 @@ spec:
           livenessProbe:
             exec:
               command:
-                [sh, -c, 'lsmod | grep nv_peer_mem']
+                [sh, -c, 'lsmod | grep "nv_peer_mem\|nvidia_peermem"']
             periodSeconds: 30
             initialDelaySeconds: 30
             failureThreshold: 1
@@ -115,7 +117,7 @@ spec:
           readinessProbe:
             exec:
               command:
-                [sh, -c, 'lsmod | grep nv_peer_mem']
+                [sh, -c, 'lsmod | grep "nv_peer_mem\|nvidia_peermem"']
             periodSeconds: 30
             initialDelaySeconds: 10
             failureThreshold: 1

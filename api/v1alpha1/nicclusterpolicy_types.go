@@ -72,6 +72,8 @@ type NVPeerDriverSpec struct {
 	ImageSpec `json:""`
 	// GPU driver sources path - Optional
 	GPUDriverSourcePath string `json:"gpuDriverSourcePath,omitempty"`
+	// Allow to use builtin nvidia_peermem module from GPU driver
+	FromGPUDriver bool `json:"fromGPUDriver,omitempty"`
 }
 
 // DevicePluginSpec describes configuration options for device plugin
