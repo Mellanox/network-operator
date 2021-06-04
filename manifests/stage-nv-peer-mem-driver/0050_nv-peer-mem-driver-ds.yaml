@@ -146,3 +146,10 @@ spec:
                 operator: Gt
                 values:
                   - "0"
+              # cuda driver starting from v465 should include builtin nvidia_peermem module
+              # which should be used instead nv_peer_mem
+              # prevent scheduling nv-peer-mem-driver POD on nodes with cuda driver version >= 465
+              - key: nvidia.com/cuda.driver.major
+                operator: Lt
+                values:
+                  - "{{ .RuntimeSpec.MaxCudaVersion }}"

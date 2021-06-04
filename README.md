@@ -18,6 +18,7 @@
       - [HostDeviceNetwork spec](#hostdevicenetwork-spec)
         * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
   * [System Requirements](#system-requirements)
+  * [Compatibility Notes](#compatibility-notes)
   * [Deployment Example](#deployment-example)
   * [Driver Containers](#driver-containers)
 
@@ -76,6 +77,7 @@ NICClusterPolicy CRD Spec includes the following sub-states/stages:
 and related configurations.
 - `nvPeerDriver`: [Nvidia Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
+  For NVIDIA GPU driver version < 465. Check [compatibility notes](#compatibility-notes) for details
 - `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
@@ -289,6 +291,9 @@ Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
 
 ## Compatibility Notes
 * network-operator is compatible with NVIDIA GPU Operator v1.5.2 and above
+* network-operator will deploy nvPeerDriver POD on a node only if NVIDIA GPU driver version < 465.
+  Starting from v465 NVIDIA GPU driver includes a built-in nvidia_peermem module
+  which is a replacement for nv_peer_mem module. NVIDIA GPU operator manages nvidia_peermem module loading.
 
 ## Deployment Example
 Deployment of network-operator consists of:
