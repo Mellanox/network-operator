@@ -82,3 +82,62 @@ func (b *NodeLabelFilterBuilder) Reset() *NodeLabelFilterBuilder {
 	b.filter = newNodeLabelFilter()
 	return b
 }
+
+// A node label filter which ignores label value. use NewNodeLabelNoValFilterBuilder to create instances
+type nodeLabelNoValFilter struct {
+	labels map[string]struct{}
+}
+
+// addLabel adds a label to nodeLabelFilter
+func (nlf *nodeLabelNoValFilter) addLabel(key string) {
+	nlf.labels[key] = struct{}{}
+}
+
+// Apply Filter on Nodes
+func (nlf *nodeLabelNoValFilter) Apply(nodes []*corev1.Node) (filtered []*corev1.Node) {
+NextIter:
+	for _, node := range nodes {
+		nodeLabels := node.GetLabels()
+		for k := range nlf.labels {
+			if _, ok := nodeLabels[k]; ok {
+				continue
+			}
+			// label not found on node or label value missmatch
+			continue NextIter
+		}
+		filtered = append(filtered, node)
+	}
+	return filtered
+}
+
+// newNodeLabelNoValFilter creates a new nodeLabelNoValFilter
+func newNodeLabelNoValFilter() nodeLabelNoValFilter {
+	return nodeLabelNoValFilter{labels: make(map[string]struct{})}
+}
+
+// NodeLabelNoValFilterBuilder is a builder for nodeLabelFilter
+type NodeLabelNoValFilterBuilder struct {
+	filter nodeLabelNoValFilter
+}
+
+// NewNodeLabelNoValFilterBuilderr returns a new NodeLabelNoValFilterBuilder
+func NewNodeLabelNoValFilterBuilderr() *NodeLabelNoValFilterBuilder {
+	return &NodeLabelNoValFilterBuilder{filter: newNodeLabelNoValFilter()}
+}
+
+// WithLabel adds a label for the Build process of the Label filter
+func (b *NodeLabelNoValFilterBuilder) WithLabel(key string) *NodeLabelNoValFilterBuilder {
+	b.filter.addLabel(key)
+	return b
+}
+
+// Build the Filter
+func (b *NodeLabelNoValFilterBuilder) Build() Filter {
+	return &b.filter
+}
+
+// Reset NodeLabelNoValFilterBuilder
+func (b *NodeLabelNoValFilterBuilder) Reset() *NodeLabelNoValFilterBuilder {
+	b.filter = newNodeLabelNoValFilter()
+	return b
+}

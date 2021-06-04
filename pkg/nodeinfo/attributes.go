@@ -28,25 +28,30 @@ var log = logf.Log.WithName("nodeinfo")
 
 // Node labels used by nodeinfo package
 const (
-	NodeLabelOSName        = "feature.node.kubernetes.io/system-os_release.ID"
-	NodeLabelOSVer         = "feature.node.kubernetes.io/system-os_release.VERSION_ID"
-	NodeLabelKernelVerFull = "feature.node.kubernetes.io/kernel-version.full"
-	NodeLabelHostname      = "kubernetes.io/hostname"
-	NodeLabelCPUArch       = "kubernetes.io/arch"
-	NodeLabelMlnxNIC       = "feature.node.kubernetes.io/pci-15b3.present"
-	NodeLabelNvGPU         = "nvidia.com/gpu.present"
-	NodeLabelWaitOFED      = "network.nvidia.com/operator.mofed.wait"
+	NodeLabelOSName           = "feature.node.kubernetes.io/system-os_release.ID"
+	NodeLabelOSVer            = "feature.node.kubernetes.io/system-os_release.VERSION_ID"
+	NodeLabelKernelVerFull    = "feature.node.kubernetes.io/kernel-version.full"
+	NodeLabelHostname         = "kubernetes.io/hostname"
+	NodeLabelCPUArch          = "kubernetes.io/arch"
+	NodeLabelMlnxNIC          = "feature.node.kubernetes.io/pci-15b3.present"
+	NodeLabelNvGPU            = "nvidia.com/gpu.present"
+	NodeLabelWaitOFED         = "network.nvidia.com/operator.mofed.wait"
+	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
 )
 
 type AttributeType int
 
 // Attribute type Enum, add new types before Last and update the mapping below
 const (
+	// required attrs
 	AttrTypeHostname = iota
 	AttrTypeCPUArch
 	AttrTypeOSName
 	AttrTypeOSVer
-	AttrTypeLast
+	// optional attrs
+	AttrTypeCudaVersionMajor
+
+	OptionalAttrsStart = AttrTypeCudaVersionMajor
 )
 
 var attrToLabel = []string{
@@ -58,6 +63,8 @@ var attrToLabel = []string{
 	NodeLabelOSName,
 	// AttrTypeOSVer
 	NodeLabelOSVer,
+	// AttrTypeCudaVersionMajor
+	NodeLabelCudaVersionMajor,
 }
 
 // NodeAttributes provides attributes of a specific node
@@ -91,8 +98,9 @@ func newNodeAttributes(node *corev1.Node) NodeAttributes {
 	nLabels := node.GetLabels()
 	for attrType, label := range attrToLabel {
 		err = attr.fromLabel(AttributeType(attrType), nLabels, label)
-		if err != nil {
-			log.V(consts.LogLevelWarning).Info("Warning:", "cannot create NodeAttribute(%x), %v", attrType, err)
+		if err != nil && attrType < OptionalAttrsStart {
+			log.V(consts.LogLevelWarning).Info("Cannot create NodeAttribute",
+				"attribute", attrType, "error:", err.Error())
 		}
 	}
 	return attr
