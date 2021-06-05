@@ -20,6 +20,7 @@
   * [System Requirements](#system-requirements)
   * [Compatibility Notes](#compatibility-notes)
   * [Deployment Example](#deployment-example)
+  * [Docker image](#docker-image)
   * [Driver Containers](#driver-containers)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
@@ -309,6 +310,16 @@ Example can be found under `./example/crs/mellanox.com_v1alpha1_nicclusterpolicy
 Example can be found under `./example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
 
 A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/blob/master/example/README.md).
+
+## Docker image
+Network operator uses `alpine` base image by default. To build Network operator with
+another base image you need to pass `BASE_IMAGE` argument:
+
+```
+docker build -t network-operator \
+--build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:latest \
+.
+```
 
 ## Driver Containers
 Driver containers are essentially containers that have or yield kernel modules compatible
