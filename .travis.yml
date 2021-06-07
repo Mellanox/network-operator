@@ -8,6 +8,7 @@ env:
 
 before_script:
   - go get -u github.com/mattn/goveralls
+  - docker login -u "$REGISTRY_USER" -p "$REGISTRY_PASS"
 
 script:
   - make scripts/check-manifests.sh
