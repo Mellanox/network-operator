@@ -2,6 +2,7 @@ package state
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,6 +21,9 @@ import (
 
 const stateNVPeerName = "state-NV-Peer"
 const stateNVPeerDescription = "Nvidia Peer Memory driver deployed in the cluster"
+
+// starting from this GPU driver version nvPeerMem driver should not deploy
+const maxCudaVersionMajor = 465
 
 //TODO: Refine a base struct that implements a driver container as this is pretty much identical to OFED state
 
@@ -47,13 +51,14 @@ type stateNVPeer struct {
 
 type nvPeerRuntimeSpec struct {
 	runtimeSpec
-	CPUArch     string
-	OSName      string
-	OSVer       string
-	HTTPProxy   string
-	HTTPSProxy  string
-	NoProxy     string
-	UseHostOFED bool
+	CPUArch        string
+	OSName         string
+	OSVer          string
+	HTTPProxy      string
+	HTTPSProxy     string
+	NoProxy        string
+	UseHostOFED    bool
+	MaxCudaVersion int
 }
 
 type nvPeerManifestRenderData struct {
@@ -103,6 +108,16 @@ func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) 
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
+
+	// check if nvPeerMem status should be ignored
+	// workaround to support upgrade from nv_peer_mem to nvidia_peermem module
+	// check function doc for details
+	if s.shouldIgnoreStatus(nodeInfo) {
+		log.V(consts.LogLevelInfo).Info("GPU driver version with builtin nvidia_peermem module detected." +
+			"NV Peer driver status ignored")
+		return SyncStateIgnore, nil
+	}
+
 	// Check objects status
 	syncState, err := s.getSyncState(objs)
 	if err != nil {
@@ -140,14 +155,15 @@ func (s *stateNVPeer) getManifestObjects(
 	renderData := &nvPeerManifestRenderData{
 		CrSpec: cr.Spec.NVPeerDriver,
 		RuntimeSpec: &nvPeerRuntimeSpec{
-			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
-			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
-			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
-			HTTPProxy:   os.Getenv(consts.HTTPProxy),
-			HTTPSProxy:  os.Getenv(consts.HTTPSProxy),
-			NoProxy:     os.Getenv(consts.NoProxy),
-			UseHostOFED: cr.Spec.OFEDDriver == nil,
+			runtimeSpec:    runtimeSpec{consts.NetworkOperatorResourceNamespace},
+			CPUArch:        attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
+			OSName:         attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			OSVer:          attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
+			HTTPProxy:      os.Getenv(consts.HTTPProxy),
+			HTTPSProxy:     os.Getenv(consts.HTTPSProxy),
+			NoProxy:        os.Getenv(consts.NoProxy),
+			UseHostOFED:    cr.Spec.OFEDDriver == nil,
+			MaxCudaVersion: maxCudaVersionMajor,
 		},
 	}
 	// render objects
@@ -158,4 +174,37 @@ func (s *stateNVPeer) getManifestObjects(
 	}
 	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
+}
+
+// shouldIgnoreStatus check if nvPeerMem DS status should be ignored
+// Workaround to support switching from nv_peer_mem module which is managed by network-operator
+// to nvidia_peermem module which is a part of the GPU driver starting from v465.
+// We should ignore nvPeerMem status in case all nodes in a cluster have GPU driver version > 465
+// if some nodes still using GPU driver < 465 or there are no nodes with GPU driver, we should continue sync attempts
+// we don't remove DS, just ignore its status. This is required to be able to recovery nv-peer-mem in situations when
+// GPU driver version was downgraded or when we have an environment with mixed versions of the GPU drivers
+// and node with older version appear after node with a newer version.
+// nvPeerMem config should be removed from NicClusterPolicy explicitly to remove DS
+func (s *stateNVPeer) shouldIgnoreStatus(nodeInfo nodeinfo.Provider) bool {
+	attrs := nodeInfo.GetNodesAttributes(
+		nodeinfo.NewNodeLabelNoValFilterBuilderr().
+			WithLabel(nodeinfo.NodeLabelCudaVersionMajor).
+			Build())
+	if len(attrs) == 0 {
+		// no driver info available, should continue sync
+		return false
+	}
+	for _, attr := range attrs {
+		cudaVersion, err := strconv.Atoi(attr.Attributes[nodeinfo.AttrTypeCudaVersionMajor])
+		if err != nil {
+			// unknown cuda version, continue sync
+			log.V(consts.LogLevelInfo).Info("Fail to check GPU driver version")
+			return false
+		}
+		if cudaVersion < maxCudaVersionMajor {
+			// node with old GPU driver found, continue sync
+			return false
+		}
+	}
+	return true
 }

@@ -31,10 +31,11 @@ var _ = Describe("NodeAttributes tests", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
 				Labels: map[string]string{
-					NodeLabelOSName:        "ubuntu",
-					NodeLabelCPUArch:       "amd64",
-					NodeLabelKernelVerFull: "5.4.0-generic",
-					NodeLabelOSVer:         "20.04"},
+					NodeLabelOSName:           "ubuntu",
+					NodeLabelCPUArch:          "amd64",
+					NodeLabelKernelVerFull:    "5.4.0-generic",
+					NodeLabelOSVer:            "20.04",
+					NodeLabelCudaVersionMajor: "465"},
 			},
 		},
 		{
@@ -42,9 +43,10 @@ var _ = Describe("NodeAttributes tests", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-2",
 				Labels: map[string]string{
-					NodeLabelOSName:        "rhel",
-					NodeLabelCPUArch:       "x86_64",
-					NodeLabelKernelVerFull: "5.4.0-generic"},
+					NodeLabelOSName:           "rhel",
+					NodeLabelCPUArch:          "x86_64",
+					NodeLabelKernelVerFull:    "5.4.0-generic",
+					NodeLabelCudaVersionMajor: "460"},
 			},
 		},
 		{
@@ -111,6 +113,25 @@ var _ = Describe("NodeAttributes tests", func() {
 			Expect(len(filteredNodes)).To(Equal(2))
 			Expect(filteredNodes[0].Name).To(Equal("node-2"))
 			Expect(filteredNodes[1].Name).To(Equal("node-4"))
+		})
+	})
+
+	Context("Filter by labels without values", func() {
+		It("Should only return the relevant nodes", func() {
+			filter := NewNodeLabelNoValFilterBuilderr().
+				WithLabel(NodeLabelCudaVersionMajor).
+				Build()
+			filteredNodes := filter.Apply(nodes)
+			Expect(len(filteredNodes)).To(Equal(2))
+			Expect(filteredNodes[0].Name).To(Equal("node-1"))
+			Expect(filteredNodes[1].Name).To(Equal("node-2"))
+		})
+		It("Should return an empty list of nodes", func() {
+			filter := NewNodeLabelNoValFilterBuilderr().
+				WithLabel("unknown_label").
+				Build()
+			filteredNodes := filter.Apply(nodes)
+			Expect(filteredNodes).To(BeEmpty())
 		})
 	})
 })
