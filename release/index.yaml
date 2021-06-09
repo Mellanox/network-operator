@@ -2,8 +2,34 @@ apiVersion: v1
 entries:
   network-operator:
   - apiVersion: v2
+    appVersion: v0.6.0
+    created: "2021-06-09T15:52:43.943410353+03:00"
+    dependencies:
+    - condition: nfd.enabled
+      name: node-feature-discovery
+      repository: http://kubernetes-sigs.github.io/node-feature-discovery/charts
+      version: 0.8.0
+    - condition: sriovNetworkOperator.enabled
+      name: sriov-network-operator
+      repository: ""
+      version: 0.1.0
+    description: Nvidia network operator
+    digest: 8d82b8f599231f34340400255210f5c6d95da7071a4e2409ee3bb9db71624770
+    home: https://mellanox.github.io/network-operator
+    keywords:
+    - gpu-direct
+    - rdma
+    kubeVersion: '>= 1.17.0'
+    name: network-operator
+    sources:
+    - https://github.com/Mellanox/network-operator
+    type: application
+    urls:
+    - https://mellanox.github.io/network-operator/release/network-operator-0.6.0.tgz
+    version: 0.6.0
+  - apiVersion: v2
     appVersion: v0.5.0
-    created: "2021-05-04T22:11:10.254856072+03:00"
+    created: "2021-06-09T15:52:43.941719033+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -29,7 +55,7 @@ entries:
     version: 0.5.0
   - apiVersion: v2
     appVersion: v0.4.0
-    created: "2021-05-04T22:11:10.247429325+03:00"
+    created: "2021-06-09T15:52:43.938876005+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -55,7 +81,7 @@ entries:
     version: 0.4.0
   - apiVersion: v2
     appVersion: v0.3.0
-    created: "2021-05-04T22:11:10.242743451+03:00"
+    created: "2021-06-09T15:52:43.935815686+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -81,7 +107,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: v0.2.0
-    created: "2021-05-04T22:11:10.238244408+03:00"
+    created: "2021-06-09T15:52:43.932808969+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -101,4 +127,4 @@ entries:
     urls:
     - https://mellanox.github.io/network-operator/release/network-operator-0.2.0-beta.tgz
     version: 0.2.0-beta
-generated: "2021-05-04T22:11:10.235112795+03:00"
+generated: "2021-06-09T15:52:43.929799856+03:00"
