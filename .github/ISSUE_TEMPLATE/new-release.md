@@ -47,6 +47,7 @@ Please do not remove items from the checklist
         > git push ...
     ```
 - [ ] Add a link to the release in this issue
+- [ ] Verify new image is published to the registry
 - [ ] Close this issue
 
 ## Changelog
