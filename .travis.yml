@@ -16,7 +16,6 @@ script:
   - make lint-helm
   - make test-coverage
     #  - goveralls -coverprofile=network-operator.cover -service=travis-ci
-  - make image
 
 before_deploy:
   - docker login -u "$REGISTRY_USER" -p "$REGISTRY_PASS"
@@ -31,7 +30,9 @@ deploy:
   # Push image to Dockerhub on tag
   - provider: script
     skip_cleanup: true
-    script: bash scripts/docker-push.sh $IMAGE_NAME $TRAVIS_TAG $TRAVIS_CPU_ARCH
+    script:
+      - make image
+      - bash scripts/docker-push.sh $IMAGE_NAME $TRAVIS_TAG $TRAVIS_CPU_ARCH
     on:
       tags: true
       all_branches: true
