@@ -40,16 +40,16 @@ refer to the project's github.
 ## QuickStart
 
 ### System Requirements
-* RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
+* RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating Systems: Ubuntu 18.04LTS, 20.04LTS.
+* Operating Systems: Ubuntu 20.04 LTS.
 
 ### Prerequisites
 
 - Kubernetes v1.17+
-- Helm v3
-- Ubuntu 18.04LTS, 20.04LTS
+- Helm v3.5.3+
+- Ubuntu 20.04 LTS
 
 ### Install Helm
 

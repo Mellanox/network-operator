@@ -282,10 +282,10 @@ spec:
 Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
 
 ## System Requirements
-* RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
+* RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating Systems: Ubuntu 18.04LTS, 20.04.LTS
+* Operating Systems: Ubuntu 20.04 LTS
 
 >__NOTE__: As more driver containers are built the operator will be able to support additional platforms.
 
