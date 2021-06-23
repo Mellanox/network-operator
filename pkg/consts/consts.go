@@ -30,7 +30,7 @@ const (
 
 const (
 	NetworkOperatorResourceNamespace = "nvidia-network-operator-resources"
-	NicClusterPolicyResourceName     = "nic-cluster-policy"
+	NicClusterPolicyResourceName     = "nic-cluster-policy+"
 )
 
 const (
