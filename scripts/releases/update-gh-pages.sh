@@ -38,7 +38,6 @@ while getopts "hap:" opt; do
         p)  push_remote="$OPTARG"
             ;;
         *)  usage
-            exit 1
             ;;
     esac
 done
@@ -47,10 +46,11 @@ done
 if [ $# -ne 1 ]; then
     echo "ERROR: extra positional arguments: $@"
     usage
-    exit 1
+#    exit 1
 fi
+echo $push_remote
 
-chart="$1"
+chart="$3"
 release=${chart::-4}
 
 build_dir="/tmp/network-operator-build"
@@ -60,7 +60,14 @@ src_dir=$(pwd)
 git worktree add $build_dir origin/gh-pages
 
 # Drop worktree on exit
-trap "echo 'Removing Git worktree $build_dir'; git worktree remove '$build_dir'" EXIT
+#trap "echo 'Removing Git worktree $build_dir'; git worktree remove '$build_dir'" EXIT
+
+
+echo "-====="
+echo $chart
+echo $build_dir
+echo $push_remote
+echo "++++++++"
 
 # Update Helm package index
 mv $chart $build_dir/release

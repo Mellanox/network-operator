@@ -105,13 +105,13 @@ sed -e s"/pullPolicy:.*/pullPolicy: IfNotPresent/" \
     -i deployment/network-operator/values.yaml
 
 # Commit changes
-git add .
-git commit -S -m "Release $release"
+#git add .
+#git commit -S -m "Release $release"
 
-if [ -n "$push_remote" ]; then
-    echo "Pushing to $push_remote"
-    git push "$push_remote"
-fi
+#if [ -n "$push_remote" ]; then
+#    echo "Pushing to $push_remote"
+#    git push "$push_remote"
+#fi
 
 #
 # Create release assets to be uploaded
