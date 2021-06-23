@@ -17,7 +17,7 @@ limitations under the License.
 package consts
 
 /*
-  This package contains constants used throughout the projects and does not fall into a particular package
+  This package contains constants used throughout the projects
 */
 
 const (
