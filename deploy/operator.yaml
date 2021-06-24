@@ -42,7 +42,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: STATE_MANIFEST_BASE_DIR
-              value: "/etc/manifests"
+              value: "/manifests"
             - name: WATCH_NAMESPACE
               value: ""
             - name: POD_NAME
