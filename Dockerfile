@@ -11,33 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-ARG BASE_IMAGE=alpine:3.14.0
-FROM golang:alpine as builder
 
-COPY . /usr/src/network-operator
+# Build the manager binary
+FROM golang:1.16 as builder
 
-ENV HTTP_PROXY $http_proxy
-ENV HTTPS_PROXY $https_proxy
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
 
-WORKDIR /usr/src/network-operator
-RUN apk add --no-cache --virtual build-dependencies build-base linux-headers git && \
-    make clean && \
-    make build
+# Copy the go source
+COPY main.go main.go
+COPY api/ api/
+COPY controllers/ controllers/
+COPY pkg/ pkg/
 
-FROM ${BASE_IMAGE}
+# Build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
-ENV OPERATOR=/usr/local/bin/network-operator \
-    USER_UID=1001 \
-    USER_NAME=network-operator
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/manager .
+COPY manifests/ manifests/
+USER 65532:65532
 
-# Copy manifest dir
-COPY --from=builder /usr/src/network-operator/manifests /etc/manifests
-
-# install operator binary
-COPY --from=builder /usr/src/network-operator/build/_output/network-operator ${OPERATOR}
-COPY --from=builder /usr/src/network-operator/build/bin /usr/local/bin
-LABEL io.k8s.display-name="Mellanox Network Operator"
-RUN  /usr/local/bin/user_setup
-
-ENTRYPOINT ["/usr/local/bin/entrypoint"]
-USER ${USER_UID}
+ENTRYPOINT ["/manager"]

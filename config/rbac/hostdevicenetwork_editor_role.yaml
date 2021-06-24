@@ -1,0 +1,24 @@
+# permissions for end users to edit hostdevicenetworks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hostdevicenetwork-editor-role
+rules:
+- apiGroups:
+  - mellanox.com
+  resources:
+  - hostdevicenetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - hostdevicenetworks/status
+  verbs:
+  - get
