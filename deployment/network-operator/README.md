@@ -355,3 +355,15 @@ rdmaSharedDevicePlugin:
       vendors: [15b3]
       deviceIDs: [1017]
 ```
+
+#### Example 5
+Network Operator deployment with [NVIDIA DGX systems](https://www.nvidia.com/en-us/data-center/dgx-systems/)
+requires using pre-installed MOFED and NVIDIA peer memory drivers
+
+__values.yaml:__
+```:yaml
+ofedDriver:
+  deploy: false
+nvPeerDriver:
+  deploy: false
+```
