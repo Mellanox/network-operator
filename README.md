@@ -40,16 +40,16 @@ refer to the project's github.
 ## QuickStart
 
 ### System Requirements
-* RDMA capable hardware: Mellanox ConnectX-4 NIC or newer.
+* RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
 * NVIDIA GPU and driver supporting GPUDirect e.g Quadro RTX 6000/8000 or Tesla T4 or Tesla V100 or Tesla V100.
 (GPU-Direct only)
-* Operating Systems: Ubuntu 18.04LTS, 20.04LTS.
+* Operating Systems: Ubuntu 20.04 LTS.
 
 ### Prerequisites
 
 - Kubernetes v1.17+
-- Helm v3
-- Ubuntu 18.04LTS, 20.04LTS
+- Helm v3.5.3+
+- Ubuntu 20.04 LTS
 
 ### Install Helm
 
@@ -70,7 +70,7 @@ $ helm repo add mellanox https://mellanox.github.io/network-operator
 $ helm repo update
 
 # Install Operator
-$ helm install --devel -n network-operator --create-namespace --wait network-operator mellanox/network-operator
+$ helm install -n network-operator --create-namespace --wait network-operator mellanox/network-operator
 
 # View deployed resources
 $ kubectl -n network-operator get pods
@@ -84,7 +84,7 @@ If the nodes where already labeled by other means, it is possible to disable the
 `nfd.enabled=false` chart parameter.
 
 ```
-$ helm install --devel --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator mellanox/network-operator
+$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator mellanox/network-operator
 ```
 
 ##### Currently the following NFD labels are used:
@@ -131,6 +131,7 @@ We have introduced the following Chart parameters.
 | `operator.repository` | string | `mellanox` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
+| `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters |
 
 ### Proxy parameters
@@ -153,6 +154,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name |
 | `ofedDriver.version` | string | `5.3-1.0.0.1` | Mellanox OFED driver version |
+| `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay |
 | `ofedDriver.startupProbe.periodSeconds` | int | 10 | Mellanox OFED startup probe interval |
 | `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay |
@@ -167,7 +169,8 @@ Production cluster environment can deny direct access to the Internet and instea
 | `nvPeerDriver.deploy` | bool | `false` | deploy NVIDIA Peer memory driver container |
 | `nvPeerDriver.repository` | string | `mellanox` | NVIDIA Peer memory driver image repository |
 | `nvPeerDriver.image` | string | `nv-peer-mem-driver` | NVIDIA Peer memory driver image name  |
-| `nvPeerDriver.version` | string | `1.0-9` | Mellanox OFED driver version  |
+| `nvPeerDriver.version` | string | `1.1-0` | NVIDIA Peer memory driver version  |
+| `nvPeerDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the NVIDIA Peer memory driver image |
 | `nvPeerDriver.gpuDriverSourcePath` | string | `/run/nvidia/driver` | GPU driver soruces root filesystem path(usually used in tandem with [gpu-operator](https://github.com/NVIDIA/gpu-operator)) |
 
 #### RDMA Device Plugin
@@ -178,6 +181,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `rdmaSharedDevicePlugin.repository` | string | `mellanox` | RDMA Shared device plugin image repository |
 | `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
 | `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | RDMA Shared device plugin version  |
+| `rdmaSharedDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image |
 | `rdmaSharedDevicePlugin.resources` | list | See below | RDMA Shared device plugin resources |
 
 ##### RDMA Device Plugin Resource configurations
@@ -205,6 +209,7 @@ resources:
 | `sriovDevicePlugin.repository` | string | `docker.io/nfvpe` | SR-IOV Network device plugin image repository |
 | `sriovDevicePlugin.image` | string | `sriov-device-plugin` | SR-IOV Network device plugin image name  |
 | `sriovDevicePlugin.version` | string | `v3.3` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image |
 | `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
 
 ##### SR-IOV Network Device Plugin Resource configurations
@@ -240,6 +245,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `cniPlugins.image` | string | `containernetworking-plugins` | CNI Plugins image name  |
 | `cniPlugins.repository` | string | `mellanox` | CNI Plugins image repository  |
 | `cniPlugins.version` | string | `v0.8.7` | CNI Plugins image version  |
+| `cniPlugins.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the CNI Plugins image |
 
 ##### Multus CNI Secondary Network
 
@@ -249,6 +255,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `multus.image` | string | `multus` | Multus image name  |
 | `multus.repository` | string | `nfvpe` | Multus image repository  |
 | `multus.version` | string | `v3.6` | Multus image version  |
+| `multus.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Multus image |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
 ##### IPAM CNI Plugin Secondary Network
@@ -259,7 +266,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `dougbtv` | IPAM CNI Plugin image repository  |
 | `ipamPlugin.version` | string | `v0.3` | IPAM CNI Plugin image version  |
-
+| `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 ## Deployment Examples
 
 As there are several parameters that are required to be provided to create the custom resource during
@@ -269,7 +276,7 @@ override to the parameter via CLI it would simply be cumbersome.
 Below are several deployment examples `values.yaml` provided to helm during installation
 of the network operator in the following manner:
 
-`$ helm install --devel -f ./values.yaml -n network-operator --create-namespace --wait network-operator mellanox/network-operator`
+`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait network-operator mellanox/network-operator`
 
 #### Example 1
 Network Operator deployment with a specific version of OFED driver and a single RDMA resource mapped to `enp1`
