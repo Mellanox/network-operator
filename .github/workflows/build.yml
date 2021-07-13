@@ -1,0 +1,22 @@
+name: "Build"
+on: [push, pull_request]
+
+jobs:
+  validate:
+    name: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.15
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: lint
+        run: make lint
+      - name: build
+        run: make build
+      - name: test
+        run: make test
