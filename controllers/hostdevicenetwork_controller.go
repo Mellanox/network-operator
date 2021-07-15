@@ -49,6 +49,7 @@ type HostDeviceNetworkReconciler struct {
 
 // +kubebuilder:rbac:groups=mellanox.com,resources=hostdevicenetworks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=mellanox.com,resources=hostdevicenetworks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
 
 //nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

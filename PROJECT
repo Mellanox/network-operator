@@ -1,15 +1,34 @@
 domain: mellanox.com
-layout: go.kubebuilder.io/v3
-projectName: network-operator
-repo: github.com/Mellanox/network-operator
-resources:
-- crdVersion: v1
-  kind: NicClusterPolicy
-  version: v1alpha1
-- crdVersion: v1
-  kind: MacvlanNetwork
-  version: v1alpha1
-version: 3-alpha
+layout:
+- go.kubebuilder.io/v3
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
+projectName: network-operator
+repo: github.com/Mellanox/network-operator
+resources:
+- api:
+    crdVersion: v1
+  controller: true
+  domain: mellanox.com
+  group: mellanox.com
+  kind: MacvlanNetwork
+  path: github.com/Mellanox/network-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  controller: true
+  domain: mellanox.com
+  group: mellanox.com
+  kind: NicClusterPolicy
+  path: github.com/Mellanox/network-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  controller: true
+  domain: mellanox.com
+  group: mellanox.com
+  kind: HostDeviceNetwork
+  path: github.com/Mellanox/network-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

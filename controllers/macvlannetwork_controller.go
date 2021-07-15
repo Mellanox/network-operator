@@ -50,6 +50,8 @@ type MacvlanNetworkReconciler struct {
 
 // +kubebuilder:rbac:groups=mellanox.com,resources=macvlannetworks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=mellanox.com,resources=macvlannetworks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
 
 //nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
