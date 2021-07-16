@@ -24,7 +24,7 @@ RUN apk add --no-cache --virtual build-dependencies build-base linux-headers git
     make clean && \
     make build
 
-FROM $BASE_IMAGE
+FROM ${BASE_IMAGE}
 
 ENV OPERATOR=/usr/local/bin/network-operator \
     USER_UID=1001 \

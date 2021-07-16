@@ -181,10 +181,12 @@ test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...
 	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
-.PHONY: image
+.PHONY: image ubi-image
 image: | $(BASE) ; $(info Building Docker image...)  @ ## Build conatiner image
 	$(IMAGE_BUILDER) build -t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
+ubi-image: IMAGE_BUILD_OPTS += --build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:latest
+ubi-image: image	@ ## Build UBI-based container image
 
 # Misc
 
