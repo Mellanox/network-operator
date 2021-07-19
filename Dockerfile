@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-ARG BASE_IMAGE=alpine:latest
+ARG BASE_IMAGE=alpine:3.14.0
 FROM golang:alpine as builder
 
 COPY . /usr/src/network-operator

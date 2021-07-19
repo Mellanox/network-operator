@@ -142,8 +142,9 @@ lint: | $(BASE) $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run go
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
 # DL3018 - allow installing apks without explicit version
-# DL3007 - allow using "latest" tag for images
-	$Q $(HADOLINT) --ignore DL3018 --ignore DL3007 Dockerfile
+# DL3006 - Always tag the version of an image explicitly (until https://github.com/hadolint/hadolint/issues/339 is fixed)
+
+	$Q $(HADOLINT) --ignore DL3018 --ignore DL3006 Dockerfile
 
 .PHONY: lint-helm
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
@@ -185,8 +186,8 @@ test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...
 image: | $(BASE) ; $(info Building Docker image...)  @ ## Build conatiner image
 	$(IMAGE_BUILDER) build -t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
-ubi-image: IMAGE_BUILD_OPTS += --build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:latest
-ubi-image: image	@ ## Build UBI-based container image
+ubi-image: IMAGE_BUILD_OPTS += --build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.4
+ubi-image: image	## Build UBI-based container image
 
 # Misc
 
