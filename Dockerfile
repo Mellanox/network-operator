@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+ARG BASE_IMAGE=alpine:3.14.0
 FROM golang:alpine as builder
 
 COPY . /usr/src/network-operator
@@ -23,7 +24,7 @@ RUN apk add --no-cache --virtual build-dependencies build-base linux-headers git
     make clean && \
     make build
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM ${BASE_IMAGE}
 
 ENV OPERATOR=/usr/local/bin/network-operator \
     USER_UID=1001 \
