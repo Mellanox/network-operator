@@ -122,9 +122,9 @@ rdmaSharedDevicePlugin:
 
 sriovDevicePlugin:
   deploy: true
-  image: sriov-device-plugin
-  repository: docker.io/nfvpe
-  version: v3.3
+  image: sriov-network-device-plugin
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: 1f1822bf0bbb25bff55190fcad861617c1a2abb7
   imagePullSecrets: []
   resources:
     - name: hostdev
@@ -140,16 +140,16 @@ secondaryNetwork:
     imagePullSecrets: []
   multus:
     deploy: true
-    image: multus
-    repository: nfvpe
-    version: v3.6
+    image: multus-cni
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v3.7.1
     imagePullSecrets: []
     config: ''
   ipamPlugin:
     deploy: true
     image: whereabouts
-    repository: mellanox
-    version: v0.3
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v0.4.2-amd64
     imagePullSecrets: []
 
 test:
