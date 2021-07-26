@@ -42,9 +42,9 @@ resources: {}
 
 # Image URIs for sriov-network-operator components
 images:
-  operator: mellanox/sriov-operator:33f9931-rel1
-  sriovConfigDaemon: mellanox/sriov-operator-daemon:4.8
-  sriovCni: nfvpe/sriov-cni:v2.6
-  ibSriovCni: mellanox/ib-sriov-cni:faa9e36
+  operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:a4979827d56fecf50d6f7925f995d065bb982f4e
+  sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:a4979827d56fecf50d6f7925f995d065bb982f4e
+  sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.1
+  ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:af8a57a2e5394c2409f8d5a5b796c0aa1ee02be0
   # Upstream image nfvpe/sriov-device-plugin:v3.2 failing
-  sriovDevicePlugin: quay.io/openshift/origin-sriov-network-device-plugin:4.8
+  sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:1f1822bf0bbb25bff55190fcad861617c1a2abb7
