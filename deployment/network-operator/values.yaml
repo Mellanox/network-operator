@@ -49,6 +49,32 @@ node-feature-discovery:
               - vendor
 
 
+# SR-IOV Network Operator chart related values
+sriov-network-operator:
+  operator:
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+    nodeSelector:
+      node-role.kubernetes.io/master: ""
+    nameOverride: ""
+    fullnameOverride: ""
+    resourcePrefix: "nvidia.com"
+    enableAdmissionController: false
+    cniBinPath: "/opt/cni/bin"
+    clusterType: "kubernetes"
+
+  # Image URIs for sriov-network-operator components
+  images:
+    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:52d19ec28cb0c15ae02df1119e328d38fd8fad21
+    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:a4979827d56fecf50d6f7925f995d065bb982f4e
+    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.1
+    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:af8a57a2e5394c2409f8d5a5b796c0aa1ee02be0
+    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:1f1822bf0bbb25bff55190fcad861617c1a2abb7
+    resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.2
+    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:a4979827d56fecf50d6f7925f995d065bb982f4e
+
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
 operator:
