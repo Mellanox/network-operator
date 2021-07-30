@@ -8,14 +8,13 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.15.8'
       - name: checkout
         uses: actions/checkout@v2
-      - name: lint
-        run: make lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.28.3
+          args: --timeout 10m
   lint-docker:
     name: hadolint
     runs-on: ubuntu-20.04
@@ -25,7 +24,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: lint Dockerfile
-        run: make lint-dockerfile
+        uses: hadolint/hadolint-action@v1.5.0
+        with:
+          dockerfile: Dockerfile
   lint-helm:
     name: helm lint
     runs-on: ubuntu-20.04
@@ -35,9 +36,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: lint helm chart
-        run: make lint-helm
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec: helm lint ./deployment/network-operator/
   unit-tests:
-    name: Unit-tests
+    name: unit-tests
     runs-on: ubuntu-20.04
     permissions:
       contents: read
@@ -45,8 +48,8 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15.8'
+          go-version: '1.16.6'
       - name: checkout
         uses: actions/checkout@v2
-      - name: test
-        run: make test-coverage
+      - name:  run tests
+        run: make test
