@@ -40,39 +40,6 @@ IMG ?= docker.io/mellanox/network-operator:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
-# Other vars
-GOPATH?=$(CURDIR)/.gopath
-TOOLSDIR=$(CURDIR)/bin
-
-ORG_PATH=github.com/Mellanox
-PACKAGE=network-operator
-REPO_PATH=$(ORG_PATH)/$(PACKAGE)
-BASE=$(GOPATH)/src/$(REPO_PATH)
-
-GO      = go
-GOLANGCI_LINT = $(GOBIN)/golangci-lint
-# golangci-lint version should be updated periodically
-# we keep it fixed to avoid it from unexpectedly failing on the project
-# in case of a version bump
-GOLANGCI_LINT_VER = v1.23.8
-
-HADOLINT = $(TOOLSDIR)/hadolint
-HADOLINT_VER = v1.23.0
-
-HELM = $(TOOLSDIR)/helm
-GET_HELM = $(TOOLSDIR)/get_helm.sh
-HELM_VER = v3.5.3
-
-TIMEOUT = 15
-Q = $(if $(filter 1,$V),,@)
-
 # Docker vars
 IMAGE_BUILDER ?= docker
 DOCKERARGS=
@@ -126,7 +93,7 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -v -covermode count -coverprofile cover.out
 
 ##@ Build
 
@@ -141,78 +108,6 @@ image: test ## Build docker image with the manager.
 
 docker-push: ## Push docker image with the manager.
 	${IMAGE_BUILDER} push ${IMG}
-
-##@ Tests
-
-.PHONY: lint
-lint: | $(BASE) $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint
-	$Q mkdir -p $(BASE)/test
-	$Q cd $(BASE) && ret=0 && \
-		test -z "$$($(GOLANGCI_LINT) run --timeout=10m | tee $(BASE)/test/lint.out)" || ret=1 ; \
-		cat $(BASE)/test/lint.out ; rm -rf $(BASE)/test ; \
-	 exit $$ret
-
-.PHONY: lint-dockerfile
-lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
-# DL3018 - allow installing apks without explicit version
-# DL3006 - Always tag the version of an image explicitly (until https://github.com/hadolint/hadolint/issues/339 is fixed)
-
-	$Q $(HADOLINT) --ignore DL3018 --ignore DL3006 Dockerfile
-
-.PHONY: lint-helm
-lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
-	$Q $(HELM) lint $(CHART_PATH)
-
-TEST_TARGETS := test-default test-bench test-short test-verbose test-race
-.PHONY: $(TEST_TARGETS) test-xml check test tests
-test-bench:   ARGS=-run=__absolutelynothing__ -bench=. ## Run benchmarks
-test-short:   ARGS=-short        ## Run only short tests
-test-verbose: ARGS=-v            ## Run tests in verbose mode with coverage reporting
-test-race:    ARGS=-race         ## Run tests with race detector
-$(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
-$(TEST_TARGETS): test
-check test tests test-xml test-coverage: SHELL:=/bin/bash
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-check test tests: generate lint manifests | $(BASE) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE) && $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
-
-test-xml: generate lint manifests | $(BASE) $(GO2XUNIT) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests with xUnit output
-	mkdir test
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE) && 2>&1 $(GO) test -timeout 20s -v $(TESTPKGS) | tee test/tests.output
-	$(GO2XUNIT) -fail -input test/tests.output -output test/tests.xml
-
-COVERAGE_MODE = count
-.PHONY: test-coverage test-coverage-tools
-test-coverage-tools: | $(GOVERALLS)
-test-coverage: COVERAGE_DIR := $(CURDIR)/test
-test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...) @ ## Run coverage tests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
-
-##@ Tools
-
-$(GOLANGCI_LINT): | $(BASE) ; $(info  building golangci-lint...)
-	$Q curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VER)
-
-GOVERALLS = $(GOBIN)/goveralls
-$(GOBIN)/goveralls: | $(BASE) ; $(info  building goveralls...)
-	$Q go get github.com/mattn/goveralls
-
-
-$(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
-	$Q curl -sSfL -o $(HADOLINT)  https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-Linux-x86_64
-	$Q chmod +x $(HADOLINT)
-
-$(HELM): | $(TOOLSDIR) ; $(info  install helm...)
-	$Q curl -fsSL -o $(GET_HELM) https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-	$Q chmod +x $(GET_HELM)
-	$Q env HELM_INSTALL_DIR=$(TOOLSDIR) PATH=$(PATH):$(TOOLSDIR) $(GET_HELM) --no-sudo -v $(HELM_VER)
-	$Q rm -f $(GET_HELM)
 
 ##@ Deployment
 
