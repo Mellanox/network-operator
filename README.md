@@ -36,6 +36,10 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes device plugins to provide hardware resources for fast network
 * Kubernetes secondary network for Network intensive workloads
 
+## Documentation
+For more information please visit the official [documentation](https://docs.mellanox.com/display/COKAN10).
+
+
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
 Nvidia Network operator relies on Node labeling to get the cluster to the desired state.
