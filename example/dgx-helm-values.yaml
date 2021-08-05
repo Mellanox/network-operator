@@ -1,0 +1,55 @@
+# Copyright 2021 NVIDIA CORPORATION & AFFILIATES.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Custom Helm Chart values example to deploy Network Operator
+# at NVIDIA DGX SYSTEMS.
+# We don't need to deploy MOFED and nv-peer-mem containers.
+
+nfd:
+  enabled: true
+
+# NicClusterPolicy CR values:
+deployCR: true
+ofedDriver:
+  deploy: false
+
+nvPeerDriver:
+  deploy: false
+  image: nv-peer-mem-driver
+  repository: mellanox
+  version: 1.1-0
+  imagePullSecrets: []
+  gpuDriverSourcePath: /run/nvidia/driver
+
+secondaryNetwork:
+  deploy: true
+  cniPlugins:
+    deploy: true
+    image: containernetworking-plugins
+    repository: mellanox
+    version: v0.8.7
+    imagePullSecrets: []
+  multus:
+    deploy: true
+    image: multus-cni
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v3.7.1
+    imagePullSecrets: []
+    config: ''
+  ipamPlugin:
+    deploy: true
+    image: whereabouts
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v0.4.2-amd64
+    imagePullSecrets: []
