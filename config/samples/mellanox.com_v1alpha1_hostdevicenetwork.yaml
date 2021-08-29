@@ -1,0 +1,7 @@
+apiVersion: mellanox.com/v1alpha1
+kind: HostDeviceNetwork
+metadata:
+  name: hostdevicenetwork-sample
+spec:
+  # Add fields here
+  foo: bar

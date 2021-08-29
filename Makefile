@@ -213,13 +213,15 @@ install: manifests	## Install CRDs into a cluster
 uninstall: manifests	## Uninstall CRDs from a cluster
 	kubectl delete -f config/crd/bases
 
-.PHONY: deploy
-deploy: manifests	## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	@scripts/deploy-operator.sh
+deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${TAG}
+	$(KUSTOMIZE) build config/resources-namespace | kubectl apply -f -
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-.PHONY: undeploy
-undeploy: manifests	## UnDeploy controller from the configured Kubernetes cluster in ~/.kube/config
-	@scripts/delete-operator.sh
+undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/default | kubectl delete -f -
+	$(KUSTOMIZE) build config/resources-namespace | kubectl delete -f -
+
 
 .PHONY: manifests
 manifests: controller-gen	## Generate manifests e.g. CRD, RBAC etc.
@@ -233,9 +235,9 @@ CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen:	## Download controller-gen locally if necessary
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
 
-#KUSTOMIZE = $(shell pwd)/bin/kustomize
-#kustomize:	## Download kustomize locally if necessary
-#	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+KUSTOMIZE = $(shell pwd)/bin/kustomize
+kustomize: ## Download kustomize locally if necessary.
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -251,9 +253,77 @@ rm -rf $$TMP_DIR ;\
 }
 endef
 
-#.PHONY: bundle
-#bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-#	operator-sdk generate kustomize manifests -q
-#	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
-#	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-#	operator-sdk bundle validate ./bundle
+.PHONY: operator-sdk
+OPERATOR_SDK = ./bin/operator-sdk
+operator-sdk: ## Download opm locally if necessary.
+ifeq (,$(wildcard $(OPERATOR_SKD)))
+ifeq (,$(shell which opm 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(OPERATOR_SDK)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.8.0 && \
+	curl -LO $${OPERATOR_SDK_DL_URL}/operator-sdk_$${OS}_$${ARCH} && \
+	chmod +x operator-sdk_$${OS}_$${ARCH} && mv operator-sdk_$${OS}_$${ARCH} ./bin/operator-sdk ;\
+	}
+else
+OPM = $(shell which operator-sdk)
+endif
+endif
+
+
+.PHONY: bundle
+bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+	$(OPERATOR_SDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	$(OPERATOR_SDK) bundle validate ./bundle
+
+.PHONY: bundle-build
+bundle-build: ## Build the bundle image.
+	${IMAGE_BUILDER} build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+.PHONY: bundle-push
+bundle-push: ## Push the bundle image.
+	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+
+.PHONY: opm
+OPM = ./bin/opm
+opm: ## Download opm locally if necessary.
+ifeq (,$(wildcard $(OPM)))
+ifeq (,$(shell which opm 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(OPM)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.15.1/$${OS}-$${ARCH}-opm ;\
+	chmod +x $(OPM) ;\
+	}
+else
+OPM = $(shell which opm)
+endif
+endif
+
+# A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
+# These images MUST exist in a registry and be pull-able.
+BUNDLE_IMGS ?= $(BUNDLE_IMG)
+
+# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
+CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
+
+# Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
+ifneq ($(origin CATALOG_BASE_IMG), undefined)
+FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
+endif
+
+# Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
+# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
+# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
+.PHONY: catalog-build
+catalog-build: opm ## Build a catalog image.
+	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+
+# Push the catalog image.
+.PHONY: catalog-push
+catalog-push: ## Push a catalog image.
+	$(MAKE) docker-push IMG=$(CATALOG_IMG)

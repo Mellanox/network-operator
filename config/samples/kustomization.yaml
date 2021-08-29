@@ -1,5 +1,6 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- _v1alpha1_nicclusterpolicy.yaml
-- _v1alpha1_macvlannetwork.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples
+- mellanox.com_v1alpha1_macvlannetwork.yaml
+- mellanox.com_v1alpha1_nicclusterpolicy.yaml
+- mellanox.com_v1alpha1_hostdevicenetwork.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

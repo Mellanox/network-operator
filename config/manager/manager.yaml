@@ -29,6 +29,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        imagePullPolicy: IfNotPresent
         image: controller:latest
         name: manager
         securityContext:
@@ -47,9 +48,10 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: 300m
+            memory: 100Mi
           requests:
-            cpu: 100m
-            memory: 20Mi
+            cpu: 200m
+            memory: 50Mi
+      serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
