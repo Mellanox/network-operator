@@ -44,7 +44,10 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "network-operator.fullname" . }}
       {{- if .Values.operator.imagePullSecrets }}
-      imagePullSecrets: {{ toYaml .Values.operator.imagePullSecrets | indent 8 }}
+      imagePullSecrets:
+      {{- range .Values.operator.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
