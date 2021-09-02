@@ -1,0 +1,89 @@
+stages:
+  - build
+  - deploy
+  - clean
+  - fs1-testing
+  - fs6-testing
+
+variables:
+  NETWORK_OPERATOR_REPO: harbor.mellanox.com/cloud-orchestration
+  NETWORK_OPERATOR_IMAGE: network-operator
+  NETWORK_OPERATOR_TAG: qa
+  CONTAINER_TEST_IMAGE: $NETWORK_OPERATOR_REPO/$NETWORK_OPERATOR_IMAGE:$NETWORK_OPERATOR_TAG
+
+before_script:
+  - docker login -u $HARBOR_USERNAME -p $HARBOR_PASSWORD harbor.mellanox.com
+
+after_script:
+  - docker logout harbor.mellanox.com
+
+# Save helm charts as artifacts to be used in the testing
+build:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - env
+  artifacts:
+    paths:
+      - ./deployment/network-operator
+
+Docker-image-build:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - TAG=$CONTAINER_TEST_IMAGE make image
+
+push-image-to-project-registry:
+  stage: deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - docker push $CONTAINER_TEST_IMAGE
+
+clean-image:
+  stage: clean
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - docker rmi $CONTAINER_TEST_IMAGE
+
+# Roce shared mode with MOFED container
+test-fs1-on-qa:
+  stage: fs1-testing
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  variables:
+    NETWORK_OPERATOR_REPO: $NETWORK_OPERATOR_REPO
+    NETWORK_OPERATOR_IMAGE: $NETWORK_OPERATOR_IMAGE
+    NETWORK_OPERATOR_TAG: $NETWORK_OPERATOR_TAG
+    REPO_AS_ARTIFACT: "True"
+    TEST_FS_VAR: 1
+  trigger: 
+    project: cloud-orchestration/qa/kubernetes/src
+    strategy: depend
+    branch: add-dev-template
+
+# SRIOV with MOFED container
+test-fs6-on-qa:
+  stage: fs6-testing
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  variables:
+    NETWORK_OPERATOR_REPO: $NETWORK_OPERATOR_REPO
+    NETWORK_OPERATOR_IMAGE: $NETWORK_OPERATOR_IMAGE
+    NETWORK_OPERATOR_TAG: $NETWORK_OPERATOR_TAG
+    REPO_AS_ARTIFACT: "True"
+    TEST_FS_VAR: 6
+  trigger:
+    project: cloud-orchestration/qa/kubernetes/src
+    strategy: depend
+    branch: add-dev-template
+
