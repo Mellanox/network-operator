@@ -112,7 +112,7 @@ ofedDriver:
   deploy: false
   image: mofed
   repository: mellanox
-  version: 5.4-1.0.3.0
+  version: 5.4-2.4.1.3
   imagePullSecrets: []
   startupProbe:
     initialDelaySeconds: 10
