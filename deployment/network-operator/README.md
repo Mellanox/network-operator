@@ -103,6 +103,24 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
+#### Deploy development version of Network Operator
+
+To install development version of Network Operator you need to clone repository first and install helm chart from the local directory:
+
+```
+# Clone Network Operatro Repository
+$ git clone https://github.com/Mellanox/network-operator.git
+
+# Update chart dependencies
+$ cd network-operator/deployment/network-operator && helm dependency update
+
+# Install Operator
+$ helm install -n network-operator --create-namespace --wait network-operator ./network-operator
+
+# View deployed resources
+$ kubectl -n network-operator get pods
+```
+
 ## Helm Tests
 
 Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `rdmaSharedDevicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
