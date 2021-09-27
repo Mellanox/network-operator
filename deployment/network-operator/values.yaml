@@ -67,7 +67,7 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:52d19ec28cb0c15ae02df1119e328d38fd8fad21
+    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:14bd335c17c1b4c6cb7d37c2972c05cc62cadeeb
     sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:a4979827d56fecf50d6f7925f995d065bb982f4e
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.1
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:af8a57a2e5394c2409f8d5a5b796c0aa1ee02be0
