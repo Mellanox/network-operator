@@ -101,6 +101,14 @@ type SecondaryNetworkSpec struct {
 	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
 }
 
+// PSPSpec describes configuration for PodSecurityPolicies to apply for all Pods
+type PSPSpec struct {
+	// Enabled indicates if PodSecurityPolicies needs to be enabled for all Pods
+	// +optional
+	// +kubebuilder:default:=false
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -111,6 +119,8 @@ type NicClusterPolicySpec struct {
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
 	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
+	// PSP defines spec for handling PodSecurityPolicies
+	PSP PSPSpec `json:"psp,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

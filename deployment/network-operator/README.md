@@ -149,6 +149,7 @@ We have introduced the following Chart parameters.
 | ---- | ---- | ------- | ----------- |
 | `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
 | `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator |
+| `psp.enabled` | bool | `False` | deploy Pod Security Policy |
 | `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |

@@ -100,3 +100,7 @@ issues:
     - text: "Magic number: 1"
       linters:
         - gomnd
+    # controller-gen generates zz_generated.deepcopy.go that doesn't comply with some golangci-lint checks
+    - path: api/v1alpha1/zz_generated.deepcopy.go
+      linters:
+        - stylecheck
