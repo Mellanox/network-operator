@@ -340,7 +340,7 @@ rdmaSharedDevicePlugin:
 Network Operator deployment with:
 - RDMA device plugin, single RDMA resource mapped to `ib0`
 - Secondary network
-    - Mutlus CNI
+    - Multus CNI
     - Containernetworking-plugins CNI plugins
     - Whereabouts IPAM CNI Plugin
 
