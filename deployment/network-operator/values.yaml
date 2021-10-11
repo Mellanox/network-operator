@@ -136,7 +136,7 @@ rdmaSharedDevicePlugin:
   deploy: true
   image: k8s-rdma-shared-dev-plugin
   repository: mellanox
-  version: v1.1.0
+  version: v1.2.1
   imagePullSecrets: []
   # The following defines the RDMA resources in the cluster
   # it must be provided by the user when deploying the chart
