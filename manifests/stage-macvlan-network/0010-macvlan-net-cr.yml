@@ -5,7 +5,7 @@ metadata:
   namespace: {{.NetworkNamespace}}
 spec:
   config: '{
-  "cniVersion":"0.4.0",
+  "cniVersion":"0.3.1",
   "name":"{{.NetworkName}}",
   "type":"macvlan",
 {{- if .Master -}}

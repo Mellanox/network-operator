@@ -40,7 +40,7 @@ spec:
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
           command: ["/entrypoint.sh"]
           args:
-            - "--cni-version=0.4.0"
+            - "--cni-version=0.3.1"
             # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
             # /host/etc/cni/net.d/00-multus.conf
             - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
