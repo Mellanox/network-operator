@@ -19,6 +19,9 @@
 nfd:
   enabled: true
 
+psp:
+  enabled: false
+
 sriovNetworkOperator:
   enabled: false
 

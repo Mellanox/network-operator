@@ -106,8 +106,14 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
 	}
+	podSecurityPolicyState, err := NewStatePodSecurityPolicy(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-pod-security-policy"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Pod Security Policy State")
+	}
 
 	return []Group{
+		NewStateGroup([]State{podSecurityPolicyState}),
 		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sriovDpState}),

@@ -46,9 +46,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "network-operator.fullname" . }}
 subjects:
-  - kind: ServiceAccount
-    name: {{ include "network-operator.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:serviceaccounts:{{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
   name: {{ include "network-operator.fullname" . }}

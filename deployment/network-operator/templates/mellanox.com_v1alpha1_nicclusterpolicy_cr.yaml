@@ -115,4 +115,6 @@ spec:
       version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
     {{- end }}
   {{- end }}
+  psp:
+    enabled: {{ .Values.psp.enabled }}
 {{ end }}
