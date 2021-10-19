@@ -17,6 +17,9 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes device plugins to provide hardware resources for fast network
 * Kubernetes secondary network for Network intensive workloads
 
+### Documentation
+For more information please visit the official [documentation](https://docs.mellanox.com/display/COKAN10).
+
 ## Additional components
 
 ### Node Feature Discovery
@@ -100,6 +103,24 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 custom resources. The user is required to create it later with configuration matching the cluster or use
 chart parameters to deploy it together with the operator.
 
+#### Deploy development version of Network Operator
+
+To install development version of Network Operator you need to clone repository first and install helm chart from the local directory:
+
+```
+# Clone Network Operatro Repository
+$ git clone https://github.com/Mellanox/network-operator.git
+
+# Update chart dependencies
+$ cd network-operator/deployment/network-operator && helm dependency update
+
+# Install Operator
+$ helm install -n network-operator --create-namespace --wait network-operator ./network-operator
+
+# View deployed resources
+$ kubectl -n network-operator get pods
+```
+
 ## Helm Tests
 
 Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters on helm install/upgrade: `deployCR`, `rdmaSharedDevicePlugin`, `secondaryNetwork` as the test depends on `NicClusterPolicy` instance being deployed by Helm.
@@ -128,7 +149,8 @@ We have introduced the following Chart parameters.
 | ---- | ---- | ------- | ----------- |
 | `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
 | `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator |
-| `operator.repository` | string | `mellanox` | Network Operator image repository |
+| `psp.enabled` | bool | `False` | deploy Pod Security Policy |
+| `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository |
 | `operator.image` | string | `network-operator` | Network Operator image name |
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
 | `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image |
@@ -153,7 +175,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name |
-| `ofedDriver.version` | string | `5.3-1.0.0.1` | Mellanox OFED driver version |
+| `ofedDriver.version` | string | `5.4-2.4.1.3` | Mellanox OFED driver version |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay |
 | `ofedDriver.startupProbe.periodSeconds` | int | 10 | Mellanox OFED startup probe interval |
@@ -180,7 +202,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
 | `rdmaSharedDevicePlugin.repository` | string | `mellanox` | RDMA Shared device plugin image repository |
 | `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
-| `rdmaSharedDevicePlugin.version` | string | `v1.1.0` | RDMA Shared device plugin version  |
+| `rdmaSharedDevicePlugin.version` | string | `v1.2.1` | RDMA Shared device plugin version  |
 | `rdmaSharedDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image |
 | `rdmaSharedDevicePlugin.resources` | list | See below | RDMA Shared device plugin resources |
 
@@ -206,9 +228,9 @@ resources:
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `sriovDevicePlugin.deploy` | bool | `true` | Deploy SR-IOV Network device plugin  |
-| `sriovDevicePlugin.repository` | string | `docker.io/nfvpe` | SR-IOV Network device plugin image repository |
-| `sriovDevicePlugin.image` | string | `sriov-device-plugin` | SR-IOV Network device plugin image name  |
-| `sriovDevicePlugin.version` | string | `v3.3` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository |
+| `sriovDevicePlugin.image` | string | `sriov-network-device-plugin` | SR-IOV Network device plugin image name  |
+| `sriovDevicePlugin.version` | string | `1f1822bf0bbb25bff55190fcad861617c1a2abb7` | SR-IOV Network device plugin version  |
 | `sriovDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image |
 | `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
 
@@ -252,9 +274,9 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
-| `multus.image` | string | `multus` | Multus image name  |
-| `multus.repository` | string | `nfvpe` | Multus image repository  |
-| `multus.version` | string | `v3.6` | Multus image version  |
+| `multus.image` | string | `multus-cni` | Multus image name  |
+| `multus.repository` | string | `ghcr.io/k8snetworkplumbingwg` | Multus image repository  |
+| `multus.version` | string | `v3.7.1` | Multus image version  |
 | `multus.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Multus image |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
@@ -264,8 +286,8 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | ---- | ---- | ------- | ----------- |
 | `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
 | `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
-| `ipamPlugin.repository` | string | `dougbtv` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.3` | IPAM CNI Plugin image version  |
+| `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
+| `ipamPlugin.version` | string | `v0.4.2-amd64` | IPAM CNI Plugin image version  |
 | `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 ## Deployment Examples
 
