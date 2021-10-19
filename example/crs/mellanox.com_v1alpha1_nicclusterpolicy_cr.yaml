@@ -30,7 +30,7 @@ spec:
       initialDelaySeconds: 10
       periodSeconds: 30
   rdmaSharedDevicePlugin:
-    uimage: k8s-rdma-shared-dev-plugin
+    image: k8s-rdma-shared-dev-plugin
     repository: mellanox
     version: v1.2.1
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
