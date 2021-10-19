@@ -218,9 +218,7 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 	$(KUSTOMIZE) build config/resources-namespace | kubectl apply -f -
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-deploy-with-psp: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config and apply privileged pod security policy
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${TAG}
-	$(KUSTOMIZE) build config/resources-namespace | kubectl apply -f -
+deploy-with-psp: deploy ## Deploy controller to the K8s cluster specified in ~/.kube/config and apply privileged pod security policy
 	$(KUSTOMIZE) build config/psp | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.

@@ -119,8 +119,7 @@ type NicClusterPolicySpec struct {
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
 	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
-	// PSP defines spec for handling PodSecurityPolicies
-	PSP PSPSpec `json:"psp,omitempty"`
+	PSP                    *PSPSpec              `json:"psp,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

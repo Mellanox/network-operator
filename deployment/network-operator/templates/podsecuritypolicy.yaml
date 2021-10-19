@@ -13,7 +13,7 @@ spec:
   privileged: true
   hostIPC: false
   hostNetwork: true
-  hostPID: true
+  hostPID: false
   allowPrivilegeEscalation: true
   readOnlyRootFilesystem: false
   allowedHostPaths: []

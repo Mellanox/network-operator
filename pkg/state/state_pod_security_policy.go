@@ -1,21 +1,17 @@
 /*
-----------------------------------------------------
+2021 NVIDIA CORPORATION & AFFILIATES
 
-  2021 NVIDIA CORPORATION & AFFILIATES
+Licensed under the Apache License, Version 2.0 (the License);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-  Licensed under the Apache License, Version 2.0 (the License);
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
 
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an AS IS BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-
-----------------------------------------------------
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an AS IS BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package state //nolint:dupl
@@ -69,7 +65,7 @@ func (s *statePodSecurityPolicy) Sync(customResource interface{}, infoCatalog In
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if !cr.Spec.PSP.Enabled {
+	if cr.Spec.PSP == nil || !cr.Spec.PSP.Enabled {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		log.V(consts.LogLevelInfo).Info("pod security policy is not enabled, no action required")
