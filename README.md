@@ -17,6 +17,7 @@
     + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
       - [HostDeviceNetwork spec](#hostdevicenetwork-spec)
         * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
+  * [Pod Security Policy](#pod-security-policy)
   * [System Requirements](#system-requirements)
   * [Compatibility Notes](#compatibility-notes)
   * [Deployment Example](#deployment-example)
@@ -285,6 +286,9 @@ spec:
 ```
 
 Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
+
+## Pod Security Policy
+Network-operator supports [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). When NicClusterPolicy is created with `psp.enabled=True`, privileged PSP is created and applied to all network-operator's pods. Requires [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#how-do-i-turn-on-an-admission-control-plug-in) to be enabled.
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
