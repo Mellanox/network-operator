@@ -22,6 +22,7 @@
   * [Deployment Example](#deployment-example)
   * [Docker image](#docker-image)
   * [Driver Containers](#driver-containers)
+  * [Upgrade](#upgrade)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -335,3 +336,9 @@ While this approach may seem odd. It provides a way to deliver drivers to immuta
 
 [Mellanox OFED and NV Peer Memory driver container](https://github.com/Mellanox/ofed-docker)
 
+## Upgrade
+Network operator provides limited upgrade capabilities which require additional
+manual actions if containerized OFED driver is used.
+Future releases of the network operator will provide automatic upgrade flow for the containerized driver.
+
+Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.

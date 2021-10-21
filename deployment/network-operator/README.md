@@ -138,6 +138,100 @@ Notes:
 - Tests should be executed after `NicClusterPolicy` custom resource state is `Ready`
 - In case of a test failed it is possible to collect the logs with `kubectl logs -n <namespace> <test-pod-name>`
 
+## Upgrade
+
+>__NOTE__: Upgrade capabilities are limited now.
+Additional manual actions required when containerized OFED driver is used
+
+Before starting the upgrade to a specific release version, please,
+check release notes for this version to ensure that no additional actions are required.
+
+Since Helm doesn’t support auto-upgrade of existing CRDs, the user needs to follow
+a two-step process to upgrade the network-operator release:
+- Upgrade CRD to the latest version
+- Apply helm chart update
+
+### Check available releases
+```
+helm search repo mellanox/network-operator -l
+```
+
+>__NOTE__: add `--devel` option if you want to list beta releases as well
+
+### Remove PODs from the cluster nodes
+
+>__NOTE__: this operation required only if **containerized OFED** is in use
+
+Before starting the network-operator upgrade procedure it is required to remove all PODs which use secondary networks
+(which using NVIDIA Mellanox NICs) from all nodes in the cluster with containerized OFED.
+Node drain operation can be used to remove PODs from the nodes.
+
+```
+kubectl drain -l "network.nvidia.com/operator.mofed.wait=false" --pod-selector=<selector_for_pods>
+```
+
+### Download CRDs for the specific release
+It is possible to retrieve updated CRDs from the Helm chart or from the release branch on GitHub.
+Example bellow show how to download and unpack Helm chart for specified release and then apply CRDs update
+from it.
+
+```
+helm pull mellanox/network-operator --version <VERSION> --untar --untardir network-operator-chart
+```
+
+>__NOTE__: `--devel` option required if you want to use the beta release
+
+```
+kubectl apply -f network-operator-chart/network-operator/crds \
+              -f network-operator-chart/network-operator/charts/sriov-network-operator/crds
+```
+
+### Prepare Helm values for the new release
+
+Download Helm values for the specific release
+
+```
+helm show values mellanox/network-operator --version=<VERSION> > values-<VERSION>.yaml
+```
+
+Edit `values-<VERSION>.yaml` file as required for your cluster.
+The network operator has some limitations about which updates in NicClusterPolicy it can handle automatically.
+If the configuration for the new release is different from the current configuration in the deployed release,
+then some additional manual actions may be required.
+
+Known limitations:
+- If component configuration was removed from the NicClusterPolicy, then manual clean up of the component's resources
+(DaemonSets, ConfigMaps, etc.) may be required
+- If configuration for devicePlugin changed without image upgrade,
+then manual restart of the devicePlugin may be required
+
+These limitations will be addressed in future releases.
+
+>__NOTE__: changes which were made directly in NicClusterPolicy CR (e.g. with `kubectl edit`) 
+> will be overwritten by Helm upgrade 
+
+### Apply Helm chart update
+
+```
+helm upgrade -n network-operator  network-operator mellanox/network-operator --version=<VERSION> -f values-<VERSION>.yaml
+```
+
+>__NOTE__: `--devel` option required if you want to use the beta release
+
+### Return PODs to the drained nodes
+
+>__NOTE__: this operation required only if **containerized OFED** is in use and if drain command
+was applied before to remove PODs from the cluster nodes
+
+The command below will uncordon (remove `node.kubernetes.io/unschedulable:NoSchedule` taint) nodes
+on which containerized OFED is ready. It is possible to wait until OFED PODs are ready on all nodes and then
+uncordon all nodes at once. The alternative option is to call uncordon command multiple times when OFED PODs
+on a subset of nodes have become ready.
+
+```
+kubectl uncordon -l "network.nvidia.com/operator.mofed.wait=false"
+```
+
 ## Chart parameters
 
 In order to tailor the deployment of the network operator to your cluster needs
