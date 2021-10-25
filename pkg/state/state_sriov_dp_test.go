@@ -27,10 +27,23 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
+
+type dummyProvider struct {
+}
+
+func (p *dummyProvider) GetNodesAttributes(filters ...nodeinfo.Filter) []nodeinfo.NodeAttributes {
+	attr := nodeinfo.NodeAttributes{
+		Name:       "test",
+		Attributes: make(map[nodeinfo.AttributeType]string),
+	}
+	attr.Attributes[nodeinfo.AttrTypeOSName] = "test"
+	return []nodeinfo.NodeAttributes{attr}
+}
 
 func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, config string) {
 	Expect(obj.GetKind()).To(Equal("ConfigMap"))
@@ -94,7 +107,9 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 				Config:    config,
 			}
 			cr.Spec.SriovDevicePlugin = dpSpec
-			objs, err := sriovDpState.getManifestObjects(cr)
+
+			nodeInfo := &dummyProvider{}
+			objs, err := sriovDpState.getManifestObjects(cr, nodeInfo)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(3))
