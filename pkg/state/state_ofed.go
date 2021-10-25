@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,8 +71,9 @@ type ofedRuntimeSpec struct {
 }
 
 type ofedManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.OFEDDriverSpec
-	RuntimeSpec *ofedRuntimeSpec
+	CrSpec       *mellanoxv1alpha1.OFEDDriverSpec
+	NodeAffinity *v1.NodeAffinity
+	RuntimeSpec  *ofedRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -181,6 +183,7 @@ func (s *stateOFED) getManifestObjects(
 			HTTPSProxy:  os.Getenv(consts.HTTPSProxy),
 			NoProxy:     os.Getenv(consts.NoProxy),
 		},
+		NodeAffinity: cr.Spec.NodeAffinity,
 	}
 	// render objects
 	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)

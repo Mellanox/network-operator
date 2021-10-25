@@ -19,6 +19,7 @@ package state //nolint:dupl
 import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,8 +55,9 @@ type stateMultusCNI struct {
 }
 
 type MultusManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.MultusSpec
-	RuntimeSpec *runtimeSpec
+	CrSpec       *mellanoxv1alpha1.MultusSpec
+	NodeAffinity *v1.NodeAffinity
+	RuntimeSpec  *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -110,17 +112,21 @@ func (s *stateMultusCNI) GetWatchSources() map[string]*source.Kind {
 func (s *stateMultusCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &MultusManifestRenderData{
-		CrSpec: cr.Spec.SecondaryNetwork.Multus,
+		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
+		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
 	}
+
 	// render objects
 	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
+
 	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
