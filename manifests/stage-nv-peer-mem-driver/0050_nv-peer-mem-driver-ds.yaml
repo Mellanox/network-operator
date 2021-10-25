@@ -137,6 +137,7 @@ spec:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         nvidia.com/gpu.present: "true"
         network.nvidia.com/operator.mofed.wait: "false"
+      # This code will be dropped when network operator stops supporting nv-peer-mem-driver
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -153,3 +154,20 @@ spec:
                 operator: Lt
                 values:
                   - "{{ .RuntimeSpec.MaxCudaVersion }}"
+        # Above there are mandatory keys for nv-peer-mem-driver affinity,
+        # so, in order to apply user-defined node affinity, we have to merge with those keys and patch nodeAffinity obj
+        {{- if .NodeAffinity }}
+          {{- if .NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution }}
+            {{- if (len .NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms) }}
+              {{- range $term := .NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms }}
+              {{- range $term.MatchExpressions }}
+              {{- . | yaml | nindentPrefix 16 "- " }}
+              {{- end }}
+              {{- end }}
+            {{- end}}
+          {{- end }}
+          {{- if .NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            {{- .NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution | yaml | nindent 12 }}
+          {{- end }}
+        {{- end }}

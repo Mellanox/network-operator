@@ -39,11 +39,15 @@ spec:
       {{- end }}
       affinity:
         nodeAffinity:
+        {{- if not .NodeAffinity}}
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
                   - key: node-role.kubernetes.io/master
                     operator: DoesNotExist
+        {{- else }}
+          {{- .NodeAffinity | yaml | nindent 10 }}
+        {{- end}}
       containers:
         - name: cni-plugins
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
