@@ -19,6 +19,7 @@ package state //nolint:dupl
 import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,6 +61,7 @@ type sharedDpRuntimeSpec struct {
 }
 type sharedDpManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
+	NodeAffinity        *v1.NodeAffinity
 	DeployInitContainer bool
 	RuntimeSpec         *sharedDpRuntimeSpec
 }
@@ -137,6 +139,7 @@ func (s *stateSharedDp) getManifestObjects(
 
 	renderData := &sharedDpManifestRenderData{
 		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
+		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sharedDpRuntimeSpec{
 			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},

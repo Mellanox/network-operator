@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,8 +63,9 @@ type nvPeerRuntimeSpec struct {
 }
 
 type nvPeerManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.NVPeerDriverSpec
-	RuntimeSpec *nvPeerRuntimeSpec
+	CrSpec       *mellanoxv1alpha1.NVPeerDriverSpec
+	NodeAffinity *v1.NodeAffinity
+	RuntimeSpec  *nvPeerRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -153,7 +155,8 @@ func (s *stateNVPeer) getManifestObjects(
 	}
 
 	renderData := &nvPeerManifestRenderData{
-		CrSpec: cr.Spec.NVPeerDriver,
+		CrSpec:       cr.Spec.NVPeerDriver,
+		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &nvPeerRuntimeSpec{
 			runtimeSpec:    runtimeSpec{consts.NetworkOperatorResourceNamespace},
 			CPUArch:        attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],

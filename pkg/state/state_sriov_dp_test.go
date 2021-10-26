@@ -17,11 +17,13 @@ limitations under the License.
 package state
 
 import (
+	"encoding/json"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -57,15 +59,18 @@ func checkRenderedDpSA(obj *unstructured.Unstructured, namespace string) {
 	Expect(obj.Object["metadata"].(map[string]interface{})["namespace"].(string)).To(Equal(namespace))
 }
 
-func checkRenderedDpDs(obj *unstructured.Unstructured, imageSpec *mellanoxv1alpha1.ImageSpec) {
+func checkRenderedDpDs(obj *unstructured.Unstructured, imageSpec *mellanoxv1alpha1.ImageSpec,
+	nodeAffinity string) {
 	namespace := consts.NetworkOperatorResourceNamespace
 	image := imageSpec.Repository + "/" + imageSpec.Image + ":" + imageSpec.Version
 	template := obj.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})
+	jsonSpec, _ := obj.MarshalJSON()
 	spec := fmt.Sprintf("%v", template)
 
 	Expect(obj.GetKind()).To(Equal("DaemonSet"))
 	Expect(obj.Object["metadata"].(map[string]interface{})["namespace"].(string)).To(Equal(namespace))
 	Expect(spec).To(ContainSubstring(image))
+	Expect(string(jsonSpec)).To(ContainSubstring(nodeAffinity))
 }
 
 var _ = Describe("SR-IOV Device Plugin State tests", func() {
@@ -108,6 +113,29 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			}
 			cr.Spec.SriovDevicePlugin = dpSpec
 
+			//{
+			//  "requiredDuringSchedulingIgnoredDuringExecution": {
+			//	"nodeSelectorTerms": [
+			//	  {
+			//		"matchExpressions": [
+			//		  {
+			//			"key": "node-role.kubernetes.io/master",
+			//			"operator": "DoesNotExist"
+			//		  }
+			//		]
+			//	  }
+			//	]
+			//  }
+			//}
+			nodeAffinitySpec := "{\"requiredDuringSchedulingIgnoredDuringExecution\":{\"nodeSelectorTerms\":" +
+				"[{\"matchExpressions\":[{\"key\":\"node-role.kubernetes.io/master\"," +
+				"\"operator\":\"DoesNotExist\"}]}]}}"
+
+			nodeAffinity := &v1.NodeAffinity{}
+			_ = json.Unmarshal([]byte(nodeAffinitySpec), &nodeAffinity)
+
+			cr.Spec.NodeAffinity = nodeAffinity
+
 			nodeInfo := &dummyProvider{}
 			objs, err := sriovDpState.getManifestObjects(cr, nodeInfo)
 
@@ -118,7 +146,7 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 
 			checkRenderedDpCm(objs[0], namespace, config)
 			checkRenderedDpSA(objs[1], namespace)
-			checkRenderedDpDs(objs[2], imageSpec)
+			checkRenderedDpDs(objs[2], imageSpec, nodeAffinitySpec)
 		})
 	})
 })

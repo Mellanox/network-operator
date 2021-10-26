@@ -34,7 +34,8 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	yamlDecoder "k8s.io/apimachinery/pkg/util/yaml"
+	yamlConverter "sigs.k8s.io/yaml"
 )
 
 var ManifestFileSuffix = []string{"yaml", "yml", "json"}
@@ -81,6 +82,21 @@ func (r *textTemplateRenderer) RenderObjects(data *TemplatingData) ([]*unstructu
 	return objs, nil
 }
 
+func indent(spaces int, v string) string {
+	pad := strings.Repeat(" ", spaces)
+	return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+}
+
+func nindent(spaces int, v string) string {
+	return "\n" + indent(spaces, v)
+}
+
+// nindentPrefix adds a prefix in front of the indented string, left from the initial indentation
+func nindentPrefix(spaces int, prefix, v string) string {
+	// Remove len(prefix) spaces from the beginning of the indented string
+	return strings.Replace(nindent(spaces, prefix+v), " ", "", len(prefix))
+}
+
 // renderFile renders a single file to a list of k8s unstructured objects
 func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	// Read file
@@ -91,6 +107,16 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 
 	// Create a new template
 	tmpl := template.New(path.Base(filePath)).Option("missingkey=error")
+	tmpl.Funcs(template.FuncMap{
+		"yaml": func(obj interface{}) (string, error) {
+			yamlBytes, err := yamlConverter.Marshal(obj)
+			return string(yamlBytes), err
+		},
+		"indent":        indent,
+		"nindent":       nindent,
+		"nindentPrefix": nindentPrefix,
+	})
+
 	if data.Funcs != nil {
 		tmpl.Funcs(data.Funcs)
 	}
@@ -111,7 +137,7 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		return out, nil
 	}
 
-	decoder := yaml.NewYAMLOrJSONDecoder(&rendered, 4096)
+	decoder := yamlDecoder.NewYAMLOrJSONDecoder(&rendered, 4096)
 	for {
 		u := unstructured.Unstructured{}
 		if err := decoder.Decode(&u); err != nil {

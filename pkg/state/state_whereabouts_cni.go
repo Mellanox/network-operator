@@ -19,6 +19,7 @@ package state //nolint:dupl
 import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,8 +55,9 @@ type stateWhereaboutsCNI struct {
 }
 
 type WhereaboutsManifestRenderData struct {
-	CrSpec      *mellanoxv1alpha1.ImageSpec
-	RuntimeSpec *runtimeSpec
+	CrSpec       *mellanoxv1alpha1.ImageSpec
+	NodeAffinity *v1.NodeAffinity
+	RuntimeSpec  *runtimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -110,7 +112,8 @@ func (s *stateWhereaboutsCNI) GetWatchSources() map[string]*source.Kind {
 func (s *stateWhereaboutsCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &WhereaboutsManifestRenderData{
-		CrSpec: cr.Spec.SecondaryNetwork.IpamPlugin,
+		CrSpec:       cr.Spec.SecondaryNetwork.IpamPlugin,
+		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
