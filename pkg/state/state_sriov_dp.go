@@ -125,6 +125,11 @@ func (s *stateSriovDp) getManifestObjects(
 	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
+	if len(attrs) == 0 {
+		log.V(consts.LogLevelInfo).Info("No nodes with NVIDIA NICs where found in the cluster.")
+		return []*unstructured.Unstructured{}, nil
+	}
+
 	renderData := &sriovDpManifestRenderData{
 		CrSpec:              cr.Spec.SriovDevicePlugin,
 		NodeAffinity:        cr.Spec.NodeAffinity,
