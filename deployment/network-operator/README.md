@@ -158,18 +158,6 @@ helm search repo mellanox/network-operator -l
 
 >__NOTE__: add `--devel` option if you want to list beta releases as well
 
-### Remove PODs from the cluster nodes
-
->__NOTE__: this operation required only if **containerized OFED** is in use
-
-Before starting the network-operator upgrade procedure it is required to remove all PODs which use secondary networks
-(which using NVIDIA Mellanox NICs) from all nodes in the cluster with containerized OFED.
-Node drain operation can be used to remove PODs from the nodes.
-
-```
-kubectl drain -l "network.nvidia.com/operator.mofed.wait=false" --pod-selector=<selector_for_pods>
-```
-
 ### Download CRDs for the specific release
 It is possible to retrieve updated CRDs from the Helm chart or from the release branch on GitHub.
 Example bellow show how to download and unpack Helm chart for specified release and then apply CRDs update
@@ -210,6 +198,18 @@ These limitations will be addressed in future releases.
 >__NOTE__: changes which were made directly in NicClusterPolicy CR (e.g. with `kubectl edit`) 
 > will be overwritten by Helm upgrade 
 
+### Temporary disable network-operator
+This step is required to prevent the old network-operator version to handle the updated NicClusterPolicy CR.
+This limitation will be removed in future network-operator releases.
+```
+kubectl scale deployment --replicas=0 -n network-operator network-operator
+```
+
+You have to wait for network-operator POD to remove before proceeding.
+
+>__NOTE__: network-operator will be automatically enabled by helm upgrade command,
+> you don't need to enable it manually
+
 ### Apply Helm chart update
 
 ```
@@ -218,15 +218,71 @@ helm upgrade -n network-operator  network-operator mellanox/network-operator --v
 
 >__NOTE__: `--devel` option required if you want to use the beta release
 
-### Return PODs to the drained nodes
 
->__NOTE__: this operation required only if **containerized OFED** is in use and if drain command
-was applied before to remove PODs from the cluster nodes
+### Restart PODs with containerized OFED driver
 
-The command below will uncordon (remove `node.kubernetes.io/unschedulable:NoSchedule` taint) nodes
-on which containerized OFED is ready. It is possible to wait until OFED PODs are ready on all nodes and then
-uncordon all nodes at once. The alternative option is to call uncordon command multiple times when OFED PODs
-on a subset of nodes have become ready.
+>__NOTE__: this operation required only if **containerized OFED** is in use
+
+When containerized OFED driver reloaded on the node, all PODs which use secondary network based on
+NVIDIA Mellanox NICs will lose network interface in their containers.
+To prevent outage you need to remove all PODs which use secondary network from the node
+before you reload the driver POD on it.
+
+Helm upgrade command will just upgrade DaemonSet spec of the OFED driver to point to the new driver version.
+The OFED driver's DaemonSet will not automatically restart PODs with the driver on the nodes because it uses "OnDelete" 
+updateStrategy. The old OFED version will still run on the node until you explicitly remove 
+the driver POD or reboot the node.
+
+It is possible to remove all PODs with secondary networks from all cluster nodes
+and then restart OFED PODs on all nodes at once.
+
+The alternative option is to do upgrade in a rolling manner to reduce the impact of the driver upgrade on the cluster.
+The driver POD restart can be done on each node individually.
+In this case, PODs with secondary networks should be removed from the single node only, no need to stop PODs on all nodes.
+
+Recommended sequence to reload the driver on the node:
+
+_For each node follow these steps_
+
+- [Remove PODs with secondary network from the node](#remove-pods-with-secondary-network-from-the-node)
+- [Restart OFED driver POD](#restart-ofed-driver-pod)
+- [Return PODs with secondary network to the node](#return-pods-with-secondary-network-to-the-node)
+
+_When the OFED driver becomes ready, proceed with the same steps for other nodes_
+
+#### Remove PODs with secondary network from the node
+
+This can be done with node drain command:
+```
+kubectl drain <NODE_NAME> --pod-selector=<SELECTOR_FOR_PODS>
+```
+
+>__NOTE__: replace <NODE_NAME> with `-l "network.nvidia.com/operator.mofed.wait=false"` if you
+> want to drain all nodes at once
+
+
+#### Restart OFED driver POD
+Find OFED driver POD name for the node
+```
+kubectl get pod -l app=mofed-<OS_NAME> -o wide -A
+```
+_example for Ubuntu 20.04: `kubectl get pod -l app=mofed-ubuntu20.04 -o wide -A`_
+
+Delete OFED driver POD from the node
+```
+kubectl delete pod -n <DRIVER_NAMESPACE> <OFED_POD_NAME>
+```
+
+>__NOTE__: replace <OFED_POD_NAME> with `-l app=mofed-ubuntu20.04` if you
+> want to remove OFED PODs on all nodes at once
+
+New version of the OFED POD will automatically start.
+
+#### Return PODs with secondary network to the node
+After OFED POD is ready on the node you can make node schedulable again.
+
+The command below will uncordon (remove `node.kubernetes.io/unschedulable:NoSchedule` taint) 
+the node and return PODs to it.
 
 ```
 kubectl uncordon -l "network.nvidia.com/operator.mofed.wait=false"
