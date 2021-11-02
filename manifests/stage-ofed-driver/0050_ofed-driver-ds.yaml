@@ -19,6 +19,8 @@ metadata:
   name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
+  updateStrategy:
+    type: OnDelete
   selector:
     matchLabels:
       app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
