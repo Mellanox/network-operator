@@ -17,6 +17,8 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	"strings"
+
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,6 +36,7 @@ import (
 const (
 	stateHostDeviceNetworkName        = "state-host-device-network"
 	stateHostDeviceNetworkDescription = "Host Device net-attach-def CR deployed in cluster"
+	resourceNamePrefix                = "nvidia.com/"
 )
 
 // NewStateHostDeviceNetwork creates a new state for HostDeviceNetwork CR
@@ -62,6 +65,7 @@ type HostDeviceManifestRenderData struct {
 	HostDeviceNetworkName string
 	CrSpec                mellanoxv1alpha1.HostDeviceNetworkSpec
 	RuntimeSpec           *runtimeSpec
+	ResourceName          string
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -120,12 +124,18 @@ func (s *stateHostDeviceNetwork) GetWatchSources() map[string]*source.Kind {
 
 func (s *stateHostDeviceNetwork) getManifestObjects(
 	cr *mellanoxv1alpha1.HostDeviceNetwork) ([]*unstructured.Unstructured, error) {
+	resourceName := cr.Spec.ResourceName
+	if !strings.HasPrefix(resourceName, resourceNamePrefix) {
+		resourceName = resourceNamePrefix + resourceName
+	}
+
 	renderData := &HostDeviceManifestRenderData{
 		HostDeviceNetworkName: cr.Name,
 		CrSpec:                cr.Spec,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: consts.NetworkOperatorResourceNamespace,
 		},
+		ResourceName: resourceName,
 	}
 
 	// render objects

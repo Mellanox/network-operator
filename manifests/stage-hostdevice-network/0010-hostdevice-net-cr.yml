@@ -4,7 +4,7 @@ metadata:
   name: {{.HostDeviceNetworkName}}
   namespace: {{.CrSpec.NetworkNamespace}}
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: nvidia.com/{{.CrSpec.ResourceName}}
+    k8s.v1.cni.cncf.io/resourceName: {{.ResourceName}}
 spec:
   config: '{
   "cniVersion":"0.3.1",
