@@ -79,6 +79,9 @@ spec:
               mountPath: /etc/network
             - name: host-etc
               mountPath: /host/etc
+            - name: host-usr
+              mountPath: /host/usr
+
             - name: host-udev
               mountPath: /host/lib/udev
           startupProbe:
@@ -116,6 +119,9 @@ spec:
         - name: host-etc
           hostPath:
             path: /etc
+        - name: host-usr
+          hostPath:
+            path: /usr
         - name: host-udev
           hostPath:
             path: /lib/udev
