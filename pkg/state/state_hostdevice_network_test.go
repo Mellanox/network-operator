@@ -17,6 +17,8 @@ limitations under the License.
 package state
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -28,6 +30,14 @@ import (
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
+
+func checkResourceNameAnnotation(obj *unstructured.Unstructured) {
+	annotations := obj.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})
+	resourceName := annotations["k8s.v1.cni.cncf.io/resourceName"].(string)
+
+	Expect(HavePrefix(resourceName, resourceNamePrefix))
+	Expect(strings.Count(resourceName, resourceNamePrefix)).To(Equal(1))
+}
 
 func checkRenderedNetAttachDef(obj *unstructured.Unstructured, namespace, name, ipam string) {
 	Expect(obj.GetKind()).To(Equal("NetworkAttachmentDefinition"))
@@ -64,7 +74,7 @@ var _ = Describe("HostDevice Network Stage rendering tests", func() {
 			Expect(sriovDpState.Name()).To(Equal(stateName))
 
 			namespace := "namespace"
-			name := "test resource"
+			name := "test_resource_without_prefix"
 			ipam := "fake IPAM"
 			spec := &mellanoxv1alpha1.HostDeviceNetworkSpec{}
 			spec.NetworkNamespace = namespace
@@ -80,6 +90,13 @@ var _ = Describe("HostDevice Network Stage rendering tests", func() {
 			Expect(len(objs)).To(Equal(1))
 
 			checkRenderedNetAttachDef(objs[0], namespace, name, ipam)
+			checkResourceNameAnnotation(objs[0])
+
+			spec.ResourceName = resourceNamePrefix + "test_resource_with_prefix"
+			objs, err = sriovDpState.getManifestObjects(cr)
+
+			Expect(err).NotTo(HaveOccurred())
+			checkResourceNameAnnotation(objs[0])
 		})
 	})
 })
