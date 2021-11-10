@@ -117,11 +117,12 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	// Create manager
 	managerStatus, err := r.stateManager.SyncState(instance, sc)
-	r.updateCrStatus(instance, managerStatus)
 
 	if err != nil {
-		return reconcile.Result{}, err
+		reqLogger.V(consts.LogLevelWarning).Info("Error occurred while syncing states", "error:", err)
 	}
+
+	r.updateCrStatus(instance, managerStatus)
 
 	err = r.updateNodeLabels(instance)
 	if err != nil {
