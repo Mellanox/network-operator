@@ -44,7 +44,7 @@ secondaryNetwork:
     deploy: true
     image: multus-cni
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.7.1
+    version: v3.8
     imagePullSecrets: []
     config: ''
   ipamPlugin:
