@@ -380,7 +380,7 @@ resources:
 | `sriovDevicePlugin.deploy` | bool | `true` | Deploy SR-IOV Network device plugin  |
 | `sriovDevicePlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository |
 | `sriovDevicePlugin.image` | string | `sriov-network-device-plugin` | SR-IOV Network device plugin image name  |
-| `sriovDevicePlugin.version` | string | `1f1822bf0bbb25bff55190fcad861617c1a2abb7` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.version` | string | `a765300344368efbf43f71016e9641c58ec1241b` | SR-IOV Network device plugin version  |
 | `sriovDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image |
 | `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
 
