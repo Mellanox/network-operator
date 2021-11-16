@@ -426,7 +426,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
 | `multus.image` | string | `multus-cni` | Multus image name  |
 | `multus.repository` | string | `ghcr.io/k8snetworkplumbingwg` | Multus image repository  |
-| `multus.version` | string | `v3.7.1` | Multus image version  |
+| `multus.version` | string | `v3.8` | Multus image version  |
 | `multus.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Multus image |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
