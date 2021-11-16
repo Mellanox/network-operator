@@ -126,7 +126,7 @@ spec:
       {
         "configList": [
           {
-            "resourceName": "hca_shared_devices_a",
+            "resourceName": "rdma_shared_device_a",
             "rdmaHcaMax": 1000,
             "selectors": {
               "vendors": ["15b3"],
@@ -217,7 +217,7 @@ MacvlanNetwork CRD Spec includes the following fields:
 
 ##### Example for MacvlanNetwork resource:
 In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, mtu 1500, default route interface as master,
-with resouce "rdma/hca_shared_devices_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
+with resource "rdma/rdma_shared_device_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
 
 ```
 apiVersion: mellanox.com/v1alpha1

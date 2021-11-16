@@ -30,7 +30,7 @@ spec:
       {
         "configList": [
           {
-            "resourceName": "hca_shared_devices_a",
+            "resourceName": "rdma_shared_device_a",
             "rdmaHcaMax": 1000,
             "selectors": {
               "ifNames": ["ens2f0"]

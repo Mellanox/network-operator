@@ -25,7 +25,7 @@ spec:
     resources:
       limits:
         nvidia.com/gpu: 1
-        rdma/hca_shared_devices_a: 1
+        rdma/rdma_shared_device_a: 1
       requests:
         nvidia.com/gpu: 1
-        rdma/hca_shared_devices_a: 1
+        rdma/rdma_shared_device_a: 1
