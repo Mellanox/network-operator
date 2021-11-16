@@ -70,13 +70,13 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:14bd335c17c1b4c6cb7d37c2972c05cc62cadeeb
-    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:14bd335c17c1b4c6cb7d37c2972c05cc62cadeeb
-    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.1
-    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:af8a57a2e5394c2409f8d5a5b796c0aa1ee02be0
-    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:1f1822bf0bbb25bff55190fcad861617c1a2abb7
-    resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.2
-    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:a4979827d56fecf50d6f7925f995d065bb982f4e
+    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:f4cc0f37c8b8364f71a850b332f485f894216dc0
+    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:f4cc0f37c8b8364f71a850b332f485f894216dc0
+    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.2
+    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
+    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:a765300344368efbf43f71016e9641c58ec1241b
+    resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:4f0659bb26d08688127d5d51ce9bb075182f1dc2
+    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:f4cc0f37c8b8364f71a850b332f485f894216dc0
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
@@ -153,7 +153,7 @@ sriovDevicePlugin:
   deploy: true
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: 1f1822bf0bbb25bff55190fcad861617c1a2abb7
+  version: a765300344368efbf43f71016e9641c58ec1241b
   imagePullSecrets: []
   resources:
     - name: hostdev
