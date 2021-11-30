@@ -84,6 +84,12 @@ spec:
             "resourceName": {{ $element.name | quote }},
             "selectors": {
               "vendors": {{ $element.vendors | default list | toJson }},
+              "devices": {{ $element.devices | default list | toJson }},
+              "drivers": {{ $element.drivers | default list | toJson }},
+              "pfNames": {{ $element.pfNames | default list | toJson }},
+              "pciAddresses": {{ $element.pciAddresses | default list | toJson }},
+              "rootDevices": {{ $element.rootDevices | default list | toJson }},
+              "linkTypes": {{ $element.linkTypes | default list | toJson }},
               "isRdma": true
             }
           } {{- if ne $length (add1 $index) }},{{ end }}
