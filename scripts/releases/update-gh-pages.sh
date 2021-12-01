@@ -81,6 +81,5 @@ git commit -S -m "$commit_msg"
 
 if [ -n "$push_remote" ]; then
     echo "Pushing gh-pages to $push_remote"
-    git push "$push_remote" gh-pages
-
+    git push "$push_remote" HEAD:gh-pages
 fi
