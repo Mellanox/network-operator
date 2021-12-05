@@ -23,7 +23,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: mellanox
-    version: v1.2.1
+    version: v1.2.1-ubi
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -38,8 +38,3 @@ spec:
           }
         ]
       }
-  nvPeerDriver:
-    image: nv-peer-mem-driver
-    repository: mellanox
-    version: 1.1-0
-    gpuDriverSourcePath: /run/nvidia/driver
