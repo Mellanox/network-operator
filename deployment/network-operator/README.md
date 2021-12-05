@@ -325,7 +325,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name |
-| `ofedDriver.version` | string | `5.4-2.4.1.3` | Mellanox OFED driver version |
+| `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay |
 | `ofedDriver.startupProbe.periodSeconds` | int | 10 | Mellanox OFED startup probe interval |
@@ -350,7 +350,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
-| `rdmaSharedDevicePlugin.repository` | string | `mellanox` | RDMA Shared device plugin image repository |
+| `rdmaSharedDevicePlugin.repository` | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository |
 | `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
 | `rdmaSharedDevicePlugin.version` | string | `v1.2.1` | RDMA Shared device plugin version  |
 | `rdmaSharedDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image |
@@ -414,9 +414,9 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `cniPlugins.deploy` | bool | `true` | Deploy CNI Plugins Secondary Network  |
-| `cniPlugins.image` | string | `containernetworking-plugins` | CNI Plugins image name  |
-| `cniPlugins.repository` | string | `mellanox` | CNI Plugins image repository  |
-| `cniPlugins.version` | string | `v0.8.7` | CNI Plugins image version  |
+| `cniPlugins.image` | string | `plugins` | CNI Plugins image name  |
+| `cniPlugins.repository` | string | `ghcr.io/k8snetworkplumbingwg` | CNI Plugins image repository  |
+| `cniPlugins.version` | string | `v0.8.7-amd64` | CNI Plugins image version  |
 | `cniPlugins.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the CNI Plugins image |
 
 ##### Multus CNI Secondary Network
