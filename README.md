@@ -118,7 +118,7 @@ spec:
       periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
-    repository: mellanox
+    repository: nvcr.io/nvidia/cloud-native
     version: v1.2.1
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
@@ -155,9 +155,9 @@ spec:
       }
   secondaryNetwork:
     cniPlugins:
-      image: containernetworking-plugins
-      repository: mellanox
-      version: v0.8.7
+      image: plugins
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v0.8.7-amd64
     multus:
       image: multus
       repository: nfvpe

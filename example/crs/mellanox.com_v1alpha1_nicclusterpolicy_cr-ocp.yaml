@@ -19,10 +19,10 @@ spec:
   ofedDriver:
     image: mofed
     repository: mellanox
-    version: 5.3-1.0.0.1
+    version: 5.5-1.0.3.2
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
-    repository: mellanox
+    repository: nvcr.io/nvidia/cloud-native
     version: v1.2.1-ubi
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.

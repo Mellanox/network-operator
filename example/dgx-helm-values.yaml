@@ -36,9 +36,9 @@ secondaryNetwork:
   deploy: true
   cniPlugins:
     deploy: true
-    image: containernetworking-plugins
-    repository: mellanox
-    version: v0.8.7
+    image: plugins
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v0.8.7-amd64
     imagePullSecrets: []
   multus:
     deploy: true
