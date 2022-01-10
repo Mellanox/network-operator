@@ -393,6 +393,13 @@ to be associated with the resource. Refer to [SR-IOV Network Device Plugin Selec
 resources:
     - name: hostdev
       vendors: [15b3]
+    - name: ethernet_rdma
+      vendors: [15b3]
+      linkTypes: [ether]
+    - name: sriov_rdma
+      vendors: [15b3]
+      devices: [1018]
+      drivers: [mlx5_ib]
 ``` 
 
 >__Note__: The parameter listed are non-exhaustive, for the full list of chart parameters refer to
