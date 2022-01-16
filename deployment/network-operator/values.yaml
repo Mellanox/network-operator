@@ -70,13 +70,13 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:f4cc0f37c8b8364f71a850b332f485f894216dc0
-    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:f4cc0f37c8b8364f71a850b332f485f894216dc0
+    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:v1.1.0
+    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:v1.1.0
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.2
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:a765300344368efbf43f71016e9641c58ec1241b
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:4f0659bb26d08688127d5d51ce9bb075182f1dc2
-    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:f4cc0f37c8b8364f71a850b332f485f894216dc0
+    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
