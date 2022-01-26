@@ -298,6 +298,12 @@ Network-operator supports [Pod Security Policies](https://kubernetes.io/docs/con
 * Operating Systems: Ubuntu 20.04 LTS
 
 >__NOTE__: As more driver containers are built the operator will be able to support additional platforms.
+>__NOTE__: ConnectX-6 Lx is not supported.
+
+## Tested Network Adapters
+The following Network Adapters have been tested with network-operator:
+* ConnectX-5
+* ConnectX-6 Dx
 
 ## Compatibility Notes
 * network-operator is compatible with NVIDIA GPU Operator v1.5.2 and above

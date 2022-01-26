@@ -48,6 +48,13 @@ refer to the project's github.
 (GPU-Direct only)
 * Operating Systems: Ubuntu 20.04 LTS.
 
+>__NOTE__: ConnectX-6 Lx is not supported.
+
+### Tested Network Adapters
+The following Network Adapters have been tested with network-operator:
+* ConnectX-5
+* ConnectX-6 Dx
+
 ### Prerequisites
 
 - Kubernetes v1.17+
