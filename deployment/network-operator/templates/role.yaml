@@ -279,6 +279,7 @@ rules:
       - whereabouts.cni.cncf.io
     resources:
       - ippools
+      - overlappingrangeipreservations
     verbs:
       - get
       - list
@@ -310,3 +311,27 @@ rules:
       - use
     resourceNames:
       - nvidia-network-operator-privileged
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch

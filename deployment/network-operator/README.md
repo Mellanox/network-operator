@@ -444,7 +444,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
 | `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.4.2-amd64` | IPAM CNI Plugin image version  |
+| `ipamPlugin.version` | string | `v0.5.1-amd64` | IPAM CNI Plugin image version  |
 | `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 ## Deployment Examples
 
