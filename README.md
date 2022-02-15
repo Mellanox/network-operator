@@ -88,7 +88,7 @@ to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads)
 - `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts-cni) is supported
+    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
@@ -166,8 +166,8 @@ spec:
       config: ''
     ipamPlugin:
       image: whereabouts
-      repository: dougbtv
-      version: v0.3.0
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v0.5.1
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
