@@ -30,6 +30,7 @@ spec:
         tier: node
         app: sriovdp
     spec:
+      priorityClassName: system-node-critical
       hostNetwork: true
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
@@ -40,10 +41,6 @@ spec:
           {{- .NodeAffinity | yaml | nindent 10 }}
       {{- end }}
       tolerations:
-        # Allow this pod to be rescheduled while the node is in "critical add-ons only" mode.
-        # This, along with the annotation above marks this pod as a critical add-on.
-        - key: CriticalAddonsOnly
-          operator: Exists
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
