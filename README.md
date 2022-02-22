@@ -3,22 +3,24 @@
 [![Build Status](https://travis-ci.com/Mellanox/network-operator.svg?branch=master)](https://travis-ci.com/Mellanox/network-operator)
 
 - [Nvidia Network Operator](#nvidia-network-operator)
+  * [Documentation](#documentation)
   * [Prerequisites](#prerequisites)
-    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery-nfd)
+    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
   * [Resource Definitions](#resource-definitions)
     + [NICClusterPolicy CRD](#nicclusterpolicy-crd)
-      - [NICClusterPolicy spec](#nicclusterpolicy-spec)
-        * [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource)
+      - [NICClusterPolicy spec:](#nicclusterpolicy-spec-)
+        * [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource-)
       - [NICClusterPolicy status](#nicclusterpolicy-status)
-        * [Example Status field of a NICClusterPolicy instance:](#example-status-field-of-a-nicclusterpolicy-instance)
+        * [Example Status field of a NICClusterPolicy instance](#example-status-field-of-a-nicclusterpolicy-instance)
     + [MacvlanNetwork CRD](#macvlannetwork-crd)
-      - [MacvlanNetwork spec](#macvlannetwork-spec)
-        * [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource)
+      - [MacvlanNetwork spec:](#macvlannetwork-spec-)
+        * [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource-)
     + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
-      - [HostDeviceNetwork spec](#hostdevicenetwork-spec)
-        * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
+      - [HostDeviceNetwork spec:](#hostdevicenetwork-spec-)
+        * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource-)
   * [Pod Security Policy](#pod-security-policy)
   * [System Requirements](#system-requirements)
+  * [Tested Network Adapters](#tested-network-adapters)
   * [Compatibility Notes](#compatibility-notes)
   * [Deployment Example](#deployment-example)
   * [Docker image](#docker-image)
@@ -39,7 +41,7 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes secondary network for Network intensive workloads
 
 ## Documentation
-For more information please visit the official [documentation](https://docs.mellanox.com/display/COKAN10).
+For more information please visit the official [documentation](https://docs.nvidia.com/networking/display/COKAN10/Network+Operator).
 
 
 ## Prerequisites
