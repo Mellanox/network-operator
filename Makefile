@@ -42,6 +42,7 @@ IMAGEDIR=$(BASE)/images
 DOCKERFILE?=$(CURDIR)/Dockerfile
 TAG?=mellanox/network-operator
 IMAGE_BUILD_OPTS?=
+BUNDLE_IMG?=network-operator-bundle:$(VERSION)
 # Accept proxy settings for docker
 # To pass proxy for Docker invoke it as 'make image HTTP_POXY=http://192.168.0.1:8080'
 DOCKERARGS=
@@ -72,13 +73,13 @@ TIMEOUT = 15
 Q = $(if $(filter 1,$V),,@)
 
 ## Options for 'bundle-build'
-#ifneq ($(origin CHANNELS), undefined)
-#BUNDLE_CHANNELS := --channels=$(CHANNELS)
-#endif
-#ifneq ($(origin DEFAULT_CHANNEL), undefined)
-#BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
-#endif
-#BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
+ifneq ($(origin CHANNELS), undefined)
+BUNDLE_CHANNELS := --channels=$(CHANNELS)
+endif
+ifneq ($(origin DEFAULT_CHANNEL), undefined)
+BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
+endif
+BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -217,6 +218,7 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${TAG}
 	$(KUSTOMIZE) build config/resources-namespace | kubectl apply -f -
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
+	kubectl apply -f hack/crds/*
 
 deploy-with-psp: deploy ## Deploy controller to the K8s cluster specified in ~/.kube/config and apply privileged pod security policy
 	$(KUSTOMIZE) build config/psp | kubectl apply -f -
@@ -224,6 +226,7 @@ deploy-with-psp: deploy ## Deploy controller to the K8s cluster specified in ~/.
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 	$(KUSTOMIZE) build config/resources-namespace | kubectl delete -f -
+	kubectl delete -f hack/crds/*
 
 
 .PHONY: manifests
@@ -288,7 +291,7 @@ bundle-build: ## Build the bundle image.
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	${IMAGE_BUILDER} push $(BUNDLE_IMG)
 
 .PHONY: opm
 OPM = ./bin/opm
