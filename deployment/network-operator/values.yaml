@@ -119,7 +119,7 @@ ofedDriver:
   imagePullSecrets: []
   startupProbe:
     initialDelaySeconds: 10
-    periodSeconds: 10
+    periodSeconds: 20
   livenessProbe:
     initialDelaySeconds: 30
     periodSeconds: 30

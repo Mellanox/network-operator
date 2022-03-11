@@ -328,7 +328,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay |
-| `ofedDriver.startupProbe.periodSeconds` | int | 10 | Mellanox OFED startup probe interval |
+| `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval |
 | `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay |
 | `ofedDriver.livenessProbe.periodSeconds` | int | 30 | Mellanox OFED liveness probe interval|
 | `ofedDriver.readinessProbe.initialDelaySeconds` | int | 10 | Mellanox OFED readiness probe initial delay |
