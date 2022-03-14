@@ -225,7 +225,6 @@ uninstall: manifests	## Uninstall CRDs from a cluster
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${TAG}
-	$(KUSTOMIZE) build config/resources-namespace | kubectl apply -f -
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	kubectl apply -f hack/crds/*
 
@@ -236,7 +235,6 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 	$(KUSTOMIZE) build config/resources-namespace | kubectl delete -f -
 	kubectl delete -f hack/crds/*
-
 
 .PHONY: manifests
 manifests: controller-gen	## Generate manifests e.g. CRD, RBAC etc.

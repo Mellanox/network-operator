@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
@@ -47,11 +47,11 @@ func (p *dummyProvider) GetNodesAttributes(filters ...nodeinfo.Filter) []nodeinf
 	return []nodeinfo.NodeAttributes{attr}
 }
 
-func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, config string) {
+func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, sriovConfig string) {
 	Expect(obj.GetKind()).To(Equal("ConfigMap"))
 	Expect(obj.Object["metadata"].(map[string]interface{})["name"].(string)).To(Equal("sriovdp-config"))
 	Expect(obj.Object["metadata"].(map[string]interface{})["namespace"].(string)).To(Equal(namespace))
-	Expect(obj.Object["data"].(map[string]interface{})["config.json"].(string)).To(Equal(config))
+	Expect(obj.Object["data"].(map[string]interface{})["config.json"].(string)).To(Equal(sriovConfig))
 }
 
 func checkRenderedDpSA(obj *unstructured.Unstructured, namespace string) {
@@ -61,7 +61,7 @@ func checkRenderedDpSA(obj *unstructured.Unstructured, namespace string) {
 
 func checkRenderedDpDs(obj *unstructured.Unstructured, imageSpec *mellanoxv1alpha1.ImageSpec,
 	nodeAffinity string) {
-	namespace := consts.NetworkOperatorResourceNamespace
+	namespace := config.FromEnv().State.NetworkOperatorResourceNamespace
 	image := imageSpec.Repository + "/" + imageSpec.Image + ":" + imageSpec.Version
 	template := obj.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})
 	jsonSpec, _ := obj.MarshalJSON()
@@ -100,7 +100,7 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			Expect(sriovDpState.Name()).To(Equal(stateName))
 
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			config := "config"
+			sriovConfig := "config"
 
 			imageSpec := &mellanoxv1alpha1.ImageSpec{
 				Image:      "image",
@@ -109,7 +109,7 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			}
 			dpSpec := &mellanoxv1alpha1.DevicePluginSpec{
 				ImageSpec: *imageSpec,
-				Config:    config,
+				Config:    sriovConfig,
 			}
 			cr.Spec.SriovDevicePlugin = dpSpec
 
@@ -142,9 +142,9 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(3))
 
-			namespace := consts.NetworkOperatorResourceNamespace
+			namespace := config.FromEnv().State.NetworkOperatorResourceNamespace
 
-			checkRenderedDpCm(objs[0], namespace, config)
+			checkRenderedDpCm(objs[0], namespace, sriovConfig)
 			checkRenderedDpSA(objs[1], namespace)
 			checkRenderedDpDs(objs[2], imageSpec, nodeAffinitySpec)
 		})

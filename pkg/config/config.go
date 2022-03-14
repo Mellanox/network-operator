@@ -33,7 +33,8 @@ type OperatorConfig struct {
 
 // state related configurations
 type StateConfig struct {
-	ManifestBaseDir string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
+	NetworkOperatorResourceNamespace string `env:"POD_NAMESPACE" envDefault:"nvidia-network-operator"`
+	ManifestBaseDir                  string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
 }
 
 // Controller related configurations

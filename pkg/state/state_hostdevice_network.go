@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
@@ -133,7 +134,7 @@ func (s *stateHostDeviceNetwork) getManifestObjects(
 		HostDeviceNetworkName: cr.Name,
 		CrSpec:                cr.Spec,
 		RuntimeSpec: &runtimeSpec{
-			Namespace: consts.NetworkOperatorResourceNamespace,
+			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
 		},
 		ResourceName: resourceName,
 	}
