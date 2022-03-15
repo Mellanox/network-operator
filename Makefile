@@ -36,6 +36,11 @@ DATE=`date -Iseconds`
 COMMIT?=`git rev-parse --verify HEAD`
 LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
 
+BUILD_VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
+BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
+VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
+VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
+
 # Docker
 IMAGE_BUILDER?=@docker
 IMAGEDIR=$(BASE)/images
@@ -184,7 +189,11 @@ test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...
 # Container image
 .PHONY: image ubi-image
 image: | $(BASE) ; $(info Building Docker image...)  @ ## Build conatiner image
-	$(IMAGE_BUILDER) build -t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
+	$(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
+		--build-arg VERSION="$(BUILD_VERSION)" \
+		--build-arg VCS_REF="$(VCS_REF)" \
+		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
+		-t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 ubi-image: IMAGE_BUILD_OPTS += --build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.4
 ubi-image: image	## Build UBI-based container image
