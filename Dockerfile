@@ -33,6 +33,28 @@ COPY pkg/ pkg/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8-micro:8.5
+
+ARG BUILD_DATE
+ARG VERSION
+ARG VCS_REF
+ARG VCS_BRANCH
+
+LABEL version=$VERSION
+LABEL vcs-type="git"
+LABEL vcs-branch=$VCS_BRANCH
+LABEL vcs-ref=$VCS_REF
+LABEL build-date=$BUILD_DATE
+LABEL io.k8s.display-name="NVIDIA Network Operator"
+LABEL name="NVIDIA Network Operator"
+LABEL vendor="NVIDIA"
+LABEL release="N/A"
+LABEL summary="Deploy and manage NVIDIA networking resources in Kubernetes"
+LABEL description="NVIDIA Network Operator"
+LABEL io.k8s.description="NVIDIA Network Operator"
+LABEL maintainer="NVIDIA nvidia-network-operator-support@nvidia.com"
+LABEL url="https://github.com/Mellanox/network-operator"
+LABEL org.label-schema.vcs-url="https://github.com/Mellanox/network-operator"
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY manifests/ manifests/
