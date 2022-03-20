@@ -1,0 +1,5 @@
+resources:
+- bases/nvidia-network-operator.clusterserviceversion.yaml
+- ../default
+- ../samples
+- ../scorecard
