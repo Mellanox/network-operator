@@ -62,6 +62,14 @@ spec:
     ## NVIDIA Network Operator
     The NVIDIA Network Operator simplifies the provisioning and management of NVIDIA networking resources  in a Kubernetes cluster. The operator automatically installs the required host networking software - bringing together all the needed components to provide high-speed network connectivity. These components include the NVIDIA networking driver, Kubernetes device plugin, CNI plugins, IP address management (IPAM) plugin and others.
     The NVIDIA Network Operator works in conjunction with the NVIDIA GPU Operator to deliver high-throughput, low-latency networking for scale-out, GPU computing clusters.
+
+    The Network Operator uses Node Feature Discovery (NFD) labels in order to properly schedule resources.
+    Nodes can be labelled manually or using the NFD Operator. An example of `NodeFeatureDiscovery`
+    configuration is available in the documentation.
+    The following NFD labels are used:
+    `feature.node.kubernetes.io/pci-15b3.present` for nodes containing NVIDIA Networking hardware.
+    `feature.node.kubernetes.io/pci-10de.present` for nodes containing NVIDIA GPU hardware.
+
     The Network Operator is open-source. For more information on contributions and release artifacts, see the [GitHub repo](https://github.com/Mellanox/network-operator/)
   displayName: NVIDIA Network Operator
   icon:
@@ -454,4 +462,12 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
+  relatedImages:
+  - image: docker.io/mellanox/mofed-5.5-1.0.3.2@sha256:5376561d6306d7db16860bd6c465c09a2ba2694965826aa043354d29b03f5221
+    name: mofed
+  - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:16a53286fecdb1e587d3c4c042078974674c3e86c9e98d7dae282f6eb4ee2d8c
+    name: sriov-network-device-plugin
+  - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:b25c9aa266ba8fd4a21633509b4118664d4b0a52d0d96781011101a90a559414
+    name: rdma-shared-device-plugin
+  replaces: nvidia-network-operator.v1.0.0
   version: 1.1.0
