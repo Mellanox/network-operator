@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sriov-network-operator.fullname" . }}
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: sriov-network-operator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 33%
+  template:
+    metadata:
+      labels:
+        name: sriov-network-operator
+    spec:
+      {{- with .Values.operator.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
+      priorityClassName: "system-node-critical"
+      containers:
+        - name: {{ include "sriov-network-operator.fullname" . }}
+          image: {{ .Values.images.operator }}
+          command:
+            - sriov-network-operator
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SRIOV_CNI_IMAGE
+              value: {{ .Values.images.sriovCni }}
+            - name: SRIOV_INFINIBAND_CNI_IMAGE
+              value: {{ .Values.images.ibSriovCni }}
+            - name: SRIOV_DEVICE_PLUGIN_IMAGE
+              value: {{ .Values.images.sriovDevicePlugin }}
+            - name: NETWORK_RESOURCES_INJECTOR_IMAGE
+              value: {{ .Values.images.resourcesInjector }}
+            - name: OPERATOR_NAME
+              value: sriov-network-operator
+            - name: SRIOV_NETWORK_CONFIG_DAEMON_IMAGE
+              value: {{ .Values.images.sriovConfigDaemon }}
+            - name: SRIOV_NETWORK_WEBHOOK_IMAGE
+              value: {{ .Values.images.webhook }}
+            - name: RESOURCE_PREFIX
+              value: {{ .Values.operator.resourcePrefix }}
+            - name: ENABLE_ADMISSION_CONTROLLER
+              value: {{ .Values.operator.enableAdmissionController | quote }}
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: RELEASE_VERSION
+              value: {{ .Release.AppVersion }}
+            - name: SRIOV_CNI_BIN_PATH
+              value: {{ .Values.operator.cniBinPath }}
+            - name: CLUSTER_TYPE
+              value: {{ .Values.operator.clusterType }}
