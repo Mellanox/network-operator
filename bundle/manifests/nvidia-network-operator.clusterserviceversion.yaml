@@ -8,30 +8,64 @@ metadata:
           "apiVersion": "mellanox.com/v1alpha1",
           "kind": "HostDeviceNetwork",
           "metadata": {
-            "name": "hostdevicenetwork-sample"
+            "name": "example-hostdevice-network"
           },
           "spec": {
-            "foo": "bar"
+            "ipam": "{\n  \"type\": \"whereabouts\",\n  \"range\": \"192.168.3.225/28\",\n  \"exclude\": [\n   \"192.168.3.229/30\",\n   \"192.168.3.236/32\"\n  ]\n}\n",
+            "networkNamespace": "default",
+            "resourceName": "hostdev"
           }
         },
         {
           "apiVersion": "mellanox.com/v1alpha1",
           "kind": "MacvlanNetwork",
           "metadata": {
-            "name": "macvlannetwork-sample"
+            "name": "example-macvlannetwork"
           },
           "spec": {
-            "foo": "bar"
+            "ipam": "{\n  \"type\": \"whereabouts\",\n  \"range\": \"192.168.2.225/24\",\n  \"exclude\": [\n   \"192.168.2.229/30\",\n   \"192.168.2.236/32\"\n  ]\n}\n",
+            "master": "ens2f0",
+            "mode": "bridge",
+            "mtu": 1500,
+            "networkNamespace": "default"
           }
         },
         {
           "apiVersion": "mellanox.com/v1alpha1",
           "kind": "NicClusterPolicy",
           "metadata": {
-            "name": "nicclusterpolicy-sample"
+            "name": "nic-cluster-policy"
           },
           "spec": {
-            "foo": "bar"
+            "ofedDriver": {
+              "image": "mofed",
+              "livenessProbe": {
+                "initialDelaySeconds": 30,
+                "periodSeconds": 30
+              },
+              "readinessProbe": {
+                "initialDelaySeconds": 10,
+                "periodSeconds": 30
+              },
+              "repository": "mellanox",
+              "startupProbe": {
+                "initialDelaySeconds": 10,
+                "periodSeconds": 20
+              },
+              "version": "5.5-1.0.3.2"
+            },
+            "rdmaSharedDevicePlugin": {
+              "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 1000,\n      \"selectors\": {\n        \"ifNames\": [\"ens2f0\"]\n      }\n    }\n  ]\n}\n",
+              "image": "k8s-rdma-shared-dev-plugin",
+              "repository": "nvcr.io/nvidia/cloud-native",
+              "version": "v1.2.1-ubi"
+            },
+            "sriovDevicePlugin": {
+              "config": "{\n  \"resourceList\": [\n      {\n          \"resourcePrefix\": \"nvidia.com\",\n          \"resourceName\": \"hostdev\",\n          \"selectors\": {\n              \"vendors\": [\"15b3\"],\n              \"isRdma\": true\n          }\n      }\n  ]\n}\n",
+              "image": "sriov-device-plugin",
+              "repository": "docker.io/nfvpe",
+              "version": "v3.3"
+            }
           }
         }
       ]

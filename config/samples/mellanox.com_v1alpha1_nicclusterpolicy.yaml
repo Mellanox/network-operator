@@ -1,7 +1,64 @@
+# Copyright 2021 NVIDIA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
-  name: nicclusterpolicy-sample
+  name: nic-cluster-policy
 spec:
-  # Add fields here
-  foo: bar
+  ofedDriver:
+    image: mofed
+    repository: mellanox
+    version: 5.5-1.0.3.2
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 20
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+  sriovDevicePlugin:
+    image: sriov-device-plugin
+    repository: docker.io/nfvpe
+    version: v3.3
+    config: |
+      {
+        "resourceList": [
+            {
+                "resourcePrefix": "nvidia.com",
+                "resourceName": "hostdev",
+                "selectors": {
+                    "vendors": ["15b3"],
+                    "isRdma": true
+                }
+            }
+        ]
+      }
+  rdmaSharedDevicePlugin:
+    image: k8s-rdma-shared-dev-plugin
+    repository: nvcr.io/nvidia/cloud-native
+    version: v1.2.1-ubi
+    config: |
+      {
+        "configList": [
+          {
+            "resourceName": "rdma_shared_device_a",
+            "rdmaHcaMax": 1000,
+            "selectors": {
+              "ifNames": ["ens2f0"]
+            }
+          }
+        ]
+      }
