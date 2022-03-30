@@ -1,0 +1,23 @@
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+  nodeSelector:
+    node-role.kubernetes.io/master: ""
+  nameOverride: ""
+  fullnameOverride: ""
+  resourcePrefix: "openshift.io"
+  enableAdmissionController: false
+  cniBinPath: "/opt/cni/bin"
+  clusterType: "kubernetes"
+
+# Image URIs for sriov-network-operator components
+images:
+  operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator
+  sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon
+  sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni
+  ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni
+  sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
+  resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
+  webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook

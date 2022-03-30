@@ -1,0 +1,6 @@
+Get Network Operator deployed resources by running the following commands:
+
+$ kubectl -n {{ .Release.Namespace }} get pods
+
+For additional instructions on how to use SR-IOV network operator,
+refer to: https://github.com/k8snetworkplumbingwg/sriov-network-operator
