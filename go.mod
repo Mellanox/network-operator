@@ -10,13 +10,13 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/vektra/mockery/v2 v2.7.4 // indirect
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
 	sigs.k8s.io/controller-runtime v0.8.1
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
