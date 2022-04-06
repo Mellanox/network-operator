@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/caarlos0/env/v6 v6.4.0
 	github.com/go-logr/logr v0.3.0
-	github.com/googleapis/gnostic v0.5.3 // indirect
+	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.1.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
