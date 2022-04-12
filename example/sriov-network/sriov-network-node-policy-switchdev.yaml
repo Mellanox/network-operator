@@ -17,7 +17,7 @@ metadata:
   name: example-sriov-node-policy-switchdev
   namespace: network-operator
 spec:
-  resourceName: sriov-switchdev
+  resourceName: sriovswitchdev
   nodeSelector:
     feature.node.kubernetes.io/network-sriov.capable: "true"
   numVfs: 1
