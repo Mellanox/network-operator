@@ -150,7 +150,7 @@ rdmaSharedDevicePlugin:
       vendors: [15b3]
 
 sriovDevicePlugin:
-  deploy: true
+  deploy: false
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
   version: a765300344368efbf43f71016e9641c58ec1241b
