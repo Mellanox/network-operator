@@ -116,19 +116,56 @@ func (s *stateSkel) createOrUpdateObjs(
 			return err
 		}
 
-		// Set resource version
-		// ResourceVersion must be passed unmodified back to the server.
-		// ResourceVersion helps the kubernetes API server to implement optimistic concurrency for PUT operations
-		// when two PUT requests are specifying the resourceVersion, one of the PUTs will fail.
 		currentObj := desiredObj.DeepCopy()
 		if err := s.getObj(currentObj); err != nil {
 			// Some error occurred
 			return err
 		}
-		desiredObj.SetResourceVersion(currentObj.GetResourceVersion())
+
+		if err := s.mergeObjects(desiredObj, currentObj); err != nil {
+			return err
+		}
 
 		// Object found, Update it
 		if err := s.updateObj(desiredObj); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *stateSkel) mergeObjects(updated, current *unstructured.Unstructured) error {
+	// Set resource version
+	// ResourceVersion must be passed unmodified back to the server.
+	// ResourceVersion helps the kubernetes API server to implement optimistic concurrency for PUT operations
+	// when two PUT requests are specifying the resourceVersion, one of the PUTs will fail.
+	updated.SetResourceVersion(current.GetResourceVersion())
+
+	gvk := updated.GroupVersionKind()
+	if gvk.Group == "" && gvk.Kind == "ServiceAccount" {
+		return s.mergeServiceAccount(updated, current)
+	}
+	return nil
+}
+
+// For Service Account, keep secrets if exists
+func (s *stateSkel) mergeServiceAccount(updated, current *unstructured.Unstructured) error {
+	curSecrets, ok, err := unstructured.NestedSlice(current.Object, "secrets")
+	if err != nil {
+		return err
+	}
+	if ok {
+		if err := unstructured.SetNestedField(updated.Object, curSecrets, "secrets"); err != nil {
+			return err
+		}
+	}
+
+	curImagePullSecrets, ok, err := unstructured.NestedSlice(current.Object, "imagePullSecrets")
+	if err != nil {
+		return err
+	}
+	if ok {
+		if err := unstructured.SetNestedField(updated.Object, curImagePullSecrets, "imagePullSecrets"); err != nil {
 			return err
 		}
 	}
