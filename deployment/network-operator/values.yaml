@@ -29,6 +29,8 @@ sriovNetworkOperator:
 node-feature-discovery:
   image:
     pullPolicy: IfNotPresent
+  nodeFeatureRule:
+    createCRD: false
   master:
     instance: "nvidia.networking"
   worker:
@@ -41,15 +43,15 @@ node-feature-discovery:
         operator: "Equal"
         value: "present"
         effect: "NoSchedule"
-    config: |
+    config:
       sources:
-          pci:
-            deviceClassWhitelist:
-              - "02"
-              - "0200"
-              - "0207"
-            deviceLabelFields:
-              - vendor
+        pci:
+          deviceClassWhitelist:
+            - "02"
+            - "0200"
+            - "0207"
+          deviceLabelFields:
+            - vendor
 
 
 # SR-IOV Network Operator chart related values
