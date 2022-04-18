@@ -384,7 +384,7 @@ resources:
 
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
-| `sriovDevicePlugin.deploy` | bool | `true` | Deploy SR-IOV Network device plugin  |
+| `sriovDevicePlugin.deploy` | bool | `false` | Deploy SR-IOV Network device plugin  |
 | `sriovDevicePlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository |
 | `sriovDevicePlugin.image` | string | `sriov-network-device-plugin` | SR-IOV Network device plugin image name  |
 | `sriovDevicePlugin.version` | string | `a765300344368efbf43f71016e9641c58ec1241b` | SR-IOV Network device plugin version  |
