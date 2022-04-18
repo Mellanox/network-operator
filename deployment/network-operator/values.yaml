@@ -180,7 +180,7 @@ secondaryNetwork:
     deploy: true
     image: whereabouts
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.5.1-amd64
+    version: v0.5.2-amd64
     imagePullSecrets: []
 
 test:
