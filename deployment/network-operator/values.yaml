@@ -156,6 +156,23 @@ ofedDriver:
   readinessProbe:
     initialDelaySeconds: 10
     periodSeconds: 30
+  upgradePolicy:
+    # global switch for automatic upgrade feature
+    # if set to false all other options are ignored
+    autoUpgrade: false
+    # how many nodes can be upgraded in parallel
+    # 0 means no limit, all nodes will be upgraded in parallel
+    maxParallelUpgrades: 0
+    # options for node drain (`kubectl drain`) before the driver reload
+    # if auto upgrade is enabled but drain.enable is false,
+    # then driver POD will be reloaded immediately without
+    # removing PODs from the node
+    drain:
+      enable: true
+      force: false
+      podSelector: ""
+      timeoutSeconds: 0
+      deleteEmptyDir: false
 
 nvPeerDriver:
   deploy: false
