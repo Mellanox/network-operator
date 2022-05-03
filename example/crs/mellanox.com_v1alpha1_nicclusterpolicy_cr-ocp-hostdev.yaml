@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA CORPORATION & AFFILIATES.
+# Copyright 2021 NVIDIA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,24 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: v1
-kind: Pod
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
 metadata:
-  name: test-sriov-ib-pod
-  annotations:
-    k8s.v1.cni.cncf.io/networks: example-sriov-ib-network
-
+  name: nic-cluster-policy
 spec:
-  containers:
-    - name: test-sriov-ib-pod
-      image: centos/tools
-      imagePullPolicy: IfNotPresent
-      command: [ "/bin/bash", "-c", "--" ]
-      args: [ "while true; do sleep 300; done;" ]
-      resources:
-        requests:
-          nvidia.com/mlnxics: "1"
-        limits:
-          nvidia.com/mlnxics: "1"
-#  nodeSelector:
-#    kubernetes.io/hostname: <worker-node-name>
+  ofedDriver:
+    image: mofed
+    repository: mellanox
+    version: 5.5-1.0.3.2
+  sriovDevicePlugin:
+    config: |
+      {
+        "resourceList": [
+          {
+            "resourcePrefix": "nvidia.com",
+            "resourceName": "hostdev",
+            "selectors": {
+              "vendors": ["15b3"],
+              "isRdma": true
+            }
+          }
+        ]
+      }

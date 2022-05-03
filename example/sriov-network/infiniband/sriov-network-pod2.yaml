@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA
+# Copyright 2021 NVIDIA CORPORATION & AFFILIATES.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,21 +14,25 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test-sriov-pod
+  name: test-sriov-ib-pod-2
   annotations:
-    k8s.v1.cni.cncf.io/networks: example-sriov-network
+    k8s.v1.cni.cncf.io/networks: example-sriov-ib-network
 
 spec:
   containers:
-    - name: test-sriov-pod
+    - name: test-sriov-ib-pod
       image: centos/tools
       imagePullPolicy: IfNotPresent
       command: [ "/bin/bash", "-c", "--" ]
       args: [ "while true; do sleep 300; done;" ]
+      securityContext:
+        capabilities:
+          add: [ "IPC_LOCK" ]
       resources:
         requests:
-          nvidia.com/sriovlegacy: "1"
+          nvidia.com/mlnxnics: "1"
         limits:
-          nvidia.com/sriovlegacy: "1"
+          nvidia.com/mlnxnics: "1"
   nodeSelector:
-    feature.node.kubernetes.io/pci-15b3.sriov.capable: "true"
+    # Note: Replace hostname or remove selector altogether
+    kubernetes.io/hostname: worker02
