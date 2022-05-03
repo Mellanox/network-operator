@@ -359,7 +359,7 @@ Production cluster environment can deny direct access to the Internet and instea
 | `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
 | `rdmaSharedDevicePlugin.repository` | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository |
 | `rdmaSharedDevicePlugin.image` | string | `k8s-rdma-shared-dev-plugin` | RDMA Shared device plugin image name  |
-| `rdmaSharedDevicePlugin.version` | string | `v1.2.1` | RDMA Shared device plugin version  |
+| `rdmaSharedDevicePlugin.version` | string | `v1.3.2` | RDMA Shared device plugin version  |
 | `rdmaSharedDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image |
 | `rdmaSharedDevicePlugin.resources` | list | See below | RDMA Shared device plugin resources |
 
