@@ -32,6 +32,6 @@ spec:
       "log_file" : "/var/log/whereabouts.log",
       "log_level" : "info"
     }
-  resourceName: mlnxics
+  resourceName: mlnxnics
   linkState: enable
   networkNamespace: default

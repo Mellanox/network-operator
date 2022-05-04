@@ -28,4 +28,4 @@ spec:
 #    network.nvidia.com/operator.mofed.wait: "false"
   numVfs: 8
   priority: 90
-  resourceName: mlnxics
+  resourceName: mlnxnics

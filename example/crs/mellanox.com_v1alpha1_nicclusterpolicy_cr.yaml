@@ -42,7 +42,8 @@ spec:
             "resourceName": "rdma_shared_device_a",
             "rdmaHcaMax": 1000,
             "selectors": {
-              "ifNames": ["ens2f0"]
+              "vendors": ["15b3"],
+              "deviceIDs": ["101b"]
             }
           }
         ]
@@ -59,6 +60,7 @@ spec:
                 "resourceName": "hostdev",
                 "selectors": {
                     "vendors": ["15b3"],
+                    "deviceIDs": ["101d"]
                     "isRdma": true
                 }
             }
