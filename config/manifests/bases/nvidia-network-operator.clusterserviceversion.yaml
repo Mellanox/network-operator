@@ -21,6 +21,9 @@ spec:
     - kind: MacvlanNetwork
       name: macvlannetworks.mellanox.com
       version: v1alpha1
+    - kind: IPoIBNetwork
+      name: ipoibnetworks.mellanox.com
+      version: v1alpha1
     - kind: NetworkAttachmentDefinition
       name: network-attachment-definitions.k8s.cni.cncf.io
       version: v1

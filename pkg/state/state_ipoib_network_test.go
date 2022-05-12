@@ -1,5 +1,5 @@
 /*
-Copyright 2021 NVIDIA
+2022 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +17,10 @@ limitations under the License.
 package state
 
 import (
-	"strings"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/render"
@@ -31,31 +28,23 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-func checkResourceNameAnnotation(obj *unstructured.Unstructured) {
-	annotations := obj.Object["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})
-	resourceName := annotations["k8s.v1.cni.cncf.io/resourceName"].(string)
+var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 
-	Expect(HavePrefix(resourceName, resourceNamePrefix))
-	Expect(strings.Count(resourceName, resourceNamePrefix)).To(Equal(1))
-}
-
-var _ = Describe("HostDevice Network Stage rendering tests", func() {
-
-	Context("HostDevice Network stage", func() {
+	Context("IPoIBNetwork Network state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRutimeClient{}
-			manifestBaseDir := "../../manifests/stage-hostdevice-network"
+			manifestBaseDir := "../../manifests/stage-ipoib-network"
 			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
 			renderer := render.NewRenderer(files)
 
-			stateName := "state-host-device-network"
-			sriovDpState := stateHostDeviceNetwork{
+			stateName := "state-ipoib-network"
+			ipoibState := stateIPoIBNetwork{
 				stateSkel: stateSkel{
 					name:        stateName,
-					description: "Host Device net-attach-def CR deployed in cluster",
+					description: "IPoIBNetwork net-attach-def CR deployed in cluster",
 					client:      &client,
 					scheme:      scheme,
 					renderer:    renderer,
@@ -63,32 +52,25 @@ var _ = Describe("HostDevice Network Stage rendering tests", func() {
 			}
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(sriovDpState.Name()).To(Equal(stateName))
+			Expect(ipoibState.Name()).To(Equal(stateName))
 
 			namespace := "namespace"
-			name := "test_resource_without_prefix"
-			ipam := "fake IPAM"
-			spec := &mellanoxv1alpha1.HostDeviceNetworkSpec{}
+			name := "ibs3"
+			ipam := "fakeIPAM"
+			spec := &mellanoxv1alpha1.IPoIBNetworkSpec{}
 			spec.NetworkNamespace = namespace
-			spec.ResourceName = name
+			spec.Master = name
 			spec.IPAM = ipam
 
-			cr := &mellanoxv1alpha1.HostDeviceNetwork{}
+			cr := &mellanoxv1alpha1.IPoIBNetwork{}
 			cr.Name = name
 			cr.Spec = *spec
-			objs, err := sriovDpState.getManifestObjects(cr)
+			objs, err := ipoibState.getManifestObjects(cr)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
 
 			checkRenderedNetAttachDef(objs[0], namespace, name, ipam)
-			checkResourceNameAnnotation(objs[0])
-
-			spec.ResourceName = resourceNamePrefix + "test_resource_with_prefix"
-			objs, err = sriovDpState.getManifestObjects(cr)
-
-			Expect(err).NotTo(HaveOccurred())
-			checkResourceNameAnnotation(objs[0])
 		})
 	})
 })

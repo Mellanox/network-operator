@@ -161,6 +161,26 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - ipoibnetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - ipoibnetworks/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - macvlannetworks
   verbs:
   - create

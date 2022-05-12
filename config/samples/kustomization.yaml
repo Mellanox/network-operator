@@ -3,4 +3,5 @@ resources:
 - mellanox.com_v1alpha1_macvlannetwork.yaml
 - mellanox.com_v1alpha1_nicclusterpolicy.yaml
 - mellanox.com_v1alpha1_hostdevicenetwork.yaml
+- mellanox.com_v1alpha1_ipoibnetwork.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

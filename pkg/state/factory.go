@@ -61,6 +61,8 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 		return newMacvlanNetworkStates(k8sAPIClient, scheme)
 	case mellanoxv1alpha1.HostDeviceNetworkCRDName:
 		return newHostDeviceNetworkStates(k8sAPIClient, scheme)
+	case mellanoxv1alpha1.IPoIBNetworkCRDName:
+		return newIPoIBNetworkStates(k8sAPIClient, scheme)
 	default:
 		break
 	}
@@ -101,6 +103,11 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
+	ipoibState, err := NewStateIPoIBCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-ipoib-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
+	}
 	whereaboutState, err := NewStateWhereaboutsCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-whereabouts-cni"))
 	if err != nil {
@@ -114,7 +121,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 
 	return []Group{
 		NewStateGroup([]State{podSecurityPolicyState}),
-		NewStateGroup([]State{multusState, cniPluginsState, whereaboutState}),
+		NewStateGroup([]State{multusState, cniPluginsState, ipoibState, whereaboutState}),
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sriovDpState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
@@ -146,5 +153,19 @@ func newHostDeviceNetworkStates(k8sAPIClient client.Client, scheme *runtime.Sche
 	}
 	return []Group{
 		NewStateGroup([]State{hostdeviceNetworkState}),
+	}, nil
+}
+
+// newIPoIBNetworkStates creates states that reconcile IPoIBNetwork CRD
+func newIPoIBNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]Group, error) {
+	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
+
+	ipoibNetworkState, err := NewStateIPoIBNetwork(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-ipoib-network"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
+	}
+	return []Group{
+		NewStateGroup([]State{ipoibNetworkState}),
 	}, nil
 }

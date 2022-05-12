@@ -5,6 +5,7 @@ resources:
 - bases/mellanox.com_macvlannetworks.yaml
 - bases/mellanox.com_nicclusterpolicies.yaml
 - bases/mellanox.com_hostdevicenetworks.yaml
+- bases/mellanox.com_ipoibnetworks.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

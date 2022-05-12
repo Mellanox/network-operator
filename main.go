@@ -52,6 +52,42 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+func setupCRDControllers(mgr ctrl.Manager) error {
+	if err := (&controllers.NicClusterPolicyReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("NicClusterPolicy"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
+		return err
+	}
+	if err := (&controllers.MacvlanNetworkReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MacvlanNetwork"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MacvlanNetwork")
+		return err
+	}
+	if err := (&controllers.HostDeviceNetworkReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("HostDeviceNetwork"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "HostDeviceNetwork")
+		return err
+	}
+	if err := (&controllers.IPoIBNetworkReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("IPoIBNetwork"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IPoIBNetwork")
+		return err
+	}
+	return nil
+}
+
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -82,28 +118,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.NicClusterPolicyReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("NicClusterPolicy"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
-		os.Exit(1)
-	}
-	if err = (&controllers.MacvlanNetworkReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MacvlanNetwork"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MacvlanNetwork")
-		os.Exit(1)
-	}
-	if err = (&controllers.HostDeviceNetworkReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("HostDeviceNetwork"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "HostDeviceNetwork")
+	err = setupCRDControllers(mgr)
+	if err != nil {
 		os.Exit(1)
 	}
 

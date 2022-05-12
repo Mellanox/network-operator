@@ -125,6 +125,12 @@ spec:
       config: {{ .Values.secondaryNetwork.multus.config | quote }}
       {{- end }}
     {{- end }}
+    {{- if .Values.secondaryNetwork.ipoib.deploy }}
+    ipoib:
+      image: {{ .Values.secondaryNetwork.ipoib.image }}
+      repository: {{ .Values.secondaryNetwork.ipoib.repository }}
+      version: {{ .Values.secondaryNetwork.ipoib.version }}
+    {{- end }}
     {{- if .Values.secondaryNetwork.ipamPlugin.deploy }}
     ipamPlugin:
       image: {{ .Values.secondaryNetwork.ipamPlugin.image }}
