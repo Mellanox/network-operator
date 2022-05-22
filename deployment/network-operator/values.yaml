@@ -68,8 +68,19 @@ sriov-network-operator:
       - key: "node-role.kubernetes.io/control-plane"
         operator: "Exists"
         effect: "NoSchedule"
-    nodeSelector:
-      node-role.kubernetes.io/master: ""
+    nodeSelector: {}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: "node-role.kubernetes.io/master"
+                  operator: In
+                  values: [ "" ]
+            - matchExpressions:
+                - key: "node-role.kubernetes.io/control-plane"
+                  operator: In
+                  values: [ "" ]
     nameOverride: ""
     fullnameOverride: ""
     resourcePrefix: "nvidia.com"
