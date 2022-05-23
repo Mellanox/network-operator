@@ -16,6 +16,7 @@ kind: DaemonSet
 metadata:
   labels:
     app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
+    nvidia.com/ofed-driver: ""
   name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
@@ -29,6 +30,7 @@ spec:
       labels:
         app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
         driver-pod: mofed-{{ .CrSpec.Version }}
+        nvidia.com/ofed-driver: ""
     spec:
       priorityClassName: system-node-critical
       tolerations:
