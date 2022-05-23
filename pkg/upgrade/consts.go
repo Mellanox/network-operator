@@ -19,13 +19,12 @@ package upgrade
 const (
 	UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
-	PodTemplateGenerationLabel = "pod-template-generation"
-	OfedDriverLabel            = "nvidia.com/ofed-driver"
+	OfedDriverLabel = "nvidia.com/ofed-driver"
 
 	// UpgradeStateUnknown Node has this state when the upgrade flow is disabled or the node hasn't been processed yet
 	UpgradeStateUnknown = ""
-	// UpgradeStateReady is set when OFED POD is up to date and running on the node, the node is schedulable
-	UpgradeStateReady = "ready"
+	// UpgradeStateDone is set when OFED POD is up to date and running on the node, the node is schedulable
+	UpgradeStateDone = "upgrade-done"
 	// UpgradeStateUpgradeRequired is set when OFED POD on the node is not up-to-date and required upgrade
 	// No actions are performed at this stage
 	UpgradeStateUpgradeRequired = "upgrade-required"
@@ -33,7 +32,7 @@ const (
 	// either to UpgradeStatePodRestart or UpgradeStateDrainFailed
 	UpgradeStateDrain = "drain"
 	// UpgradeStatePodRestart is set when the OFED POD on the node is scheduler for restart.
-	// After the restart state is changed to UpgradeStateReady
+	// After the restart state is changed to UpgradeStateDone
 	UpgradeStatePodRestart = "pod-restart"
 	// UpgradeStateDrainFailed is set when drain on the node has failed. Manual interaction is required at this stage.
 	UpgradeStateDrainFailed = "drain-failed"

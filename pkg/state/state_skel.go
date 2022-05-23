@@ -220,13 +220,15 @@ func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured) (bool, erro
 		"CurrentNodes:", ds.Status.CurrentNumberScheduled,
 		"PodsAvailable:", ds.Status.NumberAvailable,
 		"PodsUnavailable:", ds.Status.NumberUnavailable,
+		"UpdatedPodsScheduled", ds.Status.UpdatedNumberScheduled,
 		"PodsReady:", ds.Status.NumberReady,
 		"Conditions:", ds.Status.Conditions)
 	// Note(adrianc): We check for DesiredNumberScheduled!=0 as we expect to have at least one node that would need
 	// to have DaemonSet Pods deployed onto it. DesiredNumberScheduled == 0 then indicates that this field was not yet
 	// updated by the DaemonSet controller
 	// TODO: Check if we can use another field maybe to indicate it was processed by the DaemonSet controller.
-	if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable {
+	if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable &&
+		ds.Status.UpdatedNumberScheduled == ds.Status.NumberAvailable {
 		return true, nil
 	}
 	return false, nil

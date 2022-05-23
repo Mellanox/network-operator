@@ -46,8 +46,10 @@ import (
 // UpgradeReconciler reconciles OFED Daemon Sets for upgrade
 type UpgradeReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log                      logr.Logger
+	Scheme                   *runtime.Scheme
+	StateManager             *upgrade.ClusterUpgradeStateManager
+	NodeUpgradeStateProvider upgrade.NodeUpgradeStateProvider
 }
 
 const plannedRequeueInterval = time.Minute * 2
@@ -93,6 +95,11 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	reqLogger.V(consts.LogLevelInfo).Info("Propagate state to state manager")
 	reqLogger.V(consts.LogLevelDebug).Info("Current cluster upgrade state", "state", state)
+	err = r.StateManager.ApplyState(ctx, state, upgradePolicy)
+	if err != nil {
+		r.Log.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")
+		return ctrl.Result{}, err
+	}
 
 	// In some cases if node state changes fail to apply, upgrade process
 	// might become stuck until the new reconcile loop is scheduled.
@@ -188,8 +195,7 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 // the driver POD running on them and the daemon set, controlling this pod
 func (r *UpgradeReconciler) buildNodeUpgradeState(
 	ctx context.Context, pod *corev1.Pod, ds *appsv1.DaemonSet) (*upgrade.NodeUpgradeState, error) {
-	node := &corev1.Node{}
-	err := r.Get(ctx, types.NamespacedName{Name: pod.Spec.NodeName}, node)
+	node, err := r.NodeUpgradeStateProvider.GetNode(ctx, pod.Spec.NodeName)
 	if err != nil {
 		r.Log.V(consts.LogLevelError).Error(err, "Failed to get node", "node", pod.Spec.NodeName)
 		return nil, err
