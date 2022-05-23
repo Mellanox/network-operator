@@ -58,18 +58,29 @@ type ClusterUpgradeStateManager struct {
 	K8sClient                client.Client
 	K8sInterface             kubernetes.Interface
 	Log                      logr.Logger
+	DrainManager             DrainManager
+	PodDeleteManager         PodDeleteManager
+	UncordonManager          UncordonManager
 	NodeUpgradeStateProvider NodeUpgradeStateProvider
 }
 
 // NewClusterUpdateStateManager creates a new instance of ClusterUpgradeStateManager
 func NewClusterUpdateStateManager(
+	drainManager DrainManager,
+	podDeleteManager PodDeleteManager,
+	uncordonManager UncordonManager,
 	nodeUpgradeStateProvider NodeUpgradeStateProvider,
 	log logr.Logger,
-	k8sClient client.Client) *ClusterUpgradeStateManager {
+	k8sClient client.Client,
+	k8sInterface kubernetes.Interface) *ClusterUpgradeStateManager {
 	manager := &ClusterUpgradeStateManager{
+		DrainManager:             drainManager,
+		PodDeleteManager:         podDeleteManager,
+		UncordonManager:          uncordonManager,
 		NodeUpgradeStateProvider: nodeUpgradeStateProvider,
 		Log:                      log,
 		K8sClient:                k8sClient,
+		K8sInterface:             k8sInterface,
 	}
 
 	return manager
@@ -249,8 +260,15 @@ func (m *ClusterUpgradeStateManager) ProcessDrainNodes(
 		return nil
 	}
 
-	// TODO schedule drain
-	return nil
+	drainConfig := DrainConfiguration{
+		Spec:  drainSpec,
+		Nodes: make([]*v1.Node, 0, len(currentClusterState.NodeStates[UpgradeStateDrain])),
+	}
+	for _, nodeState := range currentClusterState.NodeStates[UpgradeStateDrain] {
+		drainConfig.Nodes = append(drainConfig.Nodes, nodeState.Node)
+	}
+
+	return m.DrainManager.ScheduleNodesDrain(ctx, &drainConfig)
 }
 
 // ProcessPodRestartNodes processes UpgradeStatePodRestart nodes and schedules driver pod restart for them.
@@ -291,8 +309,8 @@ func (m *ClusterUpgradeStateManager) ProcessPodRestartNodes(
 		}
 	}
 
-	// TODO Create pod restart manager to handle pod restarts
-	return nil
+	// Create pod restart manager to handle pod restarts
+	return m.PodDeleteManager.SchedulePodsRestart(ctx, pods)
 }
 
 // ProcessDrainFailedNodes processes UpgradeStateDrainFailed nodes and checks whether the driver pod on the node
@@ -328,8 +346,7 @@ func (m *ClusterUpgradeStateManager) ProcessUncordonRequiredNodes(
 	m.Log.V(consts.LogLevelInfo).Info("ProcessUncordonRequiredNodes")
 
 	for _, nodeState := range currentClusterState.NodeStates[UpgradeStateUncordonRequired] {
-		// TODO uncordon node
-		err := nil
+		err := m.UncordonManager.CordonOrUncordonNode(ctx, nodeState.Node, false)
 		if err != nil {
 			m.Log.V(consts.LogLevelWarning).Error(
 				err, "Node uncordone failed", "node", nodeState.Node)

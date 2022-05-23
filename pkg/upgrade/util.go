@@ -17,6 +17,46 @@ import (
 	"sync"
 )
 
+type StringSet struct {
+	m map[string]bool
+	sync.RWMutex
+}
+
+func NewStringSet() *StringSet {
+	return &StringSet{
+		m: make(map[string]bool),
+	}
+}
+
+// Add item to set
+func (s *StringSet) Add(item string) {
+	s.Lock()
+	defer s.Unlock()
+	s.m[item] = true
+}
+
+// Remove deletes the specified item from the set
+func (s *StringSet) Remove(item string) {
+	s.Lock()
+	defer s.Unlock()
+	delete(s.m, item)
+}
+
+// Has looks for item exists in the map
+func (s *StringSet) Has(item string) bool {
+	s.RLock()
+	defer s.RUnlock()
+	_, ok := s.m[item]
+	return ok
+}
+
+// Clear removes all items from the set
+func (s *StringSet) Clear() {
+	s.Lock()
+	defer s.Unlock()
+	s.m = make(map[string]bool)
+}
+
 // KeyedMutex is a struct that provides a per-key synchronized access
 type KeyedMutex struct {
 	mutexes sync.Map // Zero value is empty and ready for use
