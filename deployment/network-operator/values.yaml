@@ -134,6 +134,8 @@ operator:
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
   # tag
 
+imagePullSecrets: []
+
 proxy:
   httpProxy: ""
   httpsProxy: ""

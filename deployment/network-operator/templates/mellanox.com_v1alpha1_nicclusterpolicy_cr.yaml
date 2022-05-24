@@ -24,6 +24,11 @@ spec:
     image: {{ .Values.ofedDriver.image }}
     repository: {{ .Values.ofedDriver.repository }}
     version: {{ .Values.ofedDriver.version }}
+    {{- if .Values.ofedDriver.imagePullSecrets }}
+    imagePullSecrets: {{ .Values.ofedDriver.imagePullSecrets }}
+    {{- else }}
+    {{ include "network-operator.imagePullSecret" . | nindent 4 }}
+    {{ end  }}
     startupProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
       periodSeconds: {{ .Values.ofedDriver.startupProbe.periodSeconds }}
@@ -50,6 +55,11 @@ spec:
     image: {{ .Values.nvPeerDriver.image }}
     repository: {{ .Values.nvPeerDriver.repository }}
     version: {{ .Values.nvPeerDriver.version }}
+    {{- if .Values.nvPeerDriver.imagePullSecrets }}
+    imagePullSecrets: {{ .Values.nvPeerDriver.imagePullSecrets }}
+    {{- else }}
+    {{ include "network-operator.imagePullSecret" . | nindent 4 }}
+    {{ end }}
     gpuDriverSourcePath: {{ .Values.nvPeerDriver.gpuDriverSourcePath }}
   {{- end }}
   {{- if .Values.rdmaSharedDevicePlugin.deploy }}
@@ -58,6 +68,11 @@ spec:
     image: {{ .Values.rdmaSharedDevicePlugin.image }}
     repository: {{ .Values.rdmaSharedDevicePlugin.repository }}
     version: {{ .Values.rdmaSharedDevicePlugin.version }}
+    {{- if .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
+    imagePullSecrets: {{ .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
+    {{- else }}
+    {{ include "network-operator.imagePullSecret" . | nindent 4 }}
+    {{ end }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -85,6 +100,11 @@ spec:
     image: {{ .Values.sriovDevicePlugin.image }}
     repository: {{ .Values.sriovDevicePlugin.repository }}
     version: {{ .Values.sriovDevicePlugin.version }}
+    {{- if .Values.sriovDevicePlugin.imagePullSecrets }}
+    imagePullSecrets: {{ .Values.sriovDevicePlugin.imagePullSecrets }}
+    {{- else }}
+    {{ include "network-operator.imagePullSecret" . | nindent 4 }}
+    {{ end }}
     config: |
       {
         "resourceList": [
@@ -115,12 +135,22 @@ spec:
       image: {{ .Values.secondaryNetwork.cniPlugins.image }}
       repository: {{ .Values.secondaryNetwork.cniPlugins.repository }}
       version: {{ .Values.secondaryNetwork.cniPlugins.version }}
+      {{- if .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
+      imagePullSecrets: {{ .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
+      {{- else }}
+      {{ include "network-operator.imagePullSecret" . | nindent 6 }}
+      {{ end }}
     {{- end }}
     {{- if .Values.secondaryNetwork.multus.deploy }}
     multus:
       image: {{ .Values.secondaryNetwork.multus.image }}
       repository: {{ .Values.secondaryNetwork.multus.repository }}
       version: {{ .Values.secondaryNetwork.multus.version }}
+      {{- if .Values.secondaryNetwork.multus.imagePullSecrets }}
+      imagePullSecrets: {{ .Values.secondaryNetwork.multus.imagePullSecrets }}
+      {{- else }}
+      {{ include "network-operator.imagePullSecret" . | nindent 6 }}
+      {{ end }}
       {{- if .Values.secondaryNetwork.multus.config | empty | not }}
       config: {{ .Values.secondaryNetwork.multus.config | quote }}
       {{- end }}
@@ -130,6 +160,11 @@ spec:
       image: {{ .Values.secondaryNetwork.ipamPlugin.image }}
       repository: {{ .Values.secondaryNetwork.ipamPlugin.repository }}
       version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
+      {{- if .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
+      imagePullSecrets: {{ .Values.secondaryNetwork.ipamPlugin.imagePullSecrets }}
+      {{- else }}
+      {{ include "network-operator.imagePullSecret" . | nindent 6 }}
+      {{ end }}
     {{- end }}
   {{- end }}
   psp:

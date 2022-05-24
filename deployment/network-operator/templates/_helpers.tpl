@@ -65,3 +65,9 @@ Selector labels
 app.kubernetes.io/name: {{ include "network-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{- define "network-operator.imagePullSecret" }}
+{{- if .Values.imagePullSecrets }}
+imagePullSecrets: {{ .Values.imagePullSecrets }}
+{{- end }}
+{{- end }}
