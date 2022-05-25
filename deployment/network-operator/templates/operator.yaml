@@ -48,6 +48,13 @@ spec:
       {{- range .Values.operator.imagePullSecrets }}
         - name: {{ . }}
       {{- end }}
+      {{- else }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
