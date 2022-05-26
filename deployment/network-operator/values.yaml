@@ -116,8 +116,8 @@ deployCR: false
 ofedDriver:
   deploy: false
   image: mofed
-  repository: mellanox
-  version: 5.5-1.0.3.2
+  repository: nvcr.io/nvidia/mellanox
+  version: 5.6-1.0.3.3
   imagePullSecrets: []
   startupProbe:
     initialDelaySeconds: 10
