@@ -27,5 +27,6 @@ spec:
     beta.kubernetes.io/os: linux
     node-role.kubernetes.io/worker: ""
     network.nvidia.com/operator.mofed.wait: "false"
+  logLevel: 2
 {{ end }}
 
