@@ -39,6 +39,10 @@ node-feature-discovery:
         operator: "Equal"
         value: ""
         effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
       - key: "nvidia.com/gpu"
         operator: "Equal"
         value: "present"
@@ -61,8 +65,22 @@ sriov-network-operator:
       - key: "node-role.kubernetes.io/master"
         operator: "Exists"
         effect: "NoSchedule"
-    nodeSelector:
-      node-role.kubernetes.io/master: ""
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+    nodeSelector: {}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: "node-role.kubernetes.io/master"
+                  operator: In
+                  values: [ "" ]
+            - matchExpressions:
+                - key: "node-role.kubernetes.io/control-plane"
+                  operator: In
+                  values: [ "" ]
     nameOverride: ""
     fullnameOverride: ""
     resourcePrefix: "nvidia.com"
@@ -88,6 +106,10 @@ operator:
       operator: "Equal"
       value: ""
       effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
   nodeSelector: {}
   affinity:
     nodeAffinity:
@@ -98,6 +120,12 @@ operator:
               - key: "node-role.kubernetes.io/master"
                 operator: In
                 values: [""]
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: In
+                values: [ "" ]
   repository: nvcr.io/nvidia/cloud-native
   image: network-operator
   imagePullSecrets: []
