@@ -1,4 +1,3 @@
 Get Network Operator deployed resources by running the following commands:
 
 $ kubectl -n {{ .Release.Namespace }} get pods
-$ kubectl -n nvidia-network-operator-resources get pods

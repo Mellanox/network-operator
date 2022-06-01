@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
@@ -135,7 +136,7 @@ func (s *stateSriovDp) getManifestObjects(
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sriovDpRuntimeSpec{
-			runtimeSpec: runtimeSpec{consts.NetworkOperatorResourceNamespace},
+			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 		},
 	}
