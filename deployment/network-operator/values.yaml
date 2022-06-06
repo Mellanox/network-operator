@@ -149,6 +149,11 @@ ofedDriver:
   repository: nvcr.io/nvidia/mellanox
   version: 5.6-1.0.3.3
   imagePullSecrets: []
+  # env, if defined will pass environment variables to the OFED container
+  # env:
+  #   - name: EXAMPLE_ENV_VAR
+  #     value: example_env_var_value
+
   startupProbe:
     initialDelaySeconds: 10
     periodSeconds: 20

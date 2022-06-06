@@ -24,6 +24,10 @@ spec:
     image: {{ .Values.ofedDriver.image }}
     repository: {{ .Values.ofedDriver.repository }}
     version: {{ .Values.ofedDriver.version }}
+    {{- if .Values.ofedDriver.env }}
+    env:
+      {{ toYaml .Values.ofedDriver.env | nindent 6 }}
+    {{- end }}
     imagePullSecrets: {{ include "network-operator.ofed.imagePullSecrets" . | nindent 4 }}
     startupProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
