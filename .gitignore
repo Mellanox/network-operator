@@ -28,3 +28,6 @@ build/_output/
 # Helm charts
 deployment/network-operator/Chart.lock
 deployment/network-operator/charts/*.tgz
+
+# Folders
+.gopath
