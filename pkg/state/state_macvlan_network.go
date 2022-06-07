@@ -77,12 +77,12 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 	}
 
 	if len(objs) == 0 {
-		return SyncStateError, errors.Wrap(err, "no rendered objects found")
+		return SyncStateError, errors.New("no rendered objects found")
 	}
 
 	netAttDef := objs[0]
 	if netAttDef.GetKind() != "NetworkAttachmentDefinition" {
-		return SyncStateError, errors.Wrap(err, "no NetworkAttachmentDefinition object found")
+		return SyncStateError, errors.New("no NetworkAttachmentDefinition object found")
 	}
 
 	// Delete NetworkAttachmentDefinition if not in desired namespace
