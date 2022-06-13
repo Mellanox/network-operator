@@ -33,6 +33,17 @@ spec:
     readinessProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.readinessProbe.initialDelaySeconds }}
       periodSeconds: {{ .Values.ofedDriver.readinessProbe.periodSeconds }}
+    {{- if .Values.ofedDriver.upgradePolicy }}
+    upgradePolicy:
+      autoUpgrade: {{ .Values.ofedDriver.upgradePolicy.autoUpgrade | default false }}
+      maxParallelUpgrades: {{ .Values.ofedDriver.upgradePolicy.maxParallelUpgrades | default 0 }}
+      drain:
+        enable: {{ .Values.ofedDriver.upgradePolicy.drain.enable | default true }}
+        force: {{ .Values.ofedDriver.upgradePolicy.drain.force | default false }}
+        podSelector: {{ .Values.ofedDriver.upgradePolicy.drain.podSelector}}
+        timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.drain.timeoutSeconds | default 0}}
+        deleteEmptyDir: {{ .Values.ofedDriver.upgradePolicy.drain.deleteEmptyDir | default false}}
+    {{- end }}
   {{- end }}
   {{- if .Values.nvPeerDriver.deploy }}
   nvPeerDriver:

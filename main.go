@@ -34,6 +34,8 @@ import (
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/controllers"
+	"github.com/Mellanox/network-operator/pkg/upgrade"
+	"github.com/Mellanox/network-operator/pkg/utils"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -102,6 +104,32 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HostDeviceNetwork")
+		os.Exit(1)
+	}
+
+	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
+	k8sInterface, err := utils.CreateK8sInterface()
+	if err != nil {
+		setupLog.Error(err, "unable to create k8s interface", "controller", "Upgrade")
+		os.Exit(1)
+	}
+	nodeUpgradeStateProvider := upgrade.NewNodeUpgradeStateProvider(
+		mgr.GetClient(), upgradeLogger.WithName("nodeUpgradeStateProvider"))
+	drainManager := upgrade.NewDrainManager(
+		k8sInterface, nodeUpgradeStateProvider, upgradeLogger.WithName("drainManager"))
+	uncordonManager := upgrade.NewUncordonManager(k8sInterface, upgradeLogger.WithName("uncordonManager"))
+	podDeleteManager := upgrade.NewPodDeleteManager(mgr.GetClient(), upgradeLogger.WithName("podDeleteManager"))
+	clusterUpdateStateManager := upgrade.NewClusterUpdateStateManager(
+		drainManager, podDeleteManager, uncordonManager, nodeUpgradeStateProvider,
+		upgradeLogger.WithName("clusterUpgradeManager"), mgr.GetClient(), k8sInterface)
+	if err = (&controllers.UpgradeReconciler{
+		Client:                   mgr.GetClient(),
+		Log:                      upgradeLogger,
+		Scheme:                   mgr.GetScheme(),
+		StateManager:             clusterUpdateStateManager,
+		NodeUpgradeStateProvider: nodeUpgradeStateProvider,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

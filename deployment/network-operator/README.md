@@ -225,10 +225,14 @@ helm upgrade -n network-operator  network-operator mellanox/network-operator --v
 
 >__NOTE__: `--devel` option required if you want to use the beta release
 
+### Enable automatic upgrade for containerized OFED driver (recommended)
+>__NOTE__: this operation is required only if **containerized OFED** is in use
 
-### Restart PODs with containerized OFED driver
+Check [Automatic OFED upgrade](../../docs/automatic-ofed-upgrade.md) document for more details.
 
->__NOTE__: this operation required only if **containerized OFED** is in use
+### OR manually restart PODs with containerized OFED driver
+
+>__NOTE__: this operation is required only if **containerized OFED** is in use
 
 When containerized OFED driver reloaded on the node, all PODs which use secondary network based on
 NVIDIA Mellanox NICs will lose network interface in their containers.

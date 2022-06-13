@@ -65,6 +65,8 @@ type OFEDDriverSpec struct {
 	LivenessProbe *PodProbeSpec `json:"livenessProbe,omitempty"`
 	// Pod readiness probe settings
 	ReadinessProbe *PodProbeSpec `json:"readinessProbe,omitempty"`
+	// Ofed auto-upgrade settings
+	OfedUpgradePolicy *OfedUpgradePolicySpec `json:"upgradePolicy,omitempty"`
 }
 
 // NVPeerDriverSpec describes configuration options for NV Peer Memory driver
@@ -108,6 +110,47 @@ type PSPSpec struct {
 	// +optional
 	// +kubebuilder:default:=false
 	Enabled bool `json:"enabled,omitempty"`
+}
+
+// DrainSpec describes configuration for node drain during automatic upgrade
+type DrainSpec struct {
+	// Enable indicates if node draining is allowed during upgrade
+	// +optional
+	// +kubebuilder:default:=true
+	Enable bool `json:"enable,omitempty"`
+	// Force indicates if force draining is allowed
+	// +optional
+	// +kubebuilder:default:=false
+	Force bool `json:"force,omitempty"`
+	// PodSelector specifies a label selector to filter pods on the node that need to be drained
+	// For more details on label selectors, see:
+	// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	// +optional
+	PodSelector string `json:"podSelector,omitempty"`
+	// TimeoutSecond specifies the length of time in seconds to wait before giving up drain, zero means infinite
+	// +optional
+	// +kubebuilder:default:=0
+	TimeoutSecond int `json:"timeoutSeconds,omitempty"`
+	// DeleteEmptyDir indicates if should continue even if there are pods using emptyDir
+	// (local data that will be deleted when the node is drained)
+	// +optional
+	// +kubebuilder:default:=false
+	DeleteEmptyDir bool `json:"deleteEmptyDir,omitempty"`
+}
+
+// OfedUpgradePolicySpec describes policy configuration for automatic upgrades
+type OfedUpgradePolicySpec struct {
+	// AutoUpgrade is a global switch for automatic upgrade feature
+	// if set to false all other options are ignored
+	// +optional
+	// +kubebuilder:default:=false
+	AutoUpgrade bool `json:"autoUpgrade,omitempty"`
+	// MaxParallelUpgrades indicates how many nodes can be upgraded in parallel
+	// 0 means no limit, all nodes will be upgraded in parallel
+	// +optional
+	// +kubebuilder:default:=1
+	MaxParallelUpgrades int        `json:"maxParallelUpgrades,omitempty"`
+	DrainSpec           *DrainSpec `json:"drain,omitempty"`
 }
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
