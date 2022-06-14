@@ -318,6 +318,15 @@ We have introduced the following Chart parameters.
 | `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling Network Operator image                                  |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters                                           |
 
+#### imagePullSecrets customization
+To provide imagePullSecrets object references, you need to specify them using a following structure:
+```
+imagePullSecrets:
+  - image-pull-secret1
+  - image-pull-secret2
+```
+
+
 ### Proxy parameters
 These proxy parameter will translate to HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables to be used by the network operator and relevant resources it deploys.
 Production cluster environment can deny direct access to the Internet and instead have an HTTP or HTTPS proxy available.
