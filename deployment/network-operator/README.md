@@ -306,16 +306,26 @@ We have introduced the following Chart parameters.
 
 ### General parameters
 
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `nfd.enabled` | bool | `True` | deploy Node Feature Discovery |
-| `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator |
-| `psp.enabled` | bool | `False` | deploy Pod Security Policy |
-| `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository |
-| `operator.image` | string | `network-operator` | Network Operator image name |
-| `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used |
-| `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image |
-| `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters |
+| Name | Type | Default | description                                                                                                          |
+| ---- | ---- | ------- |----------------------------------------------------------------------------------------------------------------------|
+| `nfd.enabled` | bool | `True` | deploy Node Feature Discovery                                                                                        |
+| `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator                                                                                       |
+| `psp.enabled` | bool | `False` | deploy Pod Security Policy                                                                                           |
+| `imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image if it's not overrided |
+| `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository                                                                                    |
+| `operator.image` | string | `network-operator` | Network Operator image name                                                                                          |
+| `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used                                    |
+| `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling Network Operator image                                  |
+| `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters                                           |
+
+#### imagePullSecrets customization
+To provide imagePullSecrets object references, you need to specify them using a following structure:
+```
+imagePullSecrets:
+  - image-pull-secret1
+  - image-pull-secret2
+```
+
 
 ### Proxy parameters
 These proxy parameter will translate to HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables to be used by the network operator and relevant resources it deploys.

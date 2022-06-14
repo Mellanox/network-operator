@@ -65,3 +65,117 @@ Selector labels
 app.kubernetes.io/name: {{ include "network-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+imagePullSecrets helpers
+*/}}
+{{- define "network-operator.operator.imagePullSecrets" }}
+{{- if .Values.operator.imagePullSecrets }}
+{{- range .Values.operator.imagePullSecrets }}
+  - name: {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.ofed.imagePullSecrets" }}
+{{- if .Values.ofedDriver.imagePullSecrets }}
+{{- range .Values.ofedDriver.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.nvPeerDriver.imagePullSecrets" }}
+{{- if .Values.nvPeerDriver.imagePullSecrets }}
+{{- range .Values.nvPeerDriver.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" }}
+{{- if .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
+{{- range .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.sriovDevicePlugin.imagePullSecrets" }}
+{{- if .Values.sriovDevicePlugin.imagePullSecrets }}
+{{- range .Values.sriovDevicePlugin.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" }}
+{{- if .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
+{{- range .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.secondaryNetwork.multus.imagePullSecrets" }}
+{{- if .Values.secondaryNetwork.multus.imagePullSecrets }}
+{{- range .Values.secondaryNetwork.multus.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" }}
+{{- if .Values.secondaryNetwork.ipamPlugin.imagePullSecrets }}
+{{- range .Values.secondaryNetwork.ipamPlugin.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
