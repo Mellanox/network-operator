@@ -221,6 +221,12 @@ secondaryNetwork:
     version: v3.8
     imagePullSecrets: []
     config: ''
+  ipoib:
+    deploy: false
+    image: ipoib-cni
+    repository: mellanox
+    version: latest
+    imagePullSecrets: []
   ipamPlugin:
     deploy: true
     image: whereabouts

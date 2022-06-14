@@ -445,6 +445,27 @@ spec:
                     - repository
                     - version
                     type: object
+                  ipoib:
+                    description: Image information for IPoIB CNI
+                    properties:
+                      image:
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      imagePullSecrets:
+                        items:
+                          type: string
+                        type: array
+                      repository:
+                        pattern: '[a-zA-Z0-9\.\-\/]+'
+                        type: string
+                      version:
+                        pattern: '[a-zA-Z0-9\.-]+'
+                        type: string
+                    required:
+                    - image
+                    - repository
+                    - version
+                    type: object
                   multus:
                     description: Image and configuration information for multus
                     properties:

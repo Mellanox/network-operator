@@ -1,5 +1,5 @@
 /*
-Copyright 2020 NVIDIA
+2022 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,44 +37,44 @@ import (
 )
 
 const (
-	stateMacvlanNetworkName        = "state-Macvlan-Network"
-	stateMacvlanNetworkDescription = "Macvlan net-attach-def CR deployed in cluster"
-	lastNetworkNamespaceAnnot      = "operator.macvlannetwork.mellanox.com/last-network-namespace"
+	stateIPoIBNetworkName          = "state-IPoIB-Network"
+	stateIPoIBNetworkDescription   = "IPoIB net-attach-def CR deployed in cluster"
+	lastIPoIBNetworkNamespaceAnnot = "operator.ipoibnetwork.mellanox.com/last-network-namespace"
 )
 
-// NewStateMacvlanNetwork creates a new state for MacvlanNetwork CR
-func NewStateMacvlanNetwork(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+// NewStateIPoIBNetwork creates a new state for IPoIBNetwork CR
+func NewStateIPoIBNetwork(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateMacvlanNetwork{
+	return &stateIPoIBNetwork{
 		stateSkel: stateSkel{
-			name:        stateMacvlanNetworkName,
-			description: stateMacvlanNetworkDescription,
+			name:        stateIPoIBNetworkName,
+			description: stateIPoIBNetworkDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
 		}}, nil
 }
 
-type stateMacvlanNetwork struct {
+type stateIPoIBNetwork struct {
 	stateSkel
 }
 
 //nolint:dupl
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
-	cr := customResource.(*mellanoxv1alpha1.MacvlanNetwork)
+func (s *stateIPoIBNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	cr := customResource.(*mellanoxv1alpha1.IPoIBNetwork)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	objs, err := s.getManifestObjects(cr)
 	if err != nil {
-		return SyncStateError, errors.Wrap(err, "failed to render MacvlanNetwork")
+		return SyncStateError, errors.Wrap(err, "failed to render IPoIBNetwork")
 	}
 
 	if len(objs) == 0 {
@@ -119,16 +119,16 @@ func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (S
 	return syncState, nil
 }
 
-// Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateMacvlanNetwork) GetWatchSources() map[string]*source.Kind {
+// GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name
+func (s *stateIPoIBNetwork) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
-	wr["MacvlanNetwork"] = &source.Kind{Type: &mellanoxv1alpha1.MacvlanNetwork{}}
+	wr["IPoIBNetwork"] = &source.Kind{Type: &mellanoxv1alpha1.IPoIBNetwork{}}
 	wr["NetworkAttachmentDefinition"] = &source.Kind{Type: &netattdefv1.NetworkAttachmentDefinition{}}
 	return wr
 }
 
-func (s *stateMacvlanNetwork) getManifestObjects(
-	cr *mellanoxv1alpha1.MacvlanNetwork) ([]*unstructured.Unstructured, error) {
+func (s *stateIPoIBNetwork) getManifestObjects(
+	cr *mellanoxv1alpha1.IPoIBNetwork) ([]*unstructured.Unstructured, error) {
 	data := map[string]interface{}{}
 	data["NetworkName"] = cr.Name
 	if cr.Spec.NetworkNamespace == "" {
@@ -138,8 +138,6 @@ func (s *stateMacvlanNetwork) getManifestObjects(
 	}
 
 	data["Master"] = cr.Spec.Master
-	data["Mode"] = cr.Spec.Mode
-	data["Mtu"] = cr.Spec.Mtu
 
 	if cr.Spec.IPAM != "" {
 		data["Ipam"] = "\"ipam\":" + strings.Join(strings.Fields(cr.Spec.IPAM), "")
@@ -157,10 +155,10 @@ func (s *stateMacvlanNetwork) getManifestObjects(
 	return objs, nil
 }
 
-func (s *stateMacvlanNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.MacvlanNetwork,
+func (s *stateIPoIBNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.IPoIBNetwork,
 	netAttDef *unstructured.Unstructured) error {
 	// Delete NetworkAttachmentDefinition if not in desired namespace
-	lnns, lnnsExists := cr.GetAnnotations()[lastNetworkNamespaceAnnot]
+	lnns, lnnsExists := cr.GetAnnotations()[lastIPoIBNetworkNamespaceAnnot]
 	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
 	if netAttDefChangedNamespace {
 		err := s.client.Delete(context.TODO(), &netattdefv1.NetworkAttachmentDefinition{
@@ -177,15 +175,15 @@ func (s *stateMacvlanNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.Macvlan
 	return nil
 }
 
-func (s *stateMacvlanNetwork) updateNetAttDefNamespace(cr *mellanoxv1alpha1.MacvlanNetwork,
+func (s *stateIPoIBNetwork) updateNetAttDefNamespace(cr *mellanoxv1alpha1.IPoIBNetwork,
 	netAttDef *unstructured.Unstructured) error {
-	lnns, lnnsExists := cr.GetAnnotations()[lastNetworkNamespaceAnnot]
+	lnns, lnnsExists := cr.GetAnnotations()[lastIPoIBNetworkNamespaceAnnot]
 	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
 	if !lnnsExists || netAttDefChangedNamespace {
-		anno := map[string]string{lastNetworkNamespaceAnnot: netAttDef.GetNamespace()}
+		anno := map[string]string{lastIPoIBNetworkNamespaceAnnot: netAttDef.GetNamespace()}
 		cr.SetAnnotations(anno)
 		if err := s.client.Update(context.Background(), cr); err != nil {
-			return errors.Wrap(err, "failed to update MacvlanNetwork annotations")
+			return errors.Wrap(err, "failed to update IPoIBNetwork annotations")
 		}
 	}
 	return nil

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 NVIDIA
+2022 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package controllers //nolint:dupl
 import (
 	goctx "context"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,52 +28,52 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
-var _ = Describe("HostDeviceNetwork Controller", func() {
+var _ = Describe("IPoIBNetwork Controller", func() {
 
-	Context("When HostDeviceNetwork CR is created", func() {
-		It("should create and delete hostdevice network", func() {
-			cr := mellanoxv1alpha1.HostDeviceNetwork{
+	Context("When IPoIBNetwork CR is created", func() {
+		It("should create and delete ipoib network", func() {
+			cr := mellanoxv1alpha1.IPoIBNetwork{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "HostDeviceNetwork",
+					Kind:       "IPoIBNetwork",
 					APIVersion: "mellanox.com/v1alpha1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "",
 				},
-				Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
+				Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
 					NetworkNamespace: "default",
-					ResourceName:     "test",
+					Master:           "ibs3",
 				},
 			}
 
 			err := k8sClient.Create(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
 
-			found := &mellanoxv1alpha1.HostDeviceNetwork{}
+			found := &mellanoxv1alpha1.IPoIBNetwork{}
 			err = k8sClient.Get(goctx.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found.Spec.NetworkNamespace).To(Equal("default"))
-			Expect(found.Spec.ResourceName).To(Equal("test"))
+			Expect(found.Spec.Master).To(Equal("ibs3"))
 			Expect(found.Spec.IPAM).To(Equal(""))
 
 			err = k8sClient.Delete(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create hostdevice network empty state", func() {
-			cr := mellanoxv1alpha1.HostDeviceNetwork{
+		It("should create ipoib network empty state", func() {
+			cr := mellanoxv1alpha1.IPoIBNetwork{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "HostDeviceNetwork",
+					Kind:       "IPoIBNetwork",
 					APIVersion: "mellanox.com/v1alpha1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-with-error",
 					Namespace: "default",
 				},
-				Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
+				Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
 					NetworkNamespace: "",
-					ResourceName:     "",
+					Master:           "",
 					IPAM:             " {\"type\": whereabouts}",
 				},
 			}
@@ -82,7 +81,7 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 			err := k8sClient.Create(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
 
-			found := &mellanoxv1alpha1.HostDeviceNetwork{}
+			found := &mellanoxv1alpha1.IPoIBNetwork{}
 			state := mellanoxv1alpha1.State("")
 			err = k8sClient.Get(goctx.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
 			Expect(err).NotTo(HaveOccurred())

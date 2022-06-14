@@ -100,6 +100,8 @@ type SecondaryNetworkSpec struct {
 	Multus *MultusSpec `json:"multus,omitempty"`
 	// Image information for CNI plugins
 	CniPlugins *ImageSpec `json:"cniPlugins,omitempty"`
+	// Image information for IPoIB CNI
+	IPoIB *ImageSpec `json:"ipoib,omitempty"`
 	// Image information for IPAM plugin
 	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
 }
