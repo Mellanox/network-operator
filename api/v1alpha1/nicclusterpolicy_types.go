@@ -65,6 +65,8 @@ type OFEDDriverSpec struct {
 	LivenessProbe *PodProbeSpec `json:"livenessProbe,omitempty"`
 	// Pod readiness probe settings
 	ReadinessProbe *PodProbeSpec `json:"readinessProbe,omitempty"`
+	// List of environment variables to set in the OFED container.
+	Env []v1.EnvVar `json:"env,omitempty"`
 	// Ofed auto-upgrade settings
 	OfedUpgradePolicy *OfedUpgradePolicySpec `json:"upgradePolicy,omitempty"`
 }

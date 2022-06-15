@@ -341,19 +341,20 @@ Production cluster environment can deny direct access to the Internet and instea
 
 #### Mellanox OFED driver
 
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container |
-| `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository |
-| `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name |
-| `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version |
-| `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image |
-| `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay |
-| `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval |
-| `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay |
-| `ofedDriver.livenessProbe.periodSeconds` | int | 30 | Mellanox OFED liveness probe interval|
-| `ofedDriver.readinessProbe.initialDelaySeconds` | int | 10 | Mellanox OFED readiness probe initial delay |
-| `ofedDriver.readinessProbe.periodSeconds` | int | 30 | Mellanox OFED readiness probe interval |
+| Name | Type | Default | description                                                                                                                                                               |
+| ---- | ---- | ------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container                                                                                                                                     |
+| `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository                                                                                                                                     |
+| `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name                                                                                                                                           |
+| `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version                                                                                                                                              |
+| `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
+| `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
+| `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay                                                                                                                                 |
+| `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval                                                                                                                                      |
+| `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay                                                                                                                                |
+| `ofedDriver.livenessProbe.periodSeconds` | int | 30 | Mellanox OFED liveness probe interval                                                                                                                                     |
+| `ofedDriver.readinessProbe.initialDelaySeconds` | int | 10 | Mellanox OFED readiness probe initial delay                                                                                                                               |
+| `ofedDriver.readinessProbe.periodSeconds` | int | 30 | Mellanox OFED readiness probe interval                                                                                                                                    |
 
 #### NVIDIA Peer memory driver
 

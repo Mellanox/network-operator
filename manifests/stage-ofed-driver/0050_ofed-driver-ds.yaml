@@ -68,6 +68,11 @@ spec:
               value: {{ .RuntimeSpec.HTTPSProxy }}
             - name: NO_PROXY
               value: {{ .RuntimeSpec.NoProxy }}
+          {{- if .CrSpec.Env }}
+          {{- range .CrSpec.Env }}
+            {{ . | yaml | nindentPrefix 14 "- " }}
+          {{- end }}
+          {{- end }}
           volumeMounts:
             - name: run-mlnx-ofed
               mountPath: /run/mellanox/drivers
