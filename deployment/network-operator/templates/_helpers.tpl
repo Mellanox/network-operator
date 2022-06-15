@@ -77,6 +77,7 @@ imagePullSecrets helpers
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
+  - name: {{ . }}
 {{- end }}
 {{- end }}
 {{- end }}
