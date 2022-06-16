@@ -3,6 +3,7 @@ module github.com/Mellanox/network-operator
 go 1.18
 
 require (
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/caarlos0/env/v6 v6.4.0
 	github.com/go-logr/logr v0.3.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.1.0

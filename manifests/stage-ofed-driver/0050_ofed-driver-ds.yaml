@@ -54,7 +54,7 @@ spec:
       {{- end }}
       {{- end }}
       containers:
-        - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}-{{ .CrSpec.Version }}:{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.CPUArch }}
+        - image: {{ .RuntimeSpec.MOFEDImageName }}
           imagePullPolicy: IfNotPresent
           name: mofed-container
           securityContext:
