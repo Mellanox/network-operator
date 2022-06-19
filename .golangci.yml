@@ -60,6 +60,7 @@ linters:
     - dogsled
     - dupl
     - errcheck
+    - exportloopref
     - funlen
       #- gochecknoinits
       #- goconst
@@ -67,7 +68,6 @@ linters:
     - gocognit
     - gofmt
     - goimports
-    - golint 
     - gomnd
     - goprintffuncname
     - gosec
@@ -78,8 +78,8 @@ linters:
     - misspell
     - nakedret
     - prealloc
+    - revive
     - rowserrcheck
-    - scopelint
     - staticcheck
     - structcheck
     - stylecheck

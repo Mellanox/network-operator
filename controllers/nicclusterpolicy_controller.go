@@ -157,7 +157,7 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 			if len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].Ready {
 				labelValue = "false"
 			}
-			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{"%s":"%s"}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
+			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:%q}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
 			err := r.Client.Patch(context.TODO(), &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pod.Spec.NodeName,
