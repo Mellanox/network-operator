@@ -18,42 +18,43 @@ import (
 )
 
 type StringSet struct {
-	m map[string]bool
-	sync.RWMutex
+	m  map[string]bool
+	mu sync.RWMutex
 }
 
 func NewStringSet() *StringSet {
 	return &StringSet{
-		m: make(map[string]bool),
+		m:  make(map[string]bool),
+		mu: sync.RWMutex{},
 	}
 }
 
 // Add item to set
 func (s *StringSet) Add(item string) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.m[item] = true
 }
 
 // Remove deletes the specified item from the set
 func (s *StringSet) Remove(item string) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.m, item)
 }
 
 // Has looks for item exists in the map
 func (s *StringSet) Has(item string) bool {
-	s.RLock()
-	defer s.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, ok := s.m[item]
 	return ok
 }
 
 // Clear removes all items from the set
 func (s *StringSet) Clear() {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.m = make(map[string]bool)
 }
 

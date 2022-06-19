@@ -69,7 +69,7 @@ func (p *NodeUpgradeStateProviderImpl) ChangeNodeUpgradeState(
 
 	defer p.nodeMutex.Lock(node.Name)()
 
-	patchString := []byte(fmt.Sprintf(`{"metadata":{"annotations":{"%s": "%s"}}}`, UpgradeStateAnnotation, newNodeState))
+	patchString := []byte(fmt.Sprintf(`{"metadata":{"annotations":{%q: %q}}}`, UpgradeStateAnnotation, newNodeState))
 	patch := client.RawPatch(types.StrategicMergePatchType, patchString)
 	err := p.K8sClient.Patch(ctx, node, patch)
 	if err != nil {

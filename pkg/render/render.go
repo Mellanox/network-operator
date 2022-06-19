@@ -27,7 +27,7 @@ package render
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -36,6 +36,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	yamlDecoder "k8s.io/apimachinery/pkg/util/yaml"
 	yamlConverter "sigs.k8s.io/yaml"
+)
+
+const (
+	maxBufSizeForYamlDecode = 4096
 )
 
 var ManifestFileSuffix = []string{"yaml", "yml", "json"}
@@ -100,7 +104,7 @@ func nindentPrefix(spaces int, prefix, v string) string {
 // renderFile renders a single file to a list of k8s unstructured objects
 func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	// Read file
-	txt, err := ioutil.ReadFile(filePath)
+	txt, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read manifest file %s", filePath)
 	}
@@ -137,7 +141,7 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		return out, nil
 	}
 
-	decoder := yamlDecoder.NewYAMLOrJSONDecoder(&rendered, 4096)
+	decoder := yamlDecoder.NewYAMLOrJSONDecoder(&rendered, maxBufSizeForYamlDecode)
 	for {
 		u := unstructured.Unstructured{}
 		if err := decoder.Decode(&u); err != nil {
