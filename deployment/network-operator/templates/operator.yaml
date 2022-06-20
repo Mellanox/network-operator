@@ -74,6 +74,14 @@ spec:
             - name: HTTPS_PROXY
               value: {{ .Values.proxy.httpsProxy }}
             {{- end }}
+            {{- if .Values.proxy.httpProxy | empty | not }}
+            - name: http_proxy
+              value: {{ .Values.proxy.httpProxy }}
+            {{- end }}
+            {{- if .Values.proxy.httpsProxy | empty | not }}
+            - name: https_proxy
+              value: {{ .Values.proxy.httpsProxy }}
+            {{- end }}
             {{- if .Values.proxy.noProxy | empty | not }}
             - name: NO_PROXY
               value: {{ .Values.proxy.noProxy }}

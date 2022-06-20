@@ -66,6 +66,10 @@ spec:
               value: {{ .RuntimeSpec.HTTPProxy }}
             - name: HTTPS_PROXY
               value: {{ .RuntimeSpec.HTTPSProxy }}
+            - name: http_proxy
+              value: {{ .RuntimeSpec.HTTPProxy }}
+            - name: https_proxy
+              value: {{ .RuntimeSpec.HTTPSProxy }}
             - name: NO_PROXY
               value: {{ .RuntimeSpec.NoProxy }}
           {{- if .CrSpec.Env }}
