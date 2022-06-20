@@ -19,6 +19,7 @@ package controllers //nolint:dupl
 import (
 	goctx "context"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -28,6 +29,7 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
+//nolint:dupl
 var _ = Describe("IPoIBNetwork Controller", func() {
 
 	Context("When IPoIBNetwork CR is created", func() {
@@ -39,7 +41,7 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
-					Namespace: "",
+					Namespace: "default",
 				},
 				Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
 					NetworkNamespace: "default",
@@ -57,6 +59,13 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 			Expect(found.Spec.Master).To(Equal("ibs3"))
 			Expect(found.Spec.IPAM).To(Equal(""))
 
+			Eventually(func() error {
+				netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
+				return k8sClient.Get(goctx.TODO(),
+					types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()},
+					netAttachDef)
+			}, timeout*3, interval).ShouldNot(HaveOccurred())
+
 			err = k8sClient.Delete(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -72,7 +81,7 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 					Namespace: "default",
 				},
 				Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
-					NetworkNamespace: "",
+					NetworkNamespace: "default",
 					Master:           "",
 					IPAM:             " {\"type\": whereabouts}",
 				},
@@ -88,6 +97,12 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 			Expect(found.Status.State).To(Equal(state))
 			Expect(found.Status.Reason).To(Equal(""))
 
+			Eventually(func() error {
+				netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
+				return k8sClient.Get(goctx.TODO(),
+					types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()},
+					netAttachDef)
+			}, timeout*3, interval).ShouldNot(HaveOccurred())
 		})
 	})
 })

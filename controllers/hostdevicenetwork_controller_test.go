@@ -29,6 +29,7 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
+//nolint:dupl
 var _ = Describe("HostDeviceNetwork Controller", func() {
 
 	Context("When HostDeviceNetwork CR is created", func() {
