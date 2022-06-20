@@ -47,24 +47,18 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 30
               },
-              "repository": "mellanox",
+              "repository": "nvcr.io/nvidia/mellanox",
               "startupProbe": {
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
               },
-              "version": "5.5-1.0.3.2"
+              "version": "5.6-1.0.3.3"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 1000,\n      \"selectors\": {\n        \"ifNames\": [\"ens2f0\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvidia/cloud-native",
-              "version": "v1.2.1-ubi"
-            },
-            "sriovDevicePlugin": {
-              "config": "{\n  \"resourceList\": [\n      {\n          \"resourcePrefix\": \"nvidia.com\",\n          \"resourceName\": \"hostdev\",\n          \"selectors\": {\n              \"vendors\": [\"15b3\"],\n              \"isRdma\": true\n          }\n      }\n  ]\n}\n",
-              "image": "sriov-device-plugin",
-              "repository": "docker.io/nfvpe",
-              "version": "v3.3"
+              "version": "v1.3.2"
             }
           }
         }
@@ -77,7 +71,7 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v1.2.0
+  name: nvidia-network-operator.v1.2.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -503,4 +497,5 @@ spec:
     name: sriov-network-device-plugin
   - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
     name: rdma-shared-device-plugin
-  version: 1.2.0
+  version: 1.2.1
+  replaces: nvidia-network-operator.v1.2.0
