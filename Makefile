@@ -18,17 +18,11 @@ PACKAGE=network-operator
 ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 CHART_PATH=$(CURDIR)/deployment/$(PACKAGE)
-GOPATH?=$(CURDIR)/.gopath
-GOBIN =$(CURDIR)/bin
 TOOLSDIR=$(CURDIR)/bin
 BUILDDIR=$(CURDIR)/build/_output
-BASE=$(GOPATH)/src/$(REPO_PATH)
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
-PKGS=$(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
-TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
-
-export GOPATH
-export GOBIN
+PKGS=$(or $(PKG),$(shell $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
+TESTPKGS = $(shell $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
 # Version
 VERSION?=master
@@ -43,7 +37,7 @@ VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
 
 # Docker
 IMAGE_BUILDER?=@docker
-IMAGEDIR=$(BASE)/images
+IMAGEDIR=$(CURDIR)/images
 DOCKERFILE?=$(CURDIR)/Dockerfile
 TAG?=mellanox/network-operator
 IMAGE_BUILD_OPTS?=
@@ -61,11 +55,11 @@ IMAGE_BUILD_OPTS += $(DOCKERARGS)
 
 # Go tools
 GO      = go
-GOLANGCI_LINT = $(GOBIN)/golangci-lint
+GOLANGCI_LINT = $(TOOLSDIR)/golangci-lint
 # golangci-lint version should be updated periodically
 # we keep it fixed to avoid it from unexpectedly failing on the project
 # in case of a version bump
-GOLANGCI_LINT_VER = v1.23.8
+GOLANGCI_LINT_VER = v1.46.2
 
 HADOLINT = $(TOOLSDIR)/hadolint
 HADOLINT_VER = v1.23.0
@@ -99,31 +93,26 @@ endif
 .PHONY: all
 all: lint build
 
-$(BASE): ; $(info  setting GOPATH...)
-	@mkdir -p $(dir $@)
-	@ln -sf $(CURDIR) $@
-
-$(GOBIN) $(TOOLSDIR):
+$(TOOLSDIR):
 	@mkdir -p $@
 
-$(BUILDDIR): | $(BASE) ; $(info Creating build directory...)
-	@cd $(BASE) && mkdir -p $@
+$(BUILDDIR): ; $(info Creating build directory...)
+	mkdir -p $@
 
 build: generate $(BUILDDIR)/$(BINARY_NAME) ; $(info Building $(BINARY_NAME)...) @ ## Build executable file
 	$(info Done!)
 
 $(BUILDDIR)/$(BINARY_NAME): $(GOFILES) | $(BUILDDIR)
-	@cd $(BASE) && CGO_ENABLED=0 $(GO) build -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v -ldflags=$(LDFLAGS)
+	CGO_ENABLED=0 $(GO) build -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v -ldflags=$(LDFLAGS)
 
 # Tools
 
-$(GOLANGCI_LINT): | $(BASE) ; $(info  building golangci-lint...)
-	$Q curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VER)
+$(GOLANGCI_LINT): ; $(info  installing golangci-lint...)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VER))
 
-GOVERALLS = $(GOBIN)/goveralls
-$(GOBIN)/goveralls: | $(BASE) ; $(info  building goveralls...)
-	$Q go get github.com/mattn/goveralls
-
+GOVERALLS = $(TOOLSDIR)/goveralls
+$(GOVERALLS): | $(TOOLSDIR) ; $(info  installing goveralls...)
+	$(call go-install-tool,$(GOVERALLS),github.com/mattn/goveralls@latest)
 
 $(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
 	$Q curl -sSfL -o $(HADOLINT)  https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-Linux-x86_64
@@ -138,12 +127,8 @@ $(HELM): | $(TOOLSDIR) ; $(info  install helm...)
 # Tests
 
 .PHONY: lint
-lint: | $(BASE) $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint
-	$Q mkdir -p $(BASE)/test
-	$Q cd $(BASE) && ret=0 && \
-		test -z "$$($(GOLANGCI_LINT) run --timeout=10m | tee $(BASE)/test/lint.out)" || ret=1 ; \
-		cat $(BASE)/test/lint.out ; rm -rf $(BASE)/test ; \
-	 exit $$ret
+lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint
+	$Q $(GOLANGCI_LINT) run --timeout=10m
 
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
@@ -166,30 +151,30 @@ $(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
 $(TEST_TARGETS): test
 check test tests test-xml test-coverage: SHELL:=/bin/bash
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-check test tests: generate lint manifests | $(BASE) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+check test tests: generate lint manifests ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE) && $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
+	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
-test-xml: generate lint manifests | $(BASE) $(GO2XUNIT) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests with xUnit output
+test-xml: generate lint manifests | $(GO2XUNIT) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests with xUnit output
 	mkdir test
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE) && 2>&1 $(GO) test -timeout 20s -v $(TESTPKGS) | tee test/tests.output
+	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); 2>&1 $(GO) test -timeout 20s -v $(TESTPKGS) | tee test/tests.output
 	$(GO2XUNIT) -fail -input test/tests.output -output test/tests.xml
 
 COVERAGE_MODE = count
 .PHONY: test-coverage test-coverage-tools
 test-coverage-tools: | $(GOVERALLS)
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
-test-coverage: test-coverage-tools | $(BASE) ; $(info  running coverage tests...) @ ## Run coverage tests
+test-coverage: test-coverage-tools ; $(info  running coverage tests...) @ ## Run coverage tests
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); cd $(BASE); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
+	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
 .PHONY: image ubi-image
-image: | $(BASE) ; $(info Building Docker image...)  @ ## Build conatiner image
+image: ; $(info Building Docker image...)  @ ## Build conatiner image
 	$(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
 		--build-arg VERSION="$(BUILD_VERSION)" \
 		--build-arg VCS_REF="$(VCS_REF)" \
@@ -203,11 +188,9 @@ image-push:
 
 .PHONY: clean
 clean: ; $(info  Cleaning...)	 @ ## Cleanup everything
-	@$(GO) clean -modcache
-	@rm -rf $(GOPATH)
 	@rm -rf $(BUILDDIR)
 	@rm -rf  test
-	@rm -rf bin
+	@rm -rf $(TOOLSDIR)
 
 .PHONY: help
 help: ## Show this message
@@ -246,25 +229,11 @@ generate: controller-gen ## Generate code
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen:	## Download controller-gen locally if necessary
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.5)
 
 .PHONY: operator-sdk
 OPERATOR_SDK = ./bin/operator-sdk
@@ -316,3 +285,11 @@ else
 OPM = $(shell which opm)
 endif
 endif
+
+# go-install-tool will 'go install' any package $2 and install it to $1.
+define go-install-tool
+@[ -f $(1) ] || { \
+echo "Downloading $(2)" ;\
+GOBIN=$(TOOLSDIR) go install $(2) ;\
+}
+endef
