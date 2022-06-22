@@ -136,11 +136,6 @@ operator:
 
 imagePullSecrets: []
 
-proxy:
-  httpProxy: ""
-  httpsProxy: ""
-  noProxy: ""
-
 # NicClusterPolicy CR values:
 deployCR: false
 ofedDriver:

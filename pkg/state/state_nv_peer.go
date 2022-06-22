@@ -1,7 +1,6 @@
 package state
 
 import (
-	"os"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -56,9 +55,6 @@ type nvPeerRuntimeSpec struct {
 	CPUArch        string
 	OSName         string
 	OSVer          string
-	HTTPProxy      string
-	HTTPSProxy     string
-	NoProxy        string
 	UseHostOFED    bool
 	MaxCudaVersion int
 }
@@ -163,9 +159,6 @@ func (s *stateNVPeer) getManifestObjects(
 			CPUArch:        attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
 			OSName:         attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 			OSVer:          attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
-			HTTPProxy:      os.Getenv(consts.HTTPProxy),
-			HTTPSProxy:     os.Getenv(consts.HTTPSProxy),
-			NoProxy:        os.Getenv(consts.NoProxy),
 			UseHostOFED:    cr.Spec.OFEDDriver == nil,
 			MaxCudaVersion: maxCudaVersionMajor,
 		},

@@ -84,9 +84,6 @@ type ofedRuntimeSpec struct {
 	OSName         string
 	OSVer          string
 	MOFEDImageName string
-	HTTPProxy      string
-	HTTPSProxy     string
-	NoProxy        string
 }
 
 type ofedManifestRenderData struct {
@@ -200,9 +197,6 @@ func (s *stateOFED) getManifestObjects(
 			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr),
-			HTTPProxy:      os.Getenv(consts.HTTPProxy),
-			HTTPSProxy:     os.Getenv(consts.HTTPSProxy),
-			NoProxy:        os.Getenv(consts.NoProxy),
 		},
 		NodeAffinity: cr.Spec.NodeAffinity,
 	}

@@ -66,15 +66,3 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "network-operator"
-            {{- if .Values.proxy.httpProxy | empty | not }}
-            - name: HTTP_PROXY
-              value: {{ .Values.proxy.httpProxy }}
-            {{- end }}
-            {{- if .Values.proxy.httpsProxy | empty | not }}
-            - name: HTTPS_PROXY
-              value: {{ .Values.proxy.httpsProxy }}
-            {{- end }}
-            {{- if .Values.proxy.noProxy | empty | not }}
-            - name: NO_PROXY
-              value: {{ .Values.proxy.noProxy }}
-            {{- end }}

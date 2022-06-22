@@ -62,12 +62,6 @@ spec:
             seLinuxOptions:
               level: "s0"
           env:
-            - name: HTTP_PROXY
-              value: {{ .RuntimeSpec.HTTPProxy }}
-            - name: HTTPS_PROXY
-              value: {{ .RuntimeSpec.HTTPSProxy }}
-            - name: NO_PROXY
-              value: {{ .RuntimeSpec.NoProxy }}
           {{- if .CrSpec.Env }}
           {{- range .CrSpec.Env }}
             {{ . | yaml | nindentPrefix 14 "- " }}

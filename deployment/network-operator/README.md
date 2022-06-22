@@ -327,16 +327,6 @@ imagePullSecrets:
 ```
 
 
-### Proxy parameters
-These proxy parameter will translate to HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables to be used by the network operator and relevant resources it deploys.
-Production cluster environment can deny direct access to the Internet and instead have an HTTP or HTTPS proxy available.
-
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `proxy.httpProxy` | string | `None` | proxy URL to use for creating HTTP connections outside the cluster. The URL scheme must be http |
-| `proxy.httpsProxy` | string | `None` | proxy URL to use for creating HTTPS connections outside the cluster |
-| `proxy.noProxy` | string | `None` | A comma-separated list of destination domain names, domains, IP addresses or other network CIDRs to exclude proxying |
-
 ### NicClusterPolicy Custom resource parameters
 
 #### Mellanox OFED driver

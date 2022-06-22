@@ -31,9 +31,3 @@ const (
 const (
 	NicClusterPolicyResourceName = "nic-cluster-policy"
 )
-
-const (
-	HTTPProxy  = "HttpProxy"
-	HTTPSProxy = "HttpsProxy"
-	NoProxy    = "NoProxy"
-)
