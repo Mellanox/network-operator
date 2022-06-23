@@ -55,6 +55,12 @@ type PodProbeSpec struct {
 	PeriodSeconds       int `json:"periodSeconds"`
 }
 
+// ConfigMapNameReference references a config map in a specific namespace.
+// The namespace must be specified at the point of use.
+type ConfigMapNameReference struct {
+	Name string `json:"name,omitempty"`
+}
+
 // OFEDDriverSpec describes configuration options for OFED driver
 type OFEDDriverSpec struct {
 	// Image information for ofed driver container
@@ -69,6 +75,10 @@ type OFEDDriverSpec struct {
 	Env []v1.EnvVar `json:"env,omitempty"`
 	// Ofed auto-upgrade settings
 	OfedUpgradePolicy *OfedUpgradePolicySpec `json:"upgradePolicy,omitempty"`
+	// Optional: Custom TLS certificates configuration for driver container
+	CertConfig *ConfigMapNameReference `json:"certConfig,omitempty"`
+	// Optional: Custom package repository configuration for OFED container
+	RepoConfig *ConfigMapNameReference `json:"repoConfig,omitempty"`
 }
 
 // NVPeerDriverSpec describes configuration options for NV Peer Memory driver

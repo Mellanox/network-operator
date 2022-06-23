@@ -17,8 +17,10 @@ limitations under the License.
 package state
 
 import (
+	"context"
 	"fmt"
-	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/pkg/errors"
@@ -56,6 +58,22 @@ const (
 	mofedImageOldFormat = "%s/%s-%s:%s%s-%s"
 )
 
+//nolint:lll
+// CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
+// Where Go looks for certs: https://golang.org/src/crypto/x509/root_linux.go
+// Where OCP mounts proxy certs on RHCOS nodes:
+// https://access.redhat.com/documentation/en-us/openshift_container_platform/4.3/html/authentication/ocp-certificates#proxy-certificates_ocp-certificates
+var CertConfigPathMap = map[string]string{
+	"ubuntu": "/etc/ssl/certs",
+	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
+}
+
+// RepoConfigPathMap indicates standard OS specific paths for repository configuration files
+var RepoConfigPathMap = map[string]string{
+	"ubuntu": "/etc/apt/sources.list.d",
+	"rhcos":  "/etc/yum.repos.d",
+}
+
 // NewStateOFED creates a new OFED driver state
 func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
@@ -78,6 +96,11 @@ type stateOFED struct {
 	stateSkel
 }
 
+type additionalVolumeMounts struct {
+	VolumeMounts []v1.VolumeMount
+	Volumes      []v1.Volume
+}
+
 type ofedRuntimeSpec struct {
 	runtimeSpec
 	CPUArch        string
@@ -87,9 +110,80 @@ type ofedRuntimeSpec struct {
 }
 
 type ofedManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.OFEDDriverSpec
-	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *ofedRuntimeSpec
+	CrSpec                 *mellanoxv1alpha1.OFEDDriverSpec
+	NodeAffinity           *v1.NodeAffinity
+	RuntimeSpec            *ofedRuntimeSpec
+	AdditionalVolumeMounts additionalVolumeMounts
+}
+
+// getCertConfigPath returns the standard OS specific path for ssl keys/certificates
+func getCertConfigPath(osname string) (string, error) {
+	if path, ok := CertConfigPathMap[osname]; ok {
+		return path, nil
+	}
+	return "", fmt.Errorf("distribution not supported")
+}
+
+// getRepoConfigPath returns the standard OS specific path for repository configuration files
+func getRepoConfigPath(osname string) (string, error) {
+	if path, ok := RepoConfigPathMap[osname]; ok {
+		return path, nil
+	}
+	return "", fmt.Errorf("distribution not supported")
+}
+
+// FromConfigMap generates Volumes and VolumeMounts data for the specified ConfigMap object
+func (a *additionalVolumeMounts) FromConfigMap(configMap *v1.ConfigMap, destDir string) error {
+	volumeMounts, itemsToInclude, err := a.createConfigMapVolumeMounts(configMap, destDir)
+	if err != nil {
+		return fmt.Errorf("failed to create VolumeMounts from ConfigMap: %v", err)
+	}
+	volume := a.createConfigMapVolume(configMap.Name, itemsToInclude)
+	a.VolumeMounts = append(a.VolumeMounts, volumeMounts...)
+	a.Volumes = append(a.Volumes, volume)
+
+	return nil
+}
+
+// createConfigMapVolumeMounts creates a VolumeMount for each key
+// in the ConfigMap. Use subPath to ensure original contents
+// at destinationDir are not overwritten.
+func (a *additionalVolumeMounts) createConfigMapVolumeMounts(configMap *v1.ConfigMap, destinationDir string) (
+	[]v1.VolumeMount, []v1.KeyToPath, error) {
+	// create one volume mount per file in the ConfigMap and use subPath
+	var filenames = make([]string, 0, len(configMap.Data))
+	for filename := range configMap.Data {
+		filenames = append(filenames, filename)
+	}
+	// sort so volume mounts are added to spec in deterministic order to make testing easier
+	sort.Strings(filenames)
+	var itemsToInclude = make([]v1.KeyToPath, 0, len(filenames))
+	var volumeMounts = make([]v1.VolumeMount, 0, len(filenames))
+	for _, filename := range filenames {
+		volumeMounts = append(volumeMounts,
+			v1.VolumeMount{
+				Name:      configMap.Name,
+				ReadOnly:  true,
+				MountPath: filepath.Join(destinationDir, filename),
+				SubPath:   filename})
+		itemsToInclude = append(itemsToInclude, v1.KeyToPath{
+			Key:  filename,
+			Path: filename,
+		})
+	}
+	return volumeMounts, itemsToInclude, nil
+}
+
+func (a *additionalVolumeMounts) createConfigMapVolume(configMapName string, itemsToInclude []v1.KeyToPath) v1.Volume {
+	volumeSource := v1.VolumeSource{
+		ConfigMap: &v1.ConfigMapVolumeSource{
+			LocalObjectReference: v1.LocalObjectReference{
+				Name: configMapName,
+			},
+			Items: itemsToInclude,
+		},
+	}
+	return v1.Volume{Name: configMapName, VolumeSource: volumeSource}
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -142,11 +236,31 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 	return syncState, nil
 }
 
-// Get a map of source kinds that should be watched for the state keyed by the source kind name
+// GetWatchSources returns map of source kinds that should be watched for the state keyed by the source kind name
 func (s *stateOFED) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
 	return wr
+}
+
+// handleAdditionalMounts generates AdditionalVolumeMounts information for the specified ConfigMap
+func (s *stateOFED) handleAdditionalMounts(
+	volMounts *additionalVolumeMounts, configMapName, destDir string) error {
+	configMap := &v1.ConfigMap{}
+
+	namespace := config.FromEnv().State.NetworkOperatorResourceNamespace
+	objKey := client.ObjectKey{Namespace: namespace, Name: configMapName}
+	err := s.client.Get(context.TODO(), objKey, configMap)
+	if err != nil {
+		return fmt.Errorf("could not get ConfigMap %s from client: %v", configMapName, err)
+	}
+
+	err = volMounts.FromConfigMap(configMap, destDir)
+	if err != nil {
+		return fmt.Errorf("could not create volume mounts for ConfigMap: %s", configMapName)
+	}
+
+	return nil
 }
 
 func (s *stateOFED) getManifestObjects(
@@ -188,6 +302,34 @@ func (s *stateOFED) getManifestObjects(
 		}
 	}
 
+	additionalVolMounts := additionalVolumeMounts{}
+	osname := attrs[0].Attributes[nodeinfo.AttrTypeOSName]
+	// set any custom ssl key/certificate configuration provided
+	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
+		destinationDir, err := getCertConfigPath(osname)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get destination directory for custom TLS certificates config: %v", err)
+		}
+
+		err = s.handleAdditionalMounts(&additionalVolMounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
+		}
+	}
+
+	// set any custom repo configuration provided
+	if cr.Spec.OFEDDriver.RepoConfig != nil && cr.Spec.OFEDDriver.RepoConfig.Name != "" {
+		destinationDir, err := getRepoConfigPath(osname)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get destination directory for custom repo config: %v", err)
+		}
+
+		err = s.handleAdditionalMounts(&additionalVolMounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to mount volumes for custom repositories configuration: %v", err)
+		}
+	}
+
 	nodeAttr := attrs[0].Attributes
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
@@ -198,7 +340,8 @@ func (s *stateOFED) getManifestObjects(
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr),
 		},
-		NodeAffinity: cr.Spec.NodeAffinity,
+		NodeAffinity:           cr.Spec.NodeAffinity,
+		AdditionalVolumeMounts: additionalVolMounts,
 	}
 	// render objects
 	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)

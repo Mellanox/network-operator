@@ -339,6 +339,8 @@ imagePullSecrets:
 | `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version                                                                                                                                              |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
 | `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
+| `ofedDriver.repoConfig.name` | string | `` | Private mirror repository configuration configMap name |
+| `ofedDriver.certConfig.name` | string | `` | Custom TLS key/certificate configuration configMap name |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay                                                                                                                                 |
 | `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval                                                                                                                                      |
 | `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay                                                                                                                                |

@@ -266,6 +266,13 @@ spec:
                 description: OFEDDriverSpec describes configuration options for OFED
                   driver
                 properties:
+                  certConfig:
+                    description: 'Optional: Custom TLS certificates configuration
+                      for driver container'
+                    properties:
+                      name:
+                        type: string
+                    type: object
                   env:
                     description: List of environment variables to set in the OFED
                       container.
@@ -404,6 +411,13 @@ spec:
                     required:
                     - initialDelaySeconds
                     - periodSeconds
+                    type: object
+                  repoConfig:
+                    description: 'Optional: Custom package repository configuration
+                      for OFED container'
+                    properties:
+                      name:
+                        type: string
                     type: object
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'

@@ -180,6 +180,7 @@ rules:
   resources:
     - pods
     - pods/status
+    - configmaps
   verbs:
     - get
     - list
