@@ -49,9 +49,46 @@ var _ = Describe("DrainManager tests", func() {
 
 		time.Sleep(time.Second)
 
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, node)
+		observedNode := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, observedNode)
 		Expect(err).To(Succeed())
-		Expect(node.Spec.Unschedulable).To(BeTrue())
+		Expect(observedNode.Spec.Unschedulable).To(BeTrue())
+	})
+	It("DrainManager should drain all nodes it receives", func() {
+		ctx := context.TODO()
+
+		node1 := createNode("node1")
+		node2 := createNode("node2")
+		node3 := createNode("node3")
+
+		drainManager := upgrade.NewDrainManager(k8sInterface, upgrade.NewNodeUpgradeStateProvider(k8sClient, log), log)
+		drainSpec := &DrainSpec{
+			Enable:         true,
+			Force:          false,
+			PodSelector:    "",
+			TimeoutSecond:  1,
+			DeleteEmptyDir: true,
+		}
+		nodeArray := []*corev1.Node{node1, node2, node3}
+		err := drainManager.ScheduleNodesDrain(ctx, &upgrade.DrainConfiguration{Nodes: nodeArray, Spec: drainSpec})
+		Expect(err).To(Succeed())
+
+		time.Sleep(time.Second)
+
+		observedNode1 := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node1.Name}, observedNode1)
+		Expect(err).To(Succeed())
+		Expect(observedNode1.Spec.Unschedulable).To(BeTrue())
+
+		observedNode2 := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node2.Name}, observedNode2)
+		Expect(err).To(Succeed())
+		Expect(observedNode2.Spec.Unschedulable).To(BeTrue())
+
+		observedNode3 := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node3.Name}, observedNode3)
+		Expect(err).To(Succeed())
+		Expect(observedNode3.Spec.Unschedulable).To(BeTrue())
 	})
 	It("DrainManager should not fail on empty node list", func() {
 		ctx := context.TODO()
@@ -82,9 +119,10 @@ var _ = Describe("DrainManager tests", func() {
 
 		time.Sleep(time.Second)
 
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, node)
+		observedNode := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, observedNode)
 		Expect(err).To(Succeed())
-		Expect(node.Spec.Unschedulable).To(BeFalse())
+		Expect(observedNode.Spec.Unschedulable).To(BeFalse())
 	})
 	It("DrainManager should skip drain on empty drain spec", func() {
 		ctx := context.TODO()
@@ -99,9 +137,10 @@ var _ = Describe("DrainManager tests", func() {
 
 		time.Sleep(time.Second)
 
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, node)
+		observedNode := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, observedNode)
 		Expect(err).To(Succeed())
-		Expect(node.Spec.Unschedulable).To(BeFalse())
+		Expect(observedNode.Spec.Unschedulable).To(BeFalse())
 	})
 	It("DrainManager should skip drain if drain is disabled in the spec", func() {
 		ctx := context.TODO()
@@ -117,8 +156,9 @@ var _ = Describe("DrainManager tests", func() {
 
 		time.Sleep(time.Second)
 
-		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, node)
+		observedNode := &corev1.Node{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: node.Name}, observedNode)
 		Expect(err).To(Succeed())
-		Expect(node.Spec.Unschedulable).To(BeFalse())
+		Expect(observedNode.Spec.Unschedulable).To(BeFalse())
 	})
 })
