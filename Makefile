@@ -68,7 +68,8 @@ HELM = $(TOOLSDIR)/helm
 GET_HELM = $(TOOLSDIR)/get_helm.sh
 HELM_VER = v3.5.3
 
-TIMEOUT = 15
+# timeout for tests, seconds
+TIMEOUT = 120
 Q = $(if $(filter 1,$V),,@)
 
 ## Options for 'bundle-build'
@@ -160,7 +161,7 @@ test-xml: generate lint manifests | $(GO2XUNIT) ; $(info  running $(NAME:%=% )te
 	mkdir test
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); 2>&1 $(GO) test -timeout 20s -v $(TESTPKGS) | tee test/tests.output
+	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); 2>&1 $(GO) test -timeout $(TIMEOUT)s -v $(TESTPKGS) | tee test/tests.output
 	$(GO2XUNIT) -fail -input test/tests.output -output test/tests.xml
 
 COVERAGE_MODE = count
