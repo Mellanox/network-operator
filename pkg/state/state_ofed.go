@@ -17,8 +17,10 @@ limitations under the License.
 package state
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -36,8 +38,23 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-const stateOFEDName = "state-OFED"
-const stateOFEDDescription = "OFED driver deployed in the cluster"
+const (
+	stateOFEDName        = "state-OFED"
+	stateOFEDDescription = "OFED driver deployed in the cluster"
+
+	// newMofedImageFormatVersion is the first mofed driver container version
+	// which has a new image name format
+	// TODO: update with new version
+	newMofedImageFormatVersion = "5.7-0.1.2.0"
+	// mofedImageNewFormat is the new mofed driver container image name format
+	// format: <repo>/<image-name>:<driver-version>-<os-name><os-ver>-<cpu-arch>
+	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-ubuntu20.04-amd64
+	mofedImageNewFormat = "%s/%s:%s-%s%s-%s"
+	// mofedImageOldFormat is the old mofed driver container image name format
+	// format: <repo>/<image-name>-<driver-version>:<os-name><os-ver>-<cpu-arch>
+	// e.x: nvcr.io/nvidia/mellanox/mofed-5.6-1.0.3.3:ubuntu20.04-amd64
+	mofedImageOldFormat = "%s/%s-%s:%s%s-%s"
+)
 
 // NewStateOFED creates a new OFED driver state
 func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
@@ -63,12 +80,13 @@ type stateOFED struct {
 
 type ofedRuntimeSpec struct {
 	runtimeSpec
-	CPUArch    string
-	OSName     string
-	OSVer      string
-	HTTPProxy  string
-	HTTPSProxy string
-	NoProxy    string
+	CPUArch        string
+	OSName         string
+	OSVer          string
+	MOFEDImageName string
+	HTTPProxy      string
+	HTTPSProxy     string
+	NoProxy        string
 }
 
 type ofedManifestRenderData struct {
@@ -173,16 +191,18 @@ func (s *stateOFED) getManifestObjects(
 		}
 	}
 
+	nodeAttr := attrs[0].Attributes
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CPUArch:     attrs[0].Attributes[nodeinfo.AttrTypeCPUArch],
-			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
-			OSVer:       attrs[0].Attributes[nodeinfo.AttrTypeOSVer],
-			HTTPProxy:   os.Getenv(consts.HTTPProxy),
-			HTTPSProxy:  os.Getenv(consts.HTTPSProxy),
-			NoProxy:     os.Getenv(consts.NoProxy),
+			runtimeSpec:    runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			CPUArch:        nodeAttr[nodeinfo.AttrTypeCPUArch],
+			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
+			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
+			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr),
+			HTTPProxy:      os.Getenv(consts.HTTPProxy),
+			HTTPSProxy:     os.Getenv(consts.HTTPSProxy),
+			NoProxy:        os.Getenv(consts.NoProxy),
 		},
 		NodeAffinity: cr.Spec.NodeAffinity,
 	}
@@ -194,4 +214,29 @@ func (s *stateOFED) getManifestObjects(
 	}
 	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
+}
+
+// getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
+// TODO(adrianc): in Network-Operator v1.5.0, we should just use the new naming scheme
+func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
+	nodeAttr map[nodeinfo.AttributeType]string) string {
+	mofedImgFmt := mofedImageNewFormat
+
+	curDriverVer, err1 := semver.NewVersion(cr.Spec.OFEDDriver.Version)
+	newFormatDriverVer, err2 := semver.NewVersion(newMofedImageFormatVersion)
+	if err1 == nil && err2 == nil {
+		if curDriverVer.LessThan(newFormatDriverVer) {
+			mofedImgFmt = mofedImageOldFormat
+		}
+	} else {
+		log.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
+	}
+
+	return fmt.Sprintf(mofedImgFmt,
+		cr.Spec.OFEDDriver.Repository,
+		cr.Spec.OFEDDriver.Image,
+		cr.Spec.OFEDDriver.Version,
+		nodeAttr[nodeinfo.AttrTypeOSName],
+		nodeAttr[nodeinfo.AttrTypeOSVer],
+		nodeAttr[nodeinfo.AttrTypeCPUArch])
 }

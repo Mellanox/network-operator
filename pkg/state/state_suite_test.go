@@ -21,7 +21,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+var _ = BeforeSuite(func() {
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+})
 
 func TestState(t *testing.T) {
 	RegisterFailHandler(Fail)
