@@ -92,10 +92,10 @@ sriov-network-operator:
   images:
     operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-1.2.0
     sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-1.2.0
-    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.2
+    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.3
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
-    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:a765300344368efbf43f71016e9641c58ec1241b
-    resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:4f0659bb26d08688127d5d51ce9bb075182f1dc2
+    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.5.1
+    resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
 
 # General Operator related values
