@@ -19,6 +19,7 @@ package upgrade_test
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -224,6 +225,8 @@ var _ = Describe("UpgradeStateManager tests", func() {
 	It("UpgradeStateManager should schedule drain for UpgradeStateDrain nodes and pass drain config", func() {
 		ctx := context.TODO()
 
+		skipDrainPodSelector := fmt.Sprintf("%s!=true", upgrade.OfedUpgradeSkipDrainLabel)
+
 		clusterState := upgrade.NewClusterUpgradeState()
 		clusterState.NodeStates[upgrade.UpgradeStateDrain] = []*upgrade.NodeUpgradeState{
 			{Node: nodeWithUpgradeState(upgrade.UpgradeStateDrain)},
@@ -231,24 +234,32 @@ var _ = Describe("UpgradeStateManager tests", func() {
 			{Node: nodeWithUpgradeState(upgrade.UpgradeStateDrain)},
 		}
 
-		policy := &v1alpha1.OfedUpgradePolicySpec{
+		policy := v1alpha1.OfedUpgradePolicySpec{
 			AutoUpgrade: true,
 			DrainSpec: &v1alpha1.DrainSpec{
 				Enable: true,
 			},
 		}
 
+		// Upgrade state manager should add the pod selector for skipping network-operator pods
+		expectedDrainSpec := *policy.DrainSpec
+		expectedDrainSpec.PodSelector = skipDrainPodSelector
+
 		drainManagerMock := mocks.DrainManager{}
 		drainManagerMock.
 			On("ScheduleNodesDrain", mock.Anything, mock.Anything).
 			Return(func(ctx context.Context, config *upgrade.DrainConfiguration) error {
-				Expect(config.Spec).To(Equal(policy.DrainSpec))
+				Expect(config.Spec).To(Equal(&expectedDrainSpec))
 				Expect(config.Nodes).To(HaveLen(3))
 				return nil
 			})
 		stateManager := upgrade.NewClusterUpdateStateManager(
 			&drainManagerMock, &podDeleteManager, &uncordonManager, &nodeUpgradeStateProvider, log, k8sClient, k8sInterface)
-		Expect(stateManager.ApplyState(ctx, &clusterState, policy)).To(Succeed())
+		Expect(stateManager.ApplyState(ctx, &clusterState, &policy)).To(Succeed())
+
+		policy.DrainSpec.PodSelector = "test-label=test-value"
+		expectedDrainSpec.PodSelector = fmt.Sprintf("%s,%s", policy.DrainSpec.PodSelector, skipDrainPodSelector)
+		Expect(stateManager.ApplyState(ctx, &clusterState, &policy)).To(Succeed())
 	})
 	It("UpgradeStateManager should fail if drain manager returns an error", func() {
 		ctx := context.TODO()

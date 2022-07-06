@@ -19,7 +19,8 @@ package upgrade
 const (
 	UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
-	OfedDriverLabel = "nvidia.com/ofed-driver"
+	OfedDriverLabel           = "nvidia.com/ofed-driver"
+	OfedUpgradeSkipDrainLabel = "nvidia.com/ofed-upgrade.skip-drain"
 
 	// UpgradeStateUnknown Node has this state when the upgrade flow is disabled or the node hasn't been processed yet
 	UpgradeStateUnknown = ""
