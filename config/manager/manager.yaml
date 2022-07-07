@@ -21,6 +21,7 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
+        nvidia.com/ofed-upgrade.skip-drain: "true"
     spec:
       securityContext:
         runAsUser: 65532

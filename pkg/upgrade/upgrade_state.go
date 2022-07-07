@@ -260,6 +260,17 @@ func (m *ClusterUpgradeStateManager) ProcessDrainNodes(
 		return nil
 	}
 
+	// We want to skip network-operator itself during the drain because the upgrade process might hang
+	// if the operator is evicted and can't be rescheduled to any other node, e.g. in a single-node cluster.
+	// It's safe to do because the goal of the node draining during the upgrade is to
+	// evict pods that might use MOFED and network-operator doesn't use in its own pod.
+	skipDrainPodSelector := fmt.Sprintf("%s!=true", OfedUpgradeSkipDrainLabel)
+	if drainSpec.PodSelector == "" {
+		drainSpec.PodSelector = skipDrainPodSelector
+	} else {
+		drainSpec.PodSelector = fmt.Sprintf("%s,%s", drainSpec.PodSelector, skipDrainPodSelector)
+	}
+
 	drainConfig := DrainConfiguration{
 		Spec:  drainSpec,
 		Nodes: make([]*v1.Node, 0, len(currentClusterState.NodeStates[UpgradeStateDrain])),
