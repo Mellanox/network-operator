@@ -327,16 +327,6 @@ imagePullSecrets:
 ```
 
 
-### Proxy parameters
-These proxy parameter will translate to HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables to be used by the network operator and relevant resources it deploys.
-Production cluster environment can deny direct access to the Internet and instead have an HTTP or HTTPS proxy available.
-
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `proxy.httpProxy` | string | `None` | proxy URL to use for creating HTTP connections outside the cluster. The URL scheme must be http |
-| `proxy.httpsProxy` | string | `None` | proxy URL to use for creating HTTPS connections outside the cluster |
-| `proxy.noProxy` | string | `None` | A comma-separated list of destination domain names, domains, IP addresses or other network CIDRs to exclude proxying |
-
 ### NicClusterPolicy Custom resource parameters
 
 #### Mellanox OFED driver
@@ -349,6 +339,8 @@ Production cluster environment can deny direct access to the Internet and instea
 | `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version                                                                                                                                              |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
 | `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
+| `ofedDriver.repoConfig.name` | string | `` | Private mirror repository configuration configMap name |
+| `ofedDriver.certConfig.name` | string | `` | Custom TLS key/certificate configuration configMap name |
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay                                                                                                                                 |
 | `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval                                                                                                                                      |
 | `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay                                                                                                                                |

@@ -62,12 +62,6 @@ spec:
             seLinuxOptions:
               level: "s0"
           env:
-            - name: HTTP_PROXY
-              value: {{ .RuntimeSpec.HTTPProxy }}
-            - name: HTTPS_PROXY
-              value: {{ .RuntimeSpec.HTTPSProxy }}
-            - name: NO_PROXY
-              value: {{ .RuntimeSpec.NoProxy }}
           {{- if .CrSpec.Env }}
           {{- range .CrSpec.Env }}
             {{ . | yaml | nindentPrefix 14 "- " }}
@@ -83,9 +77,16 @@ spec:
               mountPath: /host/etc
             - name: host-usr
               mountPath: /host/usr
-
             - name: host-udev
               mountPath: /host/lib/udev
+            {{- if.AdditionalVolumeMounts.VolumeMounts }}
+            {{- range .AdditionalVolumeMounts.VolumeMounts }}
+            - name: {{ .Name }}
+              mountPath: {{ .MountPath }}
+              subPath: {{ .SubPath }}
+              readOnly: {{ .ReadOnly }}
+            {{- end }}
+            {{- end }}
           startupProbe:
             exec:
               command:
@@ -127,6 +128,15 @@ spec:
         - name: host-udev
           hostPath:
             path: /lib/udev
+        {{- range .AdditionalVolumeMounts.Volumes }}
+        - name: {{ .Name }}
+          configMap:
+            name: {{ .Name }}
+            items:
+            {{- range .ConfigMap.Items }}
+            {{ . | yaml | nindentPrefix 14 "- " }}
+            {{- end }}
+        {{- end }}
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         feature.node.kubernetes.io/system-os_release.ID: {{ .RuntimeSpec.OSName }}
