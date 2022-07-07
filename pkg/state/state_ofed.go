@@ -21,13 +21,21 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
+	osconfigv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -58,6 +66,31 @@ const (
 	mofedImageOldFormat = "%s/%s-%s:%s%s-%s"
 )
 
+// Openshift cluster-wide Proxy
+const (
+	// ocpTrustedCAConfigMapName Openshift will inject bundle with trusted CA to this ConfigMap
+	ocpTrustedCAConfigMapName = "ocp-network-operator-trusted-ca"
+	// ocpTrustedCABundleFileName is the name of the key in the ocpTrustedCAConfigMapName ConfigMap which
+	// contains trusted CA chain injected by Openshift
+	ocpTrustedCABundleFileName = "ca-bundle.crt"
+	// contains target CA filename name in the container for rhcos
+	ocpTrustedCATargetFileName = "tls-ca-bundle.pem"
+	// if cluster-wide proxy with custom trusted CA key is defined,
+	// operator need to wait for Openshift to inject this CA to the ConfigMap with ocpTrustedCAConfigMapName name
+	// this const define check interval
+	ocpTrustedCAConfigMapCheckInterval = time.Millisecond * 30
+	// max time to wait for ConfigMap provisioning, will print warning and continue execution if
+	// this timeout occurred
+	ocpTrustedCAConfigMapCheckTimeout = time.Second * 15
+)
+
+// names of environment variables which used for OFED proxy configuration
+const (
+	envVarNameHTTPProxy  = "HTTP_PROXY"
+	envVarNameHTTPSProxy = "HTTPS_PROXY"
+	envVarNameNoProxy    = "NO_PROXY"
+)
+
 //nolint:lll
 // CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
 // Where Go looks for certs: https://golang.org/src/crypto/x509/root_linux.go
@@ -72,6 +105,14 @@ var CertConfigPathMap = map[string]string{
 var RepoConfigPathMap = map[string]string{
 	"ubuntu": "/etc/apt/sources.list.d",
 	"rhcos":  "/etc/yum.repos.d",
+}
+
+// ConfigMapKeysOverride contains static key override rules for ConfigMaps
+// now the only use-case is to override key name in the ConfigMap which automatically
+// populated by Openshift
+// format is the following: {"<configMapName>": {"<keyNameInConfigMap>": "<dstFileNameInContainer>"}}
+var ConfigMapKeysOverride = map[string]map[string]string{
+	ocpTrustedCAConfigMapName: {ocpTrustedCABundleFileName: ocpTrustedCATargetFileName},
 }
 
 // NewStateOFED creates a new OFED driver state
@@ -150,6 +191,8 @@ func (a *additionalVolumeMounts) FromConfigMap(configMap *v1.ConfigMap, destDir 
 // at destinationDir are not overwritten.
 func (a *additionalVolumeMounts) createConfigMapVolumeMounts(configMap *v1.ConfigMap, destinationDir string) (
 	[]v1.VolumeMount, []v1.KeyToPath, error) {
+	// static configMap key overrides
+	cmKeyOverrides := ConfigMapKeysOverride[configMap.GetName()]
 	// create one volume mount per file in the ConfigMap and use subPath
 	var filenames = make([]string, 0, len(configMap.Data))
 	for filename := range configMap.Data {
@@ -160,15 +203,19 @@ func (a *additionalVolumeMounts) createConfigMapVolumeMounts(configMap *v1.Confi
 	var itemsToInclude = make([]v1.KeyToPath, 0, len(filenames))
 	var volumeMounts = make([]v1.VolumeMount, 0, len(filenames))
 	for _, filename := range filenames {
+		dstFilename := filename
+		if override := cmKeyOverrides[filename]; override != "" {
+			dstFilename = override
+		}
 		volumeMounts = append(volumeMounts,
 			v1.VolumeMount{
 				Name:      configMap.Name,
 				ReadOnly:  true,
-				MountPath: filepath.Join(destinationDir, filename),
-				SubPath:   filename})
+				MountPath: filepath.Join(destinationDir, dstFilename),
+				SubPath:   dstFilename})
 		itemsToInclude = append(itemsToInclude, v1.KeyToPath{
 			Key:  filename,
-			Path: filename,
+			Path: dstFilename,
 		})
 	}
 	return volumeMounts, itemsToInclude, nil
@@ -207,6 +254,11 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
 
+	// Openshift specific logic, do nothing in vanilla k8s cluster
+	if err := s.handleOpenshiftClusterWideProxyConfig(cr); err != nil {
+		return SyncStateNotReady, errors.Wrap(err, "failed to handle Openshift cluster-wide proxy settings")
+	}
+
 	objs, err := s.getManifestObjects(cr, nodeInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
@@ -241,6 +293,45 @@ func (s *stateOFED) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
 	return wr
+}
+
+// handleOpenshiftClusterWideProxyConfig handles cluster-wide proxy configuration in Openshift cluster,
+// populates CA an ENV configs in NicClusterPolicy with dynamic configuration from osconfigv1.Proxy object if
+// these settings were not explicitly set in NicClusterPolicy by admin
+func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(cr *mellanoxv1alpha1.NicClusterPolicy) error {
+	// read ClusterWide Proxy configuration for Openshift
+	clusterWideProxyConfig, err := s.readOpenshiftProxyConfig()
+	if err != nil {
+		return err
+	}
+	if clusterWideProxyConfig == nil {
+		// we are probably not in Openshift cluster
+		return nil
+	}
+
+	s.setEnvFromClusterWideProxy(cr, clusterWideProxyConfig)
+
+	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
+		// CA certificate configMap explicitly set in NicClusterPolicy, ignore CA settings
+		// in cluster-wide proxy
+		log.V(consts.LogLevelDebug).Info("use trusted certificate configuration from NicClusterPolicy",
+			"ConfigMap", cr.Spec.OFEDDriver.CertConfig.Name)
+		return nil
+	}
+
+	if clusterWideProxyConfig.Spec.TrustedCA.Name == "" {
+		// trustedCA is not configured in ClusterWide proxy
+		return nil
+	}
+
+	ocpTrustedCAConfigMap, err := s.getOrCreateTrustedCAConfigMap(cr)
+	if err != nil {
+		return err
+	}
+	cr.Spec.OFEDDriver.CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{Name: ocpTrustedCAConfigMap.GetName()}
+	log.V(consts.LogLevelDebug).Info("use trusted certificate configuration from Openshift cluster-Wide proxy",
+		"ConfigMap", ocpTrustedCAConfigMap.GetName())
+	return nil
 }
 
 // handleAdditionalMounts generates AdditionalVolumeMounts information for the specified ConfigMap
@@ -376,4 +467,128 @@ func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolic
 		nodeAttr[nodeinfo.AttrTypeOSName],
 		nodeAttr[nodeinfo.AttrTypeOSVer],
 		nodeAttr[nodeinfo.AttrTypeCPUArch])
+}
+
+// readOpenshiftProxyConfig reads ClusterWide Proxy configuration for Openshift
+// https://docs.openshift.com/container-platform/4.10/networking/enable-cluster-wide-proxy.html
+// returns nil if object not found, error if generic API error happened
+func (s *stateOFED) readOpenshiftProxyConfig() (*osconfigv1.Proxy, error) {
+	proxyConfig := &osconfigv1.Proxy{}
+	err := s.client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, proxyConfig)
+	if err != nil {
+		if meta.IsNoMatchError(err) || apiErrors.IsNotFound(err) {
+			// Proxy CRD is not registered (probably we are not in Openshift cluster)
+			// or CR with name "cluster" not found
+			// skip Cluster wide Proxy configuration
+			return nil, nil
+		}
+		// retryable API error, e.g. connectivity issue
+		return nil, errors.Wrap(err, "failed to read Cluster Wide proxy settings")
+	}
+	return proxyConfig, nil
+}
+
+// getOrCreateTrustedCAConfigMap creates or returns an existing Trusted CA Bundle ConfigMap.
+// returns nil ConfigMap if trustedCA is not configured
+func (s *stateOFED) getOrCreateTrustedCAConfigMap(cr *mellanoxv1alpha1.NicClusterPolicy) (*v1.ConfigMap, error) {
+	var (
+		cmName      = ocpTrustedCAConfigMapName
+		cmNamespace = config.FromEnv().State.NetworkOperatorResourceNamespace
+	)
+
+	configMap := &v1.ConfigMap{}
+	err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+	if err == nil {
+		log.V(consts.LogLevelDebug).Info("TrustedCAConfigMap already exist",
+			"name", cmName, "namespace", cmNamespace)
+		if configMap.Data[ocpTrustedCABundleFileName] == "" {
+			log.V(consts.LogLevelWarning).Info("TrustedCAConfigMap has empty ca-bundle.crt key",
+				"name", cmName, "namespace", cmNamespace)
+		}
+		return configMap, nil
+	}
+	if err != nil && !apiErrors.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to get trusted CA bundle config map %s: %s", cmName, err)
+	}
+
+	// configMap not found, try to create
+	configMap = &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cmName,
+			Namespace: cmNamespace,
+			// apply label "config.openshift.io/inject-trusted-cabundle: true",
+			// so that cert is automatically filled/updated by Openshift
+			Labels: map[string]string{"config.openshift.io/inject-trusted-cabundle": "true"},
+		},
+		Data: map[string]string{
+			ocpTrustedCABundleFileName: "",
+		},
+	}
+	if err := controllerutil.SetControllerReference(cr, configMap, s.scheme); err != nil {
+		return nil, err
+	}
+
+	err = s.client.Create(context.TODO(), configMap)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create TrustedCAConfigMap")
+	}
+	log.V(consts.LogLevelInfo).Info("TrustedCAConfigMap created",
+		"name", cmName, "namespace", cmNamespace)
+
+	// check that CA bundle is populated by Openshift before proceed
+	err = wait.Poll(ocpTrustedCAConfigMapCheckInterval, ocpTrustedCAConfigMapCheckTimeout, func() (bool, error) {
+		err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+		if err != nil {
+			if apiErrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return configMap.Data[ocpTrustedCABundleFileName] != "", nil
+	})
+	if err != nil {
+		if !errors.Is(err, wait.ErrWaitTimeout) {
+			return nil, errors.Wrap(err, "failed to check TrustedCAConfigMap content")
+		}
+		log.V(consts.LogLevelWarning).Info("TrustedCAConfigMap was not populated by Openshift,"+
+			"this may result in misconfiguration of trusted certificates for the OFED container",
+			"name", cmName, "namespace", cmNamespace)
+	} else {
+		log.V(consts.LogLevelInfo).Info("TrustedCAConfigMap has been populated by Openshift",
+			"name", cmName, "namespace", cmNamespace)
+	}
+	return configMap, nil
+}
+
+// setEnvFromClusterWideProxy set proxy env variables from cluster wide proxy in OCP
+// values which already configured in NicClusterPolicy take precedence
+func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPolicy, proxyConfig *osconfigv1.Proxy) {
+	// use [][]string to preserve order of env variables
+	proxiesParams := [][]string{
+		{envVarNameHTTPSProxy, proxyConfig.Spec.HTTPSProxy},
+		{envVarNameHTTPProxy, proxyConfig.Spec.HTTPProxy},
+		{envVarNameNoProxy, proxyConfig.Spec.NoProxy},
+	}
+	envsFromStaticCfg := map[string]v1.EnvVar{}
+	for _, e := range cr.Spec.OFEDDriver.Env {
+		envsFromStaticCfg[e.Name] = e
+	}
+	for _, param := range proxiesParams {
+		envKey, envValue := param[0], param[1]
+		if envValue == "" {
+			continue
+		}
+		_, upperCaseExist := envsFromStaticCfg[strings.ToUpper(envKey)]
+		_, lowerCaseExist := envsFromStaticCfg[strings.ToLower(envKey)]
+		if upperCaseExist || lowerCaseExist {
+			// environment variable statically configured in NicClusterPolicy
+			continue
+		}
+		// add proxy settings in both cases for compatibility
+		cr.Spec.OFEDDriver.Env = append(cr.Spec.OFEDDriver.Env,
+			v1.EnvVar{Name: strings.ToUpper(envKey), Value: envValue},
+			v1.EnvVar{Name: strings.ToLower(envKey), Value: envValue},
+		)
+	}
 }
