@@ -234,6 +234,14 @@ rules:
     resourceNames:
       - nvidia-network-operator-privileged
   - apiGroups:
+      - config.openshift.io
+    resources:
+      - proxies
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - coordination.k8s.io
     resources:
       - leases
