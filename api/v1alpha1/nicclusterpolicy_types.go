@@ -144,6 +144,7 @@ type DrainSpec struct {
 	// TimeoutSecond specifies the length of time in seconds to wait before giving up drain, zero means infinite
 	// +optional
 	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Minimum:=0
 	TimeoutSecond int `json:"timeoutSeconds,omitempty"`
 	// DeleteEmptyDir indicates if should continue even if there are pods using emptyDir
 	// (local data that will be deleted when the node is drained)
@@ -163,6 +164,7 @@ type OfedUpgradePolicySpec struct {
 	// 0 means no limit, all nodes will be upgraded in parallel
 	// +optional
 	// +kubebuilder:default:=1
+	// +kubebuilder:validation:Minimum:=0
 	MaxParallelUpgrades int        `json:"maxParallelUpgrades,omitempty"`
 	DrainSpec           *DrainSpec `json:"drain,omitempty"`
 }

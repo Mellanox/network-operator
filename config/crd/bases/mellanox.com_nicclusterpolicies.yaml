@@ -470,6 +470,7 @@ spec:
                             description: TimeoutSecond specifies the length of time
                               in seconds to wait before giving up drain, zero means
                               infinite
+                            minimum: 0
                             type: integer
                         type: object
                       maxParallelUpgrades:
@@ -477,6 +478,7 @@ spec:
                         description: MaxParallelUpgrades indicates how many nodes
                           can be upgraded in parallel 0 means no limit, all nodes
                           will be upgraded in parallel
+                        minimum: 0
                         type: integer
                     type: object
                   version:
