@@ -19,6 +19,10 @@ kind: NicClusterPolicy
 metadata:
   name: nic-cluster-policy
 spec:
+  {{- if .Values.nodeAffinity }}
+  nodeAffinity:
+{{ toYaml .Values.nodeAffinity | indent 4 }}
+  {{- end }}
   {{- if .Values.ofedDriver.deploy }}
   ofedDriver:
     image: {{ .Values.ofedDriver.image }}

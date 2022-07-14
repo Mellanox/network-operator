@@ -317,6 +317,7 @@ We have introduced the following Chart parameters.
 | `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used                                    |
 | `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling Network Operator image                                  |
 | `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters                                           |
+| `nodeAffinity` | yaml | `` | Override the node affinity for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.  |
 
 #### imagePullSecrets customization
 To provide imagePullSecrets object references, you need to specify them using a following structure:
@@ -325,7 +326,6 @@ imagePullSecrets:
   - image-pull-secret1
   - image-pull-secret2
 ```
-
 
 ### NicClusterPolicy Custom resource parameters
 
@@ -460,6 +460,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
 | `ipamPlugin.version` | string | `v0.5.1-amd64` | IPAM CNI Plugin image version  |
 | `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
+
 ## Deployment Examples
 
 As there are several parameters that are required to be provided to create the custom resource during
