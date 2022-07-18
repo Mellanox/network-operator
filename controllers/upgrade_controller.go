@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -162,22 +163,19 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 		return nil, err
 	}
 
-	for i := range podList.Items {
-		pod := &podList.Items[i]
-		if pod.OwnerReferences == nil || len(pod.OwnerReferences) < 1 {
-			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod has no owner DaemonSet", "pod", pod)
-			continue
+	filteredPodList := []corev1.Pod{}
+	for _, ds := range daemonSets {
+		dsPods := r.getPodsOwnedbyDs(ds, podList.Items)
+		if int(ds.Status.DesiredNumberScheduled) < len(dsPods) {
+			r.Log.V(consts.LogLevelInfo).Info("Driver daemon set has Unscheduled pods", "name", ds.Name)
+			return nil, fmt.Errorf("DS should not have Unscheduled pods")
 		}
-		r.Log.V(consts.LogLevelDebug).Info("Pod", "pod", pod.Name, "owner", pod.OwnerReferences[0].Name)
+		filteredPodList = append(filteredPodList, dsPods...)
+	}
 
-		ownerDaemonSet, ok := daemonSets[pod.OwnerReferences[0].UID]
-
-		if !ok {
-			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod is not owned by an OFED Driver DaemonSet",
-				"pod", pod, "actual owner", pod.OwnerReferences[0])
-			continue
-		}
-
+	for i := range filteredPodList {
+		pod := &filteredPodList[i]
+		ownerDaemonSet := daemonSets[pod.OwnerReferences[0].UID]
 		nodeState, err := r.buildNodeUpgradeState(ctx, pod, ownerDaemonSet)
 		if err != nil {
 			r.Log.V(consts.LogLevelError).Error(err, "Failed to build node upgrade state for pod", "pod", pod)
@@ -227,6 +225,27 @@ func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.
 	}
 
 	return daemonSetMap, nil
+}
+
+// getPodsOwnedbyDs gets a list of pods return a list of the pods owned by the specified DaemonSet
+func (r *UpgradeReconciler) getPodsOwnedbyDs(ds *appsv1.DaemonSet, pods []corev1.Pod) []corev1.Pod {
+	dsPodList := []corev1.Pod{}
+	for i := range pods {
+		pod := &pods[i]
+		if pod.OwnerReferences == nil || len(pod.OwnerReferences) < 1 {
+			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod has no owner DaemonSet", "pod", pod)
+			continue
+		}
+		r.Log.V(consts.LogLevelDebug).Info("Pod", "pod", pod.Name, "owner", pod.OwnerReferences[0].Name)
+
+		if ds.UID == pod.OwnerReferences[0].UID {
+			dsPodList = append(dsPodList, *pod)
+		} else {
+			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod is not owned by an OFED Driver DaemonSet",
+				"pod", pod, "actual owner", pod.OwnerReferences[0])
+		}
+	}
+	return dsPodList
 }
 
 // SetupWithManager sets up the controller with the Manager.
