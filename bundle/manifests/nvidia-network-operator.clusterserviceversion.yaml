@@ -52,6 +52,16 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
               },
+               "upgradePolicy": {
+                "autoUpgrade": false,
+                "drain": {
+                    "deleteEmptyDir": true,
+                    "enable": true,
+                    "force": true,
+                    "timeoutSeconds": 0
+                },
+                "maxParallelUpgrades": 1
+              },
               "version": "5.6-1.0.3.3"
             },
             "rdmaSharedDevicePlugin": {
