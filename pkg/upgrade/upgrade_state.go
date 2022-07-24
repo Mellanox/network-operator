@@ -110,7 +110,8 @@ func (m *ClusterUpgradeStateManager) ApplyState(ctx context.Context,
 		UpgradeStateUpgradeRequired, len(currentState.NodeStates[UpgradeStateUpgradeRequired]),
 		UpgradeStateDrain, len(currentState.NodeStates[UpgradeStateDrain]),
 		UpgradeStateDrainFailed, len(currentState.NodeStates[UpgradeStateDrainFailed]),
-		UpgradeStatePodRestart, len(currentState.NodeStates[UpgradeStatePodRestart]))
+		UpgradeStatePodRestart, len(currentState.NodeStates[UpgradeStatePodRestart]),
+		UpgradeStateUncordonRequired, len(currentState.NodeStates[UpgradeStateUncordonRequired]))
 
 	upgradesInProgress := len(currentState.NodeStates[UpgradeStateDrain]) +
 		len(currentState.NodeStates[UpgradeStatePodRestart]) +
