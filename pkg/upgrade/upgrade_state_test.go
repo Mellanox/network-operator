@@ -299,8 +299,9 @@ var _ = Describe("UpgradeStateManager tests", func() {
 			Status:     corev1.PodStatus{Phase: "Running"},
 			ObjectMeta: v1.ObjectMeta{Labels: map[string]string{utils.PodTemplateGenerationLabel: "2"}}}
 		outdatedTerminatingPod := &corev1.Pod{
-			Status:     corev1.PodStatus{Phase: "Terminating"},
 			ObjectMeta: v1.ObjectMeta{Labels: map[string]string{utils.PodTemplateGenerationLabel: "1"}}}
+		now := v1.Now()
+		outdatedTerminatingPod.ObjectMeta.DeletionTimestamp = &now
 
 		clusterState := upgrade.NewClusterUpgradeState()
 		clusterState.NodeStates[upgrade.UpgradeStatePodRestart] = []*upgrade.NodeUpgradeState{
