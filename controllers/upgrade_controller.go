@@ -166,7 +166,7 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 	filteredPodList := []corev1.Pod{}
 	for _, ds := range daemonSets {
 		dsPods := r.getPodsOwnedbyDs(ds, podList.Items)
-		if int(ds.Status.DesiredNumberScheduled) < len(dsPods) {
+		if int(ds.Status.DesiredNumberScheduled) != len(dsPods) {
 			r.Log.V(consts.LogLevelInfo).Info("Driver daemon set has Unscheduled pods", "name", ds.Name)
 			return nil, fmt.Errorf("DS should not have Unscheduled pods")
 		}
