@@ -298,7 +298,9 @@ func (m *ClusterUpgradeStateManager) ProcessPodRestartNodes(
 		}
 		if podTemplateGeneration != nodeState.DriverDaemonSet.GetGeneration() {
 			// Pods should only be scheduled for restart if they are not terminating or restarting already
-			if nodeState.DriverPod.Status.Phase != "Terminating" {
+			// To determinate terminating state we need to check for deletion timestamp with will be filled
+			// one pod termination process started
+			if nodeState.DriverPod.ObjectMeta.DeletionTimestamp.IsZero() {
 				pods = append(pods, nodeState.DriverPod)
 			}
 		} else {
