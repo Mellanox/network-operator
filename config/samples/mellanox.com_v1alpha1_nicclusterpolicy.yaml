@@ -44,7 +44,7 @@ spec:
         enable: true
         force: false
         podSelector: ""
-        timeoutSeconds: 0
+        timeoutSeconds: 300
         deleteEmptyDir: false
   sriovDevicePlugin:
     image: sriov-device-plugin

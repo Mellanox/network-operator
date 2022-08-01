@@ -35,7 +35,8 @@ spec:
         # specify a label selector to filter pods on the node that need to be drained
         podSelector: ""
         # specify the length of time in seconds to wait before giving up drain, zero means infinite
-        timeoutSeconds: 0
+        # if not specified, the default is 300 seconds
+        timeoutSeconds: 300
         # specify if should continue even if there are pods using emptyDir
         deleteEmptyDir: false
 ```

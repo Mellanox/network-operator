@@ -26,7 +26,7 @@ spec:
         deleteEmptyDir: true
         enable: true
         force: true
-        timeoutSeconds: 0
+        timeoutSeconds: 300
       maxParallelUpgrades: 1
   sriovDevicePlugin:
     config: |
