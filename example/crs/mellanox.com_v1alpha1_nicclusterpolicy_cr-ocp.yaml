@@ -26,7 +26,7 @@ spec:
         deleteEmptyDir: true
         enable: true
         force: true
-        timeoutSeconds: 0
+        timeoutSeconds: 300
       maxParallelUpgrades: 1
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin

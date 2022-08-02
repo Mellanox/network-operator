@@ -143,7 +143,7 @@ type DrainSpec struct {
 	PodSelector string `json:"podSelector,omitempty"`
 	// TimeoutSecond specifies the length of time in seconds to wait before giving up drain, zero means infinite
 	// +optional
-	// +kubebuilder:default:=0
+	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Minimum:=0
 	TimeoutSecond int `json:"timeoutSeconds,omitempty"`
 	// DeleteEmptyDir indicates if should continue even if there are pods using emptyDir

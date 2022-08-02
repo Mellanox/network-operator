@@ -466,7 +466,7 @@ spec:
                               more details on label selectors, see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
                             type: string
                           timeoutSeconds:
-                            default: 0
+                            default: 300
                             description: TimeoutSecond specifies the length of time
                               in seconds to wait before giving up drain, zero means
                               infinite

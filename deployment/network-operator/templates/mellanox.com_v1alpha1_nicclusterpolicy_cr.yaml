@@ -58,7 +58,7 @@ spec:
         enable: {{ .Values.ofedDriver.upgradePolicy.drain.enable | default true }}
         force: {{ .Values.ofedDriver.upgradePolicy.drain.force | default false }}
         podSelector: {{ .Values.ofedDriver.upgradePolicy.drain.podSelector}}
-        timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.drain.timeoutSeconds | default 0}}
+        timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.drain.timeoutSeconds }}
         deleteEmptyDir: {{ .Values.ofedDriver.upgradePolicy.drain.deleteEmptyDir | default false}}
     {{- end }}
   {{- end }}
