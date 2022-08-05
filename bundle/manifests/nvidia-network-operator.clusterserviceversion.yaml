@@ -18,6 +18,18 @@ metadata:
         },
         {
           "apiVersion": "mellanox.com/v1alpha1",
+          "kind": "IPoIBNetwork",
+          "metadata": {
+            "name": "example-ipoibnetwork"
+          },
+          "spec": {
+            "ipam": "{\n  \"type\": \"whereabouts\",\n  \"range\": \"192.168.6.225/28\",\n  \"exclude\": [\n   \"192.168.6.229/30\",\n   \"192.168.6.236/32\"\n  ]\n}\n",
+            "master": "ibs3f1",
+            "networkNamespace": "default"
+          }
+        },
+        {
+          "apiVersion": "mellanox.com/v1alpha1",
           "kind": "MacvlanNetwork",
           "metadata": {
             "name": "example-macvlannetwork"
@@ -52,23 +64,30 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
               },
-               "upgradePolicy": {
+              "upgradePolicy": {
                 "autoUpgrade": false,
                 "drain": {
-                    "deleteEmptyDir": true,
-                    "enable": true,
-                    "force": true,
-                    "timeoutSeconds": 300
+                  "deleteEmptyDir": true,
+                  "enable": true,
+                  "force": true,
+                  "podSelector": "",
+                  "timeoutSeconds": 300
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "5.6-1.0.3.3"
+              "version": "5.7-1.0.2.0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 1000,\n      \"selectors\": {\n        \"ifNames\": [\"ens2f0\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvidia/cloud-native",
               "version": "v1.3.2"
+            },
+            "sriovDevicePlugin": {
+              "config": "{\n  \"resourceList\": [\n      {\n          \"resourcePrefix\": \"nvidia.com\",\n          \"resourceName\": \"hostdev\",\n          \"selectors\": {\n              \"vendors\": [\"15b3\"],\n              \"isRdma\": true\n          }\n      }\n  ]\n}\n",
+              "image": "sriov-device-plugin",
+              "repository": "ghcr.io/k8snetworkplumbingwg",
+              "version": "v3.5.1"
             }
           }
         }
@@ -81,7 +100,7 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v1.2.1
+  name: nvidia-network-operator.v1.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -89,6 +108,9 @@ spec:
     owned:
     - kind: HostDeviceNetwork
       name: hostdevicenetworks.mellanox.com
+      version: v1alpha1
+    - kind: IPoIBNetwork
+      name: ipoibnetworks.mellanox.com
       version: v1alpha1
     - kind: MacvlanNetwork
       name: macvlannetworks.mellanox.com
@@ -167,6 +189,18 @@ spec:
           verbs:
           - list
         - apiGroups:
+          - ""
+          resources:
+          - pods/eviction
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - apiextensions.k8s.io
           resources:
           - customresourcedefinitions
@@ -210,6 +244,14 @@ spec:
           - list
           - patch
           - update
+          - watch
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - proxies
+          verbs:
+          - get
+          - list
           - watch
         - apiGroups:
           - coordination.k8s.io
@@ -265,6 +307,26 @@ spec:
           - mellanox.com
           resources:
           - hostdevicenetworks/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - mellanox.com
+          resources:
+          - ipoibnetworks
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - mellanox.com
+          resources:
+          - ipoibnetworks/status
           verbs:
           - get
           - patch
@@ -394,6 +456,7 @@ spec:
             metadata:
               labels:
                 control-plane: controller-manager
+                nvidia.com/ofed-upgrade.skip-drain: "true"
             spec:
               containers:
               - args:
@@ -413,7 +476,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:90bd3c4d2620a7f1005afc7c1d101d31a64d2239b0bf33a701c4426a54e4e381
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7f0990de87538e7bd1d6dbb00692aed7685b6b877ba4feeb1acd33a74b3d03ef
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -496,16 +559,16 @@ spec:
   maintainers:
   - email: nvidia-network-operator-support@nvidia.com
     name: NVIDIA
-  maturity: alpha
+  maturity: stable
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
   relatedImages:
-  - image: nvcr.io/nvidia/mellanox/mofed-5.6-1.0.3.3@sha256:0a5108443c64fc013984be500e7db3d89c04418446f0bbc3241ed6e1c449b773
+  - image: nvcr.io/nvidia/mellanox/mofed@sha256:b9a6d20434443b364a4426f61cdec3fda5d793fbfb3fe6607ebeafc80d5dbbd8
     name: mofed
-  - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:16a53286fecdb1e587d3c4c042078974674c3e86c9e98d7dae282f6eb4ee2d8c
+  - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
     name: sriov-network-device-plugin
   - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
     name: rdma-shared-device-plugin
-  version: 1.2.1
-  replaces: nvidia-network-operator.v1.2.0
+  version: 1.3.0
+  replaces: nvidia-network-operator.v1.2.1
