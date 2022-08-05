@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: mofed
-    repository: mellanox
-    version: 5.6-1.0.3.3
+    repository: nvcr.io/nvidia/mellanox
+    version: 5.7-1.0.2.0
     upgradePolicy:
       autoUpgrade: false
       drain:
