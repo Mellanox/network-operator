@@ -336,7 +336,7 @@ imagePullSecrets:
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container                                                                                                                                     |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository                                                                                                                                     |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name                                                                                                                                           |
-| `ofedDriver.version` | string | `5.5-1.0.3.2` | Mellanox OFED driver version                                                                                                                                              |
+| `ofedDriver.version` | string | `5.7-1.0.2.0` | Mellanox OFED driver version                                                                                                                                              |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
 | `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
 | `ofedDriver.repoConfig.name` | string | `` | Private mirror repository configuration configMap name |
@@ -394,7 +394,7 @@ resources:
 | `sriovDevicePlugin.deploy` | bool | `false` | Deploy SR-IOV Network device plugin  |
 | `sriovDevicePlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository |
 | `sriovDevicePlugin.image` | string | `sriov-network-device-plugin` | SR-IOV Network device plugin image name  |
-| `sriovDevicePlugin.version` | string | `a765300344368efbf43f71016e9641c58ec1241b` | SR-IOV Network device plugin version  |
+| `sriovDevicePlugin.version` | string | `v3.5.1` | SR-IOV Network device plugin version  |
 | `sriovDevicePlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image |
 | `sriovDevicePlugin.resources` | list | See below | SR-IOV Network device plugin resources |
 
@@ -451,6 +451,15 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `multus.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Multus image |
 | `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
+##### IPoIB CNI
+| Name | Type | Default | description |
+| ---- | ---- | ------- | ----------- |
+| `ipoib.deploy` | bool | `false` | Deploy IPoIB CNI  |
+| `ipoib.image` | string | `ipoib-cni` | IPoIB CNI image name  |
+| `ipoib.repository` | string | `nvcr.io/nvidia/cloud-native` | IPoIB CNI image repository  |
+| `ipoib.version` | string | `v1.1.0` | IPoIB CNI image version  |
+| `ipoib.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPoIB CNI image |
+
 ##### IPAM CNI Plugin Secondary Network
 
 | Name | Type | Default | description |
@@ -458,7 +467,7 @@ Specifies components to deploy in order to facilitate a secondary network in Kub
 | `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
 | `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.5.1-amd64` | IPAM CNI Plugin image version  |
+| `ipamPlugin.version` | string | `v0.5.2-amd64` | IPAM CNI Plugin image version  |
 | `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 
 ## Deployment Examples

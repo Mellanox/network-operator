@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: mofed
-    repository: mellanox
-    version: 5.5-1.0.3.2
+    repository: nvcr.io/nvidia/mellanox
+    version: 5.7-1.0.2.0
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10
@@ -50,8 +50,8 @@ spec:
       }
   sriovDevicePlugin:
     image: sriov-device-plugin
-    repository: docker.io/nfvpe
-    version: v3.3
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v3.5.1
     config: |
       {
         "resourceList": [
@@ -74,12 +74,12 @@ spec:
     multus:
       image: multus
       repository: nfvpe
-      version: v3.6
+      version: v3.8
       config: ''
     ipamPlugin:
       image: whereabouts
-      repository: mellanox
-      version: v0.3
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v0.5.2-amd64
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox
