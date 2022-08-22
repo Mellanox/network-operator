@@ -2,8 +2,34 @@ apiVersion: v1
 entries:
   network-operator:
   - apiVersion: v2
+    appVersion: v1.3.0
+    created: "2022-08-22T17:41:58.061162302+03:00"
+    dependencies:
+    - condition: nfd.enabled
+      name: node-feature-discovery
+      repository: http://kubernetes-sigs.github.io/node-feature-discovery/charts
+      version: 0.10.1
+    - condition: sriovNetworkOperator.enabled
+      name: sriov-network-operator
+      repository: ""
+      version: 0.1.0
+    description: Nvidia network operator
+    digest: 470da11f248998dda9b633b1613c22040552e90dcd8faebdb52980d556ffd077
+    home: https://mellanox.github.io/network-operator
+    keywords:
+    - gpu-direct
+    - rdma
+    kubeVersion: '>= 1.17.0'
+    name: network-operator
+    sources:
+    - https://github.com/Mellanox/network-operator
+    type: application
+    urls:
+    - https://mellanox.github.io/network-operator/release/network-operator-1.3.0.tgz
+    version: 1.3.0
+  - apiVersion: v2
     appVersion: v1.2.0
-    created: "2022-05-30T12:00:14.310926681+03:00"
+    created: "2022-08-22T17:41:58.056098963+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -29,7 +55,7 @@ entries:
     version: 1.2.0
   - apiVersion: v2
     appVersion: v1.2.0-rc.1
-    created: "2022-05-30T12:00:14.308676492+03:00"
+    created: "2022-08-22T17:41:58.051591617+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -55,7 +81,7 @@ entries:
     version: 1.2.0-rc.1
   - apiVersion: v2
     appVersion: v1.2.0-beta.3
-    created: "2022-05-30T12:00:14.306353896+03:00"
+    created: "2022-08-22T17:41:58.046166553+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -81,7 +107,7 @@ entries:
     version: 1.2.0-beta.3
   - apiVersion: v2
     appVersion: v1.2.0-beta.2
-    created: "2022-05-30T12:00:14.302958299+03:00"
+    created: "2022-08-22T17:41:58.040856196+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -107,7 +133,7 @@ entries:
     version: 1.2.0-beta.2
   - apiVersion: v2
     appVersion: v1.2.0-beta.1
-    created: "2022-05-30T12:00:14.300932444+03:00"
+    created: "2022-08-22T17:41:58.036999823+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -133,7 +159,7 @@ entries:
     version: 1.2.0-beta.1
   - apiVersion: v2
     appVersion: v1.1.0
-    created: "2022-05-30T12:00:14.298448412+03:00"
+    created: "2022-08-22T17:41:58.031953416+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -159,7 +185,7 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: v1.1.0-rc.2
-    created: "2022-05-30T12:00:14.295625178+03:00"
+    created: "2022-08-22T17:41:58.028986747+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -185,7 +211,7 @@ entries:
     version: 1.1.0-rc.2
   - apiVersion: v2
     appVersion: v1.1.0-rc.1
-    created: "2022-05-30T12:00:14.293667973+03:00"
+    created: "2022-08-22T17:41:58.025875175+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -211,7 +237,7 @@ entries:
     version: 1.1.0-rc.1
   - apiVersion: v2
     appVersion: v1.1.0-beta.5
-    created: "2022-05-30T12:00:14.291640385+03:00"
+    created: "2022-08-22T17:41:58.022759845+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -237,7 +263,7 @@ entries:
     version: 1.1.0-beta.5
   - apiVersion: v2
     appVersion: v1.1.0-beta.4
-    created: "2022-05-30T12:00:14.289536093+03:00"
+    created: "2022-08-22T17:41:58.018829922+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -263,7 +289,7 @@ entries:
     version: 1.1.0-beta.4
   - apiVersion: v2
     appVersion: v1.1.0-beta.3
-    created: "2022-05-30T12:00:14.286803541+03:00"
+    created: "2022-08-22T17:41:58.01557572+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -289,7 +315,7 @@ entries:
     version: 1.1.0-beta.3
   - apiVersion: v2
     appVersion: v1.1.0-beta.2
-    created: "2022-05-30T12:00:14.284939002+03:00"
+    created: "2022-08-22T17:41:58.012305657+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -315,7 +341,7 @@ entries:
     version: 1.1.0-beta.2
   - apiVersion: v2
     appVersion: v1.1.0-beta.1
-    created: "2022-05-30T12:00:14.283002586+03:00"
+    created: "2022-08-22T17:41:58.009029703+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -341,7 +367,7 @@ entries:
     version: 1.1.0-beta.1
   - apiVersion: v2
     appVersion: v1.0.0
-    created: "2022-05-30T12:00:14.281035222+03:00"
+    created: "2022-08-22T17:41:58.005708894+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -367,7 +393,7 @@ entries:
     version: 1.0.0
   - apiVersion: v2
     appVersion: v0.6.1
-    created: "2022-05-30T12:00:14.278002091+03:00"
+    created: "2022-08-22T17:41:58.003998494+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -393,7 +419,7 @@ entries:
     version: 0.6.1
   - apiVersion: v2
     appVersion: v0.6.0
-    created: "2022-05-30T12:00:14.276287145+03:00"
+    created: "2022-08-22T17:41:58.002244623+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -419,7 +445,7 @@ entries:
     version: 0.6.0
   - apiVersion: v2
     appVersion: v0.5.0
-    created: "2022-05-30T12:00:14.274508157+03:00"
+    created: "2022-08-22T17:41:58.000389109+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -445,7 +471,7 @@ entries:
     version: 0.5.0
   - apiVersion: v2
     appVersion: v0.4.0
-    created: "2022-05-30T12:00:14.272669817+03:00"
+    created: "2022-08-22T17:41:57.997422731+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -471,7 +497,7 @@ entries:
     version: 0.4.0
   - apiVersion: v2
     appVersion: v0.3.0
-    created: "2022-05-30T12:00:14.270116234+03:00"
+    created: "2022-08-22T17:41:57.995823753+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -497,7 +523,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: v0.2.0
-    created: "2022-05-30T12:00:14.268633047+03:00"
+    created: "2022-08-22T17:41:57.994276342+03:00"
     dependencies:
     - condition: nfd.enabled
       name: node-feature-discovery
@@ -517,4 +543,4 @@ entries:
     urls:
     - https://mellanox.github.io/network-operator/release/network-operator-0.2.0-beta.tgz
     version: 0.2.0-beta
-generated: "2022-05-30T12:00:14.267453134+03:00"
+generated: "2022-08-22T17:41:57.993040472+03:00"
