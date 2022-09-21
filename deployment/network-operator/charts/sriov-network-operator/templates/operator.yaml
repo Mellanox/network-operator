@@ -24,7 +24,7 @@ spec:
       {{- end }}
       {{- with .Values.operator.affinity }}
       affinity:
-      {{- toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8}}
       {{- end }}
       {{- with .Values.operator.tolerations }}
       tolerations:
@@ -32,6 +32,12 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
       priorityClassName: "system-node-critical"
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
         - name: {{ include "sriov-network-operator.fullname" . }}
           image: {{ .Values.images.operator }}
@@ -65,6 +71,8 @@ spec:
               value: {{ .Values.operator.resourcePrefix }}
             - name: ENABLE_ADMISSION_CONTROLLER
               value: {{ .Values.operator.enableAdmissionController | quote }}
+            - name: IMAGE_PULL_SECRETS
+              value: {{ join "," .Values.imagePullSecrets }}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -73,6 +81,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             - name: RELEASE_VERSION
               value: {{ .Release.AppVersion }}
             - name: SRIOV_CNI_BIN_PATH

@@ -12,9 +12,9 @@ operator:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: "node-role.kubernetes.io/master"
-                operator: In
-                values: [ "" ]
+            - key: "node-role.kubernetes.io/master"
+              operator: In
+              values: [ "" ]
           - matchExpressions:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
@@ -35,3 +35,5 @@ images:
   sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
+
+imagePullSecrets: []
