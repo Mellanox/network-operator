@@ -51,6 +51,10 @@ $ kubectl -n sriov-network-operator get pods
 In order to tailor the deployment of the network operator to your cluster needs
 We have introduced the following Chart parameters.
 
+| Name | Type | Default | description |
+| ---- |------|---------|-------------|
+| `imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the SR-IOV Network Operator image |
+
 ### Operator parameters
 
 | Name | Type | Default | description |
