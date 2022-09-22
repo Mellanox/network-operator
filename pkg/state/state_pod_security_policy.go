@@ -17,8 +17,11 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,6 +105,13 @@ func (s *statePodSecurityPolicy) Sync(customResource interface{}, infoCatalog In
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *statePodSecurityPolicy) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
+	psp := &policyv1beta1.PodSecurityPolicyList{}
+	err := s.client.List(context.TODO(), psp)
+	if meta.IsNoMatchError(err) {
+		// We assume it's k8s v1.25 or newer so PodSecurityPolicy is not supported and no need to reconcile them
+		log.V(consts.LogLevelInfo).Info("pod security policy is not available")
+		return wr
+	}
 	wr["PodSecurityPolicy"] = &source.Kind{Type: &policyv1beta1.PodSecurityPolicy{}}
 	return wr
 }
