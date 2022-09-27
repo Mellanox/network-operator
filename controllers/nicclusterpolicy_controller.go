@@ -237,6 +237,7 @@ func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(instance *mellano
 }
 
 // SetupWithManager sets up the controller with the Manager.
+//
 //nolint:dupl
 func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create state manager

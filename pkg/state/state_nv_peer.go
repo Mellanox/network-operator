@@ -67,6 +67,7 @@ type nvPeerManifestRenderData struct {
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
+//
 //nolint:dupl
 func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)

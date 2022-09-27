@@ -52,9 +52,10 @@ type IPoIBNetworkReconciler struct {
 // +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
 
-//nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+//
+//nolint:dupl
 func (r *IPoIBNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("ipoibnetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling IPoIBNetwork")
@@ -126,6 +127,7 @@ func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNet
 }
 
 // SetupWithManager sets up the controller with the Manager.
+//
 //nolint:dupl
 func (r *IPoIBNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create state manager

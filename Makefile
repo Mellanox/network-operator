@@ -59,7 +59,7 @@ GOLANGCI_LINT = $(TOOLSDIR)/golangci-lint
 # golangci-lint version should be updated periodically
 # we keep it fixed to avoid it from unexpectedly failing on the project
 # in case of a version bump
-GOLANGCI_LINT_VER = v1.46.2
+GOLANGCI_LINT_VER = v1.49.0
 
 HADOLINT = $(TOOLSDIR)/hadolint
 HADOLINT_VER = v1.23.0
@@ -82,7 +82,7 @@ endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+CRD_OPTIONS ?= "crd"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -230,7 +230,7 @@ generate: controller-gen ## Generate code
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen:	## Download controller-gen locally if necessary
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.

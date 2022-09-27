@@ -91,11 +91,12 @@ const (
 	envVarNameNoProxy    = "NO_PROXY"
 )
 
-//nolint:lll
 // CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
 // Where Go looks for certs: https://golang.org/src/crypto/x509/root_linux.go
 // Where OCP mounts proxy certs on RHCOS nodes:
 // https://access.redhat.com/documentation/en-us/openshift_container_platform/4.3/html/authentication/ocp-certificates#proxy-certificates_ocp-certificates
+//
+//nolint:lll
 var CertConfigPathMap = map[string]string{
 	"ubuntu": "/etc/ssl/certs",
 	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
@@ -189,6 +190,7 @@ func (a *additionalVolumeMounts) FromConfigMap(configMap *v1.ConfigMap, destDir 
 // createConfigMapVolumeMounts creates a VolumeMount for each key
 // in the ConfigMap. Use subPath to ensure original contents
 // at destinationDir are not overwritten.
+// nolint
 func (a *additionalVolumeMounts) createConfigMapVolumeMounts(configMap *v1.ConfigMap, destinationDir string) (
 	[]v1.VolumeMount, []v1.KeyToPath, error) {
 	// static configMap key overrides
@@ -235,6 +237,7 @@ func (a *additionalVolumeMounts) createConfigMapVolume(configMapName string, ite
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
+//
 //nolint:dupl
 func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)

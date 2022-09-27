@@ -249,6 +249,7 @@ func (r *UpgradeReconciler) getPodsOwnedbyDs(ds *appsv1.DaemonSet, pods []corev1
 }
 
 // SetupWithManager sets up the controller with the Manager.
+//
 //nolint:dupl
 func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// we always add object with a same(static) key to the queue to reduce
