@@ -169,6 +169,23 @@ type OfedUpgradePolicySpec struct {
 	DrainSpec           *DrainSpec `json:"drain,omitempty"`
 }
 
+// IBKubernetesSpec describes configuration options for ib-kubernetes
+type IBKubernetesSpec struct {
+	// Image information for ib-kubernetes
+	ImageSpec `json:""`
+	// Interval of updates in seconds
+	// +optional
+	// +kubebuilder:default:=5
+	// +kubebuilder:validation:Minimum:=0
+	PeriodicUpdateSeconds int `json:"periodicUpdateSeconds,omitempty"`
+	// The first guid in the pool
+	PKeyGUIDPoolRangeStart string `json:"pKeyGUIDPoolRangeStart,omitempty"`
+	// The last guid in the pool
+	PKeyGUIDPoolRangeEnd string `json:"pKeyGUIDPoolRangeEnd,omitempty"`
+	// Secret containing credentials to UFM service
+	UfmSecret string `json:"ufmSecret,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -179,6 +196,7 @@ type NicClusterPolicySpec struct {
 	NVPeerDriver           *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
 	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
+	IBKubernetes           *IBKubernetesSpec     `json:"ibKubernetes,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
 	PSP                    *PSPSpec              `json:"psp,omitempty"`
 }

@@ -128,6 +128,16 @@ spec:
         ]
       }
   {{- end }}
+  {{- if .Values.ibKubernetes.deploy }}
+  ibKubernetes:
+    image: {{ .Values.ibKubernetes.image }}
+    repository: {{ .Values.ibKubernetes.repository }}
+    version: {{ .Values.ibKubernetes.version }}
+    imagePullSecrets: {{ include "network-operator.ibKubernetes.imagePullSecrets" . | nindent 4 }}
+    pKeyGUIDPoolRangeStart: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeStart }}
+    pKeyGUIDPoolRangeEnd: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeEnd }}
+    ufmSecret: {{ .Values.ibKubernetes.ufmSecret }}
+  {{- end }}
   {{- if .Values.secondaryNetwork.deploy }}
   secondaryNetwork:
     {{- if .Values.secondaryNetwork.cniPlugins.deploy }}

@@ -215,6 +215,17 @@ sriovDevicePlugin:
     - name: hostdev
       vendors: [15b3]
 
+ibKubernetes:
+  deploy: false
+  image: ib-kubernetes
+  repository: ghcr.io/mellanox
+  version: v1.0.1
+  # imagePullSecrets: []
+  periodicUpdateSeconds: 5
+  pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
+  pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
+  ufmSecret: # specify the secret name here
+
 secondaryNetwork:
   deploy: true
   cniPlugins:

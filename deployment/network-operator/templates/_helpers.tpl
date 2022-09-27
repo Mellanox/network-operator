@@ -139,6 +139,20 @@ imagePullSecrets helpers
 {{- end }}
 {{- end }}
 
+{{- define "network-operator.ibKubernetes.imagePullSecrets" }}
+{{- if .Values.ibKubernetes.imagePullSecrets }}
+{{- range .Values.ibKubernetes.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" }}
 {{- if .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
 {{- range .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
