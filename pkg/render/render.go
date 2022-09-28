@@ -26,6 +26,7 @@ package render
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -115,6 +116,9 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		"yaml": func(obj interface{}) (string, error) {
 			yamlBytes, err := yamlConverter.Marshal(obj)
 			return string(yamlBytes), err
+		},
+		"quote": func(obj interface{}) string {
+			return fmt.Sprintf("%q", obj)
 		},
 		"indent":        indent,
 		"nindent":       nindent,

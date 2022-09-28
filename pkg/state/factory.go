@@ -118,6 +118,11 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Pod Security Policy State")
 	}
+	ibKubernetesState, err := NewStateIBKubernetes(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-ib-kubernetes"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
+	}
 
 	return []Group{
 		NewStateGroup([]State{podSecurityPolicyState}),
@@ -125,6 +130,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sriovDpState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),
+		NewStateGroup([]State{ibKubernetesState}),
 	}, nil
 }
 
