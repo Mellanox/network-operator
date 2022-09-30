@@ -50,10 +50,24 @@ metadata:
 EOF
 ```
 
-Deploy the operator using the operator-sdk:
+### Download operator-sdk
+
+If needed, download `operator-sdk`:
+
+- Run `make operator-sdk` to download `operator-sdk` to `./bin` directory.
+- Or, download manually by following these [instructions](https://sdk.operatorframework.io/docs/installation/#install-from-github-release).
+
+### Deploy the operator using the operator-sdk
+
 
 ```bash
-operator-sdk run bundle --namespace nvidia-network-operator mellanox/network-operator-bundle-1.1.0
+operator-sdk run bundle --namespace nvidia-network-operator mellanox/network-operator-bundle-1.1.0:latest
+```
+
+If needed, kubeconfig file path can be specified:
+
+```bash
+operator-sdk run bundle --kubeconfig /path/to/configfile --namespace nvidia-network-operator mellanox/network-operator-bundle-1.1.0:latest
 ```
 
 Now you should see the `nvidia-network-operator` deployment running in the
