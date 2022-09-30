@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,9 +51,10 @@ type HostDeviceNetworkReconciler struct {
 // +kubebuilder:rbac:groups=mellanox.com,resources=hostdevicenetworks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
 
-//nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+//
+//nolint:dupl
 func (r *HostDeviceNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("hostdevicenetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling HostDeviceNetwork")
@@ -130,8 +131,9 @@ NextResult:
 	}
 }
 
-//nolint:dupl
 // SetupWithManager sets up the controller with the Manager.
+//
+//nolint:dupl
 func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create state manager
 	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(), mgr.GetScheme())

@@ -25,14 +25,16 @@ type fakeMananger struct {
 	watchResources []*source.Kind
 }
 
-//nolint:unused
 // GetWatchSources gets Resources that should be watched by a Controller for this state manager
+//
+//nolint:unused
 func (m *fakeMananger) GetWatchSources() []*source.Kind {
 	return m.watchResources
 }
 
-//nolint:unused
 // SyncState reconciles the state of the system for the custom resource
+//
+//nolint:unused
 func (m *fakeMananger) SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error) {
 	return Results{
 		Status:       SyncStateNotReady,

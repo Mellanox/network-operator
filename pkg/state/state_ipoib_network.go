@@ -64,9 +64,10 @@ type stateIPoIBNetwork struct {
 	stateSkel
 }
 
-//nolint:dupl
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
+//
+//nolint:dupl
 func (s *stateIPoIBNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.IPoIBNetwork)
 	log.V(consts.LogLevelInfo).Info(

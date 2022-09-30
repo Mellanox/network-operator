@@ -53,9 +53,10 @@ type MacvlanNetworkReconciler struct {
 // +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
 
-//nolint:dupl
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+//
+//nolint:dupl
 func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("macvlannetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling MacvlanNetwork")
@@ -121,6 +122,7 @@ func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.Macvla
 }
 
 // SetupWithManager sets up the controller with the Manager.
+//
 //nolint:dupl
 func (r *MacvlanNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Create state manager

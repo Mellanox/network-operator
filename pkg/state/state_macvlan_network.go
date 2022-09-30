@@ -64,9 +64,10 @@ type stateMacvlanNetwork struct {
 	stateSkel
 }
 
-//nolint:dupl
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
+//
+//nolint:dupl
 func (s *stateMacvlanNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.MacvlanNetwork)
 	log.V(consts.LogLevelInfo).Info(
