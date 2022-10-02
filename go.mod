@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/caarlos0/env/v6 v6.4.0
 	github.com/go-logr/logr v1.2.0
-	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.1.0
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.1
 	github.com/openshift/api v0.0.0-20210428205234-a8389931bee7
