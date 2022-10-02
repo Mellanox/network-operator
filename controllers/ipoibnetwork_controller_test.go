@@ -62,7 +62,7 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 			Eventually(func() error {
 				netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
 				return k8sClient.Get(goctx.TODO(),
-					types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()},
+					types.NamespacedName{Namespace: "default", Name: cr.GetName()},
 					netAttachDef)
 			}, timeout*3, interval).ShouldNot(HaveOccurred())
 
@@ -100,7 +100,7 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 			Eventually(func() error {
 				netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
 				return k8sClient.Get(goctx.TODO(),
-					types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()},
+					types.NamespacedName{Namespace: "default", Name: cr.GetName()},
 					netAttachDef)
 			}, timeout*3, interval).ShouldNot(HaveOccurred())
 		})

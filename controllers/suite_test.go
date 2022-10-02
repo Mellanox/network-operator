@@ -105,9 +105,9 @@ var _ = BeforeSuite(func() {
 	err = (&IPoIBNetworkReconciler{
 		// Client: k8sClient,
 		// Scheme: scheme.Scheme,
-		Client: k8sClient,
+		Client: k8sManager.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("IPoIBNetwork"),
-		Scheme: scheme.Scheme,
+		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
