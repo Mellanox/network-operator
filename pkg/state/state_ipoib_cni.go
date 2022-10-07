@@ -29,6 +29,7 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
@@ -55,10 +56,15 @@ type stateIPoIBCNI struct {
 	stateSkel
 }
 
+type IPoIBCNIRuntimeSpec struct {
+	runtimeSpec
+	OSName string
+}
+
 type IPoIBManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.ImageSpec
 	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *runtimeSpec
+	RuntimeSpec  *IPoIBCNIRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -78,7 +84,12 @@ func (s *stateIPoIBCNI) Sync(customResource interface{}, infoCatalog InfoCatalog
 		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr)
+	nodeInfo := infoCatalog.GetNodeInfoProvider()
+	if nodeInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
+	}
+
+	objs, err := s.getManifestObjects(cr, nodeInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -112,12 +123,23 @@ func (s *stateIPoIBCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateIPoIBCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.NicClusterPolicy,
+	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	attrs := nodeInfo.GetNodesAttributes(
+		nodeinfo.NewNodeLabelFilterBuilder().
+			WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").
+			Build())
+	if len(attrs) == 0 {
+		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		return []*unstructured.Unstructured{}, nil
+	}
+
 	renderData := &IPoIBManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.IPoIB,
 		NodeAffinity: cr.Spec.NodeAffinity,
-		RuntimeSpec: &runtimeSpec{
-			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
+		RuntimeSpec: &IPoIBCNIRuntimeSpec{
+			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
 		},
 	}
 
