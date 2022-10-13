@@ -80,7 +80,7 @@ func (m *DrainManagerImpl) ScheduleNodesDrain(ctx context.Context, drainConfig *
 		IgnoreAllDaemonSets: true,
 		DeleteEmptyDirData:  drainSpec.DeleteEmptyDir,
 		GracePeriodSeconds:  -1,
-		Timeout:             time.Duration(drainSpec.TimeoutSecond),
+		Timeout:             time.Duration(drainSpec.TimeoutSecond) * time.Second,
 		PodSelector:         drainSpec.PodSelector,
 		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
 			verbStr := "Deleted"
