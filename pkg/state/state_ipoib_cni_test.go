@@ -77,7 +77,8 @@ var _ = Describe("IPoIB CNI State tests", func() {
 
 			cr.Spec.NodeAffinity = nodeAffinity
 
-			objs, err := sriovDpState.getManifestObjects(cr)
+			nodeInfo := &dummyProvider{}
+			objs, err := sriovDpState.getManifestObjects(cr, nodeInfo)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
