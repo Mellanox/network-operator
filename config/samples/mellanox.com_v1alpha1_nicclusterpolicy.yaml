@@ -16,37 +16,6 @@ kind: NicClusterPolicy
 metadata:
   name: nic-cluster-policy
 spec:
-  ofedDriver:
-    image: mofed
-    repository: mellanox
-    version: 5.5-1.0.3.2
-    terminationGracePeriodSeconds: 300
-    startupProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 20
-    livenessProbe:
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readinessProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 30
-    upgradePolicy:
-      # global switch for automatic upgrade feature
-      # if set to false all other options are ignored
-      autoUpgrade: false
-      # how many nodes can be upgraded in parallel
-      # 0 means no limit, all nodes will be upgraded in parallel
-      maxParallelUpgrades: 0
-      # options for node drain (`kubectl drain`) before the driver reload
-      # if auto upgrade is enabled but drain.enable is false,
-      # then driver POD will be reloaded immediately without
-      # removing PODs from the node
-      drain:
-        enable: true
-        force: false
-        podSelector: ""
-        timeoutSeconds: 300
-        deleteEmptyDir: false
   sriovDevicePlugin:
     image: sriov-device-plugin
     repository: docker.io/nfvpe
