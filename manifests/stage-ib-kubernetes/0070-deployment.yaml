@@ -1,0 +1,124 @@
+# 2022 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ib-kubernetes
+  namespace: {{ .RuntimeSpec.Namespace }}
+  annotations:
+    kubernetes.io/description: |
+      This deployment launches the ib-kubernetes daemon for ib-sriov-cni.
+spec:
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ib-kubernetes
+  template:
+    metadata:
+      labels:
+        name: ib-kubernetes
+        component: network
+        type: infra
+        kubernetes.io/os: "linux"
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccountName: ib-kubernetes
+      hostNetwork: true
+      # required to be scheduled on a linux node with node-role.kubernetes.io/master label and
+      # only one instance of ib-kubernetes pod per node
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: In
+                    values:
+                      - ""
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - "linux"
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: In
+                    values:
+                      - ""
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - "linux"
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: name
+                    operator: In
+                    values:
+                      - ib-kubernetes
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: ib-kubernetes
+          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/bin/ib-kubernetes"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+          env:
+            - name: DAEMON_SM_PLUGIN
+              value: "ufm"
+            - name: DAEMON_PERIODIC_UPDATE
+              value: {{ .PeriodicUpdateSecondsString | quote }}
+            - name: GUID_POOL_RANGE_START
+              value: {{ .CrSpec.PKeyGUIDPoolRangeStart }}
+            - name: GUID_POOL_RANGE_END
+              value: {{ .CrSpec.PKeyGUIDPoolRangeEnd }}
+            - name: UFM_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_USERNAME
+            - name: UFM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_PASSWORD
+            - name: UFM_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_ADDRESS
+            - name: UFM_HTTP_SCHEMA
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_HTTP_SCHEMA
+                  optional: true
+            - name: UFM_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_PORT
+                  optional: true
+            - name: UFM_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .CrSpec.UfmSecret }}
+                  key: UFM_CERTIFICATE
+                  optional: true

@@ -141,6 +141,7 @@ rules:
       - apps
     resources:
       - daemonsets
+      - deployments
     verbs:
       - get
       - list
@@ -188,6 +189,7 @@ rules:
       - list
       - update
       - watch
+      - patch
   - apiGroups:
       - ""
       - events.k8s.io

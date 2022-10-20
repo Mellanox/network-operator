@@ -43,6 +43,42 @@ spec:
           spec:
             description: NicClusterPolicySpec defines the desired state of NicClusterPolicy
             properties:
+              ibKubernetes:
+                description: IBKubernetesSpec describes configuration options for
+                  ib-kubernetes
+                properties:
+                  image:
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
+                  pKeyGUIDPoolRangeEnd:
+                    description: The last guid in the pool
+                    type: string
+                  pKeyGUIDPoolRangeStart:
+                    description: The first guid in the pool
+                    type: string
+                  periodicUpdateSeconds:
+                    default: 5
+                    description: Interval of updates in seconds
+                    minimum: 0
+                    type: integer
+                  repository:
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  ufmSecret:
+                    description: Secret containing credentials to UFM service
+                    type: string
+                  version:
+                    pattern: '[a-zA-Z0-9\.-]+'
+                    type: string
+                required:
+                - image
+                - repository
+                - version
+                type: object
               nodeAffinity:
                 description: Node affinity is a group of node affinity scheduling
                   rules.
