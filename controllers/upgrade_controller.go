@@ -289,7 +289,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return ok
 	}))
 
-	// ignore all update events for nodes except when annotations where changed
+	// Watch for spec and annotation changes
 	nodePredicates := builder.WithPredicates(predicate.AnnotationChangedPredicate{})
 
 	return ctrl.NewControllerManagedBy(mgr).

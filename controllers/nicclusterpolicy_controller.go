@@ -28,8 +28,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -249,20 +252,33 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	r.stateManager = stateManager
 
-	builder := ctrl.NewControllerManagedBy(mgr).
+	ctl := ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxv1alpha1.NicClusterPolicy{}).
 		// Watch for changes to primary resource NicClusterPolicy
 		Watches(&source.Kind{Type: &mellanoxv1alpha1.NicClusterPolicy{}}, &handler.EnqueueRequestForObject{})
 
-	// Watch for changes to secondary resource DaemonSet and requeue the owner NicClusterPolicy
+	// we always add object with a same(static) key to the queue to reduce
+	// reconciliation count
+	updateEnqueue := handler.Funcs{
+		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+				Name: consts.NicClusterPolicyResourceName,
+			}})
+		},
+	}
+
+	// Watch for "feature.node.kubernetes.io/pci-15b3.present" label applying
+	nodePredicates := builder.WithPredicates(MlnxLabelChangedPredicate{})
+	ctl = ctl.Watches(&source.Kind{Type: &corev1.Node{}}, updateEnqueue, nodePredicates)
+
 	ws := stateManager.GetWatchSources()
 	r.Log.V(consts.LogLevelInfo).Info("Watch Sources", "Kind:", ws)
 	for i := range ws {
-		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
+		ctl = ctl.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxv1alpha1.NicClusterPolicy{},
 		})
 	}
 
-	return builder.Complete(r)
+	return ctl.Complete(r)
 }
