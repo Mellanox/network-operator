@@ -462,7 +462,7 @@ annotation mellanox.infiniband.app.
 | `ibKubernetes.deploy`                 | bool   | `false`                   | Deploy IB Kubernetes                                                                        |
 | `ibKubernetes.repository`             | string | `ghcr.io/mellanox`        | IB Kubernetes image repository                                                              |
 | `ibKubernetes.image`                  | string | `ib-kubernetes`           | IB Kubernetes image name                                                                    |
-| `ibKubernetes.version`                | string | `v1.0.1`                  | IB Kubernetes version                                                                       |
+| `ibKubernetes.version`                | string | `v1.0.2`                  | IB Kubernetes version                                                                       |
 | `ibKubernetes.imagePullSecrets`       | list   | `[]`                      | An optional list of references to secrets to use for pulling any of the IB Kubernetes image |
 | `ibKubernetes.periodicUpdateSeconds`  | int    | `5`                       | Interval of periodic update in seconds                                                      |
 | `ibKubernetes.pKeyGUIDPoolRangeStart` | string | `02:00:00:00:00:00:00:00` | Minimal available GUID value to be allocated for the Pod                                    |
