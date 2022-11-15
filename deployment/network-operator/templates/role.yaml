@@ -227,6 +227,7 @@ rules:
       - get
       - update
       - list
+      - watch
   - apiGroups:
       - policy
     resources:
