@@ -55,6 +55,10 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
       containers:
       - name: whereabouts
         image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}

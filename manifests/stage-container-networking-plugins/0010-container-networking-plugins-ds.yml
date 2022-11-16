@@ -50,6 +50,10 @@ spec:
         {{- else }}
           {{- .NodeAffinity | yaml | nindent 10 }}
         {{- end}}
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
       containers:
         - name: cni-plugins
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
