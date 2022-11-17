@@ -90,8 +90,8 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-1.3.0
-    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-1.3.0
+    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-1.4.0
+    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-1.4.0
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.3
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.5.1
@@ -142,7 +142,7 @@ ofedDriver:
   deploy: false
   image: mofed
   repository: nvcr.io/nvidia/mellanox
-  version: 5.7-1.0.2.0
+  version: 5.8-1.0.1.1.2
   # imagePullSecrets: []
   # env, if defined will pass environment variables to the OFED container
   # env:
