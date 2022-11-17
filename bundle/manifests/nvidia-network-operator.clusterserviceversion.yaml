@@ -75,13 +75,19 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "5.7-1.0.2.0"
+              "version": "5.8-1.0.1.1.2"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 1000,\n      \"selectors\": {\n        \"ifNames\": [\"ens2f0\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvidia/cloud-native",
               "version": "v1.3.2"
+            },
+            "sriovDevicePlugin": {
+              "config": "{\n  \"resourceList\": [\n      {\n          \"resourcePrefix\": \"nvidia.com\",\n          \"resourceName\": \"hostdev\",\n          \"selectors\": {\n              \"vendors\": [\"15b3\"],\n              \"isRdma\": true\n          }\n      }\n  ]\n}\n",
+              "image": "sriov-device-plugin",
+              "repository": "ghcr.io/k8snetworkplumbingwg",
+              "version": "v3.5.1"
             }
           }
         }
@@ -89,12 +95,12 @@ metadata:
     capabilities: Basic Install
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     operatorframework.io/suggested-namespace: nvidia-network-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.7.1+git
+    operators.operatorframework.io/builder: operator-sdk-v1.22.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v1.3.0
+  name: nvidia-network-operator.v1.4.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -439,7 +445,9 @@ spec:
           - create
         serviceAccountName: nvidia-network-operator-controller-manager
       deployments:
-      - name: nvidia-network-operator-controller-manager
+      - label:
+          control-plane: controller-manager
+        name: nvidia-network-operator-controller-manager
         spec:
           replicas: 1
           selector:
@@ -448,6 +456,8 @@ spec:
           strategy: {}
           template:
             metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
               labels:
                 control-plane: controller-manager
                 nvidia.com/ofed-upgrade.skip-drain: "true"
@@ -457,20 +467,26 @@ spec:
                 - --secure-listen-address=0.0.0.0:8443
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
-                - --v=10
+                - --v=0
                 image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
                   name: https
-                resources: {}
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
               - args:
                 - --health-probe-bind-address=:8081
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 command:
                 - /manager
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:c994ad8894deacb61ca9dcea8983376f89750681a0c185ba860c9b6c0045c28c
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:26d86d5ecccae0abb8003c06d17b6e6083a154350bebdabb5755149a86869224
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -487,11 +503,11 @@ spec:
                   periodSeconds: 10
                 resources:
                   limits:
-                    cpu: 300m
-                    memory: 100Mi
+                    cpu: 500m
+                    memory: 128Mi
                   requests:
-                    cpu: 200m
-                    memory: 50Mi
+                    cpu: 5m
+                    memory: 64M
                 securityContext:
                   allowPrivilegeEscalation: false
               securityContext:
@@ -558,11 +574,10 @@ spec:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
   relatedImages:
-  - image: nvcr.io/nvidia/mellanox/mofed@sha256:b9a6d20434443b364a4426f61cdec3fda5d793fbfb3fe6607ebeafc80d5dbbd8
+  - image: nvcr.io/nvidia/mellanox/mofed@sha256:ice-plugin@sha256:3094dfbe6dac173d8d3373da29ba9173d5949665ea80b29c4909bc5d586ac82b
     name: mofed
   - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
     name: sriov-network-device-plugin
   - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
     name: rdma-shared-device-plugin
-  version: 1.3.0
-  replaces: nvidia-network-operator.v1.2.1
+  version: 1.4.0
