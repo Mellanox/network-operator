@@ -35,7 +35,7 @@ var _ = Describe("Manager tests", func() {
 			stateGroups := []Group{
 				NewStateGroup([]State{testState}),
 			}
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manager := &stateManager{
 				stateGroups: stateGroups,
 				client:      &client,
@@ -60,7 +60,7 @@ var _ = Describe("Manager tests", func() {
 			stateGroups := []Group{
 				NewStateGroup([]State{testStateNotReady, testStateReady}),
 			}
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manager := &stateManager{
 				stateGroups: stateGroups,
 				client:      &client,

@@ -34,7 +34,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 	Context("IB Kubernetes state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/stage-ib-kubernetes"
 			scheme := runtime.NewScheme()
 
