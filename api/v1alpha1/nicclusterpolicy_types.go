@@ -116,6 +116,8 @@ type SecondaryNetworkSpec struct {
 	IPoIB *ImageSpec `json:"ipoib,omitempty"`
 	// Image information for IPAM plugin
 	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
+	// Image information for SRIOV CNI
+	SriovCNI *ImageSpec `json:"sriovCNI,omitempty"`
 }
 
 // PSPSpec describes configuration for PodSecurityPolicies to apply for all Pods

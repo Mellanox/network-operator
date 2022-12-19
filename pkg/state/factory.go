@@ -123,10 +123,15 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
 	}
+	sriovCNIState, err := NewStateSriovCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "stage-sriov-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create sriov-cni State")
+	}
 
 	return []Group{
 		NewStateGroup([]State{podSecurityPolicyState}),
-		NewStateGroup([]State{multusState, cniPluginsState, ipoibState, whereaboutState}),
+		NewStateGroup([]State{multusState, cniPluginsState, ipoibState, whereaboutState, sriovCNIState}),
 		NewStateGroup([]State{ofedState}),
 		NewStateGroup([]State{sriovDpState}),
 		NewStateGroup([]State{sharedDpState, nvPeerMemState}),

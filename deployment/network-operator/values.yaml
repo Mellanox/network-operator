@@ -253,7 +253,12 @@ secondaryNetwork:
     repository: ghcr.io/k8snetworkplumbingwg
     version: v0.5.2-amd64
     # imagePullSecrets: []
-
+  sriovCNI:
+    deploy: true
+    image: sriov-cni
+    repository: ghcr.io/k8snetworkplumbingwg
+    version: v2.7.0
+    # imagePullSecrets: []
 # Can be set to nicclusterpolicy and override other ds node affinity,
 # e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/stage-multus-cni/0050-multus-ds.yml#L26-L36
 #nodeAffinity:

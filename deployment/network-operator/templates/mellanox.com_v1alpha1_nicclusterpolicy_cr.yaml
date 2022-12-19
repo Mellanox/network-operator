@@ -170,6 +170,13 @@ spec:
       version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
       imagePullSecrets: {{ include "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" . | nindent 6 }}
     {{- end }}
+    {{- if .Values.secondaryNetwork.sriovCNI.deploy }}
+    sriovCNI:
+      image: {{ .Values.secondaryNetwork.sriovCNI.image }}
+      repository: {{ .Values.secondaryNetwork.sriovCNI.repository }}
+      version: {{ .Values.secondaryNetwork.sriovCNI.version }}
+      imagePullSecrets: {{ include "network-operator.secondaryNetwork.sriovCNI.imagePullSecrets" . | nindent 6 }}
+    {{- end }}
   {{- end }}
   psp:
     enabled: {{ .Values.psp.enabled }}

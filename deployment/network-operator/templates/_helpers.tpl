@@ -194,3 +194,17 @@ imagePullSecrets helpers
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{- define "network-operator.secondaryNetwork.sriovCNI.imagePullSecrets" }}
+{{- if .Values.secondaryNetwork.sriovCNI.imagePullSecrets }}
+{{- range .Values.secondaryNetwork.sriovCNI.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
