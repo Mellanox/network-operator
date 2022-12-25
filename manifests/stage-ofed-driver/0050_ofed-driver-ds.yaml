@@ -79,6 +79,8 @@ spec:
               mountPath: /host/usr
             - name: host-udev
               mountPath: /host/lib/udev
+            - name: host-lib-modules
+              mountPath: /host/lib/modules
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
             {{- range .AdditionalVolumeMounts.VolumeMounts }}
             - name: {{ .Name }}
@@ -128,6 +130,9 @@ spec:
         - name: host-udev
           hostPath:
             path: /lib/udev
+        - name: host-lib-modules
+          hostPath:
+            path: /lib/modules
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
           configMap:
