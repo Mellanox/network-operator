@@ -20,6 +20,7 @@ spec:
     image: mofed
     repository: mellanox
     version: 5.5-1.0.3.2
+    terminationGracePeriodSeconds: 300
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 20

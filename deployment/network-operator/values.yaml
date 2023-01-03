@@ -148,6 +148,7 @@ ofedDriver:
   # env:
   #   - name: EXAMPLE_ENV_VAR
   #     value: example_env_var_value
+  terminationGracePeriodSeconds: 300
   # Private mirror repository configuration
   repoConfig:
     name: ""

@@ -79,6 +79,12 @@ type OFEDDriverSpec struct {
 	CertConfig *ConfigMapNameReference `json:"certConfig,omitempty"`
 	// Optional: Custom package repository configuration for OFED container
 	RepoConfig *ConfigMapNameReference `json:"repoConfig,omitempty"`
+	// TerminationGracePeriodSeconds specifies the length of time in seconds
+	// to wait before killing the OFED pod on termination
+	// +optional
+	// +kubebuilder:default:=300
+	// +kubebuilder:validation:Minimum:=0
+	TerminationGracePeriodSeconds int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
 // NVPeerDriverSpec describes configuration options for NV Peer Memory driver

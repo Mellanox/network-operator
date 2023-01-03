@@ -64,6 +64,7 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
               },
+              "terminationGracePeriodSeconds": 300,
               "upgradePolicy": {
                 "autoUpgrade": false,
                 "drain": {

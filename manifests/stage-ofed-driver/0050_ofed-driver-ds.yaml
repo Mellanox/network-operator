@@ -113,7 +113,7 @@ spec:
             failureThreshold: 1
             periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
       # unloading OFED modules can take more time than default terminationGracePeriod (30 sec)
-      terminationGracePeriodSeconds: 120
+      terminationGracePeriodSeconds: {{ .CrSpec.TerminationGracePeriodSeconds }}
       volumes:
         - name: run-mlnx-ofed
           hostPath:
