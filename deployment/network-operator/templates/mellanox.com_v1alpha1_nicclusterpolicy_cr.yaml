@@ -41,6 +41,7 @@ spec:
       name: {{ .Values.ofedDriver.repoConfig.name }}
     {{- end }}
     imagePullSecrets: {{ include "network-operator.ofed.imagePullSecrets" . | nindent 4 }}
+    terminationGracePeriodSeconds: {{ .Values.ofedDriver.terminationGracePeriodSeconds }}
     startupProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
       periodSeconds: {{ .Values.ofedDriver.startupProbe.periodSeconds }}

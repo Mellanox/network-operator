@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: nicclusterpolicies.mellanox.com
 spec:
@@ -173,6 +172,7 @@ spec:
                                 type: object
                               type: array
                           type: object
+                          x-kubernetes-map-type: atomic
                         weight:
                           description: Weight associated with matching the corresponding
                             nodeSelectorTerm, in the range 1-100.
@@ -268,10 +268,12 @@ spec:
                                 type: object
                               type: array
                           type: object
+                          x-kubernetes-map-type: atomic
                         type: array
                     required:
                     - nodeSelectorTerms
                     type: object
+                    x-kubernetes-map-type: atomic
                 type: object
               nvPeerDriver:
                 description: NVPeerDriverSpec describes configuration options for
@@ -353,6 +355,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             fieldRef:
                               description: 'Selects a field of the pod: supports metadata.name,
                                 metadata.namespace, `metadata.labels[''<KEY>'']`,
@@ -371,6 +374,7 @@ spec:
                               required:
                               - fieldPath
                               type: object
+                              x-kubernetes-map-type: atomic
                             resourceFieldRef:
                               description: 'Selects a resource of the container: only
                                 resources limits and requests (limits.cpu, limits.memory,
@@ -395,6 +399,7 @@ spec:
                               required:
                               - resource
                               type: object
+                              x-kubernetes-map-type: atomic
                             secretKeyRef:
                               description: Selects a key of a secret in the pod's
                                 namespace
@@ -415,6 +420,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                           type: object
                       required:
                       - name
@@ -470,6 +476,13 @@ spec:
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
+                  terminationGracePeriodSeconds:
+                    default: 300
+                    description: TerminationGracePeriodSeconds specifies the length
+                      of time in seconds to wait before killing the OFED pod on termination
+                    format: int64
+                    minimum: 0
+                    type: integer
                   upgradePolicy:
                     description: Ofed auto-upgrade settings
                     properties:
@@ -727,9 +740,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

@@ -475,6 +475,13 @@ spec:
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
+                  terminationGracePeriodSeconds:
+                    default: 300
+                    description: TerminationGracePeriodSeconds specifies the length
+                      of time in seconds to wait before killing the OFED pod on termination
+                    format: int64
+                    minimum: 0
+                    type: integer
                   upgradePolicy:
                     description: Ofed auto-upgrade settings
                     properties:
