@@ -189,8 +189,8 @@ test-coverage: test-coverage-tools ; $(info  running coverage tests...) @ ## Run
 	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
-.PHONY: image ubi-image
-image: ; $(info Building Docker image...)  @ ## Build conatiner image
+.PHONY: image
+image: ; $(info Building Docker image...)  @ ## Build container image
 	$(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
 		--build-arg VERSION="$(BUILD_VERSION)" \
 		--build-arg VCS_REF="$(VCS_REF)" \
@@ -199,6 +199,10 @@ image: ; $(info Building Docker image...)  @ ## Build conatiner image
 
 image-push:
 	$(IMAGE_BUILDER) push $(TAG)
+
+.PHONY: chart-build
+chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
+	$Q $(HELM) package deployment/network-operator/ --version $(VERSION)
 
 # Misc
 
