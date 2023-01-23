@@ -1,4 +1,4 @@
-# Copyright 2020 NVIDIA
+# 2022 NVIDIA CORPORATION & AFFILIATES
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ spec:
   ofedDriver:
     image: mofed
     repository: nvcr.io/nvidia/mellanox
-    version: 5.9-0.5.6.0
+    version: 5.8-1.0.1.1.2
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10
@@ -48,29 +48,15 @@ spec:
           }
         ]
       }
-  sriovDevicePlugin:
-    image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.5.1
-    config: |
-      {
-        "resourceList": [
-            {
-                "resourcePrefix": "nvidia.com",
-                "resourceName": "hostdev",
-                "selectors": {
-                    "vendors": ["15b3"],
-                    "deviceIDs": ["101d"]
-                    "isRdma": true
-                }
-            }
-        ]
-      }
   secondaryNetwork:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
       version: v0.8.7-amd64
+    ipoib:
+      image: ipoib-cni
+      repository: nvcr.io/nvidia/cloud-native
+      version: v1.1.0
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg

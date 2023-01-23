@@ -17,9 +17,9 @@ metadata:
   name: nic-cluster-policy
 spec:
   ofedDriver:
-    image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 5.9-0.5.6.0
+    image: {{ .Mofed.Image }}
+    repository: {{ .Mofed.Repository }}
+    version: {{ .Mofed.Version }}
     upgradePolicy:
       autoUpgrade: false
       drain:
@@ -28,19 +28,20 @@ spec:
         force: true
         timeoutSeconds: 300
       maxParallelUpgrades: 1
-  sriovDevicePlugin:
-    image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.5.1
+  rdmaSharedDevicePlugin:
+    image: {{ .RdmaSharedDevicePlugin.Image }}
+    repository: {{ .RdmaSharedDevicePlugin.Repository }}
+    version: {{ .RdmaSharedDevicePlugin.Version }}
+    # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
+    # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
       {
-        "resourceList": [
+        "configList": [
           {
-            "resourcePrefix": "nvidia.com",
-            "resourceName": "hostdev",
+            "resourceName": "rdma_shared_device_a",
+            "rdmaHcaMax": 1000,
             "selectors": {
-              "vendors": ["15b3"],
-              "isRdma": true
+              "vendors": ["15b3"]
             }
           }
         ]

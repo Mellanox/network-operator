@@ -17,9 +17,9 @@ metadata:
   name: nic-cluster-policy
 spec:
   ofedDriver:
-    image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 5.9-0.5.6.0
+    image: {{ .Mofed.Image }}
+    repository: {{ .Mofed.Repository }}
+    version: {{ .Mofed.Version }}
     upgradePolicy:
       autoUpgrade: false
       drain:
@@ -29,9 +29,9 @@ spec:
         timeoutSeconds: 300
       maxParallelUpgrades: 1
   sriovDevicePlugin:
-    image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.5.1
+    image: {{ .SriovDevicePlugin.Image }}
+    repository: {{ .SriovDevicePlugin.Repository }}
+    version: {{ .SriovDevicePlugin.Version }}
     config: |
       {
         "resourceList": [

@@ -58,14 +58,14 @@ spec:
       repository: nvcr.io/nvidia/cloud-native
       version: v1.1.0
     multus:
-      image: multus
-      repository: nfvpe
+      image: multus-cni
+      repository: ghcr.io/k8snetworkplumbingwg
       version: v3.8
       config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.5.4-amd64
+      version: v0.5.2-amd64
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox
