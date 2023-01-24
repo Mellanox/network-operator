@@ -204,6 +204,10 @@ image-push:
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
 	$Q $(HELM) package deployment/network-operator/ --version $(VERSION)
 
+.PHONY: chart-push
+chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
+	ngc registry chart push $(NGC_REPO):$(VERSION)
+
 # Misc
 
 .PHONY: clean
