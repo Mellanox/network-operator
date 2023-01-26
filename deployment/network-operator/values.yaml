@@ -93,7 +93,7 @@ sriov-network-operator:
     operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-1.4.0
     sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-1.4.0
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.3
-    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
+    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:848e3b4c97c17d8cb0fcf09aa1358edd0354db4f
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.5.1
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
