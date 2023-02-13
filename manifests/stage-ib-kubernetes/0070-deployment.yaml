@@ -22,7 +22,7 @@ metadata:
 spec:
   progressDeadlineSeconds: 600
   strategy:
-    type: RollingUpdate
+    type: Recreate
   replicas: 1
   selector:
     matchLabels:
@@ -62,15 +62,6 @@ spec:
                     operator: In
                     values:
                       - "linux"
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: name
-                    operator: In
-                    values:
-                      - ib-kubernetes
-              topologyKey: kubernetes.io/hostname
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"
