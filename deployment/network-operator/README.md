@@ -540,13 +540,13 @@ optionally deployed components:
 
 ##### IPAM CNI Plugin Secondary Network
 
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
-| `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
+| Name | Type | Default                        | description |
+| ---- | ---- |--------------------------------| ----------- |
+| `ipamPlugin.deploy` | bool | `true`                         | Deploy IPAM CNI Plugin Secondary Network  |
+| `ipamPlugin.image` | string | `whereabouts`                  | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.5.2-amd64` | IPAM CNI Plugin image version  |
-| `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
+| `ipamPlugin.version` | string | `v0.5.4-amd64`                 | IPAM CNI Plugin image version  |
+| `ipamPlugin.imagePullSecrets` | list | `[]`                           | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 
 ## Deployment Examples
 
