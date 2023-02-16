@@ -170,7 +170,8 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 			}, client.RawPatch(types.StrategicMergePatchType, patch))
 
 			if err != nil {
-				return errors.New("unable to update node label")
+				return errors.Wrapf(err, "unable to patch %s label for node %s", nodeinfo.NodeLabelWaitOFED,
+					pod.Spec.NodeName)
 			}
 		}
 	} else {
@@ -178,14 +179,15 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 		// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
 		err := r.Client.List(context.TODO(), nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
 		if err != nil {
-			return errors.New("unable to get nodes")
+			return errors.Wrap(err, "failed to list nodes")
 		}
 
 		for i := range nodes.Items {
-			nodes.Items[i].Labels[nodeinfo.NodeLabelWaitOFED] = "false"
-			err = r.Client.Update(context.TODO(), &nodes.Items[i])
+			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"false"}}}`, nodeinfo.NodeLabelWaitOFED))
+			err := r.Client.Patch(context.TODO(), &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
 			if err != nil {
-				return errors.New("unable to update node label")
+				return errors.Wrapf(err, "unable to patch %s node label for node %s",
+					nodeinfo.NodeLabelWaitOFED, nodes.Items[i].Name)
 			}
 		}
 	}
