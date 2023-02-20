@@ -116,7 +116,7 @@ sed -e s"/pullPolicy:.*/pullPolicy: IfNotPresent/" \
 #
 # Create release assets to be uploaded
 #
-VERSION=$semver make build-chart
+VERSION=$semver make chart-build
 
 chart_name="network-operator-$semver.tgz"
 sign_helm_chart $chart_name
