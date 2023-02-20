@@ -65,7 +65,7 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.5.2-amd64
+      version: v0.5.4-amd64
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox
