@@ -76,7 +76,7 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "5.8-1.0.1.1.2"
+              "version": "5.9-0.5.6.0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 1000,\n      \"selectors\": {\n        \"ifNames\": [\"ens2f0\"]\n      }\n    }\n  ]\n}\n",

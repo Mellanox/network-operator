@@ -1,6 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
-[![Build Status](https://travis-ci.com/Mellanox/network-operator.svg?branch=master)](https://travis-ci.com/Mellanox/network-operator)
 
 - [Nvidia Network Operator](#nvidia-network-operator)
   * [Documentation](#documentation)
@@ -18,6 +17,9 @@
     + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
       - [HostDeviceNetwork spec:](#hostdevicenetwork-spec-)
         * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource-)
+    + [IPoIBNetwork CRD](#ipoibnetwork-crd)
+      - [IPoIBNetwork spec:](#ipoibnetwork-spec-)
+        * [Example for IPoIBNetwork resource:](#example-for-ipoibnetwork-resource-)
   * [Pod Security Policy](#pod-security-policy)
   * [System Requirements](#system-requirements)
   * [Tested Network Adapters](#tested-network-adapters)
@@ -47,7 +49,7 @@ For more information please visit the official [documentation](https://docs.nvid
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
 Nvidia Network operator relies on Node labeling to get the cluster to the desired state.
-[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.6.0-233-g3e00bfb` or newer is expected to be deployed to provide the appropriate labeling:
+[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.10.1` or newer is expected to be deployed to provide the appropriate labeling:
 
 - PCI vendor and device information
 - RDMA capability
@@ -63,8 +65,6 @@ sources:
       - "02"
       - "0200"
       - "0207"
-      - "03"
-      - "12"
     deviceLabelFields:
       - "vendor"
 ```
@@ -84,12 +84,16 @@ NICClusterPolicy CRD Spec includes the following sub-states/stages:
 - `ofedDriver`: [OFED driver container](https://github.com/Mellanox/ofed-docker) to be deployed on Mellanox supporting nodes.
 - `rdmaSharedDevicePlugin`: [RDMA shared device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
 and related configurations.
+- `sriovDevicePlugin`: [SR-IOV Network Device Plugin](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin)
+    and related configurations.
 - `nvPeerDriver`: [Nvidia Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
   For NVIDIA GPU driver version < 465. Check [compatibility notes](#compatibility-notes) for details
+- `ibKubernetes`: [InfiniBand Kubernetes](https://github.com/Mellanox/ib-kubernetes/) and related configurations. 
 - `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
+    - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow user to create IPoIB child link and move it to the pod.
     - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
@@ -107,8 +111,8 @@ metadata:
 spec:
   ofedDriver:
     image: mofed
-    repository: mellanox
-    version: 5.3-1.0.0.1
+    repository: nvcr.io/nvidia/mellanox
+    version: 5.9-0.5.6.0
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10
@@ -121,7 +125,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: nvcr.io/nvidia/cloud-native
-    version: v1.2.1
+    version: v1.3.2
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -138,38 +142,21 @@ spec:
           }
         ]
       }
-  sriovDevicePlugin:
-    image: sriov-device-plugin
-    repository: docker.io/nfvpe
-    version: v3.3
-    config: |
-      {
-        "resourceList": [
-            {
-                "resourcePrefix": "nvidia.com",
-                "resourceName": "hostdev",
-                "selectors": {
-                    "vendors": ["15b3"],
-                    "isRdma": true
-                }
-            }
-        ]
-      }
   secondaryNetwork:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
       version: v0.8.7-amd64
     multus:
-      image: multus
-      repository: nfvpe
-      version: v3.4.1
+      image: multus-cni
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v3.8
       # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
       config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.5.1
+      version: v0.5.4-amd64
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
@@ -288,7 +275,48 @@ spec:
     }
 ```
 
-Can be found at: `mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
+Can be found at: `example/crs/mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
+
+### IPoIBNetwork CRD
+This CRD defines a IPoIBNetwork secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
+
+#### IPoIBNetwork spec:
+HostDeviceNetwork CRD Spec includes the following fields:
+- `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
+- `master`: Name of the host interface to enslave.
+- `ipam`: IPAM configuration to be used for this network.
+
+##### Example for IPoIBNetwork resource:
+In the example below we deploy IPoIBNetwork CRD instance with "ibs3f1" host interface, that will be used to deploy NetworkAttachmentDefinition for IPoIBNetwork network to default namespace.
+
+```
+apiVersion: mellanox.com/v1alpha1
+kind: IPoIBNetwork
+metadata:
+  name: example-ipoibnetwork
+spec:
+  networkNamespace: "default"
+  master: "ibs3f1"
+  ipam: |
+    {
+      "type": "whereabouts",
+      "datastore": "kubernetes",
+      "kubernetes": {
+        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+      },
+      "range": "192.168.5.225/28",
+      "exclude": [
+       "192.168.6.229/30",
+       "192.168.6.236/32"
+      ],
+      "log_file" : "/var/log/whereabouts.log",
+      "log_level" : "info",
+      "gateway": "192.168.6.1"
+    }
+
+```
+
+Can be found at: `example/crs/mellanox.com_v1alpha1_ipoibnetwork_cr.yaml`
 
 ## Pod Security Policy
 Network-operator supports [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). When NicClusterPolicy is created with `psp.enabled=True`, privileged PSP is created and applied to all network-operator's pods. Requires [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#how-do-i-turn-on-an-admission-control-plug-in) to be enabled.
