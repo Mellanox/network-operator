@@ -363,11 +363,12 @@ imagePullSecrets:
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container                                                                                                                                     |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository                                                                                                                                     |
 | `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name                                                                                                                                           |
-| `ofedDriver.version` | string | `5.8-1.0.1.1.2` | Mellanox OFED driver version                                                                                                                                              |
+| `ofedDriver.version` | string | `5.9-0.5.6.0` | Mellanox OFED driver version                                                                                                                                              |
 | `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
 | `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
 | `ofedDriver.repoConfig.name` | string | `` | Private mirror repository configuration configMap name |
 | `ofedDriver.certConfig.name` | string | `` | Custom TLS key/certificate configuration configMap name |
+| `ofedDriver.terminationGracePeriodSeconds` | int | 300 | Mellanox OFED termination grace periods in seconds|
 | `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay                                                                                                                                 |
 | `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval                                                                                                                                      |
 | `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay                                                                                                                                |
@@ -539,13 +540,13 @@ optionally deployed components:
 
 ##### IPAM CNI Plugin Secondary Network
 
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `ipamPlugin.deploy` | bool | `true` | Deploy IPAM CNI Plugin Secondary Network  |
-| `ipamPlugin.image` | string | `whereabouts` | IPAM CNI Plugin image name  |
+| Name | Type | Default                        | description |
+| ---- | ---- |--------------------------------| ----------- |
+| `ipamPlugin.deploy` | bool | `true`                         | Deploy IPAM CNI Plugin Secondary Network  |
+| `ipamPlugin.image` | string | `whereabouts`                  | IPAM CNI Plugin image name  |
 | `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.5.2-amd64` | IPAM CNI Plugin image version  |
-| `ipamPlugin.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
+| `ipamPlugin.version` | string | `v0.5.4-amd64`                 | IPAM CNI Plugin image version  |
+| `ipamPlugin.imagePullSecrets` | list | `[]`                           | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 
 ## Deployment Examples
 
