@@ -101,7 +101,7 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v1.4.0
+  name: nvidia-network-operator.v23.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -487,7 +487,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:26d86d5ecccae0abb8003c06d17b6e6083a154350bebdabb5755149a86869224
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:f8cdf307c170dab6c60c9f1ebaf690dc80c1379dc6872096e946ffae679650ab
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -575,10 +575,10 @@ spec:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
   relatedImages:
-  - image: nvcr.io/nvidia/mellanox/mofed@sha256:ice-plugin@sha256:3094dfbe6dac173d8d3373da29ba9173d5949665ea80b29c4909bc5d586ac82b
+  - image: nvcr.io/nvidia/mellanox/mofed@sha256:f8369f082c0e2823a22ff95766d321feab5156214815e45f7f9255ecab1ee407
     name: mofed
   - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
     name: sriov-network-device-plugin
   - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
     name: rdma-shared-device-plugin
-  version: 1.4.0
+  version: 23.1.0
