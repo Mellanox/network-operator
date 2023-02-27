@@ -133,7 +133,7 @@ $ git clone https://github.com/Mellanox/network-operator.git
 $ cd network-operator/deployment/network-operator && helm dependency update
 
 # Install Operator
-$ helm install -n network-operator --create-namespace --wait network-operator ./network-operator
+$ helm install -n network-operator --create-namespace --wait network-operator ./
 
 # View deployed resources
 $ kubectl -n network-operator get pods
