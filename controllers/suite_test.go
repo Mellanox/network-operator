@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,6 +34,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -41,8 +45,9 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 const (
-	timeout  = time.Second * 10
-	interval = time.Millisecond * 250
+	timeout       = time.Second * 10
+	interval      = time.Millisecond * 250
+	namespaceName = "nvidia-network-operator"
 )
 
 var k8sClient client.Client
@@ -75,9 +80,6 @@ var _ = BeforeSuite(func() {
 	err = mellanoxcomv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = mellanoxcomv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	err = netattdefv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -87,6 +89,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name: namespaceName,
+	}}
+	err = k8sClient.Create(context.Background(), ns)
+	Expect(err).NotTo(HaveOccurred())
+
 	// Start controllers
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -94,8 +102,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&HostDeviceNetworkReconciler{
-		// Client: k8sClient,
-		// Scheme: scheme.Scheme,
 		Client: k8sManager.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("HostDeviceNetwork"),
 		Scheme: k8sManager.GetScheme(),
@@ -103,10 +109,15 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IPoIBNetworkReconciler{
-		// Client: k8sClient,
-		// Scheme: scheme.Scheme,
 		Client: k8sManager.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("IPoIBNetwork"),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&NicClusterPolicyReconciler{
+		Client: k8sManager.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("NicClusterPolicy"),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

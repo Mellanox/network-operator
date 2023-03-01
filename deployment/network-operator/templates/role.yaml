@@ -131,6 +131,7 @@ rules:
       - ""
     resources:
       - nodes
+      - serviceaccounts
     verbs:
       - get
       - list
@@ -169,6 +170,8 @@ rules:
     resources:
       - clusterrolebindings
       - clusterroles
+      - roles
+      - rolebindings
     verbs:
       - create
       - delete

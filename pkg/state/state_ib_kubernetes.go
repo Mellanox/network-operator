@@ -79,8 +79,7 @@ func (s *stateIBKubernetes) Sync(customResource interface{}, infoCatalog InfoCat
 	if cr.Spec.IBKubernetes == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		log.V(consts.LogLevelInfo).Info("ib-kubernetes spec in CR is nil, no action required")
-		return SyncStateIgnore, nil
+		return s.handleStateObjectsDeletion()
 	}
 
 	nodeInfo := infoCatalog.GetNodeInfoProvider()

@@ -79,8 +79,7 @@ func (s *stateSharedDp) Sync(customResource interface{}, infoCatalog InfoCatalog
 	if cr.Spec.RdmaSharedDevicePlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		log.V(consts.LogLevelInfo).Info("Device plugin spec in CR is nil, no action required")
-		return SyncStateIgnore, nil
+		return s.handleStateObjectsDeletion()
 	}
 	// Fill ManifestRenderData and render objects
 	nodeInfo := infoCatalog.GetNodeInfoProvider()
