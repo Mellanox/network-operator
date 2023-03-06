@@ -90,10 +90,10 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-1.4.0
-    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-1.4.0
-    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.6.3
-    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.2
+    operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator:13405c55b6a77bc2476ad5bf40a3188bb5783244
+    sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon:13405c55b6a77bc2476ad5bf40a3188bb5783244
+    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.7.0
+    ibSriovCni:  ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.3
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.5.1
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
