@@ -233,7 +233,7 @@ secondaryNetwork:
     deploy: true
     image: plugins
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.8.7-amd64
+    version: v1.2.0-amd64
     # imagePullSecrets: []
   multus:
     deploy: true

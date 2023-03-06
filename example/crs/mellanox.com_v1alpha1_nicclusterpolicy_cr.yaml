@@ -70,7 +70,7 @@ spec:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.8.7-amd64
+      version: v1.2.0-amd64
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg

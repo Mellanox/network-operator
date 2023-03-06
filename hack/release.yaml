@@ -36,7 +36,7 @@ IbKubernetes:
 CniPlugins:
   image: plugins
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.8.7-amd64
+  version: v1.2.0-amd64
 Multus:
   image: multus-cni
   repository: ghcr.io/k8snetworkplumbingwg
