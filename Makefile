@@ -293,6 +293,12 @@ bundle-build: ## Build the bundle image.
 bundle-push: ## Push the bundle image.
 	${IMAGE_BUILDER} push $(BUNDLE_IMG)
 
+.PHONY: release-build
+release-build:
+	cd hack && $(GO) run release.go --templateDir ./templates/samples/ --outputDir ../config/samples/
+	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
+	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
+
 .PHONY: opm
 OPM = ./bin/opm
 opm: ## Download opm locally if necessary.

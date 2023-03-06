@@ -126,8 +126,8 @@ operator:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [ "" ]
-  repository: nvcr.io/nvidia/cloud-native
-  image: network-operator
+  repository: {{ .NetworkOperator.Repository }}
+  image: {{ .NetworkOperator.Image }}
   # imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -140,9 +140,9 @@ imagePullSecrets: []
 deployCR: false
 ofedDriver:
   deploy: false
-  image: mofed
-  repository: nvcr.io/nvidia/mellanox
-  version: 5.9-0.5.6.0
+  image: {{ .Mofed.Image }}
+  repository: {{ .Mofed.Repository }}
+  version: {{ .Mofed.Version }}
   # imagePullSecrets: []
   # env, if defined will pass environment variables to the OFED container
   # env:
@@ -194,9 +194,9 @@ nvPeerDriver:
 
 rdmaSharedDevicePlugin:
   deploy: true
-  image: k8s-rdma-shared-dev-plugin
-  repository: nvcr.io/nvidia/cloud-native
-  version: v1.3.2
+  image: {{ .RdmaSharedDevicePlugin.Image }}
+  repository: {{ .RdmaSharedDevicePlugin.Repository }}
+  version: {{ .RdmaSharedDevicePlugin.Version }}
   # imagePullSecrets: []
   # The following defines the RDMA resources in the cluster
   # it must be provided by the user when deploying the chart
@@ -208,9 +208,9 @@ rdmaSharedDevicePlugin:
 
 sriovDevicePlugin:
   deploy: false
-  image: sriov-network-device-plugin
-  repository: ghcr.io/k8snetworkplumbingwg
-  version: v3.5.1
+  image: {{ .SriovDevicePlugin.Image }}
+  repository: {{ .SriovDevicePlugin.Repository }}
+  version: {{ .SriovDevicePlugin.Version }}
   # imagePullSecrets: []
   resources:
     - name: hostdev
@@ -218,9 +218,9 @@ sriovDevicePlugin:
 
 ibKubernetes:
   deploy: false
-  image: ib-kubernetes
-  repository: ghcr.io/mellanox
-  version: v1.0.2
+  image: {{ .IbKubernetes.Image }}
+  repository: {{ .IbKubernetes.Repository }}
+  version: {{ .IbKubernetes.Version }}
   # imagePullSecrets: []
   periodicUpdateSeconds: 5
   pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
@@ -231,28 +231,28 @@ secondaryNetwork:
   deploy: true
   cniPlugins:
     deploy: true
-    image: plugins
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.8.7-amd64
+    image: {{ .CniPlugins.Image }}
+    repository: {{ .CniPlugins.Repository }}
+    version: {{ .CniPlugins.Version }}
     # imagePullSecrets: []
   multus:
     deploy: true
-    image: multus-cni
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.8
+    image: {{ .Multus.Image }}
+    repository: {{ .Multus.Repository }}
+    version: {{ .Multus.Version }}
     # imagePullSecrets: []
     config: ''
   ipoib:
     deploy: false
-    image: ipoib-cni
-    repository: nvcr.io/nvidia/cloud-native
-    version: v1.1.0
+    image: {{ .Ipoib.Image }}
+    repository: {{ .Ipoib.Repository }}
+    version: {{ .Ipoib.Version }}
     # imagePullSecrets: []
   ipamPlugin:
     deploy: true
-    image: whereabouts
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.5.2-amd64
+    image: {{ .IpamPlugin.Image }}
+    repository: {{ .IpamPlugin.Repository }}
+    version: {{ .IpamPlugin.Version }}
     # imagePullSecrets: []
 
 # Can be set to nicclusterpolicy and override other ds node affinity,

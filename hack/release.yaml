@@ -1,0 +1,35 @@
+NetworkOperator:
+  image: network-operator
+  repository: nvcr.io/nvidia/cloud-native
+Mofed:
+  image: mofed
+  repository: nvcr.io/nvidia/mellanox
+  version: 5.9-0.5.6.0
+RdmaSharedDevicePlugin:
+  image: k8s-rdma-shared-dev-plugin
+  repository: nvcr.io/nvidia/cloud-native
+  version: v1.3.2
+SriovDevicePlugin:
+  image: sriov-network-device-plugin
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v3.5.1
+IbKubernetes:
+  image: ib-kubernetes
+  repository: ghcr.io/mellanox
+  version: v1.0.2
+CniPlugins:
+  image: plugins
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v0.8.7-amd64
+Multus:
+  image: multus-cni
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v3.8
+Ipoib:
+  image: ipoib-cni
+  repository: nvcr.io/nvidia/cloud-native
+  version: v1.1.0
+IpamPlugin:
+  image: whereabouts
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v0.5.2-amd64
