@@ -40,7 +40,7 @@ CniPlugins:
 Multus:
   image: multus-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v3.8
+  version: v3.9.3
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvidia/cloud-native
