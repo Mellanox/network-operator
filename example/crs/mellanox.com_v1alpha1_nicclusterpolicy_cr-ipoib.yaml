@@ -52,7 +52,7 @@ spec:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.8.7-amd64
+      version: v1.2.0-amd64
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvidia/cloud-native
@@ -60,12 +60,12 @@ spec:
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v3.8
+      version: v3.9.3
       config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.5.2-amd64
+      version: v0.6.1-amd64
   nvPeerDriver:
     image: nv-peer-mem-driver
     repository: mellanox

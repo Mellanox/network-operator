@@ -1,6 +1,22 @@
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvidia/cloud-native
+SriovNetworkOperator:
+  image: sriov-network-operator
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: 13405c55b6a77bc2476ad5bf40a3188bb5783244
+SriovConfigDaemon:
+  image: sriov-network-operator-config-daemon
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: 13405c55b6a77bc2476ad5bf40a3188bb5783244
+SriovCni:
+  image: sriov-cni
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v2.7.0
+SriovIbCni:
+  image: ib-sriov-cni
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: v1.0.3
 Mofed:
   image: mofed
   repository: nvcr.io/nvidia/mellanox
@@ -20,11 +36,11 @@ IbKubernetes:
 CniPlugins:
   image: plugins
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.8.7-amd64
+  version: v1.2.0-amd64
 Multus:
   image: multus-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v3.8
+  version: v3.9.3
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvidia/cloud-native
@@ -32,4 +48,4 @@ Ipoib:
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.5.2-amd64
+  version: v0.6.1-amd64

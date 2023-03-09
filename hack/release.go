@@ -32,6 +32,10 @@ import (
 
 type Release struct {
 	NetworkOperator        *mellanoxv1alpha1.ImageSpec
+	SriovNetworkOperator   *mellanoxv1alpha1.ImageSpec
+	SriovConfigDaemon      *mellanoxv1alpha1.ImageSpec
+	SriovCni               *mellanoxv1alpha1.ImageSpec
+	SriovIbCni             *mellanoxv1alpha1.ImageSpec
 	Mofed                  *mellanoxv1alpha1.ImageSpec
 	RdmaSharedDevicePlugin *mellanoxv1alpha1.ImageSpec
 	SriovDevicePlugin      *mellanoxv1alpha1.ImageSpec
