@@ -530,6 +530,23 @@ spec:
                           will be upgraded in parallel
                         minimum: 0
                         type: integer
+                      waitForCompletion:
+                        description: WaitForCompletionSpec describes the configuration
+                          for waiting on job completions
+                        properties:
+                          podSelector:
+                            description: 'PodSelector specifies a label selector for
+                              the pods to wait for completion For more details on
+                              label selectors, see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+                            type: string
+                          timeoutSeconds:
+                            default: 0
+                            description: TimeoutSecond specifies the length of time
+                              in seconds to wait before giving up on pod termination,
+                              zero means infinite
+                            minimum: 0
+                            type: integer
+                        type: object
                     type: object
                   version:
                     pattern: '[a-zA-Z0-9\.-]+'

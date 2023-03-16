@@ -43,7 +43,7 @@ var _ = Describe("HostDevice Network Stage rendering tests", func() {
 
 	Context("HostDevice Network stage", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/stage-hostdevice-network"
 			scheme := runtime.NewScheme()
 

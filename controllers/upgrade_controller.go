@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +43,6 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/upgrade"
 )
 
 // UpgradeReconciler reconciles OFED Daemon Sets for upgrade
@@ -55,6 +55,9 @@ type UpgradeReconciler struct {
 }
 
 const plannedRequeueInterval = time.Minute * 2
+
+// UpgradeStateAnnotation is kept for backwards cleanup TODO: drop in 2 releases
+const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
 //nolint
 // +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
@@ -79,11 +82,18 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	// Cleanup old annotations, leftover from the old versions of network-operator
+	// TODO drop in 2 releases
+	err = r.removeNodeUpgradeStateAnnotations(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if nicClusterPolicy.Spec.OFEDDriver == nil ||
 		nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy == nil ||
 		!nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade {
 		reqLogger.V(consts.LogLevelInfo).Info("OFED Upgrade Policy is disabled, skipping driver upgrade")
-		err = r.removeNodeUpgradeStateAnnotations(ctx)
+		err = r.removeNodeUpgradeStateLabels(ctx)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -100,7 +110,8 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	reqLogger.V(consts.LogLevelInfo).Info("Propagate state to state manager")
 	reqLogger.V(consts.LogLevelDebug).Info("Current cluster upgrade state", "state", state)
-	err = r.StateManager.ApplyState(ctx, state, upgradePolicy)
+	driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(*upgradePolicy)
+	err = r.StateManager.ApplyState(ctx, state, driverUpgradePolicy)
 	if err != nil {
 		r.Log.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")
 		return ctrl.Result{}, err
@@ -113,8 +124,39 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{Requeue: true, RequeueAfter: plannedRequeueInterval}, nil
 }
 
-// removeNodeUpgradeStateAnnotations loops over nodes in the cluster and removes upgrade.UpgradeStateAnnotation
+// removeNodeUpgradeStateLabels loops over nodes in the cluster and removes upgrade.UpgradeStateLabel
 // It is used for cleanup when autoUpgrade feature gets disabled
+func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) error {
+	r.Log.Info("Resetting node upgrade labels from all nodes")
+
+	nodeList := &corev1.NodeList{}
+	err := r.List(ctx, nodeList)
+	if err != nil {
+		r.Log.Error(err, "Failed to get node list to reset upgrade labels")
+		return err
+	}
+
+	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
+
+	for i := range nodeList.Items {
+		node := &nodeList.Items[i]
+		_, present := node.Labels[upgradeStateLabel]
+		if present {
+			delete(node.Labels, upgradeStateLabel)
+			err = r.Update(ctx, node)
+			if err != nil {
+				r.Log.V(consts.LogLevelError).Error(
+					err, "Failed to reset upgrade annotation from node", "node", node)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// removeNodeUpgradeStateAnnotations loops over nodes in the cluster and removes UpgradeStateAnnotation
+// It is used now only to clean up leftover annotations from previous versions of network-operator
+// TODO drop in 2 releases
 func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Context) error {
 	r.Log.V(consts.LogLevelInfo).Info("Resetting node upgrade annotations from all nodes")
 
@@ -126,9 +168,9 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 	}
 	for i := range nodeList.Items {
 		node := &nodeList.Items[i]
-		_, present := node.Annotations[upgrade.UpgradeStateAnnotation]
+		_, present := node.Annotations[UpgradeStateAnnotation]
 		if present {
-			delete(node.Annotations, upgrade.UpgradeStateAnnotation)
+			delete(node.Annotations, UpgradeStateAnnotation)
 			err = r.Update(ctx, node)
 			if err != nil {
 				r.Log.V(consts.LogLevelError).Error(
@@ -162,7 +204,7 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 
 	err = r.List(ctx, podList,
 		client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace),
-		client.MatchingLabels{upgrade.OfedDriverLabel: ""})
+		client.MatchingLabels{consts.OfedDriverLabel: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +219,8 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 		filteredPodList = append(filteredPodList, dsPods...)
 	}
 
+	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
+
 	for i := range filteredPodList {
 		pod := &filteredPodList[i]
 		ownerDaemonSet := daemonSets[pod.OwnerReferences[0].UID]
@@ -185,9 +229,9 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 			r.Log.V(consts.LogLevelError).Error(err, "Failed to build node upgrade state for pod", "pod", pod)
 			return nil, err
 		}
-		nodeStateAnnotation := nodeState.Node.Annotations[upgrade.UpgradeStateAnnotation]
-		upgradeState.NodeStates[nodeStateAnnotation] = append(
-			upgradeState.NodeStates[nodeStateAnnotation], nodeState)
+		nodeStateLabel := nodeState.Node.Labels[upgradeStateLabel]
+		upgradeState.NodeStates[nodeStateLabel] = append(
+			upgradeState.NodeStates[nodeStateLabel], nodeState)
 	}
 
 	return &upgradeState, nil
@@ -203,8 +247,9 @@ func (r *UpgradeReconciler) buildNodeUpgradeState(
 		return nil, err
 	}
 
-	r.Log.V(consts.LogLevelInfo).Info("Node hosting an OFED driver pod",
-		"node", node.Name, "state", node.Annotations[upgrade.UpgradeStateAnnotation])
+	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
+	r.Log.V(consts.LogLevelInfo).Info("Node hosting a driver pod",
+		"node", node.Name, "state", node.Labels[upgradeStateLabel])
 
 	return &upgrade.NodeUpgradeState{Node: node, DriverPod: pod, DriverDaemonSet: ds}, nil
 }
@@ -216,7 +261,7 @@ func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.
 
 	err := r.List(ctx, daemonSetList,
 		client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace),
-		client.MatchingLabels{upgrade.OfedDriverLabel: ""})
+		client.MatchingLabels{consts.OfedDriverLabel: ""})
 	if err != nil {
 		r.Log.V(consts.LogLevelError).Error(err, "Failed to get daemon set list")
 		return nil, err
@@ -289,7 +334,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// react on events only for OFED daemon set
 	daemonSetPredicates := builder.WithPredicates(predicate.NewPredicateFuncs(func(object client.Object) bool {
 		labels := object.GetLabels()
-		_, ok := labels[upgrade.OfedDriverLabel]
+		_, ok := labels[consts.OfedDriverLabel]
 		return ok
 	}))
 

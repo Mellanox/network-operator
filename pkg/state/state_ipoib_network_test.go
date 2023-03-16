@@ -32,7 +32,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 
 	Context("IPoIBNetwork Network state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/stage-ipoib-network"
 			scheme := runtime.NewScheme()
 

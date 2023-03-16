@@ -35,7 +35,7 @@ var _ = Describe("IPoIB CNI State tests", func() {
 
 	Context("GetNodesAttributes with provide", func() {
 		It("Should Apply", func() {
-			client := mocks.ControllerRutimeClient{}
+			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/stage-ipoib-cni"
 			scheme := runtime.NewScheme()
 

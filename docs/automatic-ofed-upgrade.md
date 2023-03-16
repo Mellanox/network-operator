@@ -26,6 +26,13 @@ spec:
       # maxParallelUpgrades indicates how many nodes can be upgraded in parallel
 	  # 0 means no limit, all nodes will be upgraded in parallel
       maxParallelUpgrades: 0
+      # describes the configuration for waiting on job completions
+      waitForCompletion:
+        # specifies a label selector for the pods to wait for completion
+        podSelector: "app=myapp"
+        # specify the length of time in seconds to wait before giving up for workload to finish, zero means infinite
+        # if not specified, the default is 300 seconds
+        timeoutSeconds: 300
       # describes configuration for node drain during automatic upgrade
       drain:
         # allow node draining during upgrade
@@ -46,16 +53,17 @@ spec:
 
 ### Details
 #### Node upgrade states
-Each node's upgrade status is reflected in its `nvidia.com/ofed-upgrade-state` annotation. This annotation can have the following values:
+Each node's upgrade status is reflected in its `nvidia.com/ofed-upgrade-state` label. This label can have the following values:
 * Unknown (empty): node has this state when the upgrade flow is disabled or the node hasn't been processed yet
 * `upgrade-done` is set when OFED POD is up to date and running on the node, the node is schedulable
 UpgradeStateDone = "upgrade-done"
 * `upgrade-required` is set when OFED POD on the node is not up-to-date and requires upgrade. No actions are performed at this stage
-* `drain` is set when the node is scheduled for drain. After the drain the state is changed either to `pod-restart` or `drain-failed`
-UpgradeStateDrain = "drain"
-* `pod-restart` is set when the OFED POD on the node is scheduler for restart. After the restart state is changed to `uncordon-required`
-* `drain-failed` is set when drain on the node has failed. Manual interaction is required at this stage. See [Troubleshooting](#node-is-in-drain-failed-state) section for more details.
+* `cordon-required` is set when the node needs to be made unschedulable in preparation for driver upgrade 
+* `wait-for-jobs-required` is set on the node when we need to wait on jobs to complete until given timeout
+* `drain-required` is set when the node is scheduled for drain. After the drain the state is changed either to `pod-restart-required` or `upgrade-failed`
+* `pod-restart-required` is set when the OFED POD on the node is scheduler for restart. After the restart state is changed to `uncordon-required`
 * `uncordon-required` is set when OFED POD on the node is up-to-date and has "Ready" status. After uncordone the state is changed to `upgrade-done`
+* `upgrade-failed` is set when upgrade on the node has failed. Manual interaction is required at this stage. See [Troubleshooting](#node-is-in-drain-failed-state) section for more details.
 
 #### State change diagram
 
