@@ -31,4 +31,5 @@ const (
 const (
 	NicClusterPolicyResourceName = "nic-cluster-policy"
 	OfedDriverLabel              = "nvidia.com/ofed-driver"
+	StateLabel                   = "nvidia.network-operator.state"
 )

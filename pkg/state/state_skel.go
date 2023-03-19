@@ -24,8 +24,10 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -59,6 +61,71 @@ func (s *stateSkel) Description() string {
 	return s.description
 }
 
+func getSupportedGVKs() []schema.GroupVersionKind {
+	return []schema.GroupVersionKind{
+		{
+			Group:   "",
+			Kind:    "ServiceAccount",
+			Version: "v1",
+		},
+		{
+			Group:   "",
+			Kind:    "ConfigMap",
+			Version: "v1",
+		},
+		{
+			Group:   "apps",
+			Kind:    "DaemonSet",
+			Version: "v1",
+		},
+		{
+			Group:   "apps",
+			Kind:    "Deployment",
+			Version: "v1",
+		},
+		{
+			Group:   "apiextensions.k8s.io",
+			Kind:    "CustomResourceDefinition",
+			Version: "v1",
+		},
+		{
+			Group:   "rbac.authorization.k8s.io",
+			Kind:    "ClusterRole",
+			Version: "v1",
+		},
+		{
+			Group:   "rbac.authorization.k8s.io",
+			Kind:    "ClusterRoleBinding",
+			Version: "v1",
+		},
+		{
+			Group:   "rbac.authorization.k8s.io",
+			Kind:    "Role",
+			Version: "v1",
+		},
+		{
+			Group:   "rbac.authorization.k8s.io",
+			Kind:    "RoleBinding",
+			Version: "v1",
+		},
+		{
+			Group:   "k8s.cni.cncf.io",
+			Kind:    "NetworkAttachmentDefinition",
+			Version: "v1",
+		},
+		{
+			Group:   "batch",
+			Kind:    "CronJob",
+			Version: "v1",
+		},
+		{
+			Group:   "security.openshift.io",
+			Kind:    "SecurityContextConstraints",
+			Version: "v1",
+		},
+	}
+}
+
 func (s *stateSkel) getObj(obj *unstructured.Unstructured) error {
 	log.V(consts.LogLevelInfo).Info("Get Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
 	err := s.client.Get(
@@ -71,6 +138,7 @@ func (s *stateSkel) getObj(obj *unstructured.Unstructured) error {
 }
 
 func (s *stateSkel) createObj(obj *unstructured.Unstructured) error {
+	s.checkDeleteSupported(obj)
 	log.V(consts.LogLevelInfo).Info("Creating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
 	toCreate := obj.DeepCopy()
 	if err := s.client.Create(context.TODO(), toCreate); err != nil {
@@ -81,6 +149,17 @@ func (s *stateSkel) createObj(obj *unstructured.Unstructured) error {
 	}
 	log.V(consts.LogLevelInfo).Info("Object created successfully")
 	return nil
+}
+
+func (s *stateSkel) checkDeleteSupported(obj *unstructured.Unstructured) {
+	for _, gvk := range getSupportedGVKs() {
+		objGvk := obj.GroupVersionKind()
+		if objGvk.Group == gvk.Group && objGvk.Version == gvk.Version && objGvk.Kind == gvk.Kind {
+			return
+		}
+	}
+	log.V(consts.LogLevelWarning).Info("Object will not be deleted if needed",
+		"Namespace:", obj.GetNamespace(), "Name:", obj.GetName(), "GVK", obj.GroupVersionKind())
 }
 
 func (s *stateSkel) updateObj(obj *unstructured.Unstructured) error {
@@ -105,6 +184,8 @@ func (s *stateSkel) createOrUpdateObjs(
 		if err := setControllerReference(desiredObj); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
+
+		s.addStateSpecificLabels(desiredObj)
 
 		err := s.createObj(desiredObj)
 		if err == nil {
@@ -132,6 +213,60 @@ func (s *stateSkel) createOrUpdateObjs(
 		}
 	}
 	return nil
+}
+
+func (s *stateSkel) addStateSpecificLabels(obj *unstructured.Unstructured) {
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[consts.StateLabel] = s.name
+	obj.SetLabels(labels)
+}
+
+func (s *stateSkel) handleStateObjectsDeletion() (SyncState, error) {
+	log.V(consts.LogLevelInfo).Info(
+		"State spec in CR is nil, deleting existing objects if needed", "State:", s.name)
+	found, err := s.deleteStateRelatedObjects()
+	if err != nil {
+		return SyncStateError, errors.Wrap(err, "failed to delete k8s objects")
+	}
+	if found {
+		log.V(consts.LogLevelInfo).Info("State deleting objects in progress", "State:", s.name)
+		return SyncStateNotReady, nil
+	}
+	return SyncStateIgnore, nil
+}
+
+func (s *stateSkel) deleteStateRelatedObjects() (bool, error) {
+	stateLabel := map[string]string{
+		consts.StateLabel: s.name,
+	}
+	found := false
+	for _, gvk := range getSupportedGVKs() {
+		l := &unstructured.UnstructuredList{}
+		l.SetGroupVersionKind(gvk)
+		err := s.client.List(context.Background(), l, client.MatchingLabels(stateLabel))
+		if meta.IsNoMatchError(err) {
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		if len(l.Items) > 0 {
+			found = true
+		}
+		for _, obj := range l.Items {
+			obj := obj
+			if obj.GetDeletionTimestamp() == nil {
+				err := s.client.Delete(context.TODO(), &obj)
+				if err != nil {
+					return true, err
+				}
+			}
+		}
+	}
+	return found, nil
 }
 
 func (s *stateSkel) mergeObjects(updated, current *unstructured.Unstructured) error {

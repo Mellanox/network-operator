@@ -73,8 +73,7 @@ func (s *statePodSecurityPolicy) Sync(customResource interface{}, infoCatalog In
 	if cr.Spec.PSP == nil || !cr.Spec.PSP.Enabled {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		log.V(consts.LogLevelInfo).Info("pod security policy is not enabled, no action required")
-		return SyncStateIgnore, nil
+		return s.handleStateObjectsDeletion()
 	}
 
 	objs, err := s.getManifestObjects()

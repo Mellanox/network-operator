@@ -73,9 +73,7 @@ func (s *stateWhereaboutsCNI) Sync(customResource interface{}, infoCatalog InfoC
 	if cr.Spec.SecondaryNetwork == nil || cr.Spec.SecondaryNetwork.IpamPlugin == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		// TODO: Support the latter case
-		log.V(consts.LogLevelInfo).Info("Secondary Network Whereabouts spec in CR is nil, no action required")
-		return SyncStateIgnore, nil
+		return s.handleStateObjectsDeletion()
 	}
 	// Fill ManifestRenderData and render objects
 	objs, err := s.getManifestObjects(cr)
