@@ -33,7 +33,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-const stateCNIPluginsName = "stage-container-networking-plugins"
+const stateCNIPluginsName = "state-container-networking-plugins"
 const stateCNIPluginsDescription = "Container Networking CNI Plugins deployed in the cluster"
 
 // NewStateCNIPlugins creates a new state for secondary container networking CNI plugins
