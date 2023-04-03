@@ -110,7 +110,7 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	reqLogger.V(consts.LogLevelInfo).Info("Propagate state to state manager")
 	reqLogger.V(consts.LogLevelDebug).Info("Current cluster upgrade state", "state", state)
-	driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(*upgradePolicy)
+	driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(upgradePolicy)
 	err = r.StateManager.ApplyState(ctx, state, driverUpgradePolicy)
 	if err != nil {
 		r.Log.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")

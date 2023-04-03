@@ -19,23 +19,28 @@ package v1alpha1
 import upgradeApi "github.com/NVIDIA/k8s-operator-libs/api/upgrade/v1alpha1"
 
 func GetDriverUpgradePolicy(
-	ofedUpgradePolicy DriverUpgradePolicySpec) *upgradeApi.DriverUpgradePolicySpec {
+	ofedUpgradePolicy *DriverUpgradePolicySpec) *upgradeApi.DriverUpgradePolicySpec {
+	if ofedUpgradePolicy == nil {
+		return nil
+	}
+
 	var driverUpgradePolicy upgradeApi.DriverUpgradePolicySpec
+
 	driverUpgradePolicy.AutoUpgrade = ofedUpgradePolicy.AutoUpgrade
 	driverUpgradePolicy.MaxParallelUpgrades = ofedUpgradePolicy.MaxParallelUpgrades
 
 	driverUpgradePolicy.PodDeletion = nil
-	if ofedUpgradePolicy.WaitForCompletion != nil {
-		driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(ofedUpgradePolicy.WaitForCompletion)
-	}
-	if ofedUpgradePolicy.DrainSpec != nil {
-		driverUpgradePolicy.DrainSpec = getDrainSpec(ofedUpgradePolicy.DrainSpec)
-	}
+	driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(ofedUpgradePolicy.WaitForCompletion)
+	driverUpgradePolicy.DrainSpec = getDrainSpec(ofedUpgradePolicy.DrainSpec)
+
 	return &driverUpgradePolicy
 }
 
 func getWaitForCompletionSpec(
 	waitForCompletionSpec *WaitForCompletionSpec) *upgradeApi.WaitForCompletionSpec {
+	if waitForCompletionSpec == nil {
+		return nil
+	}
 	var spec upgradeApi.WaitForCompletionSpec
 	spec.PodSelector = waitForCompletionSpec.PodSelector
 	spec.TimeoutSecond = waitForCompletionSpec.TimeoutSecond
@@ -43,6 +48,9 @@ func getWaitForCompletionSpec(
 }
 
 func getDrainSpec(drainSpec *DrainSpec) *upgradeApi.DrainSpec {
+	if drainSpec == nil {
+		return nil
+	}
 	var spec upgradeApi.DrainSpec
 	spec.Enable = drainSpec.Enable
 	spec.Force = drainSpec.Force
