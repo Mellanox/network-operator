@@ -25,8 +25,12 @@ func GetDriverUpgradePolicy(
 	driverUpgradePolicy.MaxParallelUpgrades = ofedUpgradePolicy.MaxParallelUpgrades
 
 	driverUpgradePolicy.PodDeletion = nil
-	driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(*ofedUpgradePolicy.WaitForCompletion)
-	driverUpgradePolicy.DrainSpec = getDrainSpec(*ofedUpgradePolicy.DrainSpec)
+	if ofedUpgradePolicy.WaitForCompletion != nil {
+		driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(*ofedUpgradePolicy.WaitForCompletion)
+	}
+	if ofedUpgradePolicy.DrainSpec != nil {
+		driverUpgradePolicy.DrainSpec = getDrainSpec(*ofedUpgradePolicy.DrainSpec)
+	}
 	return &driverUpgradePolicy
 }
 
