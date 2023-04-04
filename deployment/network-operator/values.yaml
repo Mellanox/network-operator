@@ -24,6 +24,9 @@ psp:
 
 sriovNetworkOperator:
   enabled: false
+  # inject additional values to nodeSelector for config daemon
+  configDaemonNodeSelectorExtra:
+    node-role.kubernetes.io/worker: ""
 
 # Node Feature discovery chart related values
 node-feature-discovery:
