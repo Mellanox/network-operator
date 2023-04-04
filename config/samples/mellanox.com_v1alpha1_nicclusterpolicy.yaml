@@ -20,12 +20,23 @@ spec:
     image: mofed
     repository: nvcr.io/nvidia/mellanox
     version: 5.9-0.5.6.0
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 20
+    terminationGracePeriodSeconds: 300
     upgradePolicy:
       autoUpgrade: false
       drain:
         deleteEmptyDir: true
         enable: true
         force: true
+        podSelector: ""
         timeoutSeconds: 300
       maxParallelUpgrades: 1
   rdmaSharedDevicePlugin:

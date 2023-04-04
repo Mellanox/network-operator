@@ -262,7 +262,7 @@ kustomize: ## Download kustomize locally if necessary.
 .PHONY: operator-sdk
 OPERATOR_SDK = ./bin/operator-sdk
 operator-sdk: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPERATOR_SKD)))
+ifeq (,$(wildcard $(OPERATOR_SDK)))
 ifeq (,$(shell which opm 2>/dev/null))
 	@{ \
 	set -e ;\
