@@ -26,23 +26,23 @@ func GetDriverUpgradePolicy(
 
 	driverUpgradePolicy.PodDeletion = nil
 	if ofedUpgradePolicy.WaitForCompletion != nil {
-		driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(*ofedUpgradePolicy.WaitForCompletion)
+		driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(ofedUpgradePolicy.WaitForCompletion)
 	}
 	if ofedUpgradePolicy.DrainSpec != nil {
-		driverUpgradePolicy.DrainSpec = getDrainSpec(*ofedUpgradePolicy.DrainSpec)
+		driverUpgradePolicy.DrainSpec = getDrainSpec(ofedUpgradePolicy.DrainSpec)
 	}
 	return &driverUpgradePolicy
 }
 
 func getWaitForCompletionSpec(
-	waitForCompletionSpec WaitForCompletionSpec) *upgradeApi.WaitForCompletionSpec {
+	waitForCompletionSpec *WaitForCompletionSpec) *upgradeApi.WaitForCompletionSpec {
 	var spec upgradeApi.WaitForCompletionSpec
 	spec.PodSelector = waitForCompletionSpec.PodSelector
 	spec.TimeoutSecond = waitForCompletionSpec.TimeoutSecond
 	return &spec
 }
 
-func getDrainSpec(drainSpec DrainSpec) *upgradeApi.DrainSpec {
+func getDrainSpec(drainSpec *DrainSpec) *upgradeApi.DrainSpec {
 	var spec upgradeApi.DrainSpec
 	spec.Enable = drainSpec.Enable
 	spec.Force = drainSpec.Force
