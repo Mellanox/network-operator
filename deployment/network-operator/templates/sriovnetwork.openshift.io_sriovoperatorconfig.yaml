@@ -24,8 +24,7 @@ spec:
   enableInjector: false
   enableOperatorWebhook: false
   configDaemonNodeSelector:
-    beta.kubernetes.io/os: linux
-    node-role.kubernetes.io/worker: ""
-    network.nvidia.com/operator.mofed.wait: "false"
+    {{- $defaults := dict "beta.kubernetes.io/os" "linux" "network.nvidia.com/operator.mofed.wait" "false" }}
+    {{- $selectors := merge  $defaults .Values.sriovNetworkOperator.configDaemonNodeSelectorExtra}}
+    {{- toYaml $selectors | nindent 4 }}
 {{ end }}
-
