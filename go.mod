@@ -1,6 +1,6 @@
 module github.com/Mellanox/network-operator
 
-go 1.18
+go 1.20
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
@@ -113,5 +113,3 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
-
-replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
