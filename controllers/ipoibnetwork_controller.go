@@ -56,7 +56,7 @@ type IPoIBNetworkReconciler struct {
 // move the current state of the cluster closer to the desired state.
 //
 //nolint:dupl
-func (r *IPoIBNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("ipoibnetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling IPoIBNetwork")
 

@@ -65,7 +65,7 @@ type podSecurityPolicyManifestRenderData struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *statePodSecurityPolicy) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+func (s *statePodSecurityPolicy) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	log.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)

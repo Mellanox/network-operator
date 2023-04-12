@@ -57,7 +57,7 @@ type MacvlanNetworkReconciler struct {
 // move the current state of the cluster closer to the desired state.
 //
 //nolint:dupl
-func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *MacvlanNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("macvlannetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling MacvlanNetwork")
 

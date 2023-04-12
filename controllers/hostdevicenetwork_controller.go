@@ -55,7 +55,7 @@ type HostDeviceNetworkReconciler struct {
 // move the current state of the cluster closer to the desired state.
 //
 //nolint:dupl
-func (r *HostDeviceNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *HostDeviceNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("hostdevicenetwork", req.NamespacedName)
 	reqLogger.Info("Reconciling HostDeviceNetwork")
 

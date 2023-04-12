@@ -29,7 +29,7 @@ type dummyFilter struct {
 	filtered []*corev1.Node
 }
 
-func (df *dummyFilter) Apply(nodes []*corev1.Node) []*corev1.Node {
+func (df *dummyFilter) Apply(_ []*corev1.Node) []*corev1.Node {
 	df.called = true
 	return df.filtered
 }
