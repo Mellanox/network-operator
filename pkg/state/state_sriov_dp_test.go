@@ -38,7 +38,7 @@ import (
 type dummyProvider struct {
 }
 
-func (p *dummyProvider) GetNodesAttributes(filters ...nodeinfo.Filter) []nodeinfo.NodeAttributes {
+func (p *dummyProvider) GetNodesAttributes(_ ...nodeinfo.Filter) []nodeinfo.NodeAttributes {
 	attr := nodeinfo.NodeAttributes{
 		Name:       "test",
 		Attributes: make(map[nodeinfo.AttributeType]string),
