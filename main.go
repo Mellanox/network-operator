@@ -37,6 +37,7 @@ import (
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/controllers"
+	"github.com/Mellanox/network-operator/pkg/consts"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -107,7 +108,10 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	clientConf := ctrl.GetConfigOrDie()
+	clientConf.UserAgent = consts.KubernetesClientUserAgent
+
+	mgr, err := ctrl.NewManager(clientConf, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
