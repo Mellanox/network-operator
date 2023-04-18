@@ -29,6 +29,8 @@ var operatorConfig *OperatorConfig
 type OperatorConfig struct {
 	State      StateConfig
 	Controller ControllerConfig
+	// disable migration logic in the operator.
+	DisableMigration bool `env:"DISABLE_MIGRATION" envDefault:"false"`
 }
 
 // state related configurations

@@ -27,6 +27,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -38,6 +39,7 @@ import (
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/controllers"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/migrate"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -111,6 +113,8 @@ func main() {
 	clientConf := ctrl.GetConfigOrDie()
 	clientConf.UserAgent = consts.KubernetesClientUserAgent
 
+	stopCtx := ctrl.SetupSignalHandler()
+
 	mgr, err := ctrl.NewManager(clientConf, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -121,6 +125,19 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	directClient, err := client.New(clientConf,
+		client.Options{Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+	if err != nil {
+		setupLog.Error(err, "failed to create direct client")
+		os.Exit(1)
+	}
+
+	// run migration logic before controllers start
+	if err := migrate.Migrate(stopCtx, setupLog.WithName("migrate"), directClient); err != nil {
+		setupLog.Error(err, "failed to run migration logic")
 		os.Exit(1)
 	}
 
@@ -170,7 +187,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(stopCtx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
