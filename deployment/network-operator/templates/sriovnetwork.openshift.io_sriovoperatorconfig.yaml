@@ -25,6 +25,6 @@ spec:
   enableOperatorWebhook: false
   configDaemonNodeSelector:
     {{- $defaults := dict "beta.kubernetes.io/os" "linux" "network.nvidia.com/operator.mofed.wait" "false" }}
-    {{- $selectors := merge  $defaults .Values.sriovNetworkOperator.configDaemonNodeSelectorExtra}}
+    {{- $selectors := merge $defaults (.Values.sriovNetworkOperator.configDaemonNodeSelectorExtra | default dict  ) }}
     {{- toYaml $selectors | nindent 4 }}
 {{ end }}
