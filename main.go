@@ -38,7 +38,6 @@ import (
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/controllers"
-	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/migrate"
 	// +kubebuilder:scaffold:imports
 )
@@ -110,10 +109,9 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	clientConf := ctrl.GetConfigOrDie()
-	clientConf.UserAgent = consts.KubernetesClientUserAgent
-
 	stopCtx := ctrl.SetupSignalHandler()
+
+	clientConf := ctrl.GetConfigOrDie()
 
 	mgr, err := ctrl.NewManager(clientConf, ctrl.Options{
 		Scheme:                 scheme,
