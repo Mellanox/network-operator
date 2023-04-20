@@ -34,21 +34,11 @@ spec:
     spec:
       hostNetwork: true
       serviceAccountName: whereabouts
-      nodeSelector:
-        beta.kubernetes.io/arch: amd64
+      {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
-        {{- if not .NodeAffinity }}
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: "node-role.kubernetes.io/master"
-                    operator: DoesNotExist
-                  - key: "node-role.kubernetes.io/control-plane"
-                    operator: DoesNotExist
-        {{- else }}
           {{- .NodeAffinity | yaml | nindent 10 }}
-        {{- end }}
+      {{- end }}
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
       {{- range .CrSpec.ImagePullSecrets }}

@@ -37,19 +37,11 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
-        {{- if not .NodeAffinity}}
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: DoesNotExist
-        {{- else }}
           {{- .NodeAffinity | yaml | nindent 10 }}
-        {{- end}}
+      {{- end }}
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
