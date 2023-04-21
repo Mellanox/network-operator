@@ -214,6 +214,7 @@ type NicClusterPolicySpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	NodeAffinity           *v1.NodeAffinity      `json:"nodeAffinity,omitempty"`
+	Tolerations            []v1.Toleration       `json:"tolerations,omitempty"`
 	OFEDDriver             *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
 	NVPeerDriver           *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`

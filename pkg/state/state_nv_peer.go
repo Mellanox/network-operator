@@ -61,6 +61,7 @@ type nvPeerRuntimeSpec struct {
 
 type nvPeerManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.NVPeerDriverSpec
+	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
 	RuntimeSpec  *nvPeerRuntimeSpec
 }
@@ -152,6 +153,7 @@ func (s *stateNVPeer) getManifestObjects(
 
 	renderData := &nvPeerManifestRenderData{
 		CrSpec:       cr.Spec.NVPeerDriver,
+		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &nvPeerRuntimeSpec{
 			runtimeSpec:    runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},

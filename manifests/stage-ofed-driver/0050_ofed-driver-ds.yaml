@@ -34,6 +34,9 @@ spec:
     spec:
       priorityClassName: system-node-critical
       tolerations:
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
