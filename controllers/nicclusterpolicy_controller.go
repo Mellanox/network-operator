@@ -280,7 +280,7 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		ctl = ctl.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxv1alpha1.NicClusterPolicy{},
-		})
+		}, builder.WithPredicates(IgnoreSameContentPredicate{}))
 	}
 
 	return ctl.Complete(r)

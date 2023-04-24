@@ -17,6 +17,11 @@ limitations under the License.
 package controllers
 
 import (
+	"reflect"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -35,4 +40,36 @@ func (p MlnxLabelChangedPredicate) hasMlnxLabel(labels map[string]string) bool {
 
 func (p MlnxLabelChangedPredicate) Update(e event.UpdateEvent) bool {
 	return p.hasMlnxLabel(e.ObjectOld.GetLabels()) != p.hasMlnxLabel(e.ObjectNew.GetLabels())
+}
+
+// IgnoreSameContentPredicate filters updates if old and new object are the same,
+// ignores ResourceVersion and ManagedFields while comparing
+type IgnoreSameContentPredicate struct {
+	predicate.Funcs
+}
+
+func (p IgnoreSameContentPredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil {
+		return false
+	}
+	if e.ObjectNew == nil {
+		return false
+	}
+	oldObj := e.ObjectOld.DeepCopyObject().(client.Object)
+	newObj := e.ObjectNew.DeepCopyObject().(client.Object)
+	// ignore resource version
+	oldObj.SetResourceVersion("")
+	newObj.SetResourceVersion("")
+	// ignore managed fields
+	oldObj.SetManagedFields([]metav1.ManagedFieldsEntry{})
+	newObj.SetManagedFields([]metav1.ManagedFieldsEntry{})
+	oldUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(oldObj)
+	if err != nil {
+		return false
+	}
+	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newObj)
+	if err != nil {
+		return false
+	}
+	return !reflect.DeepEqual(oldUnstr, newUnstr)
 }

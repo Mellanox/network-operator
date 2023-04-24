@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -165,16 +164,10 @@ func (s *stateSkel) checkDeleteSupported(obj *unstructured.Unstructured) {
 
 func (s *stateSkel) updateObj(obj *unstructured.Unstructured) error {
 	log.V(consts.LogLevelInfo).Info("Updating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
-	applyPatchData, err := yaml.Marshal(obj)
-	if err != nil {
-		log.V(consts.LogLevelError).Error(err, "failed to encode apply patch data")
-		return err
-	}
-	patchUseForce := true
-	// use server-side apply
-	if err := s.client.Patch(context.TODO(), obj, client.RawPatch(types.ApplyPatchType, applyPatchData),
-		client.FieldOwner(consts.KubernetesClientUserAgent),
-		&client.PatchOptions{Force: &patchUseForce}); err != nil {
+	// Note: Some objects may require update of the resource version
+	// TODO: using Patch preserves runtime attributes. In the future consider using patch if relevant
+	desired := obj.DeepCopy()
+	if err := s.client.Update(context.TODO(), desired); err != nil {
 		return errors.Wrap(err, "failed to update resource")
 	}
 	log.V(consts.LogLevelInfo).Info("Object updated successfully")
@@ -201,6 +194,16 @@ func (s *stateSkel) createOrUpdateObjs(
 		}
 		if !k8serrors.IsAlreadyExists(err) {
 			// Some error occurred
+			return err
+		}
+
+		currentObj := desiredObj.DeepCopy()
+		if err := s.getObj(currentObj); err != nil {
+			// Some error occurred
+			return err
+		}
+
+		if err := s.mergeObjects(desiredObj, currentObj); err != nil {
 			return err
 		}
 
@@ -264,6 +267,44 @@ func (s *stateSkel) deleteStateRelatedObjects() (bool, error) {
 		}
 	}
 	return found, nil
+}
+
+func (s *stateSkel) mergeObjects(updated, current *unstructured.Unstructured) error {
+	// Set resource version
+	// ResourceVersion must be passed unmodified back to the server.
+	// ResourceVersion helps the kubernetes API server to implement optimistic concurrency for PUT operations
+	// when two PUT requests are specifying the resourceVersion, one of the PUTs will fail.
+	updated.SetResourceVersion(current.GetResourceVersion())
+
+	gvk := updated.GroupVersionKind()
+	if gvk.Group == "" && gvk.Kind == "ServiceAccount" {
+		return s.mergeServiceAccount(updated, current)
+	}
+	return nil
+}
+
+// For Service Account, keep secrets if exists
+func (s *stateSkel) mergeServiceAccount(updated, current *unstructured.Unstructured) error {
+	curSecrets, ok, err := unstructured.NestedSlice(current.Object, "secrets")
+	if err != nil {
+		return err
+	}
+	if ok {
+		if err := unstructured.SetNestedField(updated.Object, curSecrets, "secrets"); err != nil {
+			return err
+		}
+	}
+
+	curImagePullSecrets, ok, err := unstructured.NestedSlice(current.Object, "imagePullSecrets")
+	if err != nil {
+		return err
+	}
+	if ok {
+		if err := unstructured.SetNestedField(updated.Object, curImagePullSecrets, "imagePullSecrets"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Iterate over objects and check for their readiness
