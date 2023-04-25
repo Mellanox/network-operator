@@ -143,6 +143,7 @@ rules:
     resources:
       - daemonsets
       - deployments
+      - controllerrevisions
     verbs:
       - get
       - list

@@ -85,6 +85,7 @@ rules:
   - deployments
   - replicasets
   - statefulsets
+  - controllerrevisions
   verbs:
   - create
   - delete
