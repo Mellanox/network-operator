@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
 
-- [Nvidia Network Operator](#nvidia-network-operator)
+- [NVIDIA Network Operator](#nvidia-network-operator)
   * [Documentation](#documentation)
   * [Prerequisites](#prerequisites)
     + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
@@ -31,8 +31,8 @@
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-# Nvidia Network Operator
-Nvidia Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+# NVIDIA Network Operator
+NVIDIA Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 and [Operator SDK](https://github.com/operator-framework/operator-sdk) to manage Networking related Components in order to enable Fast networking,
 RDMA and GPUDirect for workloads in a Kubernetes cluster.
 
@@ -48,7 +48,7 @@ For more information please visit the official [documentation](https://docs.nvid
 
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
-Nvidia Network operator relies on Node labeling to get the cluster to the desired state.
+NVIDIA Network operator relies on Node labeling to get the cluster to the desired state.
 [Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.10.1` or newer is expected to be deployed to provide the appropriate labeling:
 
 - PCI vendor and device information
@@ -86,14 +86,14 @@ NICClusterPolicy CRD Spec includes the following sub-states/stages:
 and related configurations.
 - `sriovDevicePlugin`: [SR-IOV Network Device Plugin](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin)
     and related configurations.
-- `nvPeerDriver`: [Nvidia Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
+- `nvPeerDriver`: [NVIDIA Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
   For NVIDIA GPU driver version < 465. Check [compatibility notes](#compatibility-notes) for details
 - `ibKubernetes`: [InfiniBand Kubernetes](https://github.com/Mellanox/ib-kubernetes/) and related configurations. 
-- `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the folowing optionally deployed components:
+- `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-    - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow user to create IPoIB child link and move it to the pod.
+    - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow users to create an IPoIB child link and move it to the pod.
     - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
@@ -205,7 +205,7 @@ MacvlanNetwork CRD Spec includes the following fields:
 - `ipam`: IPAM configuration to be used for this network.
 
 ##### Example for MacvlanNetwork resource:
-In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, mtu 1500, default route interface as master,
+In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, MTU 1500, default route interface as master,
 with resource "rdma/rdma_shared_device_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
 
 ```
@@ -244,7 +244,7 @@ This CRD defines a HostDevice secondary network. It is translated by the Operato
 #### HostDeviceNetwork spec:
 HostDeviceNetwork CRD Spec includes the following fields:
 - `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
-- `ResourceName`: Host device resource pool.
+- `resourceName`: Host device resource pool.
 - `ipam`: IPAM configuration to be used for this network.
 
 ##### Example for HostDeviceNetwork resource:
@@ -257,7 +257,7 @@ metadata:
   name: example-hostdevice-network
 spec:
   networkNamespace: "default"
-  ResourceName: "hostdev"
+  resourceName: "hostdev"
   ipam: |
     {
       "type": "whereabouts",
@@ -278,7 +278,7 @@ spec:
 Can be found at: `example/crs/mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
 
 ### IPoIBNetwork CRD
-This CRD defines a IPoIBNetwork secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
+This CRD defines an IPoIBNetwork secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
 
 #### IPoIBNetwork spec:
 HostDeviceNetwork CRD Spec includes the following fields:
@@ -319,7 +319,7 @@ spec:
 Can be found at: `example/crs/mellanox.com_v1alpha1_ipoibnetwork_cr.yaml`
 
 ## Pod Security Policy
-Network-operator supports [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). When NicClusterPolicy is created with `psp.enabled=True`, privileged PSP is created and applied to all network-operator's pods. Requires [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#how-do-i-turn-on-an-admission-control-plug-in) to be enabled.
+NVIDIA Network Operator supports [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). When NicClusterPolicy is created with `psp.enabled=True`, privileged PSP is created and applied to all network-operator's pods. Requires [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#how-do-i-turn-on-an-admission-control-plug-in) to be enabled.
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
@@ -331,24 +331,24 @@ Network-operator supports [Pod Security Policies](https://kubernetes.io/docs/con
 >__NOTE__: ConnectX-6 Lx is not supported.
 
 ## Tested Network Adapters
-The following Network Adapters have been tested with network-operator:
+The following Network Adapters have been tested with NVIDIA Network Operator:
 * ConnectX-5
 * ConnectX-6 Dx
 
 ## Compatibility Notes
-* network-operator is compatible with NVIDIA GPU Operator v1.5.2 and above
-* network-operator will deploy nvPeerDriver POD on a node only if NVIDIA GPU driver version < 465.
+* NVIDIA Network Operator is compatible with NVIDIA GPU Operator v1.5.2 and above
+* Network Operator will deploy nvPeerDriver POD on a node only if NVIDIA GPU driver version < 465.
   Starting from v465 NVIDIA GPU driver includes a built-in nvidia_peermem module
   which is a replacement for nv_peer_mem module. NVIDIA GPU operator manages nvidia_peermem module loading.
 
 ## Deployment Example
-Deployment of network-operator consists of:
-* Deploying network-operator CRDs found under `./config/crd/bases`:
+Deployment of NVIDIA Network Operator consists of:
+* Deploying NVIDIA Network Operator CRDs found under `./config/crd/bases`:
     * mellanox.com_nicclusterpolicies_crd.yaml
     * mellanox.com_macvlan_crds.yaml
     * k8s.cni.cncf.io-networkattachmentdefinitions-crd.yaml
-* Deploying network operator resources found under `./deploy/` e.g operator namespace,
-role, role binding, service account and the network-operator daemonset
+* Deploying network operator resources found under `./deploy/` e.g. operator namespace,
+role, role binding, service account and the NVIDIA Network Operator daemonset
 * Defining and deploying a NICClusterPolicy custom resource.
 Example can be found under `./example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
 * Defining and deploying a MacvlanNetwork custom resource.
@@ -378,7 +378,7 @@ While this approach may seem odd. It provides a way to deliver drivers to immuta
 
 ## Upgrade
 Network operator provides limited upgrade capabilities which require additional
-manual actions if containerized OFED driver is used.
+manual actions if a containerized OFED driver is used.
 Future releases of the network operator will provide automatic upgrade flow for the containerized driver.
 
 Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.
