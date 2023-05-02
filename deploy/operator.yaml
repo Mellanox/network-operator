@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       labels:
-        nvidia.com/ofed-upgrade.skip-drain: "true"
+        nvidia.com/ofed-driver-upgrade-drain.skip: "true"
         name: network-operator
     spec:
       nodeSelector:

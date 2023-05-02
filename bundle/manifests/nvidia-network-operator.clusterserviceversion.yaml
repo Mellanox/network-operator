@@ -455,7 +455,7 @@ spec:
                 kubectl.kubernetes.io/default-container: manager
               labels:
                 control-plane: controller-manager
-                nvidia.com/ofed-upgrade.skip-drain: "true"
+                nvidia.com/ofed-driver-upgrade-drain.skip: "true"
             spec:
               containers:
               - args:
