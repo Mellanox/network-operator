@@ -2,32 +2,32 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
 
 - [NVIDIA Network Operator](#nvidia-network-operator)
-  * [Documentation](#documentation)
-  * [Prerequisites](#prerequisites)
-    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
-  * [Resource Definitions](#resource-definitions)
-    + [NICClusterPolicy CRD](#nicclusterpolicy-crd)
-      - [NICClusterPolicy spec:](#nicclusterpolicy-spec-)
-        * [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource-)
+  - [Documentation](#documentation)
+  - [Prerequisites](#prerequisites)
+    - [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery-nfd)
+  - [Resource Definitions](#resource-definitions)
+    - [NICClusterPolicy CRD](#nicclusterpolicy-crd)
+      - [NICClusterPolicy spec:](#nicclusterpolicy-spec)
+        - [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource)
       - [NICClusterPolicy status](#nicclusterpolicy-status)
-        * [Example Status field of a NICClusterPolicy instance](#example-status-field-of-a-nicclusterpolicy-instance)
-    + [MacvlanNetwork CRD](#macvlannetwork-crd)
-      - [MacvlanNetwork spec:](#macvlannetwork-spec-)
-        * [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource-)
-    + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
-      - [HostDeviceNetwork spec:](#hostdevicenetwork-spec-)
-        * [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource-)
-    + [IPoIBNetwork CRD](#ipoibnetwork-crd)
-      - [IPoIBNetwork spec:](#ipoibnetwork-spec-)
-        * [Example for IPoIBNetwork resource:](#example-for-ipoibnetwork-resource-)
-  * [Pod Security Policy](#pod-security-policy)
-  * [System Requirements](#system-requirements)
-  * [Tested Network Adapters](#tested-network-adapters)
-  * [Compatibility Notes](#compatibility-notes)
-  * [Deployment Example](#deployment-example)
-  * [Docker image](#docker-image)
-  * [Driver Containers](#driver-containers)
-  * [Upgrade](#upgrade)
+        - [Example Status field of a NICClusterPolicy instance](#example-status-field-of-a-nicclusterpolicy-instance)
+    - [MacvlanNetwork CRD](#macvlannetwork-crd)
+      - [MacvlanNetwork spec:](#macvlannetwork-spec)
+        - [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource)
+    - [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
+      - [HostDeviceNetwork spec:](#hostdevicenetwork-spec)
+        - [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
+    - [IPoIBNetwork CRD](#ipoibnetwork-crd)
+      - [IPoIBNetwork spec:](#ipoibnetwork-spec)
+        - [Example for IPoIBNetwork resource:](#example-for-ipoibnetwork-resource)
+  - [Pod Security Policy](#pod-security-policy)
+  - [System Requirements](#system-requirements)
+  - [Tested Network Adapters](#tested-network-adapters)
+  - [Compatibility Notes](#compatibility-notes)
+  - [Deployment Example](#deployment-example)
+  - [Docker image](#docker-image)
+  - [Driver Containers](#driver-containers)
+  - [Upgrade](#upgrade)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -80,7 +80,7 @@ CRD that defines a Cluster state for Mellanox Network devices.
 >__NOTE__: The operator will act on a NicClusterPolicy instance with a predefined name "nic-cluster-policy", instances with different names will be ignored.
 
 #### NICClusterPolicy spec:
-NICClusterPolicy CRD Spec includes the following sub-states/stages:
+NICClusterPolicy CRD Spec includes the following sub-states:
 - `ofedDriver`: [OFED driver container](https://github.com/Mellanox/ofed-docker) to be deployed on Mellanox supporting nodes.
 - `rdmaSharedDevicePlugin`: [RDMA shared device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
 and related configurations.

@@ -39,12 +39,12 @@ func checkResourceNameAnnotation(obj *unstructured.Unstructured) {
 	Expect(strings.Count(resourceName, resourceNamePrefix)).To(Equal(1))
 }
 
-var _ = Describe("HostDevice Network Stage rendering tests", func() {
+var _ = Describe("HostDevice Network State rendering tests", func() {
 
-	Context("HostDevice Network stage", func() {
+	Context("HostDevice Network State", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRuntimeClient{}
-			manifestBaseDir := "../../manifests/stage-hostdevice-network"
+			manifestBaseDir := "../../manifests/state-hostdevice-network"
 			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)

@@ -78,7 +78,7 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 	Context("GetNodesAttributes with provide", func() {
 		It("Should Apply", func() {
 			client := mocks.ControllerRuntimeClient{}
-			manifestBaseDir := "../../manifests/stage-sriov-device-plugin"
+			manifestBaseDir := "../../manifests/state-sriov-device-plugin"
 			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)

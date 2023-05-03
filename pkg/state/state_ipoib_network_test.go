@@ -33,7 +33,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 	Context("IPoIBNetwork Network state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRuntimeClient{}
-			manifestBaseDir := "../../manifests/stage-ipoib-network"
+			manifestBaseDir := "../../manifests/state-ipoib-network"
 			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
