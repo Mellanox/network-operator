@@ -49,3 +49,7 @@ IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
   version: v0.6.1-amd64
+nvIpam:
+  image: nvidia-k8s-ipam
+  repository: ghcr.io/mellanox
+  version: v0.0.2

@@ -225,6 +225,15 @@ ibKubernetes:
   pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
   ufmSecret: # specify the secret name here
 
+nvIpam:
+  deploy: false
+  image: {{ .NvIPAM.Image }}
+  repository: {{ .NvIPAM.Repository }}
+  version: {{ .NvIPAM.Version }}
+  # imagePullSecrets: []
+  # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
+  config: ''
+
 secondaryNetwork:
   deploy: true
   cniPlugins:
