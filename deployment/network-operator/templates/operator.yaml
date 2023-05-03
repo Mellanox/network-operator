@@ -28,7 +28,7 @@ spec:
   template:
     metadata:
       labels:
-        nvidia.com/ofed-upgrade.skip-drain: "true"
+        nvidia.com/ofed-driver-upgrade-drain.skip: "true"
         {{- include "network-operator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.operator.nodeSelector }}

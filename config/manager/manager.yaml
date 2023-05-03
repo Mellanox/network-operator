@@ -21,7 +21,7 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
-        nvidia.com/ofed-upgrade.skip-drain: "true"
+        nvidia.com/ofed-driver-upgrade-drain.skip: "true"
       annotations:
         kubectl.kubernetes.io/default-container: manager
     spec:
