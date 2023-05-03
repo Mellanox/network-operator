@@ -208,6 +208,13 @@ type IBKubernetesSpec struct {
 	UfmSecret string `json:"ufmSecret,omitempty"`
 }
 
+type NVIPAMSpec struct {
+	// Image information for nv-ipam
+	ImageSpec `json:""`
+	// Config for nv-ipam in JSON format
+	Config string `json:"config,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -220,6 +227,7 @@ type NicClusterPolicySpec struct {
 	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
 	IBKubernetes           *IBKubernetesSpec     `json:"ibKubernetes,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
+	NvIpam                 *NVIPAMSpec           `json:"nvIpam,omitempty"`
 	PSP                    *PSPSpec              `json:"psp,omitempty"`
 }
 

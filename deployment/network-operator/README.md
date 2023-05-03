@@ -541,13 +541,24 @@ optionally deployed components:
 
 ##### IPAM CNI Plugin Secondary Network
 
-| Name | Type | Default                        | description |
-| ---- | ---- |--------------------------------| ----------- |
-| `ipamPlugin.deploy` | bool | `true`                         | Deploy IPAM CNI Plugin Secondary Network  |
-| `ipamPlugin.image` | string | `whereabouts`                  | IPAM CNI Plugin image name  |
-| `ipamPlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
-| `ipamPlugin.version` | string | `v0.5.4-amd64`                 | IPAM CNI Plugin image version  |
-| `ipamPlugin.imagePullSecrets` | list | `[]`                           | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
+| Name                          | Type   | Default                        | description |
+| ----------------------------- | ------ |--------------------------------| ----------- |
+| `ipamPlugin.deploy`           | bool   | `true`                         | Deploy IPAM CNI Plugin Secondary Network  |
+| `ipamPlugin.image`            | string | `whereabouts`                  | IPAM CNI Plugin image name  |
+| `ipamPlugin.repository`       | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository  |
+| `ipamPlugin.version`          | string | `v0.5.4-amd64`                 | IPAM CNI Plugin image version  |
+| `ipamPlugin.imagePullSecrets` | list   | `[]`                           | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
+
+#### NVIDIA IPAM Plugin
+
+| Name                      | Type   | Default            | description                                                                            |
+| ------------------------- | ------ | ------------------ | -------------------------------------------------------------------------------------- |
+| `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                              |
+| `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                          |
+| `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                    |
+| `nvIpam.version`          | string | `latest`           | NVIDIA IPAM Plugin image version                                                       |
+| `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image   |
+| `nvIpam.config`           | string | `''`               | Network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam |
 
 ## Deployment Examples
 
