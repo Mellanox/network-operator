@@ -130,13 +130,8 @@ func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Reque
 		infoProvider := nodeinfo.NewProvider(nodePtrList)
 		sc.Add(state.InfoTypeNodeInfo, infoProvider)
 	}
-	// Create manager
-	managerStatus, err := r.stateManager.SyncState(instance, sc)
-
-	if err != nil {
-		reqLogger.V(consts.LogLevelWarning).Info("Error occurred while syncing states", "error:", err)
-	}
-
+	// Sync state and update status
+	managerStatus := r.stateManager.SyncState(instance, sc)
 	r.updateCrStatus(instance, managerStatus)
 
 	err = r.updateNodeLabels(instance)

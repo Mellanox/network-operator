@@ -75,8 +75,8 @@ func (r *MacvlanNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	managerStatus, err := r.stateManager.SyncState(instance, nil)
-	r.updateCrStatus(instance, managerStatus, err)
+	managerStatus := r.stateManager.SyncState(instance, nil)
+	r.updateCrStatus(instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -90,11 +90,10 @@ func (r *MacvlanNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.MacvlanNetwork, status state.Results,
-	syncError error) {
+func (r *MacvlanNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.MacvlanNetwork, status state.Results) {
 	cr.Status.State = mellanoxcomv1alpha1.State(status.StatesStatus[0].Status)
-	if syncError != nil {
-		cr.Status.Reason = syncError.Error()
+	if status.StatesStatus[0].ErrInfo != nil {
+		cr.Status.Reason = status.StatesStatus[0].ErrInfo.Error()
 	}
 
 	if cr.Status.State == state.SyncStateReady {

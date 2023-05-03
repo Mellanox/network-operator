@@ -32,16 +32,12 @@ var _ = Describe("Manager tests", func() {
 				description: "test description",
 				syncState:   SyncStateReady,
 			}
-			stateGroups := []Group{
-				NewStateGroup([]State{testState}),
-			}
 			client := mocks.ControllerRuntimeClient{}
 			manager := &stateManager{
-				stateGroups: stateGroups,
-				client:      &client,
+				states: []State{testState},
+				client: &client,
 			}
-			results, err := manager.SyncState(nil, nil)
-			Expect(err).NotTo(HaveOccurred())
+			results := manager.SyncState(nil, nil)
 			Expect(results.Status).To(Equal(SyncState(SyncStateReady)))
 			Expect(results.StatesStatus[0].StateName).To(Equal("test"))
 			Expect(results.StatesStatus[0].Status).To(Equal(SyncState(SyncStateReady)))
@@ -57,16 +53,12 @@ var _ = Describe("Manager tests", func() {
 				description: "test description",
 				syncState:   SyncStateReady,
 			}
-			stateGroups := []Group{
-				NewStateGroup([]State{testStateNotReady, testStateReady}),
-			}
 			client := mocks.ControllerRuntimeClient{}
 			manager := &stateManager{
-				stateGroups: stateGroups,
-				client:      &client,
+				states: []State{testStateNotReady, testStateReady},
+				client: &client,
 			}
-			results, err := manager.SyncState(nil, nil)
-			Expect(err).NotTo(HaveOccurred())
+			results := manager.SyncState(nil, nil)
 			Expect(results.Status).To(Equal(SyncState(SyncStateNotReady)))
 			Expect(results.StatesStatus[0].StateName).To(Equal("test not ready"))
 			Expect(results.StatesStatus[0].Status).To(Equal(SyncState(SyncStateNotReady)))
