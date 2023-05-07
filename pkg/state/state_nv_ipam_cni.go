@@ -73,7 +73,9 @@ func (s *stateNVIPAMCNI) Sync(customResource interface{}, _ InfoCatalog) (SyncSt
 	if cr.Spec.NvIpam == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		// TODO: Support the latter case
+		log.V(consts.LogLevelInfo).Info("NV IPAM plugin spec in CR is nil, no action required")
+		return SyncStateIgnore, nil
 	}
 	// Fill ManifestRenderData and render objects
 	objs, err := s.getManifestObjects(cr)
