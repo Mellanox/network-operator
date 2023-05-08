@@ -555,7 +555,7 @@ optionally deployed components:
 | `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                              |
 | `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                          |
 | `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                    |
-| `nvIpam.version`          | string | `latest`           | NVIDIA IPAM Plugin image version                                                       |
+| `nvIpam.version`          | string | `v0.0.1`           | NVIDIA IPAM Plugin image version                                                       |
 | `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image   |
 | `nvIpam.config`           | string | `''`               | Network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam |
 
