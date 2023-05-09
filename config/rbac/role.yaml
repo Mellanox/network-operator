@@ -81,11 +81,26 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - controllerrevisions
   - daemonsets
   - deployments
   - replicasets
   - statefulsets
-  - controllerrevisions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - replicasets
+  - statefulsets
   verbs:
   - create
   - delete
