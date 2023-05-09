@@ -126,7 +126,7 @@ operator:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [ "" ]
-  repository: nvcr.io/nvidia/cloud-native
+  repository: nvcr.io/nvstaging/mellanox
   image: network-operator
   # imagePullSecrets: []
   nameOverride: ""
@@ -226,6 +226,15 @@ ibKubernetes:
   pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
   pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
   ufmSecret: # specify the secret name here
+
+nvIpam:
+  deploy: false
+  image: nvidia-k8s-ipam
+  repository: ghcr.io/mellanox
+  version: v0.0.1
+  # imagePullSecrets: []
+  # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
+  config: ''
 
 secondaryNetwork:
   deploy: true

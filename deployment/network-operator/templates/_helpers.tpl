@@ -194,3 +194,17 @@ imagePullSecrets helpers
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{- define "network-operator.nvIpam.imagePullSecrets" }}
+{{- if .Values.nvIpam.imagePullSecrets }}
+{{- range .Values.nvIpam.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

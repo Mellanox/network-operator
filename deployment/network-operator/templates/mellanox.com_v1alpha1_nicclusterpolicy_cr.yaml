@@ -174,4 +174,12 @@ spec:
   {{- end }}
   psp:
     enabled: {{ .Values.psp.enabled }}
+  {{- if .Values.nvIpam.deploy }}
+  nvIpam:
+    image: {{ .Values.nvIpam.image }}
+    repository: {{ .Values.nvIpam.repository }}
+    version: {{ .Values.nvIpam.version }}
+    imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . | nindent 4 }}
+    config: {{ .Values.nvIpam.config | quote }}
+  {{- end }}
 {{ end }}
