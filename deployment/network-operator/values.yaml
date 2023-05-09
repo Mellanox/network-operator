@@ -234,7 +234,7 @@ nvIpam:
   deploy: false
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
-  version: v0.0.1
+  version: v0.0.2
   # imagePullSecrets: []
   # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
   config: ''
