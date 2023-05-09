@@ -1,6 +1,6 @@
 apiVersion: v2
 name: network-operator
-version: 23.1.0
+version: 23.1.1-nvipam.1
 kubeVersion: '>= 1.21.0'
 appVersion: v23.1.1-nvipam.1
 description: Nvidia network operator
