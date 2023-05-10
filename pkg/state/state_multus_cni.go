@@ -57,6 +57,7 @@ type stateMultusCNI struct {
 
 type MultusManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.MultusSpec
+	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
 	RuntimeSpec  *runtimeSpec
 }
@@ -113,6 +114,7 @@ func (s *stateMultusCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
 	renderData := &MultusManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
+		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,

@@ -34,12 +34,9 @@ spec:
     spec:
       priorityClassName: system-node-critical
       tolerations:
-        - key: node-role.kubernetes.io/master
-          operator: Exists
-          effect: NoSchedule
-        - key: node-role.kubernetes.io/control-plane
-          operator: Exists
-          effect: NoSchedule
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule

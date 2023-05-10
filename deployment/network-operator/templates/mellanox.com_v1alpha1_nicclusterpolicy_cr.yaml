@@ -23,6 +23,10 @@ spec:
   nodeAffinity:
 {{ toYaml .Values.nodeAffinity | indent 4 }}
   {{- end }}
+  {{- if .Values.tolerations }}
+  tolerations:
+{{ toYaml .Values.tolerations | indent 4 }}
+  {{- end }}
   {{- if .Values.ofedDriver.deploy }}
   ofedDriver:
     image: {{ .Values.ofedDriver.image }}

@@ -42,32 +42,29 @@ spec:
       # only one instance of ib-kubernetes pod per node
       affinity:
         nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/master"
                     operator: In
-                    values:
-                      - ""
-                  - key: kubernetes.io/os
+                    values: [ "" ]
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/control-plane"
                     operator: In
-                    values:
-                      - "linux"
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: In
-                    values:
-                      - ""
-                  - key: kubernetes.io/os
-                    operator: In
-                    values:
-                      - "linux"
+                    values: [ "" ]
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"
           effect: "NoSchedule"
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
+          effect: "NoSchedule"
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
           effect: "NoSchedule"
       containers:
         - name: ib-kubernetes

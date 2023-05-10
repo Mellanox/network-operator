@@ -62,6 +62,7 @@ type sharedDpRuntimeSpec struct {
 }
 type sharedDpManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
+	Tolerations         []v1.Toleration
 	NodeAffinity        *v1.NodeAffinity
 	DeployInitContainer bool
 	RuntimeSpec         *sharedDpRuntimeSpec
@@ -140,6 +141,7 @@ func (s *stateSharedDp) getManifestObjects(
 
 	renderData := &sharedDpManifestRenderData{
 		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
+		Tolerations:         cr.Spec.Tolerations,
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sharedDpRuntimeSpec{

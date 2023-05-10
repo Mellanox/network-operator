@@ -38,14 +38,6 @@ node-feature-discovery:
     instance: "nvidia.networking"
   worker:
     tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Equal"
-        value: ""
-        effect: "NoSchedule"
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Equal"
-        value: ""
-        effect: "NoSchedule"
       - key: "nvidia.com/gpu"
         operator: "Equal"
         value: "present"
@@ -74,13 +66,16 @@ sriov-network-operator:
     nodeSelector: {}
     affinity:
       nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
                 - key: "node-role.kubernetes.io/master"
                   operator: In
-                  values: [ "" ]
-            - matchExpressions:
+                  values: [""]
+          - weight: 1
+            preference:
+              matchExpressions:
                 - key: "node-role.kubernetes.io/control-plane"
                   operator: In
                   values: [ "" ]
@@ -261,6 +256,9 @@ secondaryNetwork:
 # Can be set to nicclusterpolicy and override other ds node affinity,
 # e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/stage-multus-cni/0050-multus-ds.yml#L26-L36
 #nodeAffinity:
+
+# Can be set to nicclusterpolicy to add extra tolerations to ds
+#tolerations:
 
 test:
   pf: ens2f0

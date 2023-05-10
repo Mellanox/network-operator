@@ -34,19 +34,11 @@ spec:
         name: ipoib-cni
     spec:
       hostNetwork: true
+      {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
-        {{- if not .NodeAffinity }}
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: DoesNotExist
-        {{- else }}
           {{- .NodeAffinity | yaml | nindent 10 }}
-        {{- end }}
+      {{- end }}
       {{- if eq .RuntimeSpec.OSName "rhcos" }}
       serviceAccountName: ipoib-cni
       {{- end}}
@@ -56,6 +48,14 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      tolerations:
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
+          effect: "NoSchedule"
       containers:
         - name: ipoib-cni
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}

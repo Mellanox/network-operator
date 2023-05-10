@@ -21,19 +21,11 @@ spec:
         name: multus
     spec:
       hostNetwork: true
+      {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
-        {{- if not .NodeAffinity }}
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: DoesNotExist
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: DoesNotExist
-        {{- else }}
           {{- .NodeAffinity | yaml | nindent 10 }}
-        {{- end }}
+      {{- end }}
       serviceAccountName: multus
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
@@ -42,9 +34,12 @@ spec:
       {{- end }}
       {{- end }}
       tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: kube-multus
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}

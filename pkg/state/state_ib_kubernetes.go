@@ -62,6 +62,7 @@ type IBKubernetesSpec struct {
 type IBKubernetesManifestRenderData struct {
 	CrSpec                      *mellanoxv1alpha1.IBKubernetesSpec
 	PeriodicUpdateSecondsString string
+	Tolerations                 []v1.Toleration
 	NodeAffinity                *v1.NodeAffinity
 	DeployInitContainer         bool
 	RuntimeSpec                 *IBKubernetesSpec
@@ -133,6 +134,7 @@ func (s *stateIBKubernetes) getManifestObjects(
 	renderData := &IBKubernetesManifestRenderData{
 		CrSpec:                      cr.Spec.IBKubernetes,
 		PeriodicUpdateSecondsString: strconv.Itoa(cr.Spec.IBKubernetes.PeriodicUpdateSeconds),
+		Tolerations:                 cr.Spec.Tolerations,
 		NodeAffinity:                cr.Spec.NodeAffinity,
 		DeployInitContainer:         cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &IBKubernetesSpec{

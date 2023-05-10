@@ -153,6 +153,7 @@ type ofedRuntimeSpec struct {
 
 type ofedManifestRenderData struct {
 	CrSpec                 *mellanoxv1alpha1.OFEDDriverSpec
+	Tolerations            []v1.Toleration
 	NodeAffinity           *v1.NodeAffinity
 	RuntimeSpec            *ofedRuntimeSpec
 	AdditionalVolumeMounts additionalVolumeMounts
@@ -432,6 +433,7 @@ func (s *stateOFED) getManifestObjects(
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr),
 		},
+		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,
 		AdditionalVolumeMounts: additionalVolMounts,
 	}

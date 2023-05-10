@@ -64,6 +64,7 @@ type sriovDpRuntimeSpec struct {
 
 type sriovDpManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
+	Tolerations         []v1.Toleration
 	NodeAffinity        *v1.NodeAffinity
 	DeployInitContainer bool
 	RuntimeSpec         *sriovDpRuntimeSpec
@@ -133,6 +134,7 @@ func (s *stateSriovDp) getManifestObjects(
 
 	renderData := &sriovDpManifestRenderData{
 		CrSpec:              cr.Spec.SriovDevicePlugin,
+		Tolerations:         cr.Spec.Tolerations,
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sriovDpRuntimeSpec{
