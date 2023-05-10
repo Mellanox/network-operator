@@ -90,6 +90,11 @@ func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Reque
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
+			err := r.clearMofedWaitLabel()
+			if err != nil {
+				reqLogger.V(consts.LogLevelError).Info("Fail to clear Mofed label on CR deletion.", "error:", err)
+				return reconcile.Result{}, err
+			}
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -176,23 +181,31 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 			}
 		}
 	} else {
-		nodes := &corev1.NodeList{}
-		// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
-		err := r.Client.List(context.TODO(), nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
-		if err != nil {
-			return errors.Wrap(err, "failed to list nodes")
-		}
-
-		for i := range nodes.Items {
-			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"false"}}}`, nodeinfo.NodeLabelWaitOFED))
-			err := r.Client.Patch(context.TODO(), &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
-			if err != nil {
-				return errors.Wrapf(err, "unable to patch %s node label for node %s",
-					nodeinfo.NodeLabelWaitOFED, nodes.Items[i].Name)
-			}
-		}
+		return r.clearMofedWaitLabel()
 	}
 
+	return nil
+}
+
+// clearMofedWaitLabel set "network.nvidia.com/operator.mofed.wait" to false
+// on Nodes with Mellanox NICs
+func (r *NicClusterPolicyReconciler) clearMofedWaitLabel() error {
+	// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
+	nodes := &corev1.NodeList{}
+
+	err := r.Client.List(context.TODO(), nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
+	if err != nil {
+		return errors.Wrap(err, "failed to list nodes")
+	}
+
+	for i := range nodes.Items {
+		patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"false"}}}`, nodeinfo.NodeLabelWaitOFED))
+		err := r.Client.Patch(context.TODO(), &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
+		if err != nil {
+			return errors.Wrapf(err, "unable to patch %s node label for node %s",
+				nodeinfo.NodeLabelWaitOFED, nodes.Items[i].Name)
+		}
+	}
 	return nil
 }
 
