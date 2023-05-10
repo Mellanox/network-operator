@@ -65,7 +65,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			cr := &mellanoxv1alpha1.IPoIBNetwork{}
 			cr.Name = name
 			cr.Spec = *spec
-			objs, err := ipoibState.getManifestObjects(cr)
+			objs, err := ipoibState.getManifestObjects(cr, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))

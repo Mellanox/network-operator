@@ -17,7 +17,10 @@ limitations under the License.
 package state
 
 import (
+	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -31,7 +34,7 @@ type Manager interface {
 	// SyncState reconciles the state of the system and returns a list of status of the applied states
 	// InfoCatalog is provided to optionally provide a State additional information sources required for it to perform
 	// the Sync operation.
-	SyncState(customResource interface{}, infoCatalog InfoCatalog) Results
+	SyncState(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) Results
 }
 
 // Represent a Result of a single State.Sync() invocation
@@ -67,27 +70,26 @@ func (smgr *stateManager) GetWatchSources() []*source.Kind {
 	}
 
 	kinds := make([]*source.Kind, 0, len(kindMap))
-	kindNames := make([]string, 0, len(kindMap))
-	for kindName, kind := range kindMap {
+	for _, kind := range kindMap {
 		kinds = append(kinds, kind)
-		kindNames = append(kindNames, kindName)
 	}
-	log.V(consts.LogLevelDebug).Info("Watch resources for manager", "sources:", kindNames)
 	return kinds
 }
 
 // SyncState attempts to reconcile the system by invoking Sync on each of the states
-func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog InfoCatalog) Results {
-	// Sync groups of states, transition from one group to the other when a group finishes
-	log.V(consts.LogLevelInfo).Info("Syncing system state")
+func (smgr *stateManager) SyncState(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) Results {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Syncing system state")
+
 	managerResult := Results{
 		Status: SyncStateNotReady,
 	}
 	statesReady := true
 
 	for _, state := range smgr.states {
-		log.V(consts.LogLevelInfo).Info("Sync State", "Name", state.Name(), "Description", state.Description())
-		ss, err := state.Sync(customResource, infoCatalog)
+		reqLogger.V(consts.LogLevelInfo).Info("Sync State", "Name", state.Name(), "Description", state.Description())
+		stateCtx := log.IntoContext(ctx, reqLogger.WithName("state").WithName(state.Name()))
+		ss, err := state.Sync(stateCtx, customResource, infoCatalog)
 		result := Result{StateName: state.Name(), Status: ss, ErrInfo: err}
 		managerResult.StatesStatus = append(managerResult.StatesStatus, result)
 
@@ -96,16 +98,16 @@ func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog Info
 		}
 
 		if result.Status == SyncStateError {
-			log.V(consts.LogLevelWarning).Error(result.ErrInfo, "Error while syncing state")
+			reqLogger.V(consts.LogLevelWarning).Error(result.ErrInfo, "Error while syncing state")
 		}
 	}
 
 	if statesReady {
 		// Done Syncing CR
 		managerResult.Status = SyncStateReady
-		log.V(consts.LogLevelInfo).Info("Sync Done for custom resource")
+		reqLogger.V(consts.LogLevelInfo).Info("Sync Done for custom resource")
 	} else {
-		log.V(consts.LogLevelInfo).Info("Sync not Done for custom resource")
+		reqLogger.V(consts.LogLevelInfo).Info("Sync not Done for custom resource")
 	}
 
 	return managerResult

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/go-logr/logr"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -240,15 +242,16 @@ func (a *additionalVolumeMounts) createConfigMapVolume(configMapName string, ite
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.OFEDDriver == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
 	nodeInfo := infoCatalog.GetNodeInfoProvider()
@@ -257,11 +260,11 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 	}
 
 	// Openshift specific logic, do nothing in vanilla k8s cluster
-	if err := s.handleOpenshiftClusterWideProxyConfig(cr); err != nil {
+	if err := s.handleOpenshiftClusterWideProxyConfig(ctx, cr); err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to handle Openshift cluster-wide proxy settings")
 	}
 
-	objs, err := s.getManifestObjects(cr, nodeInfo)
+	objs, err := s.getManifestObjects(ctx, cr, nodeInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -273,7 +276,7 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 	}
 
 	// Create objects if they dont exist, Update objects if they do exist
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -283,7 +286,7 @@ func (s *stateOFED) Sync(customResource interface{}, infoCatalog InfoCatalog) (S
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
@@ -300,9 +303,11 @@ func (s *stateOFED) GetWatchSources() map[string]*source.Kind {
 // handleOpenshiftClusterWideProxyConfig handles cluster-wide proxy configuration in Openshift cluster,
 // populates CA an ENV configs in NicClusterPolicy with dynamic configuration from osconfigv1.Proxy object if
 // these settings were not explicitly set in NicClusterPolicy by admin
-func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(cr *mellanoxv1alpha1.NicClusterPolicy) error {
+func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) error {
+	reqLogger := log.FromContext(ctx)
 	// read ClusterWide Proxy configuration for Openshift
-	clusterWideProxyConfig, err := s.readOpenshiftProxyConfig()
+	clusterWideProxyConfig, err := s.readOpenshiftProxyConfig(ctx)
 	if err != nil {
 		return err
 	}
@@ -316,7 +321,7 @@ func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(cr *mellanoxv1alpha1.N
 	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
 		// CA certificate configMap explicitly set in NicClusterPolicy, ignore CA settings
 		// in cluster-wide proxy
-		log.V(consts.LogLevelDebug).Info("use trusted certificate configuration from NicClusterPolicy",
+		reqLogger.V(consts.LogLevelDebug).Info("use trusted certificate configuration from NicClusterPolicy",
 			"ConfigMap", cr.Spec.OFEDDriver.CertConfig.Name)
 		return nil
 	}
@@ -326,24 +331,24 @@ func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(cr *mellanoxv1alpha1.N
 		return nil
 	}
 
-	ocpTrustedCAConfigMap, err := s.getOrCreateTrustedCAConfigMap(cr)
+	ocpTrustedCAConfigMap, err := s.getOrCreateTrustedCAConfigMap(ctx, cr)
 	if err != nil {
 		return err
 	}
 	cr.Spec.OFEDDriver.CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{Name: ocpTrustedCAConfigMap.GetName()}
-	log.V(consts.LogLevelDebug).Info("use trusted certificate configuration from Openshift cluster-Wide proxy",
+	reqLogger.V(consts.LogLevelDebug).Info("use trusted certificate configuration from Openshift cluster-Wide proxy",
 		"ConfigMap", ocpTrustedCAConfigMap.GetName())
 	return nil
 }
 
 // handleAdditionalMounts generates AdditionalVolumeMounts information for the specified ConfigMap
 func (s *stateOFED) handleAdditionalMounts(
-	volMounts *additionalVolumeMounts, configMapName, destDir string) error {
+	ctx context.Context, volMounts *additionalVolumeMounts, configMapName, destDir string) error {
 	configMap := &v1.ConfigMap{}
 
 	namespace := config.FromEnv().State.NetworkOperatorResourceNamespace
 	objKey := client.ObjectKey{Namespace: namespace, Name: configMapName}
-	err := s.client.Get(context.TODO(), objKey, configMap)
+	err := s.client.Get(ctx, objKey, configMap)
 	if err != nil {
 		return fmt.Errorf("could not get ConfigMap %s from client: %v", configMapName, err)
 	}
@@ -357,12 +362,14 @@ func (s *stateOFED) handleAdditionalMounts(
 }
 
 func (s *stateOFED) getManifestObjects(
+	ctx context.Context,
 	cr *mellanoxv1alpha1.NicClusterPolicy,
 	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	reqLogger := log.FromContext(ctx)
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
 	if len(attrs) == 0 {
-		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
 		return []*unstructured.Unstructured{}, nil
 	}
 
@@ -404,7 +411,7 @@ func (s *stateOFED) getManifestObjects(
 			return nil, fmt.Errorf("failed to get destination directory for custom TLS certificates config: %v", err)
 		}
 
-		err = s.handleAdditionalMounts(&additionalVolMounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
+		err = s.handleAdditionalMounts(ctx, &additionalVolMounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
 		}
@@ -417,7 +424,7 @@ func (s *stateOFED) getManifestObjects(
 			return nil, fmt.Errorf("failed to get destination directory for custom repo config: %v", err)
 		}
 
-		err = s.handleAdditionalMounts(&additionalVolMounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
+		err = s.handleAdditionalMounts(ctx, &additionalVolMounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to mount volumes for custom repositories configuration: %v", err)
 		}
@@ -431,26 +438,26 @@ func (s *stateOFED) getManifestObjects(
 			CPUArch:        nodeAttr[nodeinfo.AttrTypeCPUArch],
 			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
-			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr),
+			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr, reqLogger),
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,
 		AdditionalVolumeMounts: additionalVolMounts,
 	}
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
 // TODO(adrianc): in Network-Operator v1.5.0, we should just use the new naming scheme
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeAttr map[nodeinfo.AttributeType]string) string {
+	nodeAttr map[nodeinfo.AttributeType]string, reqLogger logr.Logger) string {
 	mofedImgFmt := mofedImageNewFormat
 
 	curDriverVer, err1 := semver.NewVersion(cr.Spec.OFEDDriver.Version)
@@ -460,7 +467,7 @@ func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolic
 			mofedImgFmt = mofedImageOldFormat
 		}
 	} else {
-		log.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
+		reqLogger.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
 	}
 
 	return fmt.Sprintf(mofedImgFmt,
@@ -475,9 +482,9 @@ func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolic
 // readOpenshiftProxyConfig reads ClusterWide Proxy configuration for Openshift
 // https://docs.openshift.com/container-platform/4.10/networking/enable-cluster-wide-proxy.html
 // returns nil if object not found, error if generic API error happened
-func (s *stateOFED) readOpenshiftProxyConfig() (*osconfigv1.Proxy, error) {
+func (s *stateOFED) readOpenshiftProxyConfig(ctx context.Context) (*osconfigv1.Proxy, error) {
 	proxyConfig := &osconfigv1.Proxy{}
-	err := s.client.Get(context.TODO(), types.NamespacedName{Name: "cluster"}, proxyConfig)
+	err := s.client.Get(ctx, types.NamespacedName{Name: "cluster"}, proxyConfig)
 	if err != nil {
 		if meta.IsNoMatchError(err) || apiErrors.IsNotFound(err) {
 			// Proxy CRD is not registered (probably we are not in Openshift cluster)
@@ -493,19 +500,21 @@ func (s *stateOFED) readOpenshiftProxyConfig() (*osconfigv1.Proxy, error) {
 
 // getOrCreateTrustedCAConfigMap creates or returns an existing Trusted CA Bundle ConfigMap.
 // returns nil ConfigMap if trustedCA is not configured
-func (s *stateOFED) getOrCreateTrustedCAConfigMap(cr *mellanoxv1alpha1.NicClusterPolicy) (*v1.ConfigMap, error) {
+func (s *stateOFED) getOrCreateTrustedCAConfigMap(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) (*v1.ConfigMap, error) {
 	var (
 		cmName      = ocpTrustedCAConfigMapName
 		cmNamespace = config.FromEnv().State.NetworkOperatorResourceNamespace
+		reqLogger   = log.FromContext(ctx)
 	)
 
 	configMap := &v1.ConfigMap{}
-	err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+	err := s.client.Get(ctx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
 	if err == nil {
-		log.V(consts.LogLevelDebug).Info("TrustedCAConfigMap already exist",
+		reqLogger.V(consts.LogLevelDebug).Info("TrustedCAConfigMap already exist",
 			"name", cmName, "namespace", cmNamespace)
 		if configMap.Data[ocpTrustedCABundleFileName] == "" {
-			log.V(consts.LogLevelWarning).Info("TrustedCAConfigMap has empty ca-bundle.crt key",
+			reqLogger.V(consts.LogLevelWarning).Info("TrustedCAConfigMap has empty ca-bundle.crt key",
 				"name", cmName, "namespace", cmNamespace)
 		}
 		return configMap, nil
@@ -532,16 +541,16 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(cr *mellanoxv1alpha1.NicCluste
 		return nil, err
 	}
 
-	err = s.client.Create(context.TODO(), configMap)
+	err = s.client.Create(ctx, configMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrustedCAConfigMap")
 	}
-	log.V(consts.LogLevelInfo).Info("TrustedCAConfigMap created",
+	reqLogger.V(consts.LogLevelInfo).Info("TrustedCAConfigMap created",
 		"name", cmName, "namespace", cmNamespace)
 
 	// check that CA bundle is populated by Openshift before proceed
 	err = wait.Poll(ocpTrustedCAConfigMapCheckInterval, ocpTrustedCAConfigMapCheckTimeout, func() (bool, error) {
-		err := s.client.Get(context.TODO(), types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+		err := s.client.Get(ctx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
 		if err != nil {
 			if apiErrors.IsNotFound(err) {
 				return false, nil
@@ -554,11 +563,11 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(cr *mellanoxv1alpha1.NicCluste
 		if !errors.Is(err, wait.ErrWaitTimeout) {
 			return nil, errors.Wrap(err, "failed to check TrustedCAConfigMap content")
 		}
-		log.V(consts.LogLevelWarning).Info("TrustedCAConfigMap was not populated by Openshift,"+
+		reqLogger.V(consts.LogLevelWarning).Info("TrustedCAConfigMap was not populated by Openshift,"+
 			"this may result in misconfiguration of trusted certificates for the OFED container",
 			"name", cmName, "namespace", cmNamespace)
 	} else {
-		log.V(consts.LogLevelInfo).Info("TrustedCAConfigMap has been populated by Openshift",
+		reqLogger.V(consts.LogLevelInfo).Info("TrustedCAConfigMap has been populated by Openshift",
 			"name", cmName, "namespace", cmNamespace)
 	}
 	return configMap, nil

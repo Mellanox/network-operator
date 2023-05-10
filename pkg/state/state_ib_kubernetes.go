@@ -14,8 +14,10 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	"context"
 	"strconv"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -23,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -72,15 +75,17 @@ type IBKubernetesManifestRenderData struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateIBKubernetes) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+func (s *stateIBKubernetes) Sync(
+	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.IBKubernetes == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		return s.handleStateObjectsDeletion(ctx)
 	}
 
 	nodeInfo := infoCatalog.GetNodeInfoProvider()
@@ -88,7 +93,7 @@ func (s *stateIBKubernetes) Sync(customResource interface{}, infoCatalog InfoCat
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
 
-	objs, err := s.getManifestObjects(cr, nodeInfo)
+	objs, err := s.getManifestObjects(cr, nodeInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -97,7 +102,7 @@ func (s *stateIBKubernetes) Sync(customResource interface{}, infoCatalog InfoCat
 	}
 
 	// Create objects if they dont exist, Update objects if they do exist
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -107,7 +112,7 @@ func (s *stateIBKubernetes) Sync(customResource interface{}, infoCatalog InfoCat
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
@@ -122,12 +127,13 @@ func (s *stateIBKubernetes) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateIBKubernetes) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.NicClusterPolicy, nodeInfo nodeinfo.Provider,
+	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().
 			Build())
 	if len(attrs) == 0 {
-		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
 		return []*unstructured.Unstructured{}, nil
 	}
 
@@ -143,11 +149,11 @@ func (s *stateIBKubernetes) getManifestObjects(
 		},
 	}
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }

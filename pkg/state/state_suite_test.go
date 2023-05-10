@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state_test
+package state
 
 import (
 	"testing"
@@ -23,8 +23,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+var testLogger = log.Log.WithName("testLog")
 
 var _ = BeforeSuite(func() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))

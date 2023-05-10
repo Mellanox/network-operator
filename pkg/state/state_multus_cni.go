@@ -17,6 +17,9 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	"context"
+
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -24,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -66,18 +70,19 @@ type MultusManifestRenderData struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateMultusCNI) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *stateMultusCNI) Sync(ctx context.Context, customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.SecondaryNetwork == nil || cr.Spec.SecondaryNetwork.Multus == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr)
+	objs, err := s.getManifestObjects(cr, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -86,7 +91,7 @@ func (s *stateMultusCNI) Sync(customResource interface{}, _ InfoCatalog) (SyncSt
 	}
 
 	// Create objects if they dont exist, Update objects if they do exist
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -96,7 +101,7 @@ func (s *stateMultusCNI) Sync(customResource interface{}, _ InfoCatalog) (SyncSt
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
@@ -111,7 +116,7 @@ func (s *stateMultusCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateMultusCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	renderData := &MultusManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
 		Tolerations:  cr.Spec.Tolerations,
@@ -122,13 +127,13 @@ func (s *stateMultusCNI) getManifestObjects(
 	}
 
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
 
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }

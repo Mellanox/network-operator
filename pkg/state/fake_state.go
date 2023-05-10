@@ -17,6 +17,8 @@ limitations under the License.
 package state
 
 import (
+	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -38,7 +40,7 @@ func (s *fakeState) Description() string {
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *fakeState) Sync(_ interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *fakeState) Sync(_ context.Context, _ interface{}, _ InfoCatalog) (SyncState, error) {
 	return s.syncState, nil
 }
 

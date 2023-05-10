@@ -20,6 +20,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/go-logr/logr"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -68,12 +70,13 @@ type stateIPoIBNetwork struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateIPoIBNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *stateIPoIBNetwork) Sync(ctx context.Context, customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.IPoIBNetwork)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	objs, err := s.getManifestObjects(cr)
+	objs, err := s.getManifestObjects(cr, reqLogger)
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to render IPoIBNetwork")
 	}
@@ -88,11 +91,11 @@ func (s *stateIPoIBNetwork) Sync(customResource interface{}, _ InfoCatalog) (Syn
 	}
 
 	// Delete NetworkAttachmentDefinition if not in desired namespace
-	if err = s.handleNamespaceChange(cr, netAttDef); err != nil {
+	if err = s.handleNamespaceChange(ctx, cr, netAttDef); err != nil {
 		return SyncStateError, errors.Wrap(err, "Couldn't delete NetworkAttachmentDefinition CR")
 	}
 
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -104,17 +107,17 @@ func (s *stateIPoIBNetwork) Sync(customResource interface{}, _ InfoCatalog) (Syn
 	}
 
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
 
-	if err := s.updateNetAttDefNamespace(cr, netAttDef); err != nil {
+	if err := s.updateNetAttDefNamespace(ctx, cr, netAttDef); err != nil {
 		return SyncStateError, err
 	}
 
 	// Get NetworkAttachmentDefinition SelfLink
-	if err := s.getObj(netAttDef); err != nil {
+	if err := s.getObj(ctx, netAttDef); err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
 	}
 	return syncState, nil
@@ -129,7 +132,7 @@ func (s *stateIPoIBNetwork) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateIPoIBNetwork) getManifestObjects(
-	cr *mellanoxv1alpha1.IPoIBNetwork) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.IPoIBNetwork, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	data := map[string]interface{}{}
 	data["NetworkName"] = cr.Name
 	if cr.Spec.NetworkNamespace == "" {
@@ -147,22 +150,22 @@ func (s *stateIPoIBNetwork) getManifestObjects(
 	}
 
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", data)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", data)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: data})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
 
-func (s *stateIPoIBNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.IPoIBNetwork,
+func (s *stateIPoIBNetwork) handleNamespaceChange(ctx context.Context, cr *mellanoxv1alpha1.IPoIBNetwork,
 	netAttDef *unstructured.Unstructured) error {
 	// Delete NetworkAttachmentDefinition if not in desired namespace
 	lnns, lnnsExists := cr.GetAnnotations()[lastIPoIBNetworkNamespaceAnnot]
 	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
 	if netAttDefChangedNamespace {
-		err := s.client.Delete(context.TODO(), &netattdefv1.NetworkAttachmentDefinition{
+		err := s.client.Delete(ctx, &netattdefv1.NetworkAttachmentDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cr.GetName(),
 				Namespace: lnns,
@@ -176,14 +179,14 @@ func (s *stateIPoIBNetwork) handleNamespaceChange(cr *mellanoxv1alpha1.IPoIBNetw
 	return nil
 }
 
-func (s *stateIPoIBNetwork) updateNetAttDefNamespace(cr *mellanoxv1alpha1.IPoIBNetwork,
+func (s *stateIPoIBNetwork) updateNetAttDefNamespace(ctx context.Context, cr *mellanoxv1alpha1.IPoIBNetwork,
 	netAttDef *unstructured.Unstructured) error {
 	lnns, lnnsExists := cr.GetAnnotations()[lastIPoIBNetworkNamespaceAnnot]
 	netAttDefChangedNamespace := lnnsExists && netAttDef.GetNamespace() != lnns
 	if !lnnsExists || netAttDefChangedNamespace {
 		anno := map[string]string{lastIPoIBNetworkNamespaceAnnot: netAttDef.GetNamespace()}
 		cr.SetAnnotations(anno)
-		if err := s.client.Update(context.Background(), cr); err != nil {
+		if err := s.client.Update(ctx, cr); err != nil {
 			return errors.Wrap(err, "failed to update IPoIBNetwork annotations")
 		}
 	}

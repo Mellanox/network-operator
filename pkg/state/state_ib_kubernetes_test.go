@@ -75,7 +75,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Name = "nic-cluster-policy"
 			cr.Spec.IBKubernetes = ibKubernetesSpec
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{})
+			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))

@@ -17,14 +17,17 @@ limitations under the License.
 package state //nolint:dupl
 
 import (
+	"context"
 	"strings"
 
+	"github.com/go-logr/logr"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -71,12 +74,14 @@ type HostDeviceManifestRenderData struct {
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
-func (s *stateHostDeviceNetwork) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *stateHostDeviceNetwork) Sync(
+	ctx context.Context, customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.HostDeviceNetwork)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	objs, err := s.getManifestObjects(cr)
+	objs, err := s.getManifestObjects(cr, reqLogger)
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to render HostDeviceNetwork")
 	}
@@ -90,7 +95,7 @@ func (s *stateHostDeviceNetwork) Sync(customResource interface{}, _ InfoCatalog)
 		return SyncStateError, errors.New("no NetworkAttachmentDefinition object found")
 	}
 
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -102,13 +107,13 @@ func (s *stateHostDeviceNetwork) Sync(customResource interface{}, _ InfoCatalog)
 	}
 
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
 
 	// Get NetworkAttachmentDefinition SelfLink
-	if err := s.getObj(netAttDef); err != nil {
+	if err := s.getObj(ctx, netAttDef); err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to get NetworkAttachmentDefinition")
 	}
 
@@ -124,7 +129,7 @@ func (s *stateHostDeviceNetwork) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateHostDeviceNetwork) getManifestObjects(
-	cr *mellanoxv1alpha1.HostDeviceNetwork) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.HostDeviceNetwork, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	resourceName := cr.Spec.ResourceName
 	if !strings.HasPrefix(resourceName, resourceNamePrefix) {
 		resourceName = resourceNamePrefix + resourceName
@@ -140,11 +145,11 @@ func (s *stateHostDeviceNetwork) getManifestObjects(
 	}
 
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }

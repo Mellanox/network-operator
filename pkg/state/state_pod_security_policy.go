@@ -19,6 +19,7 @@ package state //nolint:dupl
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -65,18 +67,20 @@ type podSecurityPolicyManifestRenderData struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *statePodSecurityPolicy) Sync(customResource interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *statePodSecurityPolicy) Sync(
+	ctx context.Context, customResource interface{}, _ InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.PSP == nil || !cr.Spec.PSP.Enabled {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		return s.handleStateObjectsDeletion(ctx)
 	}
 
-	objs, err := s.getManifestObjects()
+	objs, err := s.getManifestObjects(reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -85,7 +89,7 @@ func (s *statePodSecurityPolicy) Sync(customResource interface{}, _ InfoCatalog)
 	}
 
 	// Create objects if they dont exist, Update objects if they do exist
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -95,7 +99,7 @@ func (s *statePodSecurityPolicy) Sync(customResource interface{}, _ InfoCatalog)
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
@@ -109,14 +113,13 @@ func (s *statePodSecurityPolicy) GetWatchSources() map[string]*source.Kind {
 	err := s.client.List(context.TODO(), psp)
 	if meta.IsNoMatchError(err) {
 		// We assume it's k8s v1.25 or newer so PodSecurityPolicy is not supported and no need to reconcile them
-		log.V(consts.LogLevelInfo).Info("pod security policy is not available")
 		return wr
 	}
 	wr["PodSecurityPolicy"] = &source.Kind{Type: &policyv1beta1.PodSecurityPolicy{}}
 	return wr
 }
 
-func (s *statePodSecurityPolicy) getManifestObjects() ([]*unstructured.Unstructured, error) {
+func (s *statePodSecurityPolicy) getManifestObjects(reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	renderData := &podSecurityPolicyManifestRenderData{
 		RuntimeSpec: &runtimeSpec{
 			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
@@ -127,6 +130,6 @@ func (s *statePodSecurityPolicy) getManifestObjects() ([]*unstructured.Unstructu
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }

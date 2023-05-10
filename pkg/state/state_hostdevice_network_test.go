@@ -76,7 +76,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			cr := &mellanoxv1alpha1.HostDeviceNetwork{}
 			cr.Name = name
 			cr.Spec = *spec
-			objs, err := sriovDpState.getManifestObjects(cr)
+			objs, err := sriovDpState.getManifestObjects(cr, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
@@ -85,7 +85,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			checkResourceNameAnnotation(objs[0])
 
 			spec.ResourceName = resourceNamePrefix + "test_resource_with_prefix"
-			objs, err = sriovDpState.getManifestObjects(cr)
+			objs, err = sriovDpState.getManifestObjects(cr, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			checkResourceNameAnnotation(objs[0])
