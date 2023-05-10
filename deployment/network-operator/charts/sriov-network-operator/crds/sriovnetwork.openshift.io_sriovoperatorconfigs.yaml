@@ -64,6 +64,12 @@ spec:
                 maximum: 2
                 minimum: 0
                 type: integer
+              maxParallelNodeConfiguration:
+                default: 1
+                description: how many nodes can be configured in parallel 0 means
+                  no limit, all nodes will be configured in parallel
+                minimum: 0
+                type: integer
             type: object
           status:
             description: SriovOperatorConfigStatus defines the observed state of SriovOperatorConfig
