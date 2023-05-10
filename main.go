@@ -57,35 +57,32 @@ func init() {
 }
 
 func setupCRDControllers(mgr ctrl.Manager) error {
+	ctrLog := setupLog.WithName("controller")
 	if err := (&controllers.NicClusterPolicyReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("NicClusterPolicy"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, ctrLog.WithName("NicClusterPolicy")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
 		return err
 	}
 	if err := (&controllers.MacvlanNetworkReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MacvlanNetwork"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, ctrLog.WithName("MacVlanNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MacvlanNetwork")
 		return err
 	}
 	if err := (&controllers.HostDeviceNetworkReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("HostDeviceNetwork"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, ctrLog.WithName("HostDeviceNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HostDeviceNetwork")
 		return err
 	}
 	if err := (&controllers.IPoIBNetworkReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("IPoIBNetwork"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, ctrLog.WithName("IPoIBNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IPoIBNetwork")
 		return err
 	}
@@ -147,10 +144,6 @@ func main() {
 	upgrade.SetDriverName("ofed")
 
 	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
-	if err != nil {
-		setupLog.Error(err, "unable to create k8s interface", "controller", "Upgrade")
-		os.Exit(1)
-	}
 
 	nodeUpgradeStateProvider := upgrade.NewNodeUpgradeStateProvider(
 		mgr.GetClient(), upgradeLogger.WithName("nodeUpgradeStateProvider"), nil)
@@ -165,7 +158,6 @@ func main() {
 
 	if err = (&controllers.UpgradeReconciler{
 		Client:                   mgr.GetClient(),
-		Log:                      upgradeLogger,
 		Scheme:                   mgr.GetScheme(),
 		StateManager:             clusterUpdateStateManager,
 		NodeUpgradeStateProvider: nodeUpgradeStateProvider,

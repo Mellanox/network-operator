@@ -60,6 +60,7 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	testSetupLog := logf.Log.WithName("test-log").WithName("setup")
 
 	// Go to project root directory
 	er := os.Chdir("..")
@@ -100,23 +101,20 @@ var _ = BeforeSuite(func() {
 
 	err = (&HostDeviceNetworkReconciler{
 		Client: k8sManager.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("HostDeviceNetwork"),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IPoIBNetworkReconciler{
 		Client: k8sManager.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("IPoIBNetwork"),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&NicClusterPolicyReconciler{
 		Client: k8sManager.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("NicClusterPolicy"),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

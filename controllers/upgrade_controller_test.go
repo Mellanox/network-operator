@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -58,7 +59,6 @@ var _ = Describe("Upgrade Controller", func() {
 		It("Upgrade policy is disabled", func() {
 			upgradeReconciler := &UpgradeReconciler{
 				Client: k8sClient,
-				Log:    ctrl.Log.WithName("controllers").WithName("Upgrade"),
 				Scheme: k8sClient.Scheme(),
 			}
 
@@ -81,7 +81,6 @@ var _ = Describe("Upgrade Controller", func() {
 
 			upgradeReconciler := &UpgradeReconciler{
 				Client: k8sClient,
-				Log:    ctrl.Log.WithName("controllers").WithName("Upgrade"),
 				Scheme: k8sClient.Scheme(),
 			}
 			// Call removeNodeUpgradeStateLabels function
@@ -151,11 +150,10 @@ var _ = Describe("Upgrade Controller", func() {
 
 			upgradeReconciler := &UpgradeReconciler{
 				Client: k8sClient,
-				Log:    ctrl.Log.WithName("controllers").WithName("Upgrade"),
 				Scheme: k8sClient.Scheme(),
 			}
 
-			pods := upgradeReconciler.getPodsOwnedbyDs(ds, podList.Items)
+			pods := upgradeReconciler.getPodsOwnedbyDs(ds, podList.Items, log.Log.WithName("test-log"))
 
 			// Verify that the returned Pods are owned by the DaemonSet
 			Expect(pods).To(HaveLen(1))

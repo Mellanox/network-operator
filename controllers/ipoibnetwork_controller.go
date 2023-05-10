@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -41,7 +42,6 @@ import (
 // IPoIBNetworkReconciler reconciles a IPoIBNetwork object
 type IPoIBNetworkReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 
 	stateManager state.Manager
@@ -56,13 +56,13 @@ type IPoIBNetworkReconciler struct {
 // move the current state of the cluster closer to the desired state.
 //
 //nolint:dupl
-func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("ipoibnetwork", req.NamespacedName)
+func (r *IPoIBNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	reqLogger := log.FromContext(ctx)
 	reqLogger.Info("Reconciling IPoIBNetwork")
 
 	// Fetch the IPoIBNetwork instance
 	instance := &mellanoxcomv1alpha1.IPoIBNetwork{}
-	err := r.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -74,8 +74,8 @@ func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 		return reconcile.Result{}, err
 	}
 
-	managerStatus := r.stateManager.SyncState(instance, nil)
-	err = r.updateCrStatus(instance, managerStatus)
+	managerStatus := r.stateManager.SyncState(ctx, instance, nil)
+	err = r.updateCrStatus(ctx, instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -89,7 +89,9 @@ func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNetwork, status state.Results) error {
+func (r *IPoIBNetworkReconciler) updateCrStatus(
+	ctx context.Context, cr *mellanoxcomv1alpha1.IPoIBNetwork, status state.Results) error {
+	reqLogger := log.FromContext(ctx)
 	cr.Status.State = mellanoxcomv1alpha1.State(status.StatesStatus[0].Status)
 	if status.StatesStatus[0].ErrInfo != nil {
 		cr.Status.Reason = status.StatesStatus[0].ErrInfo.Error()
@@ -99,14 +101,14 @@ func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNet
 
 	if cr.Status.State == state.SyncStateReady {
 		netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
-		getErr := r.Get(context.TODO(),
+		getErr := r.Get(ctx,
 			types.NamespacedName{
 				Name:      cr.Name,
 				Namespace: cr.Spec.NetworkNamespace,
 			}, netAttachDef)
 
 		if getErr != nil {
-			r.Log.V(consts.LogLevelError).Info("Can not retrieve NetworkAttachmentDefinition object", "error:", getErr)
+			reqLogger.V(consts.LogLevelError).Error(getErr, "Can not retrieve NetworkAttachmentDefinition object")
 			err = getErr
 		} else {
 			cr.Status.IPoIBNetworkAttachmentDef = utils.GetNetworkAttachmentDefLink(netAttachDef)
@@ -114,11 +116,11 @@ func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNet
 	}
 
 	// send status update request to k8s API
-	r.Log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
 	updateErr := r.Status().Update(context.TODO(), cr)
 	if updateErr != nil {
-		r.Log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", updateErr)
+		reqLogger.V(consts.LogLevelError).Error(updateErr, "Failed to update CR status")
 		err = updateErr
 	}
 
@@ -128,12 +130,13 @@ func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNet
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
-func (r *IPoIBNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *IPoIBNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.IPoIBNetworkCRDName, mgr.GetClient(), mgr.GetScheme())
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.IPoIBNetworkCRDName, mgr.GetClient(), mgr.GetScheme(),
+		setupLog.WithName("StateManager"))
 	if err != nil {
 		// Error creating stateManager
-		r.Log.V(consts.LogLevelError).Info("Error creating state manager.", "error:", err)
+		setupLog.V(consts.LogLevelError).Error(err, "Error creating state manager.")
 		panic("Failed to create State manager")
 	}
 	r.stateManager = stateManager
@@ -145,8 +148,8 @@ func (r *IPoIBNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Watch for changes to secondary resource DaemonSet and requeue the owner IPoIBNetwork
 	ws := stateManager.GetWatchSources()
-	r.Log.V(consts.LogLevelInfo).Info("Watch Sources", "Kind:", ws)
 	for i := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", ws[i])
 		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxcomv1alpha1.IPoIBNetwork{},
