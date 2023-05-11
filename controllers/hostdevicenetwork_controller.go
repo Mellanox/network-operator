@@ -73,7 +73,7 @@ func (r *HostDeviceNetworkReconciler) Reconcile(_ context.Context, req ctrl.Requ
 		return reconcile.Result{}, err
 	}
 
-	managerStatus, err := r.stateManager.SyncState(instance, nil)
+	managerStatus := r.stateManager.SyncState(instance, nil)
 	r.updateCrStatus(instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err

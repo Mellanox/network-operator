@@ -74,8 +74,8 @@ func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 		return reconcile.Result{}, err
 	}
 
-	managerStatus, managerErr := r.stateManager.SyncState(instance, nil)
-	err = r.updateCrStatus(instance, managerStatus, managerErr)
+	managerStatus := r.stateManager.SyncState(instance, nil)
+	err = r.updateCrStatus(instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -89,11 +89,10 @@ func (r *IPoIBNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNetwork, status state.Results,
-	syncError error) error {
+func (r *IPoIBNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.IPoIBNetwork, status state.Results) error {
 	cr.Status.State = mellanoxcomv1alpha1.State(status.StatesStatus[0].Status)
-	if syncError != nil {
-		cr.Status.Reason = syncError.Error()
+	if status.StatesStatus[0].ErrInfo != nil {
+		cr.Status.Reason = status.StatesStatus[0].ErrInfo.Error()
 	}
 
 	var err error

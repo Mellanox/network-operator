@@ -31,7 +31,7 @@ type Manager interface {
 	// SyncState reconciles the state of the system and returns a list of status of the applied states
 	// InfoCatalog is provided to optionally provide a State additional information sources required for it to perform
 	// the Sync operation.
-	SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error)
+	SyncState(customResource interface{}, infoCatalog InfoCatalog) Results
 }
 
 // Represent a Result of a single State.Sync() invocation
@@ -50,20 +50,18 @@ type Results struct {
 }
 
 type stateManager struct {
-	stateGroups []Group
-	client      client.Client
+	states []State
+	client client.Client
 }
 
 func (smgr *stateManager) GetWatchSources() []*source.Kind {
 	kindMap := make(map[string]*source.Kind)
-	for _, stateGroup := range smgr.stateGroups {
-		for _, state := range stateGroup.States() {
-			wr := state.GetWatchSources()
-			// append to kindMap
-			for name, kind := range wr {
-				if _, ok := kindMap[name]; !ok {
-					kindMap[name] = kind
-				}
+	for _, state := range smgr.states {
+		wr := state.GetWatchSources()
+		// append to kindMap
+		for name, kind := range wr {
+			if _, ok := kindMap[name]; !ok {
+				kindMap[name] = kind
 			}
 		}
 	}
@@ -79,7 +77,7 @@ func (smgr *stateManager) GetWatchSources() []*source.Kind {
 }
 
 // SyncState attempts to reconcile the system by invoking Sync on each of the states
-func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog InfoCatalog) (Results, error) {
+func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog InfoCatalog) Results {
 	// Sync groups of states, transition from one group to the other when a group finishes
 	log.V(consts.LogLevelInfo).Info("Syncing system state")
 	managerResult := Results{
@@ -87,30 +85,28 @@ func (smgr *stateManager) SyncState(customResource interface{}, infoCatalog Info
 	}
 	statesReady := true
 
-	for i, stateGroup := range smgr.stateGroups {
-		log.V(consts.LogLevelInfo).Info("Sync State group", "index", i)
-		results := stateGroup.Sync(customResource, infoCatalog)
-		managerResult.StatesStatus = append(managerResult.StatesStatus, results...)
+	for _, state := range smgr.states {
+		log.V(consts.LogLevelInfo).Info("Sync State", "Name", state.Name(), "Description", state.Description())
+		ss, err := state.Sync(customResource, infoCatalog)
+		result := Result{StateName: state.Name(), Status: ss, ErrInfo: err}
+		managerResult.StatesStatus = append(managerResult.StatesStatus, result)
 
-		done, err := stateGroup.SyncDone()
-		if err != nil {
-			log.V(consts.LogLevelError).Info("Error while syncing states", "Error:", err)
-			return managerResult, err
+		if result.Status == SyncStateNotReady || result.Status == SyncStateError {
+			statesReady = false
 		}
 
-		if !done {
-			// We need to have at lease one not ready state to mark CR as notReady
-			statesReady = false
-			log.V(consts.LogLevelInfo).Info("State Group Not ready")
-		} else {
-			log.V(consts.LogLevelInfo).Info("Sync Completed successfully for State group", "index", i)
+		if result.Status == SyncStateError {
+			log.V(consts.LogLevelWarning).Error(result.ErrInfo, "Error while syncing state")
 		}
 	}
+
 	if statesReady {
 		// Done Syncing CR
 		managerResult.Status = SyncStateReady
 		log.V(consts.LogLevelInfo).Info("Sync Done for custom resource")
+	} else {
+		log.V(consts.LogLevelInfo).Info("Sync not Done for custom resource")
 	}
 
-	return managerResult, nil
+	return managerResult
 }
