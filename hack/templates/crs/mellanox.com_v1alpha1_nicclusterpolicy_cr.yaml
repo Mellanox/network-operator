@@ -60,7 +60,7 @@ spec:
                 "resourceName": "hostdev",
                 "selectors": {
                     "vendors": ["15b3"],
-                    "deviceIDs": ["101d"]
+                    "deviceIDs": ["101d"],
                     "isRdma": true
                 }
             }
@@ -80,8 +80,3 @@ spec:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
       version: v0.5.2-amd64
-  nvPeerDriver:
-    image: nv-peer-mem-driver
-    repository: mellanox
-    version: 1.1-0
-    gpuDriverSourcePath: /run/nvidia/driver
