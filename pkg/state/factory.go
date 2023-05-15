@@ -39,7 +39,7 @@ func NewManager(
 	}
 
 	if setupLog.V(consts.LogLevelDebug).Enabled() {
-		stateNames := make([]string, len(states))
+		stateNames := make([]string, 0, len(states))
 		for _, s := range states {
 			stateNames = append(stateNames, s.Name())
 		}

@@ -289,7 +289,7 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 	ws := stateManager.GetWatchSources()
 
 	for i := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", ws[i])
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
 		ctl = ctl.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxv1alpha1.NicClusterPolicy{},

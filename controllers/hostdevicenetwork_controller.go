@@ -17,6 +17,7 @@ package controllers //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -155,7 +156,7 @@ func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLo
 	// Watch for changes to secondary resource DaemonSet and requeue the owner HostDeviceNetwork
 	ws := stateManager.GetWatchSources()
 	for i := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", ws[i])
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
 		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxcomv1alpha1.HostDeviceNetwork{},
