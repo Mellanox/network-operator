@@ -254,7 +254,7 @@ secondaryNetwork:
     # imagePullSecrets: []
 
 # Can be set to nicclusterpolicy and override other ds node affinity,
-# e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/stage-multus-cni/0050-multus-ds.yml#L26-L36
+# e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/state-multus-cni/0050-multus-ds.yml#L26-L36
 #nodeAffinity:
 
 # Can be set to nicclusterpolicy to add extra tolerations to ds
