@@ -37,7 +37,7 @@ RUN chmod +x ./kubectl
 
 # Add helm chart DIR to get CRDs from it
 COPY deployment/network-operator chart
-# Update helm dependencies and copy CRDs from them
+# copy CRDs from helm charts
 RUN mkdir crds && \
     cp -r chart/crds /workspace/crds/network-operator/ && \
     cp -r chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/
