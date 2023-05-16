@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -47,7 +48,6 @@ import (
 // NicClusterPolicyReconciler reconciles a NicClusterPolicy object
 type NicClusterPolicyReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 
 	stateManager state.Manager
@@ -78,32 +78,32 @@ type NicClusterPolicyReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("nicclusterpolicy", req.NamespacedName)
+func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Reconciling NicClusterPolicy")
 
 	// Fetch the NicClusterPolicy instance
 	instance := &mellanoxv1alpha1.NicClusterPolicy{}
-	err := r.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			err := r.clearMofedWaitLabel()
+			err := r.clearMofedWaitLabel(ctx)
 			if err != nil {
-				reqLogger.V(consts.LogLevelError).Info("Fail to clear Mofed label on CR deletion.", "error:", err)
+				reqLogger.V(consts.LogLevelError).Error(err, "Fail to clear Mofed label on CR deletion.")
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		reqLogger.V(consts.LogLevelError).Info("Error occurred on GET CRD request from API server.", "error:", err)
+		reqLogger.V(consts.LogLevelError).Error(err, "Error occurred on GET CRD request from API server.")
 		return reconcile.Result{}, err
 	}
 
 	if req.Name != consts.NicClusterPolicyResourceName {
-		err := r.handleUnsupportedInstance(instance, req, reqLogger)
+		err := r.handleUnsupportedInstance(ctx, instance)
 		return reconcile.Result{}, err
 	}
 
@@ -114,10 +114,10 @@ func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Reque
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
 		nodeList := &corev1.NodeList{}
-		err = r.List(context.TODO(), nodeList, nodeinfo.MellanoxNICListOptions...)
+		err = r.List(ctx, nodeList, nodeinfo.MellanoxNICListOptions...)
 		if err != nil {
 			// Failed to get node list
-			reqLogger.V(consts.LogLevelError).Info("Error occurred on LIST nodes request from API server.", "error:", err)
+			reqLogger.V(consts.LogLevelError).Error(err, "Error occurred on LIST nodes request from API server.")
 			return reconcile.Result{}, err
 		}
 		nodePtrList := make([]*corev1.Node, len(nodeList.Items))
@@ -131,10 +131,10 @@ func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Reque
 		sc.Add(state.InfoTypeNodeInfo, infoProvider)
 	}
 	// Sync state and update status
-	managerStatus := r.stateManager.SyncState(instance, sc)
-	r.updateCrStatus(instance, managerStatus)
+	managerStatus := r.stateManager.SyncState(ctx, instance, sc)
+	r.updateCrStatus(ctx, instance, managerStatus)
 
-	err = r.updateNodeLabels(instance)
+	err = r.updateNodeLabels(ctx, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -150,11 +150,12 @@ func (r *NicClusterPolicyReconciler) Reconcile(_ context.Context, req ctrl.Reque
 
 // updateNodeLabels updates nodes labels to mark device plugins should wait for OFED pod
 // Set nvidia.com/ofed.wait=false if OFED is not deployed.
-func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicClusterPolicy) error {
+func (r *NicClusterPolicyReconciler) updateNodeLabels(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) error {
 	if cr.Spec.OFEDDriver != nil {
 		pods := &corev1.PodList{}
 		podLabel := "mofed-" + cr.Spec.OFEDDriver.Version
-		_ = r.Client.List(context.TODO(), pods, client.MatchingLabels{"driver-pod": podLabel})
+		_ = r.Client.List(ctx, pods, client.MatchingLabels{"driver-pod": podLabel})
 		for i := range pods.Items {
 			pod := pods.Items[i]
 			labelValue := "true"
@@ -164,7 +165,7 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 				labelValue = "false"
 			}
 			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:%q}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
-			err := r.Client.Patch(context.TODO(), &corev1.Node{
+			err := r.Client.Patch(ctx, &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pod.Spec.NodeName,
 				},
@@ -176,7 +177,7 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 			}
 		}
 	} else {
-		return r.clearMofedWaitLabel()
+		return r.clearMofedWaitLabel(ctx)
 	}
 
 	return nil
@@ -184,18 +185,18 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(cr *mellanoxv1alpha1.NicCl
 
 // clearMofedWaitLabel set "network.nvidia.com/operator.mofed.wait" to false
 // on Nodes with Mellanox NICs
-func (r *NicClusterPolicyReconciler) clearMofedWaitLabel() error {
+func (r *NicClusterPolicyReconciler) clearMofedWaitLabel(ctx context.Context) error {
 	// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
 	nodes := &corev1.NodeList{}
 
-	err := r.Client.List(context.TODO(), nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
+	err := r.Client.List(ctx, nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
 	if err != nil {
 		return errors.Wrap(err, "failed to list nodes")
 	}
 
 	for i := range nodes.Items {
 		patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"false"}}}`, nodeinfo.NodeLabelWaitOFED))
-		err := r.Client.Patch(context.TODO(), &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
+		err := r.Client.Patch(ctx, &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
 		if err != nil {
 			return errors.Wrapf(err, "unable to patch %s node label for node %s",
 				nodeinfo.NodeLabelWaitOFED, nodes.Items[i].Name)
@@ -205,7 +206,9 @@ func (r *NicClusterPolicyReconciler) clearMofedWaitLabel() error {
 }
 
 //nolint:dupl
-func (r *NicClusterPolicyReconciler) updateCrStatus(cr *mellanoxv1alpha1.NicClusterPolicy, status state.Results) {
+func (r *NicClusterPolicyReconciler) updateCrStatus(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, status state.Results) {
+	reqLogger := log.FromContext(ctx)
 NextResult:
 	for _, stateStatus := range status.StatesStatus {
 		// basically iterate over results and add/update crStatus.AppliedStates
@@ -224,17 +227,18 @@ NextResult:
 	cr.Status.State = mellanoxv1alpha1.State(status.Status)
 
 	// send status update request to k8s API
-	r.Log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
-	err := r.Status().Update(context.TODO(), cr)
+	err := r.Status().Update(ctx, cr)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to update CR status")
 	}
 }
 
-func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(instance *mellanoxv1alpha1.NicClusterPolicy,
-	request reconcile.Request, reqLogger logr.Logger) error {
-	reqLogger.V(consts.LogLevelWarning).Info("unsupported NicClusterPolicy instance", "instance name:", request.Name)
+func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(
+	ctx context.Context, instance *mellanoxv1alpha1.NicClusterPolicy) error {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelWarning).Info("unsupported NicClusterPolicy instance name")
 	reqLogger.V(consts.LogLevelWarning).Info("NicClusterPolicy supports instance with predefined name",
 		"supported instance name:", consts.NicClusterPolicyResourceName)
 
@@ -242,9 +246,9 @@ func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(instance *mellano
 	instance.Status.Reason = fmt.Sprintf("Unsupported NicClusterPolicy instance %s. Only instance with name %s is"+
 		" supported", instance.Name, consts.NicClusterPolicyResourceName)
 
-	err := r.Status().Update(context.TODO(), instance)
+	err := r.Status().Update(ctx, instance)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to update CR status")
 	}
 
 	return err
@@ -253,13 +257,13 @@ func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(instance *mellano
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
-func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxv1alpha1.NicClusterPolicyCRDName, mgr.GetClient(), mgr.GetScheme())
+	stateManager, err := state.NewManager(mellanoxv1alpha1.NicClusterPolicyCRDName, mgr.GetClient(), mgr.GetScheme(),
+		setupLog.WithName("StateManager"))
 	if err != nil {
-		// Error creating stateManager
-		r.Log.V(consts.LogLevelError).Info("Error creating state manager.", "error:", err)
-		panic("Failed to create State manager")
+		setupLog.V(consts.LogLevelError).Error(err, "Error creating state manager.")
+		return err
 	}
 	r.stateManager = stateManager
 
@@ -283,8 +287,9 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctl = ctl.Watches(&source.Kind{Type: &corev1.Node{}}, updateEnqueue, nodePredicates)
 
 	ws := stateManager.GetWatchSources()
-	r.Log.V(consts.LogLevelInfo).Info("Watch Sources", "Kind:", ws)
+
 	for i := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
 		ctl = ctl.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxv1alpha1.NicClusterPolicy{},

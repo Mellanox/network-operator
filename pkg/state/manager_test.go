@@ -17,6 +17,8 @@ limitations under the License.
 package state
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -37,7 +39,7 @@ var _ = Describe("Manager tests", func() {
 				states: []State{testState},
 				client: &client,
 			}
-			results := manager.SyncState(nil, nil)
+			results := manager.SyncState(context.TODO(), nil, nil)
 			Expect(results.Status).To(Equal(SyncState(SyncStateReady)))
 			Expect(results.StatesStatus[0].StateName).To(Equal("test"))
 			Expect(results.StatesStatus[0].Status).To(Equal(SyncState(SyncStateReady)))
@@ -58,7 +60,7 @@ var _ = Describe("Manager tests", func() {
 				states: []State{testStateNotReady, testStateReady},
 				client: &client,
 			}
-			results := manager.SyncState(nil, nil)
+			results := manager.SyncState(context.TODO(), nil, nil)
 			Expect(results.Status).To(Equal(SyncState(SyncStateNotReady)))
 			Expect(results.StatesStatus[0].StateName).To(Equal("test not ready"))
 			Expect(results.StatesStatus[0].Status).To(Equal(SyncState(SyncStateNotReady)))

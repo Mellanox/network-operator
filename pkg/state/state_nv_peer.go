@@ -1,8 +1,10 @@
 package state
 
 import (
+	"context"
 	"strconv"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -10,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -26,7 +29,7 @@ const stateNVPeerDescription = "Nvidia Peer Memory driver deployed in the cluste
 // starting from this GPU driver version nvPeerMem driver should not deploy
 const maxCudaVersionMajor = 465
 
-//TODO: Refine a base struct that implements a driver container as this is pretty much identical to OFED state
+//TODO: Remove this state once deemed not needed as it is handled by GPU Operator
 
 // NewStateNVPeer creates a new NVPeer driver state
 func NewStateNVPeer(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
@@ -70,15 +73,17 @@ type nvPeerManifestRenderData struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+func (s *stateNVPeer) Sync(
+	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
-	log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
 	if cr.Spec.NVPeerDriver == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
-		return s.handleStateObjectsDeletion()
+		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
 	nodeInfo := infoCatalog.GetNodeInfoProvider()
@@ -86,7 +91,7 @@ func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) 
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
 
-	objs, err := s.getManifestObjects(cr, nodeInfo)
+	objs, err := s.getManifestObjects(cr, nodeInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -98,7 +103,7 @@ func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) 
 	}
 
 	// Create objects if they dont exist, Update objects if they do exist
-	err = s.createOrUpdateObjs(func(obj *unstructured.Unstructured) error {
+	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
 		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
@@ -111,14 +116,14 @@ func (s *stateNVPeer) Sync(customResource interface{}, infoCatalog InfoCatalog) 
 	// check if nvPeerMem status should be ignored
 	// workaround to support upgrade from nv_peer_mem to nvidia_peermem module
 	// check function doc for details
-	if s.shouldIgnoreStatus(nodeInfo) {
-		log.V(consts.LogLevelInfo).Info("GPU driver version with builtin nvidia_peermem module detected." +
+	if s.shouldIgnoreStatus(nodeInfo, reqLogger) {
+		reqLogger.V(consts.LogLevelInfo).Info("GPU driver version with builtin nvidia_peermem module detected." +
 			"NV Peer driver status ignored")
 		return SyncStateIgnore, nil
 	}
 
 	// Check objects status
-	syncState, err := s.getSyncState(objs)
+	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to get sync state")
 	}
@@ -134,14 +139,14 @@ func (s *stateNVPeer) GetWatchSources() map[string]*source.Kind {
 
 func (s *stateNVPeer) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	nodeInfo nodeinfo.Provider, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().
 			WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").
 			WithLabel(nodeinfo.NodeLabelNvGPU, "true").
 			Build())
 	if len(attrs) == 0 {
-		log.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs and Nvidia GPUs where found in the cluster.")
+		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs and Nvidia GPUs where found in the cluster.")
 		return []*unstructured.Unstructured{}, nil
 	}
 
@@ -165,12 +170,12 @@ func (s *stateNVPeer) getManifestObjects(
 		},
 	}
 	// render objects
-	log.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
-	log.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
 
@@ -183,7 +188,7 @@ func (s *stateNVPeer) getManifestObjects(
 // GPU driver version was downgraded or when we have an environment with mixed versions of the GPU drivers
 // and node with older version appear after node with a newer version.
 // nvPeerMem config should be removed from NicClusterPolicy explicitly to remove DS
-func (s *stateNVPeer) shouldIgnoreStatus(nodeInfo nodeinfo.Provider) bool {
+func (s *stateNVPeer) shouldIgnoreStatus(nodeInfo nodeinfo.Provider, reqLogger logr.Logger) bool {
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelNoValFilterBuilderr().
 			WithLabel(nodeinfo.NodeLabelCudaVersionMajor).
@@ -196,7 +201,7 @@ func (s *stateNVPeer) shouldIgnoreStatus(nodeInfo nodeinfo.Provider) bool {
 		cudaVersion, err := strconv.Atoi(attr.Attributes[nodeinfo.AttrTypeCudaVersionMajor])
 		if err != nil {
 			// unknown cuda version, continue sync
-			log.V(consts.LogLevelInfo).Info("Fail to check GPU driver version")
+			reqLogger.V(consts.LogLevelInfo).Info("Fail to check GPU driver version")
 			return false
 		}
 		if cudaVersion < maxCudaVersionMajor {

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -126,59 +128,69 @@ func getSupportedGVKs() []schema.GroupVersionKind {
 	}
 }
 
-func (s *stateSkel) getObj(obj *unstructured.Unstructured) error {
-	log.V(consts.LogLevelInfo).Info("Get Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+func (s *stateSkel) getObj(ctx context.Context, obj *unstructured.Unstructured) error {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Get Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+
 	err := s.client.Get(
-		context.TODO(), types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
+		ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 	if k8serrors.IsNotFound(err) {
 		// does not exist (yet)
-		log.V(consts.LogLevelInfo).Info("Object Does not Exists")
+		reqLogger.V(consts.LogLevelInfo).Info("Object Does not Exists")
 	}
 	return err
 }
 
-func (s *stateSkel) createObj(obj *unstructured.Unstructured) error {
-	s.checkDeleteSupported(obj)
-	log.V(consts.LogLevelInfo).Info("Creating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+func (s *stateSkel) createObj(ctx context.Context, obj *unstructured.Unstructured) error {
+	reqLogger := log.FromContext(ctx)
+
+	s.checkDeleteSupported(ctx, obj)
+	reqLogger.V(consts.LogLevelInfo).Info("Creating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
 	toCreate := obj.DeepCopy()
-	if err := s.client.Create(context.TODO(), toCreate); err != nil {
+	if err := s.client.Create(ctx, toCreate); err != nil {
 		if k8serrors.IsAlreadyExists(err) {
-			log.V(consts.LogLevelInfo).Info("Object Already Exists")
+			reqLogger.V(consts.LogLevelInfo).Info("Object Already Exists")
 		}
 		return err
 	}
-	log.V(consts.LogLevelInfo).Info("Object created successfully")
+	reqLogger.V(consts.LogLevelInfo).Info("Object created successfully")
 	return nil
 }
 
-func (s *stateSkel) checkDeleteSupported(obj *unstructured.Unstructured) {
+func (s *stateSkel) checkDeleteSupported(ctx context.Context, obj *unstructured.Unstructured) {
+	reqLogger := log.FromContext(ctx)
+
 	for _, gvk := range getSupportedGVKs() {
 		objGvk := obj.GroupVersionKind()
 		if objGvk.Group == gvk.Group && objGvk.Version == gvk.Version && objGvk.Kind == gvk.Kind {
 			return
 		}
 	}
-	log.V(consts.LogLevelWarning).Info("Object will not be deleted if needed",
+	reqLogger.V(consts.LogLevelWarning).Info("Object will not be deleted if needed",
 		"Namespace:", obj.GetNamespace(), "Name:", obj.GetName(), "GVK", obj.GroupVersionKind())
 }
 
-func (s *stateSkel) updateObj(obj *unstructured.Unstructured) error {
-	log.V(consts.LogLevelInfo).Info("Updating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+func (s *stateSkel) updateObj(ctx context.Context, obj *unstructured.Unstructured) error {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Updating Object", "Namespace:", obj.GetNamespace(), "Name:", obj.GetName())
+
 	// Note: Some objects may require update of the resource version
 	// TODO: using Patch preserves runtime attributes. In the future consider using patch if relevant
 	desired := obj.DeepCopy()
-	if err := s.client.Update(context.TODO(), desired); err != nil {
+	if err := s.client.Update(ctx, desired); err != nil {
 		return errors.Wrap(err, "failed to update resource")
 	}
-	log.V(consts.LogLevelInfo).Info("Object updated successfully")
+	reqLogger.V(consts.LogLevelInfo).Info("Object updated successfully")
 	return nil
 }
 
 func (s *stateSkel) createOrUpdateObjs(
+	ctx context.Context,
 	setControllerReference func(obj *unstructured.Unstructured) error,
 	objs []*unstructured.Unstructured) error {
+	reqLogger := log.FromContext(ctx)
 	for _, desiredObj := range objs {
-		log.V(consts.LogLevelInfo).Info("Handling manifest object", "Kind:", desiredObj.GetKind(),
+		reqLogger.V(consts.LogLevelInfo).Info("Handling manifest object", "Kind:", desiredObj.GetKind(),
 			"Name", desiredObj.GetName())
 		// Set controller reference for object to allow cleanup on CR deletion
 		if err := setControllerReference(desiredObj); err != nil {
@@ -187,7 +199,7 @@ func (s *stateSkel) createOrUpdateObjs(
 
 		s.addStateSpecificLabels(desiredObj)
 
-		err := s.createObj(desiredObj)
+		err := s.createObj(ctx, desiredObj)
 		if err == nil {
 			// object created successfully
 			continue
@@ -198,7 +210,7 @@ func (s *stateSkel) createOrUpdateObjs(
 		}
 
 		currentObj := desiredObj.DeepCopy()
-		if err := s.getObj(currentObj); err != nil {
+		if err := s.getObj(ctx, currentObj); err != nil {
 			// Some error occurred
 			return err
 		}
@@ -208,7 +220,7 @@ func (s *stateSkel) createOrUpdateObjs(
 		}
 
 		// Object found, Update it
-		if err := s.updateObj(desiredObj); err != nil {
+		if err := s.updateObj(ctx, desiredObj); err != nil {
 			return err
 		}
 	}
@@ -224,21 +236,22 @@ func (s *stateSkel) addStateSpecificLabels(obj *unstructured.Unstructured) {
 	obj.SetLabels(labels)
 }
 
-func (s *stateSkel) handleStateObjectsDeletion() (SyncState, error) {
-	log.V(consts.LogLevelInfo).Info(
+func (s *stateSkel) handleStateObjectsDeletion(ctx context.Context) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"State spec in CR is nil, deleting existing objects if needed", "State:", s.name)
-	found, err := s.deleteStateRelatedObjects()
+	found, err := s.deleteStateRelatedObjects(ctx)
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to delete k8s objects")
 	}
 	if found {
-		log.V(consts.LogLevelInfo).Info("State deleting objects in progress", "State:", s.name)
+		reqLogger.V(consts.LogLevelInfo).Info("State deleting objects in progress", "State:", s.name)
 		return SyncStateNotReady, nil
 	}
 	return SyncStateIgnore, nil
 }
 
-func (s *stateSkel) deleteStateRelatedObjects() (bool, error) {
+func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context) (bool, error) {
 	stateLabel := map[string]string{
 		consts.StateLabel: s.name,
 	}
@@ -246,7 +259,7 @@ func (s *stateSkel) deleteStateRelatedObjects() (bool, error) {
 	for _, gvk := range getSupportedGVKs() {
 		l := &unstructured.UnstructuredList{}
 		l.SetGroupVersionKind(gvk)
-		err := s.client.List(context.Background(), l, client.MatchingLabels(stateLabel))
+		err := s.client.List(ctx, l, client.MatchingLabels(stateLabel))
 		if meta.IsNoMatchError(err) {
 			continue
 		}
@@ -259,7 +272,7 @@ func (s *stateSkel) deleteStateRelatedObjects() (bool, error) {
 		for _, obj := range l.Items {
 			obj := obj
 			if obj.GetDeletionTimestamp() == nil {
-				err := s.client.Delete(context.TODO(), &obj)
+				err := s.client.Delete(ctx, &obj)
 				if err != nil {
 					return true, err
 				}
@@ -308,17 +321,19 @@ func (s *stateSkel) mergeServiceAccount(updated, current *unstructured.Unstructu
 }
 
 // Iterate over objects and check for their readiness
-func (s *stateSkel) getSyncState(objs []*unstructured.Unstructured) (SyncState, error) {
-	log.V(consts.LogLevelInfo).Info("Checking related object states")
+func (s *stateSkel) getSyncState(ctx context.Context, objs []*unstructured.Unstructured) (SyncState, error) {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Checking related object states")
+
 	for _, obj := range objs {
-		log.V(consts.LogLevelInfo).Info("Checking object", "Kind:", obj.GetKind(), "Name", obj.GetName())
+		reqLogger.V(consts.LogLevelInfo).Info("Checking object", "Kind:", obj.GetKind(), "Name", obj.GetName())
 		// Check if object exists
 		found := obj.DeepCopy()
-		err := s.getObj(found)
+		err := s.getObj(ctx, found)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				// does not exist (yet)
-				log.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
+				reqLogger.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 				return SyncStateNotReady, nil
 			}
 			// other error
@@ -327,18 +342,18 @@ func (s *stateSkel) getSyncState(objs []*unstructured.Unstructured) (SyncState, 
 
 		// Object exists, check for Kind specific readiness
 		if found.GetKind() == "DaemonSet" {
-			if ready, err := s.isDaemonSetReady(found); err != nil || !ready {
-				log.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
+			if ready, err := s.isDaemonSetReady(found, reqLogger); err != nil || !ready {
+				reqLogger.V(consts.LogLevelInfo).Info("Object is not ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 				return SyncStateNotReady, err
 			}
 		}
-		log.V(consts.LogLevelInfo).Info("Object is ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
+		reqLogger.V(consts.LogLevelInfo).Info("Object is ready", "Kind:", obj.GetKind(), "Name", obj.GetName())
 	}
 	return SyncStateReady, nil
 }
 
 // isDaemonSetReady checks if daemonset is ready
-func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured) (bool, error) {
+func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured, reqLogger logr.Logger) (bool, error) {
 	buf, err := uds.MarshalJSON()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to marshall unstructured daemonset object")
@@ -349,7 +364,7 @@ func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured) (bool, erro
 		return false, errors.Wrap(err, "failed to unmarshall to daemonset object")
 	}
 
-	log.V(consts.LogLevelDebug).Info(
+	reqLogger.V(consts.LogLevelDebug).Info(
 		"Check daemonset state",
 		"DesiredNodes:", ds.Status.DesiredNumberScheduled,
 		"CurrentNodes:", ds.Status.CurrentNumberScheduled,

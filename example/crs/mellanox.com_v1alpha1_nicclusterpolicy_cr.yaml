@@ -48,24 +48,6 @@ spec:
           }
         ]
       }
-  sriovDevicePlugin:
-    image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.5.1
-    config: |
-      {
-        "resourceList": [
-            {
-                "resourcePrefix": "nvidia.com",
-                "resourceName": "hostdev",
-                "selectors": {
-                    "vendors": ["15b3"],
-                    "deviceIDs": ["101d"],
-                    "isRdma": true
-                }
-            }
-        ]
-      }
   secondaryNetwork:
     cniPlugins:
       image: plugins

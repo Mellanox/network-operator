@@ -17,6 +17,8 @@ limitations under the License.
 package state
 
 import (
+	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -35,7 +37,7 @@ func (m *fakeMananger) GetWatchSources() []*source.Kind {
 // SyncState reconciles the state of the system for the custom resource
 //
 //nolint:unused
-func (m *fakeMananger) SyncState(_ interface{}, _ InfoCatalog) (Results, error) {
+func (m *fakeMananger) SyncState(_ context.Context, _ interface{}, _ InfoCatalog) (Results, error) {
 	return Results{
 		Status:       SyncStateNotReady,
 		StatesStatus: nil,

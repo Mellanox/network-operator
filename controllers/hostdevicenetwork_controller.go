@@ -17,17 +17,19 @@ package controllers //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -41,7 +43,6 @@ import (
 // HostDeviceNetworkReconciler reconciles a HostDeviceNetwork object
 type HostDeviceNetworkReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 
 	stateManager state.Manager
@@ -55,13 +56,13 @@ type HostDeviceNetworkReconciler struct {
 // move the current state of the cluster closer to the desired state.
 //
 //nolint:dupl
-func (r *HostDeviceNetworkReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("hostdevicenetwork", req.NamespacedName)
+func (r *HostDeviceNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	reqLogger := log.FromContext(ctx)
 	reqLogger.Info("Reconciling HostDeviceNetwork")
 
 	// Fetch the HostDeviceNetwork instance
 	instance := &mellanoxcomv1alpha1.HostDeviceNetwork{}
-	err := r.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -73,8 +74,8 @@ func (r *HostDeviceNetworkReconciler) Reconcile(_ context.Context, req ctrl.Requ
 		return reconcile.Result{}, err
 	}
 
-	managerStatus := r.stateManager.SyncState(instance, nil)
-	r.updateCrStatus(instance, managerStatus)
+	managerStatus := r.stateManager.SyncState(ctx, instance, nil)
+	r.updateCrStatus(ctx, instance, managerStatus)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -89,7 +90,9 @@ func (r *HostDeviceNetworkReconciler) Reconcile(_ context.Context, req ctrl.Requ
 }
 
 //nolint:dupl
-func (r *HostDeviceNetworkReconciler) updateCrStatus(cr *mellanoxcomv1alpha1.HostDeviceNetwork, status state.Results) {
+func (r *HostDeviceNetworkReconciler) updateCrStatus(
+	ctx context.Context, cr *mellanoxcomv1alpha1.HostDeviceNetwork, status state.Results) {
+	reqLogger := log.FromContext(ctx)
 NextResult:
 	for _, stateStatus := range status.StatesStatus {
 		// basically iterate over results and add/update crStatus.AppliedStates
@@ -109,37 +112,38 @@ NextResult:
 
 	if cr.Status.State == state.SyncStateReady {
 		netAttachDef := &netattdefv1.NetworkAttachmentDefinition{}
-		err := r.Get(context.TODO(),
+		err := r.Get(ctx,
 			types.NamespacedName{
 				Name:      cr.Name,
 				Namespace: cr.Spec.NetworkNamespace,
 			}, netAttachDef)
 
 		if err != nil {
-			r.Log.V(consts.LogLevelError).Info("Can not retrieve NetworkAttachmentDefinition object", "error:", err)
+			reqLogger.V(consts.LogLevelError).Error(err, "Can not retrieve NetworkAttachmentDefinition object")
 		} else {
 			cr.Status.HostDeviceNetworkAttachmentDef = utils.GetNetworkAttachmentDefLink(netAttachDef)
 		}
 	}
 
 	// send status update request to k8s API
-	r.Log.V(consts.LogLevelInfo).Info(
+	reqLogger.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
-	err := r.Status().Update(context.TODO(), cr)
+	err := r.Status().Update(ctx, cr)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Info("Failed to update CR status", "error:", err)
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to update CR status")
 	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
-func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(), mgr.GetScheme())
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(), mgr.GetScheme(),
+		setupLog.WithName("StateManager"))
 	if err != nil {
 		// Error creating stateManager
-		r.Log.V(consts.LogLevelError).Info("Error creating state manager.", "error:", err)
+		setupLog.V(consts.LogLevelError).Error(err, "Error creating state manager.")
 		panic("Failed to create State manager")
 	}
 	r.stateManager = stateManager
@@ -151,8 +155,8 @@ func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Watch for changes to secondary resource DaemonSet and requeue the owner HostDeviceNetwork
 	ws := stateManager.GetWatchSources()
-	r.Log.V(consts.LogLevelInfo).Info("Watch Sources", "Kind:", ws)
 	for i := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
 		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &mellanoxcomv1alpha1.HostDeviceNetwork{},

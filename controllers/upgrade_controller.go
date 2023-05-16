@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -48,7 +49,6 @@ import (
 // UpgradeReconciler reconciles OFED Daemon Sets for upgrade
 type UpgradeReconciler struct {
 	client.Client
-	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	StateManager             *upgrade.ClusterUpgradeStateManager
 	NodeUpgradeStateProvider upgrade.NodeUpgradeStateProvider
@@ -68,8 +68,8 @@ const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("upgrade", req.NamespacedName)
+func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
+	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Reconciling Upgrade")
 
 	nicClusterPolicy := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -104,7 +104,7 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	state, err := r.BuildState(ctx)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state")
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state")
 		return ctrl.Result{}, err
 	}
 
@@ -113,7 +113,7 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(upgradePolicy)
 	err = r.StateManager.ApplyState(ctx, state, driverUpgradePolicy)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")
 		return ctrl.Result{}, err
 	}
 
@@ -127,12 +127,13 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // removeNodeUpgradeStateLabels loops over nodes in the cluster and removes upgrade.UpgradeStateLabel
 // It is used for cleanup when autoUpgrade feature gets disabled
 func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) error {
-	r.Log.Info("Resetting node upgrade labels from all nodes")
+	reqLogger := log.FromContext(ctx)
+	reqLogger.Info("Resetting node upgrade labels from all nodes")
 
 	nodeList := &corev1.NodeList{}
 	err := r.List(ctx, nodeList)
 	if err != nil {
-		r.Log.Error(err, "Failed to get node list to reset upgrade labels")
+		reqLogger.Error(err, "Failed to get node list to reset upgrade labels")
 		return err
 	}
 
@@ -145,7 +146,7 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) er
 			delete(node.Labels, upgradeStateLabel)
 			err = r.Update(ctx, node)
 			if err != nil {
-				r.Log.V(consts.LogLevelError).Error(
+				reqLogger.V(consts.LogLevelError).Error(
 					err, "Failed to reset upgrade annotation from node", "node", node)
 				return err
 			}
@@ -158,12 +159,13 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) er
 // It is used now only to clean up leftover annotations from previous versions of network-operator
 // TODO drop in 2 releases
 func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Context) error {
-	r.Log.V(consts.LogLevelInfo).Info("Resetting node upgrade annotations from all nodes")
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Resetting node upgrade annotations from all nodes")
 
 	nodeList := &corev1.NodeList{}
 	err := r.List(ctx, nodeList)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to get node list to reset upgrade annotations")
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get node list to reset upgrade annotations")
 		return err
 	}
 	for i := range nodeList.Items {
@@ -173,7 +175,7 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 			delete(node.Annotations, UpgradeStateAnnotation)
 			err = r.Update(ctx, node)
 			if err != nil {
-				r.Log.V(consts.LogLevelError).Error(
+				reqLogger.V(consts.LogLevelError).Error(
 					err, "Failed to reset upgrade annotation from node", "node", node)
 				return err
 			}
@@ -187,17 +189,18 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 // Nodes are grouped together with the driver POD running on them and the daemon set, controlling this pod
 // This state is then used as an input for the upgrade.ClusterUpgradeStateManager
 func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpgradeState, error) {
-	r.Log.V(consts.LogLevelInfo).Info("Building state")
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Building state")
 
 	upgradeState := upgrade.NewClusterUpgradeState()
 
 	daemonSets, err := r.getDriverDaemonSets(ctx)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to get driver daemon set list")
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get driver daemon set list")
 		return nil, err
 	}
 
-	r.Log.V(consts.LogLevelDebug).Info("Got driver daemon sets", "length", len(daemonSets))
+	reqLogger.V(consts.LogLevelDebug).Info("Got driver daemon sets", "length", len(daemonSets))
 
 	// Get list of driver pods
 	podList := &corev1.PodList{}
@@ -211,9 +214,9 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 
 	filteredPodList := []corev1.Pod{}
 	for _, ds := range daemonSets {
-		dsPods := r.getPodsOwnedbyDs(ds, podList.Items)
+		dsPods := r.getPodsOwnedbyDs(ds, podList.Items, reqLogger)
 		if int(ds.Status.DesiredNumberScheduled) != len(dsPods) {
-			r.Log.V(consts.LogLevelInfo).Info("Driver daemon set has Unscheduled pods", "name", ds.Name)
+			reqLogger.V(consts.LogLevelInfo).Info("Driver daemon set has Unscheduled pods", "name", ds.Name)
 			return nil, fmt.Errorf("DS should not have Unscheduled pods")
 		}
 		filteredPodList = append(filteredPodList, dsPods...)
@@ -226,7 +229,7 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 		ownerDaemonSet := daemonSets[pod.OwnerReferences[0].UID]
 		nodeState, err := r.buildNodeUpgradeState(ctx, pod, ownerDaemonSet)
 		if err != nil {
-			r.Log.V(consts.LogLevelError).Error(err, "Failed to build node upgrade state for pod", "pod", pod)
+			reqLogger.V(consts.LogLevelError).Error(err, "Failed to build node upgrade state for pod", "pod", pod)
 			return nil, err
 		}
 		nodeStateLabel := nodeState.Node.Labels[upgradeStateLabel]
@@ -241,14 +244,15 @@ func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpg
 // the driver POD running on them and the daemon set, controlling this pod
 func (r *UpgradeReconciler) buildNodeUpgradeState(
 	ctx context.Context, pod *corev1.Pod, ds *appsv1.DaemonSet) (*upgrade.NodeUpgradeState, error) {
+	reqLogger := log.FromContext(ctx)
 	node, err := r.NodeUpgradeStateProvider.GetNode(ctx, pod.Spec.NodeName)
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to get node", "node", pod.Spec.NodeName)
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get node", "node", pod.Spec.NodeName)
 		return nil, err
 	}
 
 	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
-	r.Log.V(consts.LogLevelInfo).Info("Node hosting a driver pod",
+	reqLogger.V(consts.LogLevelInfo).Info("Node hosting a driver pod",
 		"node", node.Name, "state", node.Labels[upgradeStateLabel])
 
 	return &upgrade.NodeUpgradeState{Node: node, DriverPod: pod, DriverDaemonSet: ds}, nil
@@ -256,6 +260,7 @@ func (r *UpgradeReconciler) buildNodeUpgradeState(
 
 // getDriverDaemonSets retrieves DaemonSets labeled with OfedDriverLabel and returns UID->DaemonSet map
 func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.UID]*appsv1.DaemonSet, error) {
+	reqLogger := log.FromContext(ctx)
 	// Get list of driver pods
 	daemonSetList := &appsv1.DaemonSetList{}
 
@@ -263,7 +268,7 @@ func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.
 		client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace),
 		client.MatchingLabels{consts.OfedDriverLabel: ""})
 	if err != nil {
-		r.Log.V(consts.LogLevelError).Error(err, "Failed to get daemon set list")
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get daemon set list")
 		return nil, err
 	}
 
@@ -277,20 +282,21 @@ func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.
 }
 
 // getPodsOwnedbyDs gets a list of pods return a list of the pods owned by the specified DaemonSet
-func (r *UpgradeReconciler) getPodsOwnedbyDs(ds *appsv1.DaemonSet, pods []corev1.Pod) []corev1.Pod {
+func (r *UpgradeReconciler) getPodsOwnedbyDs(
+	ds *appsv1.DaemonSet, pods []corev1.Pod, reqLogger logr.Logger) []corev1.Pod {
 	dsPodList := []corev1.Pod{}
 	for i := range pods {
 		pod := &pods[i]
 		if pod.OwnerReferences == nil || len(pod.OwnerReferences) < 1 {
-			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod has no owner DaemonSet", "pod", pod)
+			reqLogger.V(consts.LogLevelWarning).Info("OFED Driver Pod has no owner DaemonSet", "pod", pod)
 			continue
 		}
-		r.Log.V(consts.LogLevelDebug).Info("Pod", "pod", pod.Name, "owner", pod.OwnerReferences[0].Name)
+		reqLogger.V(consts.LogLevelDebug).Info("Pod", "pod", pod.Name, "owner", pod.OwnerReferences[0].Name)
 
 		if ds.UID == pod.OwnerReferences[0].UID {
 			dsPodList = append(dsPodList, *pod)
 		} else {
-			r.Log.V(consts.LogLevelWarning).Info("OFED Driver Pod is not owned by an OFED Driver DaemonSet",
+			reqLogger.V(consts.LogLevelWarning).Info("OFED Driver Pod is not owned by an OFED Driver DaemonSet",
 				"pod", pod, "actual owner", pod.OwnerReferences[0])
 		}
 	}
