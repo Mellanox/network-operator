@@ -169,11 +169,6 @@ Notes:
 Before starting the upgrade to a specific release version, please, check release notes for this version to ensure that
 no additional actions are required.
 
-Since Helm doesn’t support auto-upgrade of existing CRDs, the user needs to follow a two-step process to upgrade the
-network-operator release:
-
-- Upgrade CRD to the latest version
-- Apply helm chart update
 
 ### Check available releases
 
@@ -183,7 +178,12 @@ helm search repo mellanox/network-operator -l
 
 > __NOTE__: add `--devel` option if you want to list beta releases as well
 
-### Download CRDs for the specific release
+### Upgrade CRDs to compatible version
+
+The network-operator helm chart contains a pre-upgrade hook that will automatically upgrade required CRDs in the cluster.
+The hook is enabled by default. If you don't want to upgrade CRDs with helm automatically, 
+you can disable auto upgrade by setting `upgradeCRDs: false` in the helm chart values.
+Then you can follow the guide below to download and apply CRDs for the concrete version of the network-operator.
 
 It is possible to retrieve updated CRDs from the Helm chart or from the release branch on GitHub. Example bellow show
 how to download and unpack Helm chart for specified release and then apply CRDs update from it.
@@ -331,10 +331,12 @@ parameters.
 
 ### General parameters
 
+<<<<<<< HEAD
 | Name | Type   | Default | description                                                                                                                                                |
 | ---- |--------| ------- |------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `nfd.enabled` | bool   | `True` | deploy Node Feature Discovery                                                                                                                              |
 | `sriovNetworkOperator.enabled` | bool   | `False` | deploy SR-IOV Network Operator                                                                                                                             |
+| `upgradeCRDs`                                        | bool   | `True`                                   | enable CRDs upgrade with helm pre-upgrade hook                            |
 | `sriovNetworkOperator.configDaemonNodeSelectorExtra` | object     | `{"node-role.kubernetes.io/worker": ""}` | Additional nodeSelector for sriov-network-operator config daemon. These values will be added in addition to default values managed by the network-operator.|
 | `psp.enabled` | bool   | `False` | deploy Pod Security Policy                                                                                                                                 |
 | `imagePullSecrets` | list   | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image if it's not overrided                                       |

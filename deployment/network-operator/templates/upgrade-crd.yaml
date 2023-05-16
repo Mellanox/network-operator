@@ -1,0 +1,37 @@
+{{- if .Values.upgradeCRDs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: network-operator-upgrade-crd
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+  labels:
+    {{- include "network-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: "network-operator"
+spec:
+  template:
+    metadata:
+      name: network-operator-upgrade-crd
+      labels:
+        {{- include "network-operator.labels" . | nindent 8 }}
+        app.kubernetes.io/component: "network-operator"
+    spec:
+      serviceAccountName: {{ include "network-operator.fullname" . }}
+      imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: upgrade-crd
+          image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - >
+              kubectl apply -f /crds/network-operator;
+        {{- if .Values.sriovNetworkOperator.enabled }}
+              kubectl apply -f /crds/sriov-network-operator;
+        {{- end }}
+      restartPolicy: OnFailure
+{{- end }}
