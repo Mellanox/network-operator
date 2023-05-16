@@ -15,6 +15,8 @@
 # Build the manager binary
 FROM golang:1.20 as builder
 
+ARG TARGETARCH=amd64
+
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -28,6 +30,17 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
+
+# Add kubectl tool
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"
+RUN chmod +x ./kubectl
+
+# Add helm chart DIR to get CRDs from it
+COPY deployment/network-operator chart
+# Update helm dependencies and copy CRDs from them
+RUN mkdir crds && \
+    cp -r chart/crds /workspace/crds/network-operator/ && \
+    cp -r chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
@@ -57,6 +70,9 @@ LABEL org.label-schema.vcs-url="https://github.com/Mellanox/network-operator"
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/kubectl /usr/local/bin
+COPY --from=builder /workspace/crds /crds
+
 COPY manifests/ manifests/
 USER 65532:65532
 
