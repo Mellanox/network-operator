@@ -123,10 +123,15 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
 	}
+	nvIpamCniState, err := NewStateNVIPAMCNI(
+		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nv-ipam-cni"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
+	}
 
 	return []State{
 		podSecurityPolicyState, multusState, cniPluginsState, ipoibState, whereaboutState,
-		ofedState, sriovDpState, sharedDpState, nvPeerMemState, ibKubernetesState}, nil
+		ofedState, sriovDpState, sharedDpState, nvPeerMemState, ibKubernetesState, nvIpamCniState}, nil
 }
 
 // newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD
