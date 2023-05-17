@@ -36,6 +36,26 @@ jobs:
         uses: actions/checkout@v3
       - name: lint helm chart
         run: make lint-helm
+  diff-manifests:
+    name: check manifests
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: check manifests
+        run: make check-manifests
+  diff-release-build:
+    name: check release-build
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: check release-build
+        run: make check-release-build
   unit-tests:
     name: Unit-tests
     runs-on: ubuntu-20.04

@@ -157,6 +157,16 @@ lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...)
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
 	$Q $(HELM) lint $(CHART_PATH)
 
+.PHONY: check-manifests
+check-manifests: generate manifests
+	$(info checking for git diff after running 'make manifests')
+	git diff --quiet ; if [ $$? -eq 1 ] ; then echo "Please, commit manifests after running 'make manifests' command"; exit 1 ; fi
+
+.PHONY: check-release-build
+check-release-build: release-build
+	$(info checking for git diff after running 'make release-build')
+	git diff --quiet ; if [ $$? -eq 1 ] ; then echo "Please, commit templates after running 'make release-build' command"; exit 1 ; fi
+
 TEST_TARGETS := test-default test-bench test-short test-verbose test-race
 .PHONY: $(TEST_TARGETS) test-xml check test tests
 test-bench:   ARGS=-run=__absolutelynothing__ -bench=. ## Run benchmarks
