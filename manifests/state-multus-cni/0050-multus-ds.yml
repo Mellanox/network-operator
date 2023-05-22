@@ -69,8 +69,10 @@ spec:
               mountPath: /host/etc/cni/net.d
             - name: cnibin
               mountPath: /host/opt/cni/bin
+          {{- if .CrSpec.Config }}
             - name: multus-cfg
               mountPath: /tmp/multus-conf
+          {{- end }}
       volumes:
         - name: cni
           hostPath:
@@ -78,9 +80,11 @@ spec:
         - name: cnibin
           hostPath:
             path: /opt/cni/bin
+      {{- if .CrSpec.Config }}
         - name: multus-cfg
           configMap:
             name: multus-cni-config
             items:
               - key: cni-conf.json
                 path: 00-multus.conf
+      {{- end }}

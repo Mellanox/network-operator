@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+{{ if .CrSpec.Config -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nvidia-k8s-ipam-config
   namespace: {{ .RuntimeSpec.Namespace }}
 data:
-  config: {{ .CrSpec.Config | printf "%q" }}
+  config: '{{ .CrSpec.Config }}'
+{{ end -}}
 ---
