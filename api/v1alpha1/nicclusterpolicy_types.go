@@ -50,6 +50,12 @@ type ImageSpec struct {
 	ImagePullSecrets []string `json:"imagePullSecrets"`
 }
 
+// ImageSpecWithConfig Contains ImageSpec and optional configuration
+type ImageSpecWithConfig struct {
+	ImageSpec `json:""`
+	Config    *string `json:"config,omitempty"`
+}
+
 type PodProbeSpec struct {
 	InitialDelaySeconds int `json:"initialDelaySeconds"`
 	PeriodSeconds       int `json:"periodSeconds"`
@@ -155,20 +161,18 @@ type NVPeerDriverSpec struct {
 }
 
 // DevicePluginSpec describes configuration options for device plugin
+// 1. Image information for device plugin
+// 2. Device plugin configuration
 type DevicePluginSpec struct {
-	// Image information for device plugin
-	ImageSpec `json:""`
-	// Device plugin configuration
-	Config string `json:"config"`
+	ImageSpecWithConfig `json:""`
 }
 
 // MultusSpec describes configuration options for Multus CNI
+//  1. Image information for Multus CNI
+//  2. Multus CNI config if config is missing or empty then multus config will be automatically generated from the CNI
+//     configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
 type MultusSpec struct {
-	// Image information for device plugin
-	ImageSpec `json:""`
-	// Multus CNI config if config is missing or empty then multus config will be automatically generated from the CNI
-	// configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
-	Config string `json:"config,omitempty"`
+	ImageSpecWithConfig `json:""`
 }
 
 // SecondaryNetwork describes configuration options for secondary network
@@ -208,11 +212,11 @@ type IBKubernetesSpec struct {
 	UfmSecret string `json:"ufmSecret,omitempty"`
 }
 
+// NVIPAMSpec describes configuration options for nv-ipam
+// 1. Image information for nv-ipam
+// 2. Config for nv-ipam in JSON format
 type NVIPAMSpec struct {
-	// Image information for nv-ipam
-	ImageSpec `json:""`
-	// Config for nv-ipam in JSON format
-	Config string `json:"config,omitempty"`
+	ImageSpecWithConfig `json:""`
 }
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
