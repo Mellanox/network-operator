@@ -276,9 +276,10 @@ spec:
                     x-kubernetes-map-type: atomic
                 type: object
               nvIpam:
+                description: NVIPAMSpec describes configuration options for nv-ipam
+                  1. Image information for nv-ipam 2. Config for nv-ipam in JSON format
                 properties:
                   config:
-                    description: Config for nv-ipam in JSON format
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -591,10 +592,10 @@ spec:
                 type: object
               rdmaSharedDevicePlugin:
                 description: DevicePluginSpec describes configuration options for
-                  device plugin
+                  device plugin 1. Image information for device plugin 2. Device plugin
+                  configuration
                 properties:
                   config:
-                    description: Device plugin configuration
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -610,7 +611,6 @@ spec:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
-                - config
                 - image
                 - repository
                 - version
@@ -686,10 +686,6 @@ spec:
                     description: Image and configuration information for multus
                     properties:
                       config:
-                        description: Multus CNI config if config is missing or empty
-                          then multus config will be automatically generated from
-                          the CNI configuration file of the master plugin (the first
-                          file in lexicographical order in cni-conf-dir)
                         type: string
                       image:
                         pattern: '[a-zA-Z0-9\-]+'
@@ -712,10 +708,10 @@ spec:
                 type: object
               sriovDevicePlugin:
                 description: DevicePluginSpec describes configuration options for
-                  device plugin
+                  device plugin 1. Image information for device plugin 2. Device plugin
+                  configuration
                 properties:
                   config:
-                    description: Device plugin configuration
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -731,7 +727,6 @@ spec:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
-                - config
                 - image
                 - repository
                 - version
