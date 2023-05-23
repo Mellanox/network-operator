@@ -234,7 +234,7 @@ nvIpam:
   version: v0.0.3
   # imagePullSecrets: []
   # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
-  config: ''
+  # config: '<uncomment and put config here>'
 
 secondaryNetwork:
   deploy: true
@@ -250,7 +250,7 @@ secondaryNetwork:
     repository: ghcr.io/k8snetworkplumbingwg
     version: v3.9.3
     # imagePullSecrets: []
-    config: ''
+    # config: ''
   ipoib:
     deploy: false
     image: ipoib-cni
