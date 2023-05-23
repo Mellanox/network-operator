@@ -22,6 +22,8 @@ nfd:
 psp:
   enabled: false
 
+upgradeCRDs: true
+
 sriovNetworkOperator:
   enabled: false
   # inject additional values to nodeSelector for config daemon
