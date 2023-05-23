@@ -97,7 +97,7 @@ func (smgr *stateManager) SyncState(ctx context.Context, customResource interfac
 			statesReady = false
 		}
 
-		if result.Status == SyncStateError {
+		if result.ErrInfo != nil {
 			reqLogger.V(consts.LogLevelWarning).Error(result.ErrInfo, "Error while syncing state")
 		}
 	}
