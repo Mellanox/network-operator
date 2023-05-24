@@ -1,11 +1,54 @@
 {{- if .Values.upgradeCRDs }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-sa
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-role
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - "*"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-binding
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "network-operator.fullname" . }}-hooks-sa
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "network-operator.fullname" . }}-hooks-role
+  apiGroup: rbac.authorization.k8s.io
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: network-operator-upgrade-crd
   namespace: {{ .Release.Namespace }}
   annotations:
-    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "1"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
   labels:
@@ -19,7 +62,7 @@ spec:
         {{- include "network-operator.labels" . | nindent 8 }}
         app.kubernetes.io/component: "network-operator"
     spec:
-      serviceAccountName: {{ include "network-operator.fullname" . }}
+      serviceAccountName: {{ include "network-operator.fullname" . }}-hooks-sa
       imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . | nindent 6 }}
       containers:
         - name: upgrade-crd

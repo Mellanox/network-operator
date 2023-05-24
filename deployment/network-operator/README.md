@@ -180,7 +180,8 @@ helm search repo mellanox/network-operator -l
 
 ### Upgrade CRDs to compatible version
 
-The network-operator helm chart contains a pre-upgrade hook that will automatically upgrade required CRDs in the cluster.
+The network-operator helm chart contains a hook(pre-install, pre-upgrade)
+that will automatically upgrade required CRDs in the cluster.
 The hook is enabled by default. If you don't want to upgrade CRDs with helm automatically, 
 you can disable auto upgrade by setting `upgradeCRDs: false` in the helm chart values.
 Then you can follow the guide below to download and apply CRDs for the concrete version of the network-operator.
@@ -335,7 +336,7 @@ parameters.
 |------------------------------------------------------|--------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `nfd.enabled`                                        | bool   | `True`                                   | deploy Node Feature Discovery                                                                                                                               |
 | `sriovNetworkOperator.enabled`                       | bool   | `False`                                  | deploy SR-IOV Network Operator                                                                                                                              |
-| `upgradeCRDs`                                        | bool   | `True`                                   | enable CRDs upgrade with helm pre-upgrade hook                                                                                                              |
+| `upgradeCRDs`                                        | bool   | `True`                                   | enable CRDs upgrade with helm pre-install and pre-upgrade hooks                                                                                             |
 | `sriovNetworkOperator.configDaemonNodeSelectorExtra` | object | `{"node-role.kubernetes.io/worker": ""}` | Additional nodeSelector for sriov-network-operator config daemon. These values will be added in addition to default values managed by the network-operator. |
 | `psp.enabled`                                        | bool   | `False`                                  | deploy Pod Security Policy                                                                                                                                  |
 | `imagePullSecrets`                                   | list   | `[]`                                     | An optional list of references to secrets to use for pulling any of the Network Operator image if it's not overrided                                        |
