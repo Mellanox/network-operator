@@ -133,7 +133,7 @@ $ git clone https://github.com/Mellanox/network-operator.git
 $ cd network-operator/deployment/network-operator && helm dependency update
 
 # Install Operator
-$ helm install -n network-operator --create-namespace --wait network-operator ./network-operator
+$ helm install -n network-operator --create-namespace --wait network-operator ./
 
 # View deployed resources
 $ kubectl -n network-operator get pods
@@ -331,18 +331,19 @@ parameters.
 
 ### General parameters
 
-| Name | Type | Default | description                                                                                                          |
-| ---- | ---- | ------- |----------------------------------------------------------------------------------------------------------------------|
-| `nfd.enabled` | bool | `True` | deploy Node Feature Discovery                                                                                        |
-| `sriovNetworkOperator.enabled` | bool | `False` | deploy SR-IOV Network Operator                                                                                       |
-| `psp.enabled` | bool | `False` | deploy Pod Security Policy                                                                                           |
-| `imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image if it's not overrided |
-| `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository                                                                                    |
-| `operator.image` | string | `network-operator` | Network Operator image name                                                                                          |
-| `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used                                    |
-| `operator.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling Network Operator image                                  |
-| `deployCR` | bool | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters                                           |
-| `nodeAffinity` | yaml | `` | Override the node affinity for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.  |
+| Name | Type   | Default | description                                                                                                                                                |
+| ---- |--------| ------- |------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `nfd.enabled` | bool   | `True` | deploy Node Feature Discovery                                                                                                                              |
+| `sriovNetworkOperator.enabled` | bool   | `False` | deploy SR-IOV Network Operator                                                                                                                             |
+| `sriovNetworkOperator.configDaemonNodeSelectorExtra` | object     | `{"node-role.kubernetes.io/worker": ""}` | Additional nodeSelector for sriov-network-operator config daemon. These values will be added in addition to default values managed by the network-operator.|
+| `psp.enabled` | bool   | `False` | deploy Pod Security Policy                                                                                                                                 |
+| `imagePullSecrets` | list   | `[]` | An optional list of references to secrets to use for pulling any of the Network Operator image if it's not overrided                                       |
+| `operator.repository` | string | `nvcr.io/nvidia/cloud-native` | Network Operator image repository                                                                                                                          |
+| `operator.image` | string | `network-operator` | Network Operator image name                                                                                                                                |
+| `operator.tag` | string | `None` | Network Operator image tag, if `None`, then the Chart's `appVersion` will be used                                                                          |
+| `operator.imagePullSecrets` | list   | `[]` | An optional list of references to secrets to use for pulling Network Operator image                                                                        |
+| `deployCR` | bool   | `false` | Deploy `NicClusterPolicy` custom resource according to provided parameters                                                                                 |
+| `nodeAffinity` | yaml   | `` | Override the node affinity for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.                                     |
 
 #### imagePullSecrets customization
 
