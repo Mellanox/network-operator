@@ -22,6 +22,8 @@ nfd:
 psp:
   enabled: false
 
+upgradeCRDs: true
+
 sriovNetworkOperator:
   enabled: false
   # inject additional values to nodeSelector for config daemon
@@ -229,6 +231,15 @@ ibKubernetes:
   pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
   pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
   ufmSecret: # specify the secret name here
+
+nvIpam:
+  deploy: false
+  image: {{ .NvIPAM.Image }}
+  repository: {{ .NvIPAM.Repository }}
+  version: {{ .NvIPAM.Version }}
+  # imagePullSecrets: []
+  # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
+  config: ''
 
 secondaryNetwork:
   deploy: true
