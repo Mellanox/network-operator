@@ -331,7 +331,6 @@ parameters.
 
 ### General parameters
 
-<<<<<<< HEAD
 | Name | Type   | Default | description                                                                                                                                                |
 | ---- |--------| ------- |------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `nfd.enabled` | bool   | `True` | deploy Node Feature Discovery                                                                                                                              |
