@@ -44,7 +44,7 @@ spec:
     repoConfig:
       name: {{ .Values.ofedDriver.repoConfig.name }}
     {{- end }}
-    imagePullSecrets: {{ include "network-operator.ofed.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.ofed.imagePullSecrets" . }}
     terminationGracePeriodSeconds: {{ .Values.ofedDriver.terminationGracePeriodSeconds }}
     startupProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
@@ -62,7 +62,7 @@ spec:
       drain:
         enable: {{ .Values.ofedDriver.upgradePolicy.drain.enable | default true }}
         force: {{ .Values.ofedDriver.upgradePolicy.drain.force | default false }}
-        podSelector: {{ .Values.ofedDriver.upgradePolicy.drain.podSelector}}
+        podSelector: {{ .Values.ofedDriver.upgradePolicy.drain.podSelector | quote }}
         timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.drain.timeoutSeconds }}
         deleteEmptyDir: {{ .Values.ofedDriver.upgradePolicy.drain.deleteEmptyDir | default false}}
     {{- end }}
@@ -72,7 +72,7 @@ spec:
     image: {{ .Values.nvPeerDriver.image }}
     repository: {{ .Values.nvPeerDriver.repository }}
     version: {{ .Values.nvPeerDriver.version }}
-    imagePullSecrets: {{ include "network-operator.nvPeerDriver.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.nvPeerDriver.imagePullSecrets" . }}
     gpuDriverSourcePath: {{ .Values.nvPeerDriver.gpuDriverSourcePath }}
   {{- end }}
   {{- if .Values.rdmaSharedDevicePlugin.deploy }}
@@ -81,7 +81,7 @@ spec:
     image: {{ .Values.rdmaSharedDevicePlugin.image }}
     repository: {{ .Values.rdmaSharedDevicePlugin.repository }}
     version: {{ .Values.rdmaSharedDevicePlugin.version }}
-    imagePullSecrets: {{ include "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" . }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -109,7 +109,7 @@ spec:
     image: {{ .Values.sriovDevicePlugin.image }}
     repository: {{ .Values.sriovDevicePlugin.repository }}
     version: {{ .Values.sriovDevicePlugin.version }}
-    imagePullSecrets: {{ include "network-operator.sriovDevicePlugin.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.sriovDevicePlugin.imagePullSecrets" . }}
     config: |
       {
         "resourceList": [
@@ -138,10 +138,10 @@ spec:
     image: {{ .Values.ibKubernetes.image }}
     repository: {{ .Values.ibKubernetes.repository }}
     version: {{ .Values.ibKubernetes.version }}
-    imagePullSecrets: {{ include "network-operator.ibKubernetes.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.ibKubernetes.imagePullSecrets" . }}
     pKeyGUIDPoolRangeStart: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeStart }}
     pKeyGUIDPoolRangeEnd: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeEnd }}
-    ufmSecret: {{ .Values.ibKubernetes.ufmSecret }}
+    ufmSecret: {{ .Values.ibKubernetes.ufmSecret | quote }}
   {{- end }}
   {{- if .Values.secondaryNetwork.deploy }}
   secondaryNetwork:
@@ -150,14 +150,14 @@ spec:
       image: {{ .Values.secondaryNetwork.cniPlugins.image }}
       repository: {{ .Values.secondaryNetwork.cniPlugins.repository }}
       version: {{ .Values.secondaryNetwork.cniPlugins.version }}
-      imagePullSecrets: {{ include "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" . | nindent 6 }}
+      imagePullSecrets: {{ include "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" . }}
     {{- end }}
     {{- if .Values.secondaryNetwork.multus.deploy }}
     multus:
       image: {{ .Values.secondaryNetwork.multus.image }}
       repository: {{ .Values.secondaryNetwork.multus.repository }}
       version: {{ .Values.secondaryNetwork.multus.version }}
-      imagePullSecrets: {{ include "network-operator.secondaryNetwork.multus.imagePullSecrets" . | nindent 6 }}
+      imagePullSecrets: {{ include "network-operator.secondaryNetwork.multus.imagePullSecrets" . }}
       {{- if .Values.secondaryNetwork.multus.config | empty | not }}
       config: {{ .Values.secondaryNetwork.multus.config | quote }}
       {{- end }}
@@ -173,7 +173,7 @@ spec:
       image: {{ .Values.secondaryNetwork.ipamPlugin.image }}
       repository: {{ .Values.secondaryNetwork.ipamPlugin.repository }}
       version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
-      imagePullSecrets: {{ include "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" . | nindent 6 }}
+      imagePullSecrets: {{ include "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" . }}
     {{- end }}
   {{- end }}
   psp:
@@ -183,7 +183,7 @@ spec:
     image: {{ .Values.nvIpam.image }}
     repository: {{ .Values.nvIpam.repository }}
     version: {{ .Values.nvIpam.version }}
-    imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . | nindent 4 }}
+    imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . }}
     config: {{ .Values.nvIpam.config | quote }}
   {{- end }}
 {{ end }}

@@ -70,141 +70,161 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 imagePullSecrets helpers
 */}}
 {{- define "network-operator.operator.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.operator.imagePullSecrets }}
 {{- range .Values.operator.imagePullSecrets }}
-  - name: {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  (dict "name" . ) }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - name: {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  (dict "name" . ) }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.ofed.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.ofedDriver.imagePullSecrets }}
 {{- range .Values.ofedDriver.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.nvPeerDriver.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.nvPeerDriver.imagePullSecrets }}
 {{- range .Values.nvPeerDriver.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
 {{- range .Values.rdmaSharedDevicePlugin.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.sriovDevicePlugin.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.sriovDevicePlugin.imagePullSecrets }}
 {{- range .Values.sriovDevicePlugin.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.ibKubernetes.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.ibKubernetes.imagePullSecrets }}
 {{- range .Values.ibKubernetes.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
 {{- range .Values.secondaryNetwork.cniPlugins.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.secondaryNetwork.multus.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.secondaryNetwork.multus.imagePullSecrets }}
 {{- range .Values.secondaryNetwork.multus.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.secondaryNetwork.ipamPlugin.imagePullSecrets }}
 {{- range .Values.secondaryNetwork.ipamPlugin.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}
 
 {{- define "network-operator.nvIpam.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
 {{- if .Values.nvIpam.imagePullSecrets }}
 {{- range .Values.nvIpam.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- else }}
 {{- if .Values.imagePullSecrets }}
 {{- range .Values.imagePullSecrets }}
-  - {{ . }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $imagePullSecrets | toJson }}
 {{- end }}

@@ -63,7 +63,7 @@ spec:
         app.kubernetes.io/component: "network-operator"
     spec:
       serviceAccountName: {{ include "network-operator.fullname" . }}-hooks-sa
-      imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . | nindent 6 }}
+      imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . }}
       containers:
         - name: upgrade-crd
           image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"

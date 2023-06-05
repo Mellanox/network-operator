@@ -225,7 +225,7 @@ ibKubernetes:
   periodicUpdateSeconds: 5
   pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
   pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
-  ufmSecret: # specify the secret name here
+  ufmSecret: '' # specify the secret name here
 
 nvIpam:
   deploy: false
