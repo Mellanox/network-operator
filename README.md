@@ -90,13 +90,17 @@ and related configurations.
 to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
   For NVIDIA GPU driver version < 465. Check [compatibility notes](#compatibility-notes) for details
 - `ibKubernetes`: [InfiniBand Kubernetes](https://github.com/Mellanox/ib-kubernetes/) and related configurations. 
-- `SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
+- `secondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
     - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow users to create an IPoIB child link and move it to the pod.
-    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) is supported
+    - IPAM CNI: [Whereabouts IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) and related configurations
+- `nvIpam`: [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam) and related configurations.
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
+
+>__NOTE__: NVIDIA IPAM and Whereabouts IPAM plugin can be deployed simultaneously in the same cluster
+
 
 ##### Example for NICClusterPolicy resource:
 In the example below we request OFED driver to be deployed together with RDMA shared device plugin
@@ -107,12 +111,11 @@ apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
   name: nic-cluster-policy
-  namespace: nvidia-network-operator
 spec:
   ofedDriver:
     image: mofed
     repository: nvcr.io/nvidia/mellanox
-    version: 5.9-0.5.6.0
+    version: 23.04-0.5.3.3.1
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10
@@ -146,20 +149,83 @@ spec:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.8.7-amd64
+      version: v1.2.0-amd64
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v3.8
+      version: v3.9.3
       # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
       config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.5.4-amd64
+      version: v0.6.1-amd64
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
+
+NicClusterPolicy with [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam) configuration
+
+```
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
+metadata:
+  name: nic-cluster-policy
+spec:
+  ofedDriver:
+    image: mofed
+    repository: nvcr.io/nvidia/mellanox
+    version: 23.04-0.5.3.3.1
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+  rdmaSharedDevicePlugin:
+    image: k8s-rdma-shared-dev-plugin
+    repository: nvcr.io/nvidia/cloud-native
+    version: v1.3.2
+    # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
+    # Replace 'devices' with your (RDMA capable) netdevice name.
+    config: |
+      {
+        "configList": [
+          {
+            "resourceName": "rdma_shared_device_a",
+            "rdmaHcaMax": 1000,
+            "selectors": {
+              "vendors": ["15b3"],
+              "deviceIDs": ["101b"]
+            }
+          }
+        ]
+      }
+  secondaryNetwork:
+    cniPlugins:
+      image: plugins
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v1.2.0-amd64
+    multus:
+      image: multus-cni
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v3.9.3
+      config: ''
+  nvIpam:
+    image: nvidia-k8s-ipam
+    repository: ghcr.io/mellanox
+    version: v0.0.2
+    config: '{
+      "pools":  {
+        "my-pool": {"subnet": "192.168.0.0/24", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
+      }
+    }'
+```
+
+Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr-nvidia-ipam.yaml`
 
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
@@ -173,21 +239,31 @@ The global state reflects the logical _AND_ of each individual sub-state.
 
 ##### Example Status field of a NICClusterPolicy instance
 ```
-Status:
-  Applied States:
-    Name:   state-OFED
-    State:  ready
-    Name:   state-RDMA-device-plugin
-    State:  ready
-    Name:   state-NV-Peer
-    State:  ignore
-    Name:   state-cni-plugins
-    State:  ignore
-    Name:   state-Multus
-    State:  ready
-    Name:   state-whereabouts
-    State:  ready
-  State:    ready
+status:
+  appliedStates:
+  - name: state-pod-security-policy
+    state: ignore
+  - name: state-multus-cni
+    state: ready
+  - name: state-container-networking-plugins
+    state: ignore
+  - name: state-ipoib-cni
+    state: ignore
+  - name: state-whereabouts-cni
+    state: ready
+  - name: state-OFED
+    state: ready
+  - name: state-SRIOV-device-plugin
+    state: ignore
+  - name: state-RDMA-device-plugin
+    state: ready
+  - name: state-NV-Peer
+    state: ignore
+  - name: state-ib-kubernetes
+    state: ignore
+  - name: state-nv-ipam-cni
+    state: ready
+  state: ready
 ```
 
 >__NOTE__: An `ignore` State indicates that the sub-state was not defined in the custom resource
@@ -207,6 +283,9 @@ MacvlanNetwork CRD Spec includes the following fields:
 ##### Example for MacvlanNetwork resource:
 In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, MTU 1500, default route interface as master,
 with resource "rdma/rdma_shared_device_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
+
+
+With [Whereabouts IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts)
 
 ```
 apiVersion: mellanox.com/v1alpha1
@@ -237,6 +316,27 @@ spec:
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
+
+With [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam)
+
+```
+apiVersion: mellanox.com/v1alpha1
+kind: MacvlanNetwork
+metadata:
+  name: example-macvlannetwork
+spec:
+  networkNamespace: "default"
+  master: "ens2f0"
+  mode: "bridge"
+  mtu: 1500
+  ipam: |
+    {
+      "type": "nv-ipam",
+      "poolName": "my-pool"
+    }
+```
+
+Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr-nvidia-ipam.yaml`
 
 ### HostDeviceNetwork CRD
 This CRD defines a HostDevice secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
