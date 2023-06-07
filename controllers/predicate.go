@@ -19,6 +19,7 @@ package controllers
 import (
 	"reflect"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,9 +61,20 @@ func (p IgnoreSameContentPredicate) Update(e event.UpdateEvent) bool {
 	// ignore resource version
 	oldObj.SetResourceVersion("")
 	newObj.SetResourceVersion("")
+	// ignore generation
+	oldObj.SetGeneration(0)
+	newObj.SetGeneration(0)
 	// ignore managed fields
 	oldObj.SetManagedFields([]metav1.ManagedFieldsEntry{})
 	newObj.SetManagedFields([]metav1.ManagedFieldsEntry{})
+
+	// logic specific to resource type
+	switch v := oldObj.(type) {
+	case *appsv1.Deployment:
+		p.handleDeployment(v, newObj.(*appsv1.Deployment))
+	default:
+	}
+
 	oldUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(oldObj)
 	if err != nil {
 		return false
@@ -72,4 +84,15 @@ func (p IgnoreSameContentPredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 	return !reflect.DeepEqual(oldUnstr, newUnstr)
+}
+
+func (p IgnoreSameContentPredicate) handleDeployment(oldObj, newObj *appsv1.Deployment) {
+	// ignore object if only Observed generation changed
+	oldObj.Status.ObservedGeneration = 0
+	newObj.Status.ObservedGeneration = 0
+
+	// ignore annotation which is auto set by Kubernetes
+	revAnnotation := "deployment.kubernetes.io/revision"
+	delete(oldObj.Annotations, revAnnotation)
+	delete(newObj.Annotations, revAnnotation)
 }
