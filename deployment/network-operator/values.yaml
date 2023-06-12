@@ -18,6 +18,7 @@
 
 nfd:
   enabled: true
+  nodeFeatureRules: false
 
 psp:
   enabled: false
@@ -32,28 +33,37 @@ sriovNetworkOperator:
 
 # Node Feature discovery chart related values
 node-feature-discovery:
-  image:
-    pullPolicy: IfNotPresent
-  nodeFeatureRule:
-    createCRD: false
-  master:
-    instance: "nvidia.networking"
+  enableNodeFeatureApi: true
   worker:
+    serviceAccount:
+      name: node-feature-discovery
+      # disable creation to avoid duplicate serviceaccount creation by master spec below
+      create: false
     tolerations:
-      - key: "nvidia.com/gpu"
-        operator: "Equal"
-        value: "present"
-        effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
     config:
       sources:
         pci:
           deviceClassWhitelist:
-            - "02"
-            - "0200"
-            - "0207"
+          - "02"
+          - "0200"
+          - "0207"
+          - "0300"
+          - "0302"
           deviceLabelFields:
-            - vendor
-
+          - vendor
+  master:
+    serviceAccount:
+      name: node-feature-discovery
+      create: true
+    config: 
+      extraLabelNs: ["nvidia.com"]
 
 # SR-IOV Network Operator chart related values
 sriov-network-operator:
