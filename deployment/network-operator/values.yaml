@@ -97,6 +97,8 @@ sriov-network-operator:
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.5.1
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
+  # imagePullSecrest for SR-IOV Network Operator related images
+  # imagePullSecrets: []
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
