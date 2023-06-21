@@ -11,6 +11,6 @@ configMapGenerator:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- digest: sha256:f8cdf307c170dab6c60c9f1ebaf690dc80c1379dc6872096e946ffae679650ab
+- digest: sha256:ea7becaa1cde597af6b87dc4e8377c68b64eb266f3c9d852ec756c83b961b253
   name: controller
   newName: nvcr.io/nvidia/cloud-native/network-operator

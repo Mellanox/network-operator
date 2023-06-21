@@ -274,6 +274,29 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 type: object
+              nvIpam:
+                properties:
+                  config:
+                    description: Config for nv-ipam in JSON format
+                    type: string
+                  image:
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  version:
+                    pattern: '[a-zA-Z0-9\.-]+'
+                    type: string
+                required:
+                - image
+                - repository
+                - version
+                type: object
               nvPeerDriver:
                 description: NVPeerDriverSpec describes configuration options for
                   NV Peer Memory driver
