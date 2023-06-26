@@ -77,7 +77,7 @@ spec:
               kubectl apply -f /crds/sriov-network-operator;
         {{- end }}
         {{- if .Values.nfd.enabled }}
-              if ! kubectl get crd | grep -E "nodefeaturerules\.nfd\.k8s-sigs\.io|nodefeatures\.nfd\.k8s-sigs\.io" ; then kubectl apply -f /crds/node-feature-discovery; fi
+              kubectl apply -f /crds/node-feature-discovery;
         {{- end }}
       restartPolicy: OnFailure
 {{- end }}
