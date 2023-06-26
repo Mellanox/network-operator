@@ -112,6 +112,7 @@ func (s *stateMultusCNI) Sync(ctx context.Context, customResource interface{}, _
 func (s *stateMultusCNI) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
+	wr["ConfigMap"] = &source.Kind{Type: &v1.ConfigMap{}}
 	return wr
 }
 
