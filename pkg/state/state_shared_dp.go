@@ -141,9 +141,7 @@ func (s *stateSharedDp) getManifestObjects(
 		return []*unstructured.Unstructured{}, nil
 	}
 
-	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
-	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
+	if err := s.checkAttributesExist(attrs[0], nodeinfo.AttrTypeOSName); err != nil {
 		return nil, err
 	}
 
