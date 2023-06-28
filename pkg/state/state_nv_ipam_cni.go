@@ -113,6 +113,7 @@ func (s *stateNVIPAMCNI) GetWatchSources() map[string]*source.Kind {
 	wr := make(map[string]*source.Kind)
 	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
 	wr["Deployment"] = &source.Kind{Type: &appsv1.Deployment{}}
+	wr["ConfigMap"] = &source.Kind{Type: &v1.ConfigMap{}}
 	return wr
 }
 
