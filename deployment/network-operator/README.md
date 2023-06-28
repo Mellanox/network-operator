@@ -530,7 +530,7 @@ optionally deployed components:
 | `multus.repository` | string | `ghcr.io/k8snetworkplumbingwg` | Multus image repository  |
 | `multus.version` | string | `v3.8` | Multus image version  |
 | `multus.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Multus image |
-| `multus.config` | string | `` | Multus CNI config, if empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
+| `multus.config` | string | nil | Multus CNI config, if not specified or empty then config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)  |
 
 ##### IPoIB CNI
 
@@ -561,7 +561,7 @@ optionally deployed components:
 | `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                    |
 | `nvIpam.version`          | string | `v0.0.3`           | NVIDIA IPAM Plugin image version                                                       |
 | `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image   |
-| `nvIpam.config`           | string | `''`               | Network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam |
+| `nvIpam.config`           | string | `{"pools": {"rdma-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}}}` | Network pool configuration as described in [nvidia-k8s-ipam](https://github.com/Mellanox/nvidia-k8s-ipam), the default defines a single IP Pool named `"rdma-pool"`|
 
 ## Deployment Examples
 
