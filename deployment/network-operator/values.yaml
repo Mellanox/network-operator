@@ -236,7 +236,12 @@ nvIpam:
   version: v0.0.3
   # imagePullSecrets: []
   # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
-  # config: '<uncomment and put config here>'
+  config: |-
+    {
+    "pools":  {
+      "rdma-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
+      }
+    }
 
 secondaryNetwork:
   deploy: true
