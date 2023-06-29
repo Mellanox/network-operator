@@ -236,7 +236,7 @@ nvIpam:
   version: {{ .NvIPAM.Version }}
   # imagePullSecrets: []
   # network pool configuration as described in https://github.com/Mellanox/nvidia-k8s-ipam
-  config: ''
+  # config: '<uncomment and put config here>'
 
 secondaryNetwork:
   deploy: true
@@ -252,7 +252,7 @@ secondaryNetwork:
     repository: {{ .Multus.Repository }}
     version: {{ .Multus.Version }}
     # imagePullSecrets: []
-    config: ''
+    # config: ''
   ipoib:
     deploy: false
     image: {{ .Ipoib.Image }}
