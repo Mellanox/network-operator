@@ -214,7 +214,7 @@ type IBKubernetesSpec struct {
 
 // NVIPAMSpec describes configuration options for nv-ipam
 // 1. Image information for nv-ipam
-// 2. Config for nv-ipam in JSON format
+// 2. Configuration for nv-ipam
 type NVIPAMSpec struct {
 	ImageSpecWithConfig `json:""`
 }
