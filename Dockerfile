@@ -40,7 +40,8 @@ COPY deployment/network-operator chart
 # copy CRDs from helm charts
 RUN mkdir crds && \
     cp -r chart/crds /workspace/crds/network-operator/ && \
-    cp -r chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/
+    cp -r chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
+    cp -r chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go

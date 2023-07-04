@@ -76,5 +76,8 @@ spec:
         {{- if .Values.sriovNetworkOperator.enabled }}
               kubectl apply -f /crds/sriov-network-operator;
         {{- end }}
+        {{- if .Values.nfd.enabled }}
+              kubectl apply -f /crds/node-feature-discovery;
+        {{- end }}
       restartPolicy: OnFailure
 {{- end }}

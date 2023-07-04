@@ -50,7 +50,8 @@ For more information please visit the official [documentation](https://docs.nvid
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
 NVIDIA Network operator relies on Node labeling to get the cluster to the desired state.
-[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.10.1` or newer is expected to be deployed to provide the appropriate labeling:
+[Node Feature Discovery](https://github.com/kubernetes-sigs/node-feature-discovery) `v0.13.2` or newer is deployed by default via HELM chart installation.
+NFD is used to label nodes with the following labels:
 
 - PCI vendor and device information
 - RDMA capability
@@ -59,18 +60,22 @@ NVIDIA Network operator relies on Node labeling to get the cluster to the desire
 __Example NFD worker configurations:__
 
 ```yaml
-sources:
-  custom:
-  pci:
-    deviceClassWhitelist:
-      - "02"
-      - "0200"
-      - "0207"
-    deviceLabelFields:
-      - "vendor"
+    config:
+      sources:
+        pci:
+          deviceClassWhitelist:
+          - "02"
+          - "0200"
+          - "0207"
+          - "0300"
+          - "0302"
+          deviceLabelFields:
+          - vendor
 ```
 
 >\* Required for GPUDirect driver container deployment
+
+If NFD is already deployed in the cluster, make sure to pass `--set nfd.enabled=false` to the helm install command to avoid conflicts.
 
 ## Resource Definitions
 The Operator Acts on the following CRDs:
