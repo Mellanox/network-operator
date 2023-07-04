@@ -108,8 +108,10 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 				Version:    "v0.0",
 			}
 			dpSpec := &mellanoxv1alpha1.DevicePluginSpec{
-				ImageSpec: *imageSpec,
-				Config:    sriovConfig,
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: *imageSpec,
+					Config:    &sriovConfig,
+				},
 			}
 			cr.Spec.SriovDevicePlugin = dpSpec
 
