@@ -73,8 +73,6 @@ spec:
           - name: devs
             mountPath: /dev/
           {{- if .CrSpec.UseCdi }}
-          - name: default-cdi
-            mountPath: /etc/cdi/
           - name: dynamic-cdi
             mountPath: /var/run/cdi
           - name: host-config-volume
@@ -97,10 +95,6 @@ spec:
           hostPath:
             path: /dev/
         {{- if .CrSpec.UseCdi }}
-        - name: default-cdi
-          hostPath:
-            path: /etc/cdi
-            type: DirectoryOrCreate
         - name: dynamic-cdi
           hostPath:
             path: /var/run/cdi
