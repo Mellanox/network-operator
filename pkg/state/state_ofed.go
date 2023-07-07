@@ -54,18 +54,10 @@ const (
 	stateOFEDName        = "state-OFED"
 	stateOFEDDescription = "OFED driver deployed in the cluster"
 
-	// newMofedImageFormatVersion is the first mofed driver container version
-	// which has a new image name format
-	// TODO: update with new version
-	newMofedImageFormatVersion = "5.7-0.1.2.0"
-	// mofedImageNewFormat is the new mofed driver container image name format
+	// mofedImageFormat is the mofed driver container image name format
 	// format: <repo>/<image-name>:<driver-version>-<os-name><os-ver>-<cpu-arch>
 	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-ubuntu20.04-amd64
-	mofedImageNewFormat = "%s/%s:%s-%s%s-%s"
-	// mofedImageOldFormat is the old mofed driver container image name format
-	// format: <repo>/<image-name>-<driver-version>:<os-name><os-ver>-<cpu-arch>
-	// e.x: nvcr.io/nvidia/mellanox/mofed-5.6-1.0.3.3:ubuntu20.04-amd64
-	mofedImageOldFormat = "%s/%s-%s:%s%s-%s"
+	mofedImageFormat = "%s/%s:%s-%s%s-%s"
 )
 
 // Openshift cluster-wide Proxy
@@ -458,19 +450,13 @@ func (s *stateOFED) getManifestObjects(
 // TODO(adrianc): in Network-Operator v1.5.0, we should just use the new naming scheme
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
 	nodeAttr map[nodeinfo.AttributeType]string, reqLogger logr.Logger) string {
-	mofedImgFmt := mofedImageNewFormat
-
-	curDriverVer, err1 := semver.NewVersion(cr.Spec.OFEDDriver.Version)
-	newFormatDriverVer, err2 := semver.NewVersion(newMofedImageFormatVersion)
-	if err1 == nil && err2 == nil {
-		if curDriverVer.LessThan(newFormatDriverVer) {
-			mofedImgFmt = mofedImageOldFormat
-		}
-	} else {
+	curDriverVer, err := semver.NewVersion(cr.Spec.OFEDDriver.Version)
+	if err != nil {
 		reqLogger.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
 	}
+	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v", "version", curDriverVer)
 
-	return fmt.Sprintf(mofedImgFmt,
+	return fmt.Sprintf(mofedImageFormat,
 		cr.Spec.OFEDDriver.Repository,
 		cr.Spec.OFEDDriver.Image,
 		cr.Spec.OFEDDriver.Version,
