@@ -75,7 +75,8 @@ __Example NFD worker configurations:__
 
 >\* Required for GPUDirect driver container deployment
 
-If NFD is already deployed in the cluster, make sure to pass `--set nfd.enabled=false` to the helm install command to avoid conflicts.
+>__NOTE__: If NFD is already deployed in the cluster, make sure to pass `--set nfd.enabled=false` to the helm install command to avoid conflicts,
+and if NFD is deployed from this repo the `enableNodeFeatureApi` flag is enabled by default to have the ability to create NodeFeatureRules.
 
 ## Resource Definitions
 The Operator Acts on the following CRDs:

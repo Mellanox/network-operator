@@ -32,7 +32,7 @@ sriovNetworkOperator:
 
 # Node Feature discovery chart related values
 node-feature-discovery:
-  enableNodeFeatureApi: false
+  enableNodeFeatureApi: true
   worker:
     serviceAccount:
       name: node-feature-discovery
@@ -60,7 +60,6 @@ node-feature-discovery:
           deviceLabelFields:
           - vendor
   master:
-    instance: "nvidia.networking"
     serviceAccount:
       name: node-feature-discovery
       create: true
