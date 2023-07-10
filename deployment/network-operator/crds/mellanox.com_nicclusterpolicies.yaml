@@ -299,31 +299,6 @@ spec:
                 - repository
                 - version
                 type: object
-              nvPeerDriver:
-                description: NVPeerDriverSpec describes configuration options for
-                  NV Peer Memory driver
-                properties:
-                  gpuDriverSourcePath:
-                    description: GPU driver sources path - Optional
-                    type: string
-                  image:
-                    pattern: '[a-zA-Z0-9\-]+'
-                    type: string
-                  imagePullSecrets:
-                    items:
-                      type: string
-                    type: array
-                  repository:
-                    pattern: '[a-zA-Z0-9\.\-\/]+'
-                    type: string
-                  version:
-                    pattern: '[a-zA-Z0-9\.-]+'
-                    type: string
-                required:
-                - image
-                - repository
-                - version
-                type: object
               ofedDriver:
                 description: OFEDDriverSpec describes configuration options for OFED
                   driver

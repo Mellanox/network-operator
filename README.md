@@ -92,9 +92,6 @@ NICClusterPolicy CRD Spec includes the following sub-states:
 and related configurations.
 - `sriovDevicePlugin`: [SR-IOV Network Device Plugin](https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin)
     and related configurations.
-- `nvPeerDriver`: [NVIDIA Peer Memory client driver container](https://github.com/Mellanox/ofed-docker)
-to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads).
-  For NVIDIA GPU driver version < 465. Check [compatibility notes](#compatibility-notes) for details
 - `ibKubernetes`: [InfiniBand Kubernetes](https://github.com/Mellanox/ib-kubernetes/) and related configurations. 
 - `secondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
@@ -109,8 +106,7 @@ to be deployed on RDMA & GPU supporting nodes (required for GPUDirect workloads)
 
 
 ##### Example for NICClusterPolicy resource:
-In the example below we request OFED driver to be deployed together with RDMA shared device plugin
-but without NV Peer Memory driver.
+In the example below we request OFED driver to be deployed together with RDMA shared device plugin.
 
 ```
 apiVersion: mellanox.com/v1alpha1
@@ -263,8 +259,6 @@ status:
     state: ignore
   - name: state-RDMA-device-plugin
     state: ready
-  - name: state-NV-Peer
-    state: ignore
   - name: state-ib-kubernetes
     state: ignore
   - name: state-nv-ipam-cni
@@ -443,8 +437,7 @@ The following Network Adapters have been tested with NVIDIA Network Operator:
 
 ## Compatibility Notes
 * NVIDIA Network Operator is compatible with NVIDIA GPU Operator v1.5.2 and above
-* Network Operator will deploy nvPeerDriver POD on a node only if NVIDIA GPU driver version < 465.
-  Starting from v465 NVIDIA GPU driver includes a built-in nvidia_peermem module
+* Starting from v465 NVIDIA GPU driver includes a built-in nvidia_peermem module
   which is a replacement for nv_peer_mem module. NVIDIA GPU operator manages nvidia_peermem module loading.
 
 ## Deployment Example
@@ -480,7 +473,7 @@ making them available to the kernel.
 
 While this approach may seem odd. It provides a way to deliver drivers to immutable systems.
 
-[Mellanox OFED and NV Peer Memory driver container](https://github.com/Mellanox/ofed-docker)
+[Mellanox OFED container](https://github.com/Mellanox/ofed-docker)
 
 ## Upgrade
 Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.

@@ -67,14 +67,6 @@ spec:
         deleteEmptyDir: {{ .Values.ofedDriver.upgradePolicy.drain.deleteEmptyDir | default false}}
     {{- end }}
   {{- end }}
-  {{- if .Values.nvPeerDriver.deploy }}
-  nvPeerDriver:
-    image: {{ .Values.nvPeerDriver.image }}
-    repository: {{ .Values.nvPeerDriver.repository }}
-    version: {{ .Values.nvPeerDriver.version }}
-    imagePullSecrets: {{ include "network-operator.nvPeerDriver.imagePullSecrets" . }}
-    gpuDriverSourcePath: {{ .Values.nvPeerDriver.gpuDriverSourcePath }}
-  {{- end }}
   {{- if .Values.rdmaSharedDevicePlugin.deploy }}
   rdmaSharedDevicePlugin:
     # {{ required "A valid value for .Values.rdmaSharedDevicePlugin.resources is required" .Values.rdmaSharedDevicePlugin.resources }}

@@ -198,14 +198,6 @@ ofedDriver:
       timeoutSeconds: 300
       deleteEmptyDir: false
 
-nvPeerDriver:
-  deploy: false
-  image: nv-peer-mem-driver
-  repository: mellanox
-  version: 1.1-0
-  # imagePullSecrets: []
-  gpuDriverSourcePath: /run/nvidia/driver
-
 rdmaSharedDevicePlugin:
   deploy: true
   image: k8s-rdma-shared-dev-plugin

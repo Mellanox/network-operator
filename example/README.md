@@ -8,7 +8,6 @@ We assume familiarity with RDMA, Kubernetes and related CNI project.
 network-operator, at this stage, deploys and configures the follwoing components:
 * [Mellanox OFED](https://www.mellanox.com/products/infiniband-drivers/linux/mlnx_ofed) driver container
 * [RDMA device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
-* [NVIDIA peer memory client](https://github.com/Mellanox/nv_peer_memory) driver container
 * SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported

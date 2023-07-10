@@ -101,22 +101,6 @@ imagePullSecrets helpers
 {{- $imagePullSecrets | toJson }}
 {{- end }}
 
-{{- define "network-operator.nvPeerDriver.imagePullSecrets" }}
-{{- $imagePullSecrets := list }}
-{{- if .Values.nvPeerDriver.imagePullSecrets }}
-{{- range .Values.nvPeerDriver.imagePullSecrets }}
-{{- $imagePullSecrets  = append $imagePullSecrets  . }}
-{{- end }}
-{{- else }}
-{{- if .Values.imagePullSecrets }}
-{{- range .Values.imagePullSecrets }}
-{{- $imagePullSecrets  = append $imagePullSecrets  . }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- $imagePullSecrets | toJson }}
-{{- end }}
-
 {{- define "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" }}
 {{- $imagePullSecrets := list }}
 {{- if .Values.rdmaSharedDevicePlugin.imagePullSecrets }}

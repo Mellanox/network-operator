@@ -152,14 +152,6 @@ type DrainSpec struct {
 	DeleteEmptyDir bool `json:"deleteEmptyDir,omitempty"`
 }
 
-// NVPeerDriverSpec describes configuration options for NV Peer Memory driver
-type NVPeerDriverSpec struct {
-	// Image information for nv peer memory driver container
-	ImageSpec `json:""`
-	// GPU driver sources path - Optional
-	GPUDriverSourcePath string `json:"gpuDriverSourcePath,omitempty"`
-}
-
 // DevicePluginSpec describes configuration options for device plugin
 // 1. Image information for device plugin
 // 2. Device plugin configuration
@@ -227,7 +219,6 @@ type NicClusterPolicySpec struct {
 	NodeAffinity           *v1.NodeAffinity      `json:"nodeAffinity,omitempty"`
 	Tolerations            []v1.Toleration       `json:"tolerations,omitempty"`
 	OFEDDriver             *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
-	NVPeerDriver           *NVPeerDriverSpec     `json:"nvPeerDriver,omitempty"`
 	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
 	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
 	IBKubernetes           *IBKubernetesSpec     `json:"ibKubernetes,omitempty"`

@@ -88,11 +88,6 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create SR-IOV Device plugin State")
 	}
-	nvPeerMemState, err := NewStateNVPeer(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nv-peer-mem-driver"))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create NV peer memory driver State")
-	}
 	multusState, err := NewStateMultusCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-multus-cni"))
 	if err != nil {
@@ -131,7 +126,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 
 	return []State{
 		podSecurityPolicyState, multusState, cniPluginsState, ipoibState, whereaboutState,
-		ofedState, sriovDpState, sharedDpState, nvPeerMemState, ibKubernetesState, nvIpamCniState}, nil
+		ofedState, sriovDpState, sharedDpState, ibKubernetesState, nvIpamCniState}, nil
 }
 
 // newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD

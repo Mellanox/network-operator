@@ -380,17 +380,6 @@ imagePullSecrets:
 | `ofedDriver.readinessProbe.initialDelaySeconds` | int | 10 | Mellanox OFED readiness probe initial delay                                                                                                                               |
 | `ofedDriver.readinessProbe.periodSeconds` | int | 30 | Mellanox OFED readiness probe interval                                                                                                                                    |
 
-#### NVIDIA Peer memory driver
-
-| Name | Type | Default | description |
-| ---- | ---- | ------- | ----------- |
-| `nvPeerDriver.deploy` | bool | `false` | deploy NVIDIA Peer memory driver container |
-| `nvPeerDriver.repository` | string | `mellanox` | NVIDIA Peer memory driver image repository |
-| `nvPeerDriver.image` | string | `nv-peer-mem-driver` | NVIDIA Peer memory driver image name  |
-| `nvPeerDriver.version` | string | `1.1-0` | NVIDIA Peer memory driver version  |
-| `nvPeerDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the NVIDIA Peer memory driver image |
-| `nvPeerDriver.gpuDriverSourcePath` | string | `/run/nvidia/driver` | GPU driver soruces root filesystem path(usually used in tandem with [gpu-operator](https://github.com/NVIDIA/gpu-operator)) |
-
 #### RDMA Device Plugin
 
 | Name | Type | Default | description |
@@ -595,7 +584,7 @@ rdmaSharedDevicePlugin:
 
 #### Example 2
 
-Network Operator deployment with the default version of OFED and NV Peer mem driver, RDMA device plugin with two RDMA
+Network Operator deployment with the default version of OFED, RDMA device plugin with two RDMA
 resources, the first mapped to `enp1` and `enp2`, the second mapped to `ib0`.
 
 __values.yaml:__
@@ -603,8 +592,6 @@ __values.yaml:__
 ```:yaml
 deployCR: true
 ofedDriver:
-  deploy: true
-nvPeerDriver:
   deploy: true
 rdmaSharedDevicePlugin:
   deploy: true
