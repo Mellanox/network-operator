@@ -26,6 +26,7 @@ package render
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -113,6 +114,10 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 	// Create a new template
 	tmpl := template.New(path.Base(filePath)).Option("missingkey=error")
 	tmpl.Funcs(template.FuncMap{
+		"json": func(obj interface{}) (string, error) {
+			jsonBytes, err := json.Marshal(obj)
+			return string(jsonBytes), err
+		},
 		"yaml": func(obj interface{}) (string, error) {
 			yamlBytes, err := yamlConverter.Marshal(obj)
 			return string(yamlBytes), err

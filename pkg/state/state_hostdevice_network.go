@@ -38,6 +38,8 @@ import (
 )
 
 const (
+	stateHostDeviceCNIVersion         = "0.3.1"
+	stateHostDeviceCNIType            = "host-device"
 	stateHostDeviceNetworkName        = "state-host-device-network"
 	stateHostDeviceNetworkDescription = "Host Device net-attach-def CR deployed in cluster"
 	resourceNamePrefix                = "nvidia.com/"
@@ -70,6 +72,7 @@ type HostDeviceManifestRenderData struct {
 	CrSpec                mellanoxv1alpha1.HostDeviceNetworkSpec
 	RuntimeSpec           *runtimeSpec
 	ResourceName          string
+	CNISpec               *cniSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -135,9 +138,17 @@ func (s *stateHostDeviceNetwork) getManifestObjects(
 		resourceName = resourceNamePrefix + resourceName
 	}
 
+	cniSpec := &cniSpec{
+		CNIVersion: stateHostDeviceCNIVersion,
+		Name:       cr.Name,
+		Type:       stateHostDeviceCNIType,
+		IPAM:       cr.Spec.IPAM,
+	}
+
 	renderData := &HostDeviceManifestRenderData{
 		HostDeviceNetworkName: cr.Name,
 		CrSpec:                cr.Spec,
+		CNISpec:               cniSpec,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
 		},

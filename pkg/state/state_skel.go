@@ -38,6 +38,13 @@ import (
 	"github.com/Mellanox/network-operator/pkg/render"
 )
 
+type cniSpec struct {
+	CNIVersion string `json:"cniVersion,omitempty"`
+	Name       string `json:"name,omitempty"`
+	IPAM       string `json:"ipam,omitempty"`
+	Type       string `json:"type,omitempty"`
+}
+
 type runtimeSpec struct {
 	Namespace string
 }
