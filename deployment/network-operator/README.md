@@ -101,9 +101,19 @@ $ kubectl -n network-operator get pods
 By default the network operator
 deploys [Node Feature Discovery (NFD)](https://github.com/kubernetes-sigs/node-feature-discovery)
 in order to perform node labeling in the cluster to allow proper scheduling of Network Operator resources. If the nodes
-where already labeled by other means, it is possible to disable the deployment of NFD by setting
-`nfd.enabled=false` chart parameter.
+where already labeled by other means (either deployed from upstream or deployed within another deployment), it is possible to disable the deployment of NFD by setting
+`nfd.enabled=false` chart parameter and make sure that the installed version is `v0.13.2` or newer and has NodeFeatureApi enabled.
 
+##### Deploy NFD from upstream with NodeFeatureApi enabled
+```
+$ export NFD_NS=node-feature-discovery
+$ helm repo add nfd https://kubernetes-sigs.github.io/node-feature-discovery/charts
+$ helm repo update
+$ helm install nfd/node-feature-discovery --namespace $NFD_NS --create-namespace --generate-name --set enableNodeFeatureApi='true'
+```
+For additional information , refer to the official [NVD deployment with Helm](https://kubernetes-sigs.github.io/node-feature-discovery/v0.13/deployment/helm.html)
+
+##### Deploy Network Operator without Node Feature Discovery
 ```
 $ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator mellanox/network-operator
 ```
@@ -335,6 +345,7 @@ parameters.
 | Name                                                 | Type   | Default                                  | description                                                                                                                                                 |
 |------------------------------------------------------|--------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `nfd.enabled`                                        | bool   | `True`                                   | deploy Node Feature Discovery                                                                                                                               |
+| `nfd.deployNodeFeatureRules`                         | bool   | `True`                                   | deploy Node Feature Rules to label the nodes                                                                                                                |
 | `sriovNetworkOperator.enabled`                       | bool   | `False`                                  | deploy SR-IOV Network Operator                                                                                                                              |
 | `upgradeCRDs`                                        | bool   | `True`                                   | enable CRDs upgrade with helm pre-install and pre-upgrade hooks                                                                                             |
 | `sriovNetworkOperator.configDaemonNodeSelectorExtra` | object | `{"node-role.kubernetes.io/worker": ""}` | Additional nodeSelector for sriov-network-operator config daemon. These values will be added in addition to default values managed by the network-operator. |
