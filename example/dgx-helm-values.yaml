@@ -14,7 +14,7 @@
 
 # Custom Helm Chart values example to deploy Network Operator
 # at NVIDIA DGX SYSTEMS.
-# We don't need to deploy MOFED and nv-peer-mem containers.
+# We don't need to deploy MOFED container.
 
 nfd:
   enabled: true
@@ -23,14 +23,6 @@ nfd:
 deployCR: true
 ofedDriver:
   deploy: false
-
-nvPeerDriver:
-  deploy: false
-  image: nv-peer-mem-driver
-  repository: mellanox
-  version: 1.1-0
-  imagePullSecrets: []
-  gpuDriverSourcePath: /run/nvidia/driver
 
 secondaryNetwork:
   deploy: true
