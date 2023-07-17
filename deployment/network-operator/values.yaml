@@ -18,6 +18,7 @@
 
 nfd:
   enabled: true
+  deployNodeFeatureRules: true
 
 psp:
   enabled: false
@@ -52,9 +53,6 @@ node-feature-discovery:
       sources:
         pci:
           deviceClassWhitelist:
-          - "02"
-          - "0200"
-          - "0207"
           - "0300"
           - "0302"
           deviceLabelFields:

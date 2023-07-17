@@ -57,6 +57,8 @@ NFD is used to label nodes with the following labels:
 - RDMA capability
 - GPU features*
 
+>__NOTE__: We use [nodeFeatureRules](https://kubernetes-sigs.github.io/node-feature-discovery/v0.13/usage/custom-resources.html#nodefeaturerule) to label PCI vendor and device.This is enabled via `nfd.deployNodeFeatureRules` chart parameter.
+
 __Example NFD worker configurations:__
 
 ```yaml
@@ -64,9 +66,6 @@ __Example NFD worker configurations:__
       sources:
         pci:
           deviceClassWhitelist:
-          - "02"
-          - "0200"
-          - "0207"
           - "0300"
           - "0302"
           deviceLabelFields:
