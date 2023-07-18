@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"

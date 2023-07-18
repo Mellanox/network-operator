@@ -16,7 +16,7 @@ limitations under the License.
 package v1alpha1 //nolint:dupl
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
