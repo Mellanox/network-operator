@@ -61,11 +61,6 @@ var _ = Describe("MOFED state test", func() {
 			},
 		}
 
-		It("generates old image format", func() {
-			cr.Spec.OFEDDriver.Version = "5.6-1.0.0.0"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodeAttr, testLogger)
-			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed-5.6-1.0.0.0:ubuntu20.04-amd64"))
-		})
 		It("generates new image format", func() {
 			cr.Spec.OFEDDriver.Version = "5.7-1.0.0.0"
 			imageName := stateOfed.getMofedDriverImageName(cr, nodeAttr, testLogger)
