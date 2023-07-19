@@ -50,14 +50,18 @@ import (
 type UpgradeReconciler struct {
 	client.Client
 	Scheme                   *runtime.Scheme
-	StateManager             *upgrade.ClusterUpgradeStateManager
+	StateManager             upgrade.ClusterUpgradeStateManager
 	NodeUpgradeStateProvider upgrade.NodeUpgradeStateProvider
 }
 
-const plannedRequeueInterval = time.Minute * 2
-
-// UpgradeStateAnnotation is kept for backwards cleanup TODO: drop in 2 releases
-const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
+const (
+	plannedRequeueInterval = time.Minute * 2
+	// UpgradeStateAnnotation is kept for backwards cleanup TODO: drop in 2 releases
+	UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
+	// UpgradeSkipDrainLabelSelector is a selector for the label,
+	// that is put on the network operator's main pod to skip it during the node drain
+	UpgradeSkipDrainLabelSelector = "nvidia.com/ofed-driver-upgrade-drain.skip!=true"
+)
 
 //nolint
 // +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
@@ -102,6 +106,17 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 
 	upgradePolicy := nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy
 
+	// We want to skip operator itself during the drain because the upgrade process might hang
+	// if the operator is evicted and can't be rescheduled to any other node, e.g. in a single-node cluster.
+	// It's safe to do because the goal of the node draining during the upgrade is to
+	// evict pods that might use driver and operator doesn't use in its own pod.
+	if upgradePolicy.DrainSpec.PodSelector == "" {
+		upgradePolicy.DrainSpec.PodSelector = UpgradeSkipDrainLabelSelector
+	} else {
+		upgradePolicy.DrainSpec.PodSelector =
+			fmt.Sprintf("%s,%s", upgradePolicy.DrainSpec.PodSelector, UpgradeSkipDrainLabelSelector)
+	}
+
 	state, err := r.BuildState(ctx)
 	if err != nil {
 		reqLogger.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state")
@@ -119,7 +134,7 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 
 	// In some cases if node state changes fail to apply, upgrade process
 	// might become stuck until the new reconcile loop is scheduled.
-	// Since node/ds/nicclusterpolicy updates from outside of the upgrade flow
+	// Since node/ds/nicclusterpolicy updates from outside the upgrade flow
 	// are not guaranteed, for safety reconcile loop should be requeued every few minutes.
 	return ctrl.Result{Requeue: true, RequeueAfter: plannedRequeueInterval}, nil
 }

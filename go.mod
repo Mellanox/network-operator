@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/NVIDIA/k8s-operator-libs v0.0.0-20230504161004-dd428b908f5a
+	github.com/NVIDIA/k8s-operator-libs v0.0.0-20230725070147-f9977c284782
 	github.com/caarlos0/env/v6 v6.4.0
 	github.com/go-logr/logr v1.2.4
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0

@@ -32,6 +32,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 )
 
 var _ = Describe("Upgrade Controller", func() {
@@ -158,6 +159,21 @@ var _ = Describe("Upgrade Controller", func() {
 			// Verify that the returned Pods are owned by the DaemonSet
 			Expect(pods).To(HaveLen(1))
 			Expect(pods[0].Name).To(Equal(dsPod.Name))
+		})
+
+		It("should configure UpgradeSkipDrainLabelSelector in drain spec", func() {
+			upgrade.SetDriverName("ofed")
+
+			mockUpgradeStateManager := mocks.ClusterUpgradeStateManager{}
+			upgradeReconciler := &UpgradeReconciler{
+				Client:       k8sClient,
+				Scheme:       k8sClient.Scheme(),
+				StateManager: &mockUpgradeStateManager,
+			}
+
+			_, err := upgradeReconciler.Reconcile(goctx.TODO(), ctrl.Request{})
+
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

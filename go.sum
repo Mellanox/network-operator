@@ -39,8 +39,8 @@ github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/Masterminds/semver/v3 v3.1.1 h1:hLg3sBzpNErnxhQtUy/mmLR2I9foDujNK030IGemrRc=
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
-github.com/NVIDIA/k8s-operator-libs v0.0.0-20230504161004-dd428b908f5a h1:k8HalV8rdGshw0hCPxVLt8FRzpd9hnXfjggc/ePAn3A=
-github.com/NVIDIA/k8s-operator-libs v0.0.0-20230504161004-dd428b908f5a/go.mod h1:o7UeOk3V0xlOX87NnSaGNDje23VKCKPdfN6aSIZ9BwM=
+github.com/NVIDIA/k8s-operator-libs v0.0.0-20230725070147-f9977c284782 h1:9jGM4DcBgHIVaAK/mv+I0Hz0rfHt/BJCt2nmPUHWoxk=
+github.com/NVIDIA/k8s-operator-libs v0.0.0-20230725070147-f9977c284782/go.mod h1:o7UeOk3V0xlOX87NnSaGNDje23VKCKPdfN6aSIZ9BwM=
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
