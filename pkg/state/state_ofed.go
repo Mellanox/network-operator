@@ -372,6 +372,7 @@ func (s *stateOFED) getManifestObjects(
 		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
 		return nil, err
 	}
+	nodeAttr := attrs[0].Attributes
 
 	if cr.Spec.OFEDDriver.StartupProbe == nil {
 		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
@@ -394,8 +395,11 @@ func (s *stateOFED) getManifestObjects(
 		}
 	}
 
+	// Update MOFED Env variables with defaults for the cluster
+	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env, nodeAttr)
+
 	additionalVolMounts := additionalVolumeMounts{}
-	osname := attrs[0].Attributes[nodeinfo.AttrTypeOSName]
+	osname := nodeAttr[nodeinfo.AttrTypeOSName]
 	// set any custom ssl key/certificate configuration provided
 	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
 		destinationDir, err := getCertConfigPath(osname)
@@ -422,7 +426,6 @@ func (s *stateOFED) getManifestObjects(
 		}
 	}
 
-	nodeAttr := attrs[0].Attributes
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
@@ -589,4 +592,55 @@ func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPo
 			v1.EnvVar{Name: strings.ToLower(envKey), Value: envValue},
 		)
 	}
+}
+
+// mergeWithDefaultEnvs returns env variables provided in currentEnvs merged with default
+// env variables for MOFED container, taking into account attributes of the k8s cluster.
+func (s *stateOFED) mergeWithDefaultEnvs(
+	currentEnvs []v1.EnvVar, nodeAttrs map[nodeinfo.AttributeType]string) []v1.EnvVar {
+	if envVarsWithGet(currentEnvs).Get("CREATE_IFNAMES_UDEV") != nil {
+		// already exists dont overwrite
+		return currentEnvs
+	}
+
+	// CREATE_IFNAMES_UDEV: should be set to true for ubuntu < 22.04 , RHEL < 9, OCP < 4.13 if not provided
+	osName := nodeAttrs[nodeinfo.AttrTypeOSName]
+	osVer := nodeAttrs[nodeinfo.AttrTypeOSVer]
+	createIfnameUdevEnv := v1.EnvVar{Name: "CREATE_IFNAMES_UDEV", Value: "true"}
+
+	currVer, err := semver.NewVersion(osVer)
+	if err != nil {
+		return currentEnvs
+	}
+
+	switch osName {
+	case "ubuntu":
+		if currVer.LessThan(semver.MustParse("22.04")) {
+			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
+		}
+	case "rhel":
+		if currVer.LessThan(semver.MustParse("9.0")) {
+			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
+		}
+	case "rhcos":
+		if currVer.LessThan(semver.MustParse("4.13")) {
+			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
+		}
+	}
+
+	return currentEnvs
+}
+
+// envVarsWithGet is a wrapper type for []EnvVar to extend with additional functionality
+type envVarsWithGet []v1.EnvVar
+
+// Get returns pointer to EnvVar if found in the list, else returns nil
+func (e envVarsWithGet) Get(name string) *v1.EnvVar {
+	for i := range e {
+		if e[i].Name == name {
+			return &e[i]
+		}
+	}
+
+	return nil
 }
