@@ -475,6 +475,11 @@ While this approach may seem odd. It provides a way to deliver drivers to immuta
 
 [Mellanox OFED container](https://github.com/Mellanox/ofed-docker)
 
+Mellanox OFED driver container supports customization of its behaviour via environment variables.
+This is regarded as advanced functionallity and generally should not be needed.
+
+check [MOFED Driver Container Environment Variables](docs/mofed-container-env-vars.md)
+
 ## Upgrade
 Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.
 
