@@ -83,7 +83,7 @@ spec:
           {{- range $index, $element := .Values.rdmaSharedDevicePlugin.resources }}
           {
             "resourceName": {{ $element.name | quote }},
-            "rdmaHcaMax": 1000,
+            "rdmaHcaMax": {{ $element.rdmaHcaMax | default 63 }},
             "selectors": {
               "vendors": {{ $element.vendors | default list | toJson }},
               "deviceIDs": {{ $element.deviceIDs | default list | toJson }},

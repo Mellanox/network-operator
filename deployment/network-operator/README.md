@@ -415,10 +415,12 @@ resources:
       vendors: [15b3]
       deviceIDs: [1017]
       ifNames: [enp5s0f0]
+      rdmaHcaMax: 63
     - name: rdma_shared_device_b
       vendors: [15b3]
       deviceIDs: [1017]
       ifNames: [ib0, ib1]
+      rdmaHcaMax: 63
 ```
 
 #### SR-IOV Network Device plugin

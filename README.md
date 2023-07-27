@@ -138,7 +138,7 @@ spec:
         "configList": [
           {
             "resourceName": "rdma_shared_device_a",
-            "rdmaHcaMax": 1000,
+            "rdmaHcaMax": 63,
             "selectors": {
               "vendors": ["15b3"],
               "deviceIDs": ["1017"],
@@ -198,7 +198,7 @@ spec:
         "configList": [
           {
             "resourceName": "rdma_shared_device_a",
-            "rdmaHcaMax": 1000,
+            "rdmaHcaMax": 63,
             "selectors": {
               "vendors": ["15b3"],
               "deviceIDs": ["101b"]
