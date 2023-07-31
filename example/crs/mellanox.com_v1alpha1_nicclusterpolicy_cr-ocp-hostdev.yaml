@@ -19,7 +19,7 @@ spec:
   ofedDriver:
     image: mofed
     repository: nvcr.io/nvstaging/mellanox
-    version: 23.07-0.2.3.0
+    version: 23.07-0.4.2.0.1.2
     upgradePolicy:
       autoUpgrade: false
       drain:
