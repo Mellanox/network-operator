@@ -582,6 +582,8 @@ spec:
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
+                  useCdi:
+                    type: boolean
                   version:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
@@ -698,6 +700,8 @@ spec:
                   repository:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
+                  useCdi:
+                    type: boolean
                   version:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string

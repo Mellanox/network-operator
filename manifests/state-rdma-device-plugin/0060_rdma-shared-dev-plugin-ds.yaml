@@ -54,6 +54,10 @@ spec:
       containers:
       - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
         name: rdma-shared-dp
+        command: [ "/bin/k8s-rdma-shared-dp" ]
+        {{- if .CrSpec.UseCdi }}
+        args: [ "--use-cdi" ]
+        {{- end }}
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -64,6 +68,14 @@ spec:
             mountPath: /k8s-rdma-shared-dev-plugin
           - name: devs
             mountPath: /dev/
+          {{- if .CrSpec.UseCdi }}
+          - name: default-cdi
+            mountPath: /etc/cdi/
+          - name: dynamic-cdi
+            mountPath: /var/run/cdi
+          - name: host-config-volume
+            mountPath: /host/etc/pcidp/
+          {{- end }}
       volumes:
         - name: device-plugin
           hostPath:
@@ -77,6 +89,20 @@ spec:
         - name: devs
           hostPath:
             path: /dev/
+        {{- if .CrSpec.UseCdi }}
+        - name: default-cdi
+          hostPath:
+            path: /etc/cdi
+            type: DirectoryOrCreate
+        - name: dynamic-cdi
+          hostPath:
+            path: /var/run/cdi
+            type: DirectoryOrCreate
+        - name: host-config-volume
+          hostPath:
+            path: /etc/pcidp
+            type: DirectoryOrCreate
+        {{- end }}
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         network.nvidia.com/operator.mofed.wait: "false"
