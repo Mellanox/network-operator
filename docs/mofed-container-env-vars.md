@@ -23,11 +23,12 @@ In most deployments its expected to not require setting those.
 | UNLOAD_STORAGE_MODULES |N|`"false"`| unload host storage modules prior to loading mofed modules  |
 | ENABLE_NFSRDMA |N|`"false"`| enable loading of nfs relates storage modules from mofed container|
 | RESTORE_DRIVER_ON_POD_TERMINATION |N|`"true"`| restore host drivers when container is gracefully stopped |
-| ENTRYPOINT_DEBUG |Y|`"false"`| enable/disable debug logs |
-| DEBUG_LOG_FILE |Y|`"/tmp/entrypoint_debug_cmds.log"`| path for entrypoint debug logs |
 
 In addition, the user can specify essentially any environment variables to be exposed to the MOFED container such as
 the standard `"HTTP_PROXY"`, `"HTTPS_PROXY"`, `"NO_PROXY"`
 
 > __Note__: `CREATE_IFNAMES_UDEV` is being set automatically by Network Operator depenting of the Operating System of worker nodes
 > in the cluster (cluster is assumed to be homogenous).
+
+> __Note__: Environment Variables Marked as Experimental should not be used in production environment, they are mainly aimed at
+> either providing special functionality or additional debug ability. Such variables can be added/removed with no notice.
