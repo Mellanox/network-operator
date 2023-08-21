@@ -11,7 +11,7 @@ __Example__
 ofedDriver:
   env:
   - name: CREATE_IFNAMES_UDEV
-    value: true
+    value: "true"
 ```
 
 The use of these Environment variables is intended for advanced cases.
