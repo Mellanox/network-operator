@@ -211,20 +211,26 @@ type NVIPAMSpec struct {
 	ImageSpecWithConfig `json:""`
 }
 
+// NicFeatureDiscoverySpec describes configuration options for nic-feature-discovery
+type NICFeatureDiscoverySpec struct {
+	ImageSpec `json:""`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	NodeAffinity           *v1.NodeAffinity      `json:"nodeAffinity,omitempty"`
-	Tolerations            []v1.Toleration       `json:"tolerations,omitempty"`
-	OFEDDriver             *OFEDDriverSpec       `json:"ofedDriver,omitempty"`
-	RdmaSharedDevicePlugin *DevicePluginSpec     `json:"rdmaSharedDevicePlugin,omitempty"`
-	SriovDevicePlugin      *DevicePluginSpec     `json:"sriovDevicePlugin,omitempty"`
-	IBKubernetes           *IBKubernetesSpec     `json:"ibKubernetes,omitempty"`
-	SecondaryNetwork       *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
-	NvIpam                 *NVIPAMSpec           `json:"nvIpam,omitempty"`
-	PSP                    *PSPSpec              `json:"psp,omitempty"`
+	NodeAffinity           *v1.NodeAffinity         `json:"nodeAffinity,omitempty"`
+	Tolerations            []v1.Toleration          `json:"tolerations,omitempty"`
+	OFEDDriver             *OFEDDriverSpec          `json:"ofedDriver,omitempty"`
+	RdmaSharedDevicePlugin *DevicePluginSpec        `json:"rdmaSharedDevicePlugin,omitempty"`
+	SriovDevicePlugin      *DevicePluginSpec        `json:"sriovDevicePlugin,omitempty"`
+	IBKubernetes           *IBKubernetesSpec        `json:"ibKubernetes,omitempty"`
+	SecondaryNetwork       *SecondaryNetworkSpec    `json:"secondaryNetwork,omitempty"`
+	NvIpam                 *NVIPAMSpec              `json:"nvIpam,omitempty"`
+	PSP                    *PSPSpec                 `json:"psp,omitempty"`
+	NicFeatureDiscovery    *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy
