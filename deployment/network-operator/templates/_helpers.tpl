@@ -212,3 +212,19 @@ imagePullSecrets helpers
 {{- end }}
 {{- $imagePullSecrets | toJson }}
 {{- end }}
+
+{{- define "network-operator.nicFeatureDiscovery.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
+{{- if .Values.nicFeatureDiscovery.imagePullSecrets }}
+{{- range .Values.nicFeatureDiscovery.imagePullSecrets }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $imagePullSecrets | toJson }}
+{{- end }}

@@ -65,6 +65,7 @@ type stateNICFeatureDiscovery struct {
 type nfdManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.NICFeatureDiscoverySpec
 	NodeAffinity *v1.NodeAffinity
+	Tolerations  []v1.Toleration
 	RuntimeSpec  *nfdRuntimeSpec
 }
 
@@ -148,6 +149,7 @@ func (s *stateNICFeatureDiscovery) getManifestObjects(
 	renderData := &nfdManifestRenderData{
 		CrSpec:       cr.Spec.NicFeatureDiscovery,
 		NodeAffinity: cr.Spec.NodeAffinity,
+		Tolerations:  cr.Spec.Tolerations,
 		RuntimeSpec: &nfdRuntimeSpec{
 			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],

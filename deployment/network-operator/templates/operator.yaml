@@ -51,7 +51,6 @@ spec:
           image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
           command:
           - /manager
-          imagePullPolicy: IfNotPresent
           env:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/manifests"
