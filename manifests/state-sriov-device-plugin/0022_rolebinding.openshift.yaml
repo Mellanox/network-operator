@@ -8,11 +8,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: sriov-device-plugin
-  namespace: {{ .RuntimeSpec.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: sriov-device-plugin
-  namespace: {{ .RuntimeSpec.Namespace }}
-userNames:
-- system:serviceaccount:{{ .RuntimeSpec.Namespace }}:sriov-device-plugin
 {{end}}

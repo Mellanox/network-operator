@@ -8,11 +8,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: ofed-driver
-  namespace: {{ .RuntimeSpec.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: ofed-driver
-  namespace: {{ .RuntimeSpec.Namespace }}
-userNames:
-- system:serviceaccount:{{ .RuntimeSpec.Namespace }}:ofed-driver
 {{end}}
