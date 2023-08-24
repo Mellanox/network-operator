@@ -44,7 +44,7 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 * Kubernetes secondary network for Network intensive workloads
 
 ## Documentation
-For more information please visit the official [documentation](https://docs.nvidia.com/networking/display/COKAN10/Network+Operator).
+For more information please visit the official [documentation](https://docs.nvidia.com/networking/display/kubernetes2370/Network+Operator).
 
 
 ## Prerequisites
