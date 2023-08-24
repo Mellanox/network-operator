@@ -274,12 +274,11 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 type: object
-              nvPeerDriver:
-                description: NVPeerDriverSpec describes configuration options for
-                  NV Peer Memory driver
+              nvIpam:
+                description: NVIPAMSpec describes configuration options for nv-ipam
+                  1. Image information for nv-ipam 2. Configuration for nv-ipam
                 properties:
-                  gpuDriverSourcePath:
-                    description: GPU driver sources path - Optional
+                  config:
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -567,10 +566,10 @@ spec:
                 type: object
               rdmaSharedDevicePlugin:
                 description: DevicePluginSpec describes configuration options for
-                  device plugin
+                  device plugin 1. Image information for device plugin 2. Device plugin
+                  configuration
                 properties:
                   config:
-                    description: Device plugin configuration
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -586,7 +585,6 @@ spec:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
-                - config
                 - image
                 - repository
                 - version
@@ -662,10 +660,6 @@ spec:
                     description: Image and configuration information for multus
                     properties:
                       config:
-                        description: Multus CNI config if config is missing or empty
-                          then multus config will be automatically generated from
-                          the CNI configuration file of the master plugin (the first
-                          file in lexicographical order in cni-conf-dir)
                         type: string
                       image:
                         pattern: '[a-zA-Z0-9\-]+'
@@ -688,10 +682,10 @@ spec:
                 type: object
               sriovDevicePlugin:
                 description: DevicePluginSpec describes configuration options for
-                  device plugin
+                  device plugin 1. Image information for device plugin 2. Device plugin
+                  configuration
                 properties:
                   config:
-                    description: Device plugin configuration
                     type: string
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
@@ -707,11 +701,49 @@ spec:
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
-                - config
                 - image
                 - repository
                 - version
                 type: object
+              tolerations:
+                items:
+                  description: The pod this Toleration is attached to tolerates any
+                    taint that matches the triple <key,value,effect> using the matching
+                    operator <operator>.
+                  properties:
+                    effect:
+                      description: Effect indicates the taint effect to match. Empty
+                        means match all taint effects. When specified, allowed values
+                        are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: Key is the taint key that the toleration applies
+                        to. Empty means match all taint keys. If the key is empty,
+                        operator must be Exists; this combination means to match all
+                        values and all keys.
+                      type: string
+                    operator:
+                      description: Operator represents a key's relationship to the
+                        value. Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod
+                        can tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: TolerationSeconds represents the period of time
+                        the toleration (which must be of effect NoExecute, otherwise
+                        this field is ignored) tolerates the taint. By default, it
+                        is not set, which means tolerate the taint forever (do not
+                        evict). Zero and negative values will be treated as 0 (evict
+                        immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: Value is the taint value the toleration matches
+                        to. If the operator is Exists, the value should be empty,
+                        otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
             type: object
           status:
             description: NicClusterPolicyStatus defines the observed state of NicClusterPolicy
