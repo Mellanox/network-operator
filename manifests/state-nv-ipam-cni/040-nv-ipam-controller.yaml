@@ -91,10 +91,9 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["/ipam-controller"]
           args:
-            - --config-name=nvidia-k8s-ipam-config
-            - --config-namespace=$(POD_NAMESPACE)
             - --leader-elect=true
             - --leader-elect-namespace=$(POD_NAMESPACE)
+            - --ippools-namespace=$(POD_NAMESPACE)
           env:
             - name: POD_NAMESPACE
               valueFrom:

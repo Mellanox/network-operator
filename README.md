@@ -219,12 +219,7 @@ spec:
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
-    version: v0.0.3
-    config: '{
-      "pools":  {
-        "my-pool": {"subnet": "192.168.0.0/24", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
-      }
-    }'
+    version: v0.1.0
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr-nvidia-ipam.yaml`
@@ -492,83 +487,6 @@ or SR-IOV Network device plugin.
 Specifying configuration either via Helm values when installing NVIDIA
 network operator, or by specifying them when directly creating NicClusterPolicy CR.
 These configurations eventually trigger the creation of a ConfigMap object in K8s.
-
-As an example, NVIDIA K8s IPAM plugin configuration is specified either via:
-
-__Helm values:__
-
-```yaml
-deployCR: true
-nvIpam:
-  deploy: true
-  image: nvidia-k8s-ipam
-  repository: ghcr.io/mellanox
-  version: v0.0.3
-  config: |-
-    {
-    "pools":  {
-      "rdma-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
-      }
-    }
-```
-
-__NicClusterPolicy CR:__
-
-```yaml
-apiVersion: mellanox.com/v1alpha1
-kind: NicClusterPolicy
-metadata:
-  name: nic-cluster-policy
-spec:
-  nvIpam:
-    image: nvidia-k8s-ipam
-    repository: ghcr.io/mellanox
-    version: v0.0.3
-    config: '{
-      "pools":  {
-        "my-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
-      }
-    }'
-```
-
-The configuration is then processed by the operator, eventually rendering and creating a _ConfigMap_, `nvidia-k8s-ipam-config`, within the
-namespace the operator was deployed. It contains the configuration for _nvidia k8s IPAM plugin_.
-
-For some advanced use-cases, it is desirable to provide such configurations at a later time.
-(e.g if network configuration is not known during Network Operator deployment time)
-
-To support this, it is possible to explicitly set such configuration to `nil` in Helm values
-or omit the `config` field of the relevant component while creating NicClusterPolicy CR.
-This will prevent Network Operator from
-creating such ConfigMaps, allowing the user to provide its own.
-
-Example (omitting nvidia k8s ipam config):
-
-__Helm values:__
-
-```yaml
-deployCR: true
-nvIpam:
-  deploy: true
-  image: nvidia-k8s-ipam
-  repository: ghcr.io/mellanox
-  version: v0.0.3
-  config: null
-```
-
-__NicClusterPolicy CR:__
-
-```yaml
-apiVersion: mellanox.com/v1alpha1
-kind: NicClusterPolicy
-metadata:
-  name: nic-cluster-policy
-spec:
-  nvIpam:
-    image: nvidia-k8s-ipam
-    repository: ghcr.io/mellanox
-    version: v0.0.3
-```
 
 > __Note__: It is the responsibility of the user to delete any existing configurations (ConfigMaps) if
 > they were already created by the Network Operator as well as deleting his own configuration when they

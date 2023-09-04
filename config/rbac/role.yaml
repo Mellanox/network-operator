@@ -243,6 +243,23 @@ rules:
   - list
   - watch
 - apiGroups:
+  - nv-ipam.nvidia.com
+  resources:
+  - ippools
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - nv-ipam.nvidia.com
+  resources:
+  - ippools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - policy
   resources:
   - podsecuritypolicies

@@ -62,6 +62,7 @@ type stateNVIPAMCNI struct {
 type NVIPAMManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.NVIPAMSpec
 	NodeAffinity *v1.NodeAffinity
+	Tolerations  []v1.Toleration
 	RuntimeSpec  *runtimeSpec
 }
 
@@ -122,6 +123,7 @@ func (s *stateNVIPAMCNI) getManifestObjects(
 	renderData := &NVIPAMManifestRenderData{
 		CrSpec:       cr.Spec.NvIpam,
 		NodeAffinity: cr.Spec.NodeAffinity,
+		Tolerations:  cr.Spec.Tolerations,
 		RuntimeSpec: &runtimeSpec{
 			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
 		},

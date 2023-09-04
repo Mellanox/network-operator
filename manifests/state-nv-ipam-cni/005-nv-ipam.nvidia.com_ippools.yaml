@@ -1,0 +1,188 @@
+# 2023 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: ippools.nv-ipam.nvidia.com
+spec:
+  group: nv-ipam.nvidia.com
+  names:
+    kind: IPPool
+    listKind: IPPoolList
+    plural: ippools
+    singular: ippool
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.subnet
+      name: Subnet
+      type: string
+    - jsonPath: .spec.gateway
+      name: Gateway
+      type: string
+    - jsonPath: .spec.perNodeBlockSize
+      name: Block Size
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: IPPool contains configuration for IPAM controller
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IPPoolSpec contains configuration for IP pool
+            properties:
+              gateway:
+                description: gateway for the pool
+                type: string
+              nodeSelector:
+                description: selector for nodes, if empty match all nodes
+                properties:
+                  nodeSelectorTerms:
+                    description: Required. A list of node selector terms. The terms
+                      are ORed.
+                    items:
+                      description: A null or empty node selector term matches no objects.
+                        The requirements of them are ANDed. The TopologySelectorTerm
+                        type implements a subset of the NodeSelectorTerm.
+                      properties:
+                        matchExpressions:
+                          description: A list of node selector requirements by node's
+                            labels.
+                          items:
+                            description: A node selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: The label key that the selector applies
+                                  to.
+                                type: string
+                              operator:
+                                description: Represents a key's relationship to a
+                                  set of values. Valid operators are In, NotIn, Exists,
+                                  DoesNotExist. Gt, and Lt.
+                                type: string
+                              values:
+                                description: An array of string values. If the operator
+                                  is In or NotIn, the values array must be non-empty.
+                                  If the operator is Exists or DoesNotExist, the values
+                                  array must be empty. If the operator is Gt or Lt,
+                                  the values array must have a single element, which
+                                  will be interpreted as an integer. This array is
+                                  replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchFields:
+                          description: A list of node selector requirements by node's
+                            fields.
+                          items:
+                            description: A node selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: The label key that the selector applies
+                                  to.
+                                type: string
+                              operator:
+                                description: Represents a key's relationship to a
+                                  set of values. Valid operators are In, NotIn, Exists,
+                                  DoesNotExist. Gt, and Lt.
+                                type: string
+                              values:
+                                description: An array of string values. If the operator
+                                  is In or NotIn, the values array must be non-empty.
+                                  If the operator is Exists or DoesNotExist, the values
+                                  array must be empty. If the operator is Gt or Lt,
+                                  the values array must have a single element, which
+                                  will be interpreted as an integer. This array is
+                                  replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    type: array
+                required:
+                - nodeSelectorTerms
+                type: object
+                x-kubernetes-map-type: atomic
+              perNodeBlockSize:
+                description: amount of IPs to allocate for each node, must be less
+                  than amount of available IPs in the subnet
+                type: integer
+              subnet:
+                description: subnet of the pool
+                type: string
+            required:
+            - gateway
+            - perNodeBlockSize
+            - subnet
+            type: object
+          status:
+            description: IPPoolStatus contains the IP ranges allocated to nodes
+            properties:
+              allocations:
+                description: IP allocations for Nodes
+                items:
+                  description: Allocation contains IP Allocation for a specific Node
+                  properties:
+                    endIP:
+                      type: string
+                    nodeName:
+                      type: string
+                    startIP:
+                      type: string
+                  required:
+                  - endIP
+                  - nodeName
+                  - startIP
+                  type: object
+                type: array
+            required:
+            - allocations
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -52,4 +52,4 @@ IpamPlugin:
 nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
-  version: v0.0.3
+  version: v0.1.0
