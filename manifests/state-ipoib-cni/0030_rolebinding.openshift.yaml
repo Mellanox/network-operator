@@ -8,11 +8,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: ipoib-cni
-  namespace: {{ .RuntimeSpec.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: ipoib-cni
-  namespace: {{ .RuntimeSpec.Namespace }}
-userNames:
-- system:serviceaccount:{{ .RuntimeSpec.Namespace }}:ipoib-cni
 {{end}}

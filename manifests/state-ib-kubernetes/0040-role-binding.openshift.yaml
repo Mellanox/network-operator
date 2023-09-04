@@ -8,11 +8,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: ib-kubernetes
-  namespace: {{ .RuntimeSpec.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: ib-kubernetes
-  namespace: {{ .RuntimeSpec.Namespace }}
-userNames:
-- system:serviceaccount:{{ .RuntimeSpec.Namespace }}:ib-kubernetes
 {{end}}
