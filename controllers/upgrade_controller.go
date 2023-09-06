@@ -59,8 +59,8 @@ const plannedRequeueInterval = time.Minute * 2
 // UpgradeStateAnnotation is kept for backwards cleanup TODO: drop in 2 releases
 const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
-//nolint
-// +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
+//nolint:lll
+// +kubebuilder:rbac:groups=mellanox.com,resources=nicclusterpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list
 // +kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;replicasets;statefulsets;controllerrevisions,verbs=get;list;watch;create;update;patch;delete
