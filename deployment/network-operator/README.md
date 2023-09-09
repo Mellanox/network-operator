@@ -149,6 +149,40 @@ $ helm install -n network-operator --create-namespace --wait network-operator ./
 $ kubectl -n network-operator get pods
 ```
 
+#### Deploy Network Operator with Admission Controller
+
+The Admission Controller can be optionally included as part of the Network Operator installation process.  
+It has the capability to validate supported Custom Resource Definitions (CRDs), which currently include NicClusterPolicy and HostDeviceNetwork.  
+By default, the deployment of the admission controller is disabled. To enable it, you must set `operator.admissionController.enabled` to `true`.
+  
+Enabling the admission controller provides you with two options for managing certificates.  
+You can either utilize [cert-manager](https://cert-manager.io/docs/installation/) for generating a self-signed certificate automatically, or you can provide your own self-signed certificate.  
+  
+To use `cert-manager`, ensure that `operator.admissionController.useCertManager` is set to `true`. Additionally, make sure that you deploy cert-manager before initiating the Network Operator deployment.
+  
+If you prefer not to use `cert-manager`, set `operator.admissionController.useCertManager` to `false`, and then provide your custom certificate and key using `operator.admissionController.certificate.tlsCrt` and `operator.admissionController.certificate.tlsKey`.
+
+> __NOTE__: When using your own certificate, the certificate must be valid for <Release_Name>-webhook-service.<
+> Release_Namespace>.svc, e.g. network-operator-webhook-service.network-operator.svc  
+
+> __NOTE__: When deploying network operator with admission controller using helm, you need to append `--wait` to helm install and helm upgrade commands
+>
+
+##### Generating self-signed certificate using OpenSSL
+
+To generate a self-signed SSL certificate valid for a specific hostname, you can use the `openssl` command-line tool.
+First, navigate to the directory where you want to store your certificate and key files. Then, run the following
+command:
+
+```bash
+SVCNAME="network-operator-webhook-service.network-operator.svc"
+openssl req -x509 -nodes -batch -newkey rsa:2048 -keyout server.key -out server.crt -days 365 -addext "subjectAltName=DNS:$SVCNAME"
+```
+
+Replace `SVCNAME` with the SVC name follows this convention <Release_Name>-webhook-service.<Release_Namespace>.svc.
+This command will generate a new RSA key pair with 2048 bits and create a self-signed certificate (`server.crt`) and
+private key (`server.key`) that are valid for 365 days.
+
 ## Helm Tests
 
 Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters
@@ -344,6 +378,10 @@ parameters.
 
 | Name                                                 | Type   | Default                                  | Description                                                                                                                                                 |
 |------------------------------------------------------|--------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `operator.admissionController.enabled`               | bool   | `False`                                  | deploy with admission controller webhook                                                                                                                    |
+| `operator.admissionController.useCertManager`        | bool   | `False`                                  | use cert-manager for generating self-signed certificate                                                                                                     |
+| `operator.admissionController.certificate.tlsCrt`    | string | ``                                       | External certificate crt. Ignored if cert-manager is used.                                                                                                  |
+| `operator.admissionController.certificate.tlsKey`    | string | ``                                       | External certificate key. Ignored if cert-manager is used.                                                                                                  |
 | `nfd.enabled`                                        | bool   | `True`                                   | deploy Node Feature Discovery                                                                                                                               |
 | `nfd.deployNodeFeatureRules`                         | bool   | `True`                                   | deploy Node Feature Rules to label the nodes                                                                                                                |
 | `sriovNetworkOperator.enabled`                       | bool   | `False`                                  | deploy SR-IOV Network Operator                                                                                                                              |

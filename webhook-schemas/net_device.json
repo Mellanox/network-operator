@@ -1,0 +1,268 @@
+{
+  "type": "object",
+  "properties": {
+    "selectors": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "vendors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "drivers": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "pciAddresses": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "pfNames": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "rootDevices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "linkTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "ddpProfiles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "isRdma": {
+                "type": "boolean"
+              },
+              "needVhostNet": {
+                "type": "boolean"
+              },
+              "vdpaType": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "vendors"
+                ]
+              },
+              {
+                "required": [
+                  "devices"
+                ]
+              },
+              {
+                "required": [
+                  "drivers"
+                ]
+              },
+              {
+                "required": [
+                  "pciAddresses"
+                ]
+              },
+              {
+                "required": [
+                  "pfNames"
+                ]
+              },
+              {
+                "required": [
+                  "rootDevices"
+                ]
+              },
+              {
+                "required": [
+                  "linkTypes"
+                ]
+              },
+              {
+                "required": [
+                  "ddpProfiles"
+                ]
+              },
+              {
+                "required": [
+                  "isRdma"
+                ]
+              },
+              {
+                "required": [
+                  "needVhostNet"
+                ]
+              },
+              {
+                "required": [
+                  "vdpaType"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "vendors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "devices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "drivers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pciAddresses": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pfNames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "rootDevices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "linkTypes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "ddpProfiles": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "isRdma": {
+              "type": "boolean"
+            },
+            "needVhostNet": {
+              "type": "boolean"
+            },
+            "vdpaType": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "vendors"
+              ]
+            },
+            {
+              "required": [
+                "devices"
+              ]
+            },
+            {
+              "required": [
+                "drivers"
+              ]
+            },
+            {
+              "required": [
+                "pciAddresses"
+              ]
+            },
+            {
+              "required": [
+                "pfNames"
+              ]
+            },
+            {
+              "required": [
+                "rootDevices"
+              ]
+            },
+            {
+              "required": [
+                "linkTypes"
+              ]
+            },
+            {
+              "required": [
+                "ddpProfiles"
+              ]
+            },
+            {
+              "required": [
+                "isRdma"
+              ]
+            },
+            {
+              "required": [
+                "needVhostNet"
+              ]
+            },
+            {
+              "required": [
+                "vdpaType"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

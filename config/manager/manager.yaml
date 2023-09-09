@@ -59,6 +59,9 @@ spec:
         imagePullPolicy: IfNotPresent
         image: controller:latest
         name: manager
+        env:
+          - name: ENABLE_WEBHOOKS
+            value: "false"
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:

@@ -1,0 +1,129 @@
+---
+{{- if .Values.operator.admissionController.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-webhook-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    control-plane: {{ .Release.Name }}-controller
+{{- end }}
+---
+{{- if and .Values.operator.admissionController.enabled .Values.operator.admissionController.useCertManager }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: {{ .Release.Name }}
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+  name: {{ .Release.Name }}-serving-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - {{ .Release.Name }}-webhook-service.{{ .Release.Namespace }}.svc
+  - {{ .Release.Name }}-webhook-service.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: {{ .Release.Name }}-selfsigned-issuer
+  secretName: webhook-server-cert
+{{- end }}
+---
+{{- if and .Values.operator.admissionController.enabled .Values.operator.admissionController.useCertManager }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: {{ .Release.Name }}
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+  name: {{ .Release.Name }}-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+{{- end }}
+---
+{{- if .Values.operator.admissionController.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  {{- if .Values.operator.admissionController.useCertManager }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ .Release.Name }}-serving-cert
+  {{- end }}
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: {{ .Release.Name }}
+    app.kubernetes.io/instance: validating-webhook-configuration
+    app.kubernetes.io/name: validatingwebhookconfiguration
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+  name: {{ .Release.Name }}-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ .Release.Name }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-mellanox-com-v1alpha1-hostdevicenetwork
+    {{- if not .Values.operator.admissionController.useCertManager }}
+    caBundle: {{ .Values.operator.admissionController.certificate.tlsCrt | b64enc | quote }}
+    {{- end }}
+  failurePolicy: Fail
+  name: vhostdevicenetwork.kb.io
+  rules:
+  - apiGroups:
+    - mellanox.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - hostdevicenetworks
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ .Release.Name }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-mellanox-com-v1alpha1-nicclusterpolicy
+    {{- if not .Values.operator.admissionController.useCertManager }}
+    caBundle: {{ .Values.operator.admissionController.certificate.tlsCrt | b64enc | quote }}
+    {{- end }}
+  failurePolicy: Fail
+  name: vnicclusterpolicy.kb.io
+  rules:
+  - apiGroups:
+    - mellanox.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - nicclusterpolicies
+  sideEffects: None
+{{- end }}
+---
+{{- if and .Values.operator.admissionController.enabled (not .Values.operator.admissionController.useCertManager) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-server-cert
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  tls.crt: {{ .Values.operator.admissionController.certificate.tlsCrt | b64enc | quote }}
+  tls.key: {{ .Values.operator.admissionController.certificate.tlsKey | b64enc | quote }}
+{{- end }}

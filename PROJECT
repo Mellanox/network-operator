@@ -23,6 +23,9 @@ resources:
   kind: NicClusterPolicy
   path: github.com/Mellanox/network-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
   controller: true
@@ -31,4 +34,7 @@ resources:
   kind: HostDeviceNetwork
   path: github.com/Mellanox/network-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 version: "3"

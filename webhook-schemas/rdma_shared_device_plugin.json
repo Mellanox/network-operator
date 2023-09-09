@@ -1,0 +1,117 @@
+{
+  "type": "object",
+  "properties": {
+    "configList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "resourceName": {
+            "type": "string"
+          },
+          "resourcePrefix": {
+            "type": "string"
+          },
+          "rdmaHcaMax": {
+            "type": "integer"
+          },
+          "devices": {
+            "type": "array",
+            "minLength": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "selectors": {
+            "type": "object",
+            "properties": {
+              "vendors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "deviceIDs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "drivers": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "ifNames": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "linkTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "vendors"
+                ]
+              },
+              {
+                "required": [
+                  "deviceIDs"
+                ]
+              },
+              {
+                "required": [
+                  "drivers"
+                ]
+              },
+              {
+                "required": [
+                  "ifNames"
+                ]
+              },
+              {
+                "required": [
+                  "linkTypes"
+                ]
+              }
+            ]
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "selectors"
+            ]
+          },
+          {
+            "required": [
+              "devices"
+            ]
+          }
+        ],
+        "required": [
+          "resourceName",
+          "rdmaHcaMax"
+        ]
+      }
+    }
+  },
+  "required": [
+    "configList"
+  ]
+}
