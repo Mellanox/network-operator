@@ -158,7 +158,13 @@ rules:
 - apiGroups:
   - k8s.cni.cncf.io
   resources:
-  - network-attachment-definitions
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - mellanox.com
+  resources:
+  - '*'
   verbs:
   - create
   - delete
@@ -227,18 +233,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - mellanox.com
-  resources:
-  - nicclusterpolicies
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - monitoring.coreos.com
   resources:
