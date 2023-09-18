@@ -118,6 +118,47 @@ var _ = Describe("Validate", func() {
 			_, err := nicClusterPolicy.ValidateCreate()
 			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
 		})
+		It("MOFED SafeLoad requires AutoUpgrade to be enabled", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					OFEDDriver: &OFEDDriverSpec{
+						ImageSpec: ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+						OfedUpgradePolicy: &DriverUpgradePolicySpec{
+							SafeLoad: true,
+						},
+					},
+				},
+			}
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("autoUpgrade"))
+		})
+		It("MOFED valid SafeLoad config", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					OFEDDriver: &OFEDDriverSpec{
+						ImageSpec: ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+						OfedUpgradePolicy: &DriverUpgradePolicySpec{
+							SafeLoad:    true,
+							AutoUpgrade: true,
+						},
+					},
+				},
+			}
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).To(BeNil())
+		})
 		It("Valid RDMA config JSON", func() {
 			rdmaConfig := `{
 				"configList": [{

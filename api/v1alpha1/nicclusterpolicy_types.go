@@ -108,6 +108,10 @@ type DriverUpgradePolicySpec struct {
 	MaxParallelUpgrades int                    `json:"maxParallelUpgrades,omitempty"`
 	WaitForCompletion   *WaitForCompletionSpec `json:"waitForCompletion,omitempty"`
 	DrainSpec           *DrainSpec             `json:"drain,omitempty"`
+	// SafeLoad turn on safe driver loading (cordon and drain the node before loading the driver)
+	// +optional
+	// +kubebuilder:default:=false
+	SafeLoad bool `json:"safeLoad,omitempty"`
 }
 
 // WaitForCompletionSpec describes the configuration for waiting on job completions
