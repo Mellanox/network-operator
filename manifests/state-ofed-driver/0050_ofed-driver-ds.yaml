@@ -1,4 +1,4 @@
-# Copyright 2020 NVIDIA
+# Copyright 2023 NVIDIA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,15 +40,33 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-{{ if .RuntimeSpec.IsOpenshift }}
       serviceAccountName: ofed-driver
-{{end}}
       hostNetwork: true
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
       {{- range .CrSpec.ImagePullSecrets }}
         - name: {{ . }}
       {{- end }}
+      {{- end }}
+      {{- if .RuntimeSpec.InitContainerConfig.InitContainerEnable  }}
+      initContainers:
+        - name: network-operator-init-container
+          imagePullPolicy: IfNotPresent
+          image: {{ .RuntimeSpec.InitContainerConfig.InitContainerImageName }}
+          args:
+            - --node-name
+            - $(NODE_NAME)
+            - --configmap-name
+            - ofed-init-container-config
+            - --configmap-namespace
+            - {{ .RuntimeSpec.Namespace }}
+            - --configmap-key
+            - config.json
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
       {{- end }}
       containers:
         - image: {{ .RuntimeSpec.MOFEDImageName }}
