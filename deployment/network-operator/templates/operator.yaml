@@ -82,6 +82,12 @@ spec:
             - name: CNI_BIN_DIR
               value: "{{ .Values.operator.cniBinDirectory }}"
             {{- end }}
+            {{- if and .Values.ofedDriver.initContainer .Values.ofedDriver.initContainer.enable }}
+            - name: OFED_INIT_CONTAINER_IMAGE
+              {{- with .Values.ofedDriver.initContainer }}
+              value: "{{ .repository }}/{{ .image }}:{{ .version }}"
+              {{- end }}
+            {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
           livenessProbe:

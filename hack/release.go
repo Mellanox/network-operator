@@ -31,21 +31,22 @@ import (
 )
 
 type Release struct {
-	NetworkOperator        *mellanoxv1alpha1.ImageSpec
-	SriovNetworkOperator   *mellanoxv1alpha1.ImageSpec
-	SriovConfigDaemon      *mellanoxv1alpha1.ImageSpec
-	SriovCni               *mellanoxv1alpha1.ImageSpec
-	SriovIbCni             *mellanoxv1alpha1.ImageSpec
-	Mofed                  *mellanoxv1alpha1.ImageSpec
-	RdmaSharedDevicePlugin *mellanoxv1alpha1.ImageSpec
-	SriovDevicePlugin      *mellanoxv1alpha1.ImageSpec
-	IbKubernetes           *mellanoxv1alpha1.ImageSpec
-	CniPlugins             *mellanoxv1alpha1.ImageSpec
-	Multus                 *mellanoxv1alpha1.ImageSpec
-	Ipoib                  *mellanoxv1alpha1.ImageSpec
-	IpamPlugin             *mellanoxv1alpha1.ImageSpec
-	NvIPAM                 *mellanoxv1alpha1.ImageSpec
-	NicFeatureDiscovery    *mellanoxv1alpha1.ImageSpec
+	NetworkOperator              *mellanoxv1alpha1.ImageSpec
+	NetworkOperatorInitContainer *mellanoxv1alpha1.ImageSpec
+	SriovNetworkOperator         *mellanoxv1alpha1.ImageSpec
+	SriovConfigDaemon            *mellanoxv1alpha1.ImageSpec
+	SriovCni                     *mellanoxv1alpha1.ImageSpec
+	SriovIbCni                   *mellanoxv1alpha1.ImageSpec
+	Mofed                        *mellanoxv1alpha1.ImageSpec
+	RdmaSharedDevicePlugin       *mellanoxv1alpha1.ImageSpec
+	SriovDevicePlugin            *mellanoxv1alpha1.ImageSpec
+	IbKubernetes                 *mellanoxv1alpha1.ImageSpec
+	CniPlugins                   *mellanoxv1alpha1.ImageSpec
+	Multus                       *mellanoxv1alpha1.ImageSpec
+	Ipoib                        *mellanoxv1alpha1.ImageSpec
+	IpamPlugin                   *mellanoxv1alpha1.ImageSpec
+	NvIPAM                       *mellanoxv1alpha1.ImageSpec
+	NicFeatureDiscovery          *mellanoxv1alpha1.ImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -80,6 +81,7 @@ func initWithEnvVariale(name string, image *mellanoxv1alpha1.ImageSpec) {
 
 func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("NETWORK_OPERATOR", release.NetworkOperator)
+	initWithEnvVariale("NETWORK_OPERATOR_INIT_CONTAINER", release.NetworkOperatorInitContainer)
 	initWithEnvVariale("MOFED", release.Mofed)
 	initWithEnvVariale("RDMA_SHARED_DEVICE_PLUGIN", release.RdmaSharedDevicePlugin)
 	initWithEnvVariale("SRIOV_DEVICE_PLUGIN", release.SriovDevicePlugin)

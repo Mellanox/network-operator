@@ -1,0 +1,5 @@
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: OFED_INIT_CONTAINER_IMAGE
+    value: "{{ .NetworkOperatorInitContainer.Repository }}/{{ .NetworkOperatorInitContainer.Image }}:{{ .NetworkOperatorInitContainer.Version }}"
