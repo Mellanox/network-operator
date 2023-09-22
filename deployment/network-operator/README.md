@@ -342,7 +342,7 @@ parameters.
 
 ### General parameters
 
-| Name                                                 | Type   | Default                                  | description                                                                                                                                                 |
+| Name                                                 | Type   | Default                                  | Description                                                                                                                                                 |
 |------------------------------------------------------|--------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `nfd.enabled`                                        | bool   | `True`                                   | deploy Node Feature Discovery                                                                                                                               |
 | `nfd.deployNodeFeatureRules`                         | bool   | `True`                                   | deploy Node Feature Rules to label the nodes                                                                                                                |
@@ -373,7 +373,7 @@ imagePullSecrets:
 
 #### Mellanox OFED driver
 
-| Name | Type | Default | description                                                                                                                                                               |
+| Name | Type | Default | Description                                                                                                                                                               |
 | ---- | ---- | ------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container                                                                                                                                     |
 | `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository                                                                                                                                     |
@@ -393,7 +393,7 @@ imagePullSecrets:
 
 #### RDMA Device Plugin
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `rdmaSharedDevicePlugin.deploy` | bool | `true` | Deploy RDMA Shared device plugin  |
 | `rdmaSharedDevicePlugin.repository` | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository |
@@ -425,7 +425,7 @@ resources:
 
 #### SR-IOV Network Device plugin
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `sriovDevicePlugin.deploy` | bool | `false` | Deploy SR-IOV Network device plugin  |
 | `sriovDevicePlugin.repository` | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository |
@@ -464,7 +464,7 @@ Create/Update/Delete), reading the Pod's network annotation and fetching its cor
 PKey, to add the newly generated Guid or the predefined Guid in guid field of CRD cni-args to that PKey, for pods with
 annotation mellanox.infiniband.app.
 
-| Name                                  | Type   | Default                   | description                                                                                 |
+| Name                                  | Type   | Default                   | Description                                                                                 |
 |---------------------------------------|--------|---------------------------|---------------------------------------------------------------------------------------------|
 | `ibKubernetes.deploy`                 | bool   | `false`                   | Deploy IB Kubernetes                                                                        |
 | `ibKubernetes.repository`             | string | `ghcr.io/mellanox`        | IB Kubernetes image repository                                                              |
@@ -501,7 +501,7 @@ data:
 
 #### Secondary Network
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `secondaryNetwork.deploy` | bool | `true` | Deploy Secondary Network  |
 
@@ -515,7 +515,7 @@ optionally deployed components:
 
 ##### CNI Plugin Secondary Network
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `cniPlugins.deploy` | bool | `true` | Deploy CNI Plugins Secondary Network  |
 | `cniPlugins.image` | string | `plugins` | CNI Plugins image name  |
@@ -525,7 +525,7 @@ optionally deployed components:
 
 ##### Multus CNI Secondary Network
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `multus.deploy` | bool | `true` | Deploy Multus Secondary Network  |
 | `multus.image` | string | `multus-cni` | Multus image name  |
@@ -536,7 +536,7 @@ optionally deployed components:
 
 ##### IPoIB CNI
 
-| Name | Type | Default | description |
+| Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `ipoib.deploy` | bool | `false` | Deploy IPoIB CNI  |
 | `ipoib.image` | string | `ipoib-cni` | IPoIB CNI image name  |
@@ -546,7 +546,7 @@ optionally deployed components:
 
 ##### IPAM CNI Plugin Secondary Network
 
-| Name                          | Type   | Default                        | description |
+| Name                          | Type   | Default                        | Description |
 | ----------------------------- | ------ |--------------------------------| ----------- |
 | `ipamPlugin.deploy`           | bool   | `true`                         | Deploy IPAM CNI Plugin Secondary Network  |
 | `ipamPlugin.image`            | string | `whereabouts`                  | IPAM CNI Plugin image name  |
@@ -556,7 +556,7 @@ optionally deployed components:
 
 #### NVIDIA IPAM Plugin
 
-| Name                      | Type   | Default            | description                                                                              |
+| Name                      | Type   | Default            | Description                                                                              |
 | ------------------------- | ------ |--------------------| -----------------------------------------------------------------------------------------|
 | `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                                |
 | `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                            |
@@ -564,6 +564,19 @@ optionally deployed components:
 | `nvIpam.version`          | string | `v0.0.3`           | NVIDIA IPAM Plugin image version                                                         |
 | `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image     |
 | `nvIpam.config`           | string | `"{"pools": {"rdma-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}}}"` | Network pool configuration as described in [nvidia-k8s-ipam](https://github.com/Mellanox/nvidia-k8s-ipam), the default defines a single IP Pool named `"rdma-pool"`|
+
+#### NVIDIA NIC Feature Discovery
+
+[NVIDIA NIC Feature Discovery](https://github.com/Mellanox/nic-feature-discovery)
+leverages [Node Feature Discovery](https://kubernetes-sigs.github.io/node-feature-discovery/stable/get-started/index.html)
+to advertise NIC specific labels on K8s Node objects.
+
+| Name                             | Type   | Default                 | Description                                   |
+| -------------------------------- | ------ | ----------------------- | --------------------------------------------- |
+| `nicFeatureDiscovery.deploy`     | bool   | `false`                 | Deploy NVIDIA NIC Feature Discovery           |
+| `nicFeatureDiscovery.image`      | string | `nic-feature-discovery` | NVIDIA NIC Feature Discovery image name       |
+| `nicFeatureDiscovery.repository` | string | `ghcr.io/mellanox`      | NVIDIA NIC Feature Discovery image repository |
+| `nicFeatureDiscovery.version`    | string | `v0.0.1`                | NVIDIA NIC Feature Discovery image version    |
 
 ## Deployment Examples
 

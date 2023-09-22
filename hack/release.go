@@ -45,6 +45,7 @@ type Release struct {
 	Ipoib                  *mellanoxv1alpha1.ImageSpec
 	IpamPlugin             *mellanoxv1alpha1.ImageSpec
 	NvIPAM                 *mellanoxv1alpha1.ImageSpec
+	NicFeatureDiscovery    *mellanoxv1alpha1.ImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -88,6 +89,7 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("IPOIB", release.Ipoib)
 	initWithEnvVariale("IPAM_PLUGIN", release.Ipoib)
 	initWithEnvVariale("NV_IPAM", release.NvIPAM)
+	initWithEnvVariale("NIC_FEATURE_DISCOVERY", release.NicFeatureDiscovery)
 }
 
 func main() {

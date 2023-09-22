@@ -180,4 +180,11 @@ spec:
     config: {{ .Values.nvIpam.config | quote }}
     {{- end }}
   {{- end }}
+  {{- if .Values.nicFeatureDiscovery.deploy }}
+  nicFeatureDiscovery:
+    image: {{ .Values.nicFeatureDiscovery.image }}
+    repository: {{ .Values.nicFeatureDiscovery.repository }}
+    version: {{ .Values.nicFeatureDiscovery.version }}
+    imagePullSecrets: {{ include "network-operator.nicFeatureDiscovery.imagePullSecrets" . }}
+  {{- end }}
 {{ end }}
