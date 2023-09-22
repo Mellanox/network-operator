@@ -9,13 +9,16 @@ operator:
   nodeSelector: {}
   affinity:
     nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-            - key: "node-role.kubernetes.io/master"
-              operator: In
-              values: [ "" ]
-          - matchExpressions:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: In
+                values: [""]
+        - weight: 1
+          preference:
+            matchExpressions:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [ "" ]

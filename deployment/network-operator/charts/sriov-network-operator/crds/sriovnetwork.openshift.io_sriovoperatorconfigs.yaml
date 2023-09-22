@@ -41,6 +41,14 @@ spec:
                   type: string
                 description: NodeSelector selects the nodes to be configured
                 type: object
+              configurationMode:
+                description: 'Flag to enable the sriov-network-config-daemon to use
+                  a systemd service to configure SR-IOV devices on boot Default mode:
+                  daemon'
+                enum:
+                - daemon
+                - systemd
+                type: string
               disableDrain:
                 description: Flag to disable nodes drain during debugging
                 type: boolean
@@ -66,7 +74,7 @@ spec:
                 type: integer
               maxParallelNodeConfiguration:
                 default: 1
-                description: how many nodes can be configured in parallel 0 means
+                description: How many nodes can be configured in parallel 0 means
                   no limit, all nodes will be configured in parallel
                 minimum: 0
                 type: integer

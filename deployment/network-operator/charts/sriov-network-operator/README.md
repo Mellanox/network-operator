@@ -46,6 +46,11 @@ $ helm install -n sriov-network-operator --create-namespace --wait sriov-network
 $ kubectl -n sriov-network-operator get pods
 ```
 
+In the case that [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/) is enabled, the sriov network operator namespace will require a security level of 'privileged'
+```
+$ kubectl label ns sriov-network-operator pod-security.kubernetes.io/enforce=privileged
+```
+
 ## Chart parameters
 
 In order to tailor the deployment of the network operator to your cluster needs
