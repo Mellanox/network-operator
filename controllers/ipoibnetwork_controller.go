@@ -48,10 +48,10 @@ type IPoIBNetworkReconciler struct {
 	stateManager state.Manager
 }
 
+//nolint:lll
 // +kubebuilder:rbac:groups=mellanox.com,resources=ipoibnetworks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=mellanox.com,resources=ipoibnetworks/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=mellanox.com,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=*,verbs=*
+// +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
