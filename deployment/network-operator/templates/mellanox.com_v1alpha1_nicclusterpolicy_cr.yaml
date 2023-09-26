@@ -176,6 +176,7 @@ spec:
     repository: {{ .Values.nvIpam.repository }}
     version: {{ .Values.nvIpam.version }}
     imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . }}
+    enableWebhook: {{ .Values.nvIpam.enableWebhook }}
   {{- end }}
   {{- if .Values.nicFeatureDiscovery.deploy }}
   nicFeatureDiscovery:

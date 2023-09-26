@@ -62,3 +62,4 @@ spec:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
     version: {{ .NvIPAM.Version }}
+    enableWebhook: false

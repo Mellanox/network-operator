@@ -219,7 +219,8 @@ spec:
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
-    version: v0.1.0
+    version: v0.1.1
+    enableWebhook: false
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr-nvidia-ipam.yaml`

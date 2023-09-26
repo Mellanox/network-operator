@@ -86,6 +86,11 @@ func getSupportedGVKs() []schema.GroupVersionKind {
 			Version: "v1",
 		},
 		{
+			Group:   "",
+			Kind:    "Service",
+			Version: "v1",
+		},
+		{
 			Group:   "apiextensions.k8s.io",
 			Kind:    "CustomResourceDefinition",
 			Version: "v1",
@@ -111,6 +116,11 @@ func getSupportedGVKs() []schema.GroupVersionKind {
 			Version: "v1",
 		},
 		{
+			Group:   "admissionregistration.k8s.io",
+			Kind:    "ValidatingWebhookConfiguration",
+			Version: "v1",
+		},
+		{
 			Group:   "k8s.cni.cncf.io",
 			Kind:    "NetworkAttachmentDefinition",
 			Version: "v1",
@@ -121,8 +131,13 @@ func getSupportedGVKs() []schema.GroupVersionKind {
 			Version: "v1",
 		},
 		{
-			Group:   "security.openshift.io",
-			Kind:    "SecurityContextConstraints",
+			Group:   "cert-manager.io",
+			Kind:    "Issuer",
+			Version: "v1",
+		},
+		{
+			Group:   "cert-manager.io",
+			Kind:    "Certificate",
 			Version: "v1",
 		},
 	}
