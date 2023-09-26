@@ -23,8 +23,8 @@ Mofed:
   version: 23.07-0.5.0.0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
-  repository: nvcr.io/nvidia/cloud-native
-  version: v1.3.2
+  repository: ghcr.io/mellanox
+  version: sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg

@@ -157,6 +157,7 @@ type DrainSpec struct {
 // 2. Device plugin configuration
 type DevicePluginSpec struct {
 	ImageSpecWithConfig `json:""`
+	UseCdi              bool `json:"useCdi,omitempty"`
 }
 
 // MultusSpec describes configuration options for Multus CNI
