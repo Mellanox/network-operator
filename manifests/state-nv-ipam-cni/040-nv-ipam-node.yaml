@@ -38,6 +38,9 @@ spec:
       serviceAccountName: nv-ipam-node
       terminationGracePeriodSeconds: 10
       tolerations:
+      {{- if .Tolerations }}
+      {{- .Tolerations | yaml | nindent 8 }}
+      {{- end }}
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
@@ -61,37 +64,51 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: IPPOOLS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         command: ["/ipam-node"]
+        args:
+          - --node-name=$(NODE_NAME)
+          - --v=1 # log level for ipam-node
+          - --logging-format=json
+          - --bind-address=unix:///host/var/lib/cni/nv-ipam/daemon.sock
+          - --store-file=/host/var/lib/cni/nv-ipam/store
+          - --cni-daemon-socket=unix:///host/var/lib/cni/nv-ipam/daemon.sock
+          - --cni-daemon-call-timeout=5 # 5 seconds
+          - --cni-bin-dir=/host/opt/cni/bin
+          - --cni-conf-dir=/host/etc/cni/net.d/nv-ipam.d
+          - --cni-log-file=/var/log/nv-ipam-cni.log
+          - --cni-log-level=info # log level for shim CNI
+          - --ippools-namespace=$(IPPOOLS_NAMESPACE)
         resources:
           requests:
             cpu: "100m"
             memory: "50Mi"
           limits:
-            cpu: "100m"
-            memory: "50Mi"
+            cpu: "300m"
+            memory: "300Mi"
         securityContext:
           privileged: true
         volumeMounts:
         - name: cnibin
           mountPath: /host/opt/cni/bin
-        - name: cni
-          mountPath: /host/etc/cni/net.d
-        - name: hostlocalcnibin
-          mountPath: /host/var/lib/cni/nv-ipam/bin
-        - name: hostlocalcnistate
-          mountPath: /host/var/lib/cni/nv-ipam/state/host-local
+        - name: cniconf
+          mountPath: /host/etc/cni/net.d/nv-ipam.d
+        - name: daemonstate
+          mountPath: /host/var/lib/cni/nv-ipam/
       volumes:
         - name: cnibin
           hostPath:
             path: /opt/cni/bin
             type: DirectoryOrCreate
-        - name: cni
+        - name: cniconf
           hostPath:
-            path: /etc/cni/net.d
-        - name: hostlocalcnibin
+            path: /etc/cni/net.d/nv-ipam.d
+            type: DirectoryOrCreate
+        - name: daemonstate
           hostPath:
-            path: /var/lib/cni/nv-ipam/bin
-        - name: hostlocalcnistate
-          hostPath:
-            path: /var/lib/cni/nv-ipam/state/host-local
+            path: /var/lib/cni/nv-ipam/
+            type: DirectoryOrCreate
 ---

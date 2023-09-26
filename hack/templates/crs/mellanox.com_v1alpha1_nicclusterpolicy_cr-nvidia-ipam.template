@@ -62,8 +62,3 @@ spec:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
     version: {{ .NvIPAM.Version }}
-    config: '{
-      "pools":  {
-        "my-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}
-      }
-    }'

@@ -561,9 +561,9 @@ optionally deployed components:
 | `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                                |
 | `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                            |
 | `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                      |
-| `nvIpam.version`          | string | `v0.0.3`           | NVIDIA IPAM Plugin image version                                                         |
+| `nvIpam.version`          | string | `v0.1.0`           | NVIDIA IPAM Plugin image version                                                         |
 | `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image     |
-| `nvIpam.config`           | string | `"{"pools": {"rdma-pool": {"subnet": "192.168.0.0/16", "perNodeBlockSize": 100, "gateway": "192.168.0.1"}}}"` | Network pool configuration as described in [nvidia-k8s-ipam](https://github.com/Mellanox/nvidia-k8s-ipam), the default defines a single IP Pool named `"rdma-pool"`|
+| `nvIpam.config`           | string | Deprecated         | This field is ignored. Configuration is done by using IPPool CRD                                                             |
 
 #### NVIDIA NIC Feature Discovery
 
