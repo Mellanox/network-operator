@@ -15,7 +15,14 @@ spec:
     singular: sriovnetworknodestate
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.syncStatus
+      name: Sync Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
         description: SriovNetworkNodeState is the Schema for the sriovnetworknodestates
@@ -65,6 +72,8 @@ spec:
                           policyName:
                             type: string
                           resourceName:
+                            type: string
+                          vdpaType:
                             type: string
                           vfRange:
                             type: string

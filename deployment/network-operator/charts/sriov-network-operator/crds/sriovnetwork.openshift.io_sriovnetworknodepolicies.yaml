@@ -49,6 +49,10 @@ spec:
                 - legacy
                 - switchdev
                 type: string
+              excludeTopology:
+                description: Exclude device's NUMA node when advertising this resource
+                  by SRIOV network device plugin. Default to false.
+                type: boolean
               isRdma:
                 description: RDMA mode. Defaults to false.
                 type: boolean
@@ -111,6 +115,12 @@ spec:
                 type: integer
               resourceName:
                 description: SRIOV Network device plugin endpoint resource name
+                type: string
+              vdpaType:
+                description: VDPA device type. Allowed value "virtio", "vhost"
+                enum:
+                - virtio
+                - vhost
                 type: string
             required:
             - nicSelector
