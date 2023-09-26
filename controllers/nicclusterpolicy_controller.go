@@ -91,7 +91,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			err := r.clearMofedWaitLabel(ctx)
+			err := r.handleMOFEDWaitLabelsNoConfig(ctx)
 			if err != nil {
 				reqLogger.V(consts.LogLevelError).Error(err, "Fail to clear Mofed label on CR deletion.")
 				return reconcile.Result{}, err
@@ -111,7 +111,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
 	if instance.Spec.OFEDDriver != nil || instance.Spec.RdmaSharedDevicePlugin != nil ||
-		instance.Spec.SriovDevicePlugin != nil {
+		instance.Spec.SriovDevicePlugin != nil || instance.Spec.NicFeatureDiscovery != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
 		nodeList := &corev1.NodeList{}
@@ -135,7 +135,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	managerStatus := r.stateManager.SyncState(ctx, instance, sc)
 	r.updateCrStatus(ctx, instance, managerStatus)
 
-	err = r.updateNodeLabels(ctx, instance)
+	err = r.handleMOFEDWaitLabels(ctx, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -149,9 +149,9 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return ctrl.Result{}, nil
 }
 
-// updateNodeLabels updates nodes labels to mark device plugins should wait for OFED pod
+// handleMOFEDWaitLabels updates nodes labels to mark device plugins should wait for OFED pod
 // Set nvidia.com/ofed.wait=false if OFED is not deployed.
-func (r *NicClusterPolicyReconciler) updateNodeLabels(
+func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) error {
 	if cr.Spec.OFEDDriver != nil {
 		pods := &corev1.PodList{}
@@ -165,43 +165,76 @@ func (r *NicClusterPolicyReconciler) updateNodeLabels(
 			if len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].Ready {
 				labelValue = "false"
 			}
-			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:%q}}}`, nodeinfo.NodeLabelWaitOFED, labelValue))
-			err := r.Client.Patch(ctx, &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pod.Spec.NodeName,
-				},
-			}, client.RawPatch(types.StrategicMergePatchType, patch))
-
-			if err != nil {
-				return errors.Wrapf(err, "unable to patch %s label for node %s", nodeinfo.NodeLabelWaitOFED,
-					pod.Spec.NodeName)
+			if err := setOFEDWaitLabel(ctx, r.Client, pod.Spec.NodeName, labelValue); err != nil {
+				return err
 			}
 		}
 	} else {
-		return r.clearMofedWaitLabel(ctx)
+		return r.handleMOFEDWaitLabelsNoConfig(ctx)
 	}
 
 	return nil
 }
 
-// clearMofedWaitLabel set "network.nvidia.com/operator.mofed.wait" to false
-// on Nodes with Mellanox NICs
-func (r *NicClusterPolicyReconciler) clearMofedWaitLabel(ctx context.Context) error {
-	// We deploy OFED and Device plugins only on a nodes with Mellanox NICs
+// handleMOFEDWaitLabelsNoConfig handles MOFED wait label for scenarios when OFED is
+// not configured in NicClusterPolicy, do the following:
+// - set "network.nvidia.com/operator.mofed.wait" to false on Nodes with NVIDIA NICs
+// - remove "network.nvidia.com/operator.mofed.wait" which have no NVIDIA NICs anymore
+// - set "network.nvidia.com/operator.mofed.wait" to true if detects OFED Pod
+// on the node (probably in the terminating state)
+func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabelsNoConfig(ctx context.Context) error {
+	nodesWithOFEDContainer := map[string]struct{}{}
+	pods := &corev1.PodList{}
+	if err := r.Client.List(ctx, pods, client.MatchingLabels{consts.OfedDriverLabel: ""}); err != nil {
+		return errors.Wrap(err, "failed to list pods")
+	}
+	for i := range pods.Items {
+		pod := pods.Items[i]
+		if pod.Spec.NodeName != "" {
+			nodesWithOFEDContainer[pod.Spec.NodeName] = struct{}{}
+		}
+	}
 	nodes := &corev1.NodeList{}
-
-	err := r.Client.List(ctx, nodes, client.MatchingLabels{nodeinfo.NodeLabelMlnxNIC: "true"})
-	if err != nil {
+	if err := r.Client.List(ctx, nodes); err != nil {
 		return errors.Wrap(err, "failed to list nodes")
 	}
-
 	for i := range nodes.Items {
-		patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"false"}}}`, nodeinfo.NodeLabelWaitOFED))
-		err := r.Client.Patch(ctx, &nodes.Items[i], client.RawPatch(types.StrategicMergePatchType, patch))
-		if err != nil {
-			return errors.Wrapf(err, "unable to patch %s node label for node %s",
-				nodeinfo.NodeLabelWaitOFED, nodes.Items[i].Name)
+		node := nodes.Items[i]
+		labelValue := ""
+		if _, hasOFED := nodesWithOFEDContainer[node.Name]; hasOFED {
+			labelValue = "true"
+		} else if node.GetLabels()[nodeinfo.NodeLabelMlnxNIC] == "true" {
+			labelValue = "false"
 		}
+		if node.GetLabels()[nodeinfo.NodeLabelWaitOFED] == labelValue {
+			// already has the right value
+			continue
+		}
+		if err := setOFEDWaitLabel(ctx, r.Client, node.Name, labelValue); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// set the value for the OFED wait label, remove the label if the value is ""
+func setOFEDWaitLabel(ctx context.Context, c client.Client, node, value string) error {
+	var patch []byte
+	if value == "" {
+		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: null}}}`, nodeinfo.NodeLabelWaitOFED))
+	} else {
+		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: %q}}}`, nodeinfo.NodeLabelWaitOFED, value))
+	}
+
+	err := c.Patch(ctx, &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: node,
+		},
+	}, client.RawPatch(types.StrategicMergePatchType, patch))
+
+	if err != nil {
+		return errors.Wrapf(err, "unable to patch %s label for node %s", nodeinfo.NodeLabelWaitOFED,
+			node)
 	}
 	return nil
 }

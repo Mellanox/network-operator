@@ -177,4 +177,11 @@ spec:
     version: {{ .Values.nvIpam.version }}
     imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . }}
   {{- end }}
+  {{- if .Values.nicFeatureDiscovery.deploy }}
+  nicFeatureDiscovery:
+    image: {{ .Values.nicFeatureDiscovery.image }}
+    repository: {{ .Values.nicFeatureDiscovery.repository }}
+    version: {{ .Values.nicFeatureDiscovery.version }}
+    imagePullSecrets: {{ include "network-operator.nicFeatureDiscovery.imagePullSecrets" . }}
+  {{- end }}
 {{ end }}

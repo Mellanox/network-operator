@@ -53,3 +53,7 @@ nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
   version: v0.1.0
+nicFeatureDiscovery:
+  image: nic-feature-discovery
+  repository: ghcr.io/mellanox
+  version: v0.0.1

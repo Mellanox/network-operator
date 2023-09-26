@@ -78,6 +78,28 @@ spec:
                 - repository
                 - version
                 type: object
+              nicFeatureDiscovery:
+                description: NicFeatureDiscoverySpec describes configuration options
+                  for nic-feature-discovery
+                properties:
+                  image:
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  version:
+                    pattern: '[a-zA-Z0-9\.-]+'
+                    type: string
+                required:
+                - image
+                - repository
+                - version
+                type: object
               nodeAffinity:
                 description: Node affinity is a group of node affinity scheduling
                   rules.
