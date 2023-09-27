@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 23.07-0.5.0.0
+    repository: nvcr.io/nvstaging/mellanox
+    version: 23.10-0.2.2.0
     livenessProbe:
       initialDelaySeconds: 30
       periodSeconds: 30
