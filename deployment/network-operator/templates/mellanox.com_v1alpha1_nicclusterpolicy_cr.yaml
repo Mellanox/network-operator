@@ -174,8 +174,6 @@ spec:
       imagePullSecrets: {{ include "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" . }}
     {{- end }}
   {{- end }}
-  psp:
-    enabled: {{ .Values.psp.enabled }}
   {{- if .Values.nvIpam.deploy }}
   nvIpam:
     image: {{ .Values.nvIpam.image }}

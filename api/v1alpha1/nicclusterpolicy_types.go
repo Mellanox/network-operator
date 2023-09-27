@@ -180,14 +180,6 @@ type SecondaryNetworkSpec struct {
 	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
 }
 
-// PSPSpec describes configuration for PodSecurityPolicies to apply for all Pods
-type PSPSpec struct {
-	// Enabled indicates if PodSecurityPolicies needs to be enabled for all Pods
-	// +optional
-	// +kubebuilder:default:=false
-	Enabled bool `json:"enabled,omitempty"`
-}
-
 // IBKubernetesSpec describes configuration options for ib-kubernetes
 type IBKubernetesSpec struct {
 	// Image information for ib-kubernetes
@@ -233,7 +225,6 @@ type NicClusterPolicySpec struct {
 	IBKubernetes           *IBKubernetesSpec        `json:"ibKubernetes,omitempty"`
 	SecondaryNetwork       *SecondaryNetworkSpec    `json:"secondaryNetwork,omitempty"`
 	NvIpam                 *NVIPAMSpec              `json:"nvIpam,omitempty"`
-	PSP                    *PSPSpec                 `json:"psp,omitempty"`
 	NicFeatureDiscovery    *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
 }
 

@@ -1,7 +1,0 @@
-bases:
-- ../default
-
-resources:
-  - pod_security_policy.yaml
-  - manager_psp_role.yaml
-  - manager_psp_rolebinding.yaml

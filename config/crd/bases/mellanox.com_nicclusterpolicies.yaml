@@ -581,16 +581,6 @@ spec:
                 - repository
                 - version
                 type: object
-              psp:
-                description: PSPSpec describes configuration for PodSecurityPolicies
-                  to apply for all Pods
-                properties:
-                  enabled:
-                    default: false
-                    description: Enabled indicates if PodSecurityPolicies needs to
-                      be enabled for all Pods
-                    type: boolean
-                type: object
               rdmaSharedDevicePlugin:
                 description: DevicePluginSpec describes configuration options for
                   device plugin 1. Image information for device plugin 2. Device plugin

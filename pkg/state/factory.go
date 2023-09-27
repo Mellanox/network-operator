@@ -108,11 +108,6 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
 	}
-	podSecurityPolicyState, err := NewStatePodSecurityPolicy(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-pod-security-policy"))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create Pod Security Policy State")
-	}
 	ibKubernetesState, err := NewStateIBKubernetes(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ib-kubernetes"))
 	if err != nil {
@@ -130,7 +125,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 	}
 
 	return []State{
-		podSecurityPolicyState, multusState, cniPluginsState, ipoibState, whereaboutState,
+		multusState, cniPluginsState, ipoibState, whereaboutState,
 		ofedState, sriovDpState, sharedDpState, ibKubernetesState, nvIpamCniState,
 		nicFeatureDiscoveryState}, nil
 }

@@ -20,7 +20,6 @@
     - [IPoIBNetwork CRD](#ipoibnetwork-crd)
       - [IPoIBNetwork spec:](#ipoibnetwork-spec)
         - [Example for IPoIBNetwork resource:](#example-for-ipoibnetwork-resource)
-  - [Pod Security Policy](#pod-security-policy)
   - [System Requirements](#system-requirements)
   - [Tested Network Adapters](#tested-network-adapters)
   - [Compatibility Notes](#compatibility-notes)
@@ -413,9 +412,6 @@ spec:
 ```
 
 Can be found at: `example/crs/mellanox.com_v1alpha1_ipoibnetwork_cr.yaml`
-
-## Pod Security Policy
-NVIDIA Network Operator supports [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). When NicClusterPolicy is created with `psp.enabled=True`, privileged PSP is created and applied to all network-operator's pods. Requires [admission controller](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#how-do-i-turn-on-an-admission-control-plug-in) to be enabled.
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
