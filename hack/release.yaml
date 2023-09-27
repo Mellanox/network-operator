@@ -1,14 +1,14 @@
 NetworkOperator:
   image: network-operator
-  repository: nvcr.io/nvidia/cloud-native
+  repository: nvcr.io/nvstaging/mellanox
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-23.10.0-beta.1
+  version: network-operator-0.9.0-test.1
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-23.10.0-beta.1
+  version: network-operator-0.9.0-test.1
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg

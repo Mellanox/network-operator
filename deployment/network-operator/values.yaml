@@ -99,8 +99,8 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-23.10.0-beta.1
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-23.10.0-beta.1
+    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-0.9.0-test.1
+    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-0.9.0-test.1
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.7.0
     ibSriovCni:  ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.3
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-23.10.0-beta.1
@@ -137,7 +137,7 @@ operator:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [ "" ]
-  repository: nvcr.io/nvidia/cloud-native
+  repository: nvcr.io/nvstaging/mellanox
   image: network-operator
   # imagePullSecrets: []
   nameOverride: ""
