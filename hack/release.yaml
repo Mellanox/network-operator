@@ -3,12 +3,12 @@ NetworkOperator:
   repository: nvcr.io/nvidia/cloud-native
 SriovNetworkOperator:
   image: sriov-network-operator
-  repository: nvcr.io/nvidia/mellanox
-  version: network-operator-23.7.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: network-operator-23.10.0-beta.1
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
-  repository: nvcr.io/nvidia/mellanox
-  version: network-operator-23.7.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: network-operator-23.10.0-beta.1
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
@@ -19,16 +19,16 @@ SriovIbCni:
   version: v1.0.3
 Mofed:
   image: mofed
-  repository: nvcr.io/nvidia/mellanox
-  version: 23.07-0.5.0.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: 23.10-0.2.2.0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: ghcr.io/mellanox
   version: sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775
 SriovDevicePlugin:
   image: sriov-network-device-plugin
-  repository: ghcr.io/k8snetworkplumbingwg
-  version: 7e7f979087286ee950bd5ebc89d8bbb6723fc625
+  repository: nvcr.io/nvstaging/mellanox
+  version: network-operator-23.10.0-beta.1
 IbKubernetes:
   image: ib-kubernetes
   repository: ghcr.io/mellanox

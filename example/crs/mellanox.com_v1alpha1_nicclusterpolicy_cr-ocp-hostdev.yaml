@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 23.07-0.5.0.0
+    repository: nvcr.io/nvstaging/mellanox
+    version: 23.10-0.2.2.0
     upgradePolicy:
       autoUpgrade: false
       drain:
@@ -30,8 +30,8 @@ spec:
       maxParallelUpgrades: 1
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: 7e7f979087286ee950bd5ebc89d8bbb6723fc625
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-23.10.0-beta.1
     config: |
       {
         "resourceList": [
