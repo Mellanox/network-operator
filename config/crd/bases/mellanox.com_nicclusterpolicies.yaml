@@ -303,6 +303,10 @@ spec:
                 properties:
                   config:
                     type: string
+                  enableWebhook:
+                    default: false
+                    description: Enable deployment of the validation webhook
+                    type: boolean
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string

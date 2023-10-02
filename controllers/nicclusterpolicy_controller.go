@@ -77,6 +77,8 @@ type NicClusterPolicyReconciler struct {
 // +kubebuilder:rbac:groups=config.openshift.io,resources=proxies,verbs=get;list;watch
 // +kubebuilder:rbac:groups=nv-ipam.nvidia.com,resources=ippools,verbs=get;list;watch;create;
 // +kubebuilder:rbac:groups=nv-ipam.nvidia.com,resources=ippools/status,verbs=get;update;patch;
+// +kubebuilder:rbac:groups=cert-manager.io,resources=issuers;certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -112,7 +114,8 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
 	if instance.Spec.OFEDDriver != nil || instance.Spec.RdmaSharedDevicePlugin != nil ||
-		instance.Spec.SriovDevicePlugin != nil || instance.Spec.NicFeatureDiscovery != nil {
+		instance.Spec.SriovDevicePlugin != nil || instance.Spec.NicFeatureDiscovery != nil ||
+		instance.Spec.NvIpam != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
 		nodeList := &corev1.NodeList{}

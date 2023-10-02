@@ -1,0 +1,46 @@
+# 2023 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+{{ if .CrSpec.EnableWebhook }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: nv-ipam-validating-webhook-configuration
+  annotations:
+    {{- if eq .RuntimeSpec.OSName "rhcos" }}
+    service.beta.openshift.io/inject-cabundle: "true"
+    {{- else }}
+    cert-manager.io/inject-ca-from: {{ .RuntimeSpec.Namespace }}/nv-ipam-serving-cert
+    {{- end }}
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: nv-ipam-webhook-service
+        namespace: {{ .RuntimeSpec.Namespace }}
+        path: /validate-nv-ipam-nvidia-com-v1alpha1-ippool
+    failurePolicy: Fail
+    name: validate-ippool.nv-ipam.nvidia.com
+    rules:
+      - apiGroups:
+          - nv-ipam.nvidia.com
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - ippools
+    sideEffects: None
+{{ end }}

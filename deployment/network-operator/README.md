@@ -556,14 +556,20 @@ optionally deployed components:
 
 #### NVIDIA IPAM Plugin
 
-| Name                      | Type   | Default            | Description                                                                              |
-| ------------------------- | ------ |--------------------| -----------------------------------------------------------------------------------------|
-| `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                                |
-| `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                            |
-| `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                      |
-| `nvIpam.version`          | string | `v0.1.0`           | NVIDIA IPAM Plugin image version                                                         |
-| `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image     |
-| `nvIpam.config`           | string | Deprecated         | This field is ignored. Configuration is done by using IPPool CRD                                                             |
+| Name                      | Type   | Default            | Description                                                                         |
+| ------------------------- |--------|--------------------|-------------------------------------------------------------------------------------|
+| `nvIpam.deploy`           | bool   | `false`            | Deploy NVIDIA IPAM Plugin                                                           |
+| `nvIpam.image`            | string | `nvidia-k8s-ipam`  | NVIDIA IPAM Plugin image name                                                       |
+| `nvIpam.repository`       | string | `ghcr.io/mellanox` | NVIDIA IPAM Plugin image repository                                                 |
+| `nvIpam.version`          | string | `v0.1.1`           | NVIDIA IPAM Plugin image version                                                    |
+| `nvIpam.imagePullSecrets` | list   | `[]`               | An optional list of references to secrets to use for pulling any of the Plugin image |
+| `nvIpam.config`           | string | Deprecated         | This field is ignored. Configuration is done by using IPPool CRD                    |
+| `nvIpam.enableWebhook`    | bool   | `false`            | Enable deployment of the validataion webhook for IPPool CRD                         |
+
+> __Note__: Supported X.509 certificate management system should be available in the cluster to enable the validation webhook.
+Currently supported systems are [certmanager](https://cert-manager.io/) and
+[Openshift certificate management](https://docs.openshift.com/container-platform/4.13/security/certificates/service-serving-certificate.html)
+
 
 #### NVIDIA NIC Feature Discovery
 

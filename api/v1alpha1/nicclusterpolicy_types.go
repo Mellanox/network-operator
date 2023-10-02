@@ -209,6 +209,9 @@ type IBKubernetesSpec struct {
 // 1. Image information for nv-ipam
 // 2. Configuration for nv-ipam
 type NVIPAMSpec struct {
+	// Enable deployment of the validation webhook
+	// +kubebuilder:default:=false
+	EnableWebhook       bool `json:"enableWebhook,omitempty"`
 	ImageSpecWithConfig `json:""`
 }
 

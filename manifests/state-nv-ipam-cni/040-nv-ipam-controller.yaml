@@ -94,6 +94,9 @@ spec:
             - --leader-elect=true
             - --leader-elect-namespace=$(POD_NAMESPACE)
             - --ippools-namespace=$(POD_NAMESPACE)
+            {{- if .CrSpec.EnableWebhook }}
+            - --webhook=true
+            {{- end }}
           env:
             - name: POD_NAMESPACE
               valueFrom:
@@ -120,4 +123,17 @@ spec:
             requests:
               cpu: 100m
               memory: 300Mi
+          volumeMounts:
+          {{- if .CrSpec.EnableWebhook }}
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+          {{- end }}
+      volumes:
+        {{- if .CrSpec.EnableWebhook }}
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: nv-ipam-webhook-server-cert
+        {{- end }}
 ---

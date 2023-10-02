@@ -72,12 +72,12 @@ spec:
           - --node-name=$(NODE_NAME)
           - --v=1 # log level for ipam-node
           - --logging-format=json
-          - --bind-address=unix:///host/var/lib/cni/nv-ipam/daemon.sock
-          - --store-file=/host/var/lib/cni/nv-ipam/store
-          - --cni-daemon-socket=unix:///host/var/lib/cni/nv-ipam/daemon.sock
+          - --bind-address=unix:///var/lib/cni/nv-ipam/daemon.sock
+          - --store-file=/var/lib/cni/nv-ipam/store
+          - --cni-daemon-socket=unix:///var/lib/cni/nv-ipam/daemon.sock
           - --cni-daemon-call-timeout=5 # 5 seconds
-          - --cni-bin-dir=/host/opt/cni/bin
-          - --cni-conf-dir=/host/etc/cni/net.d/nv-ipam.d
+          - --cni-bin-dir=/opt/cni/bin
+          - --cni-conf-dir=/etc/cni/net.d/nv-ipam.d
           - --cni-log-file=/var/log/nv-ipam-cni.log
           - --cni-log-level=info # log level for shim CNI
           - --ippools-namespace=$(IPPOOLS_NAMESPACE)
@@ -91,16 +91,20 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - name: cnibin
-          mountPath: /host/opt/cni/bin
-        - name: cniconf
-          mountPath: /host/etc/cni/net.d/nv-ipam.d
-        - name: daemonstate
-          mountPath: /host/var/lib/cni/nv-ipam/
+          - name: cnibin
+            mountPath: /opt/cni/bin
+          - name: cniconf
+            mountPath: /etc/cni/net.d/nv-ipam.d
+          - name: daemonstate
+            mountPath: /var/lib/cni/nv-ipam/
       volumes:
         - name: cnibin
           hostPath:
+            {{- if eq .RuntimeSpec.OSName "rhcos" }}
+            path: /var/lib/cni/bin
+            {{- else }}
             path: /opt/cni/bin
+            {{- end }}
             type: DirectoryOrCreate
         - name: cniconf
           hostPath:
