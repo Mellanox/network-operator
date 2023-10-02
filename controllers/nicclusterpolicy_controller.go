@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -48,7 +49,8 @@ import (
 // NicClusterPolicyReconciler reconciles a NicClusterPolicy object
 type NicClusterPolicyReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme              *runtime.Scheme
+	ClusterTypeProvider clustertype.Provider
 
 	stateManager state.Manager
 }
@@ -113,6 +115,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
+	sc.Add(state.InfoTypeClusterType, r.ClusterTypeProvider)
 	if instance.Spec.OFEDDriver != nil || instance.Spec.RdmaSharedDevicePlugin != nil ||
 		instance.Spec.SriovDevicePlugin != nil || instance.Spec.NicFeatureDiscovery != nil ||
 		instance.Spec.NvIpam != nil {
