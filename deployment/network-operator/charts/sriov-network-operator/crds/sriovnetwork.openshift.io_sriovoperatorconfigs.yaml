@@ -65,6 +65,11 @@ spec:
                   provision switchdev-configuration.service and enable OpenvSwitch
                   hw-offload on nodes.
                 type: boolean
+              featureGates:
+                additionalProperties:
+                  type: boolean
+                description: FeatureGates to enable experimental features
+                type: object
               logLevel:
                 description: Flag to control the log verbose level of the operator.
                   Set to '0' to show only the basic logs. And set to '2' to show all
