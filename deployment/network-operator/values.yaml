@@ -137,7 +137,7 @@ operator:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
                 values: [ "" ]
-  repository: nvcr.io/nvidia/cloud-native
+  repository: nvcr.io/nvstaging/mellanox
   image: network-operator
   # imagePullSecrets: []
   nameOverride: ""
@@ -153,7 +153,7 @@ ofedDriver:
   deploy: false
   image: mofed
   repository: nvcr.io/nvstaging/mellanox
-  version: 23.10-0.2.2.0
+  version: 23.10-0.2.8.0
   # imagePullSecrets: []
   # env, if defined will pass environment variables to the OFED container
   # env:
