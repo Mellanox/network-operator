@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -143,6 +144,8 @@ type ofedRuntimeSpec struct {
 	OSName         string
 	OSVer          string
 	MOFEDImageName string
+	// is true if cluster type is Openshift
+	IsOpenshift bool
 }
 
 type ofedManifestRenderData struct {
@@ -251,12 +254,18 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
 	}
 
-	// Openshift specific logic, do nothing in vanilla k8s cluster
-	if err := s.handleOpenshiftClusterWideProxyConfig(ctx, cr); err != nil {
-		return SyncStateNotReady, errors.Wrap(err, "failed to handle Openshift cluster-wide proxy settings")
+	clusterInfo := infoCatalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
-	objs, err := s.getManifestObjects(ctx, cr, nodeInfo)
+	if clusterInfo.IsOpenshift() {
+		if err := s.handleOpenshiftClusterWideProxyConfig(ctx, cr); err != nil {
+			return SyncStateNotReady, errors.Wrap(err, "failed to handle Openshift cluster-wide proxy settings")
+		}
+	}
+
+	objs, err := s.getManifestObjects(ctx, cr, nodeInfo, clusterInfo)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -304,7 +313,6 @@ func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(
 		return err
 	}
 	if clusterWideProxyConfig == nil {
-		// we are probably not in Openshift cluster
 		return nil
 	}
 
@@ -356,7 +364,7 @@ func (s *stateOFED) handleAdditionalMounts(
 func (s *stateOFED) getManifestObjects(
 	ctx context.Context,
 	cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeInfo nodeinfo.Provider) ([]*unstructured.Unstructured, error) {
+	nodeInfo nodeinfo.Provider, clusterInfo clustertype.Provider) ([]*unstructured.Unstructured, error) {
 	reqLogger := log.FromContext(ctx)
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
@@ -434,6 +442,7 @@ func (s *stateOFED) getManifestObjects(
 			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr, reqLogger),
+			IsOpenshift:    clusterInfo.IsOpenshift(),
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,

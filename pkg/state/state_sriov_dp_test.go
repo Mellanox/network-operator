@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
-	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 	"github.com/Mellanox/network-operator/pkg/utils"
@@ -38,13 +38,16 @@ import (
 type dummyProvider struct {
 }
 
-func (p *dummyProvider) GetNodesAttributes(_ ...nodeinfo.Filter) []nodeinfo.NodeAttributes {
-	attr := nodeinfo.NodeAttributes{
-		Name:       "test",
-		Attributes: make(map[nodeinfo.AttributeType]string),
-	}
-	attr.Attributes[nodeinfo.AttrTypeOSName] = "test"
-	return []nodeinfo.NodeAttributes{attr}
+func (d *dummyProvider) GetClusterType() clustertype.Type {
+	return clustertype.Kubernetes
+}
+
+func (d *dummyProvider) IsKubernetes() bool {
+	return true
+}
+
+func (d *dummyProvider) IsOpenshift() bool {
+	return false
 }
 
 func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, sriovConfig string) {

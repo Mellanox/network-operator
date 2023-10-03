@@ -40,7 +40,7 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-{{if eq .RuntimeSpec.OSName "rhcos"}}
+{{ if .RuntimeSpec.IsOpenshift }}
       serviceAccountName: ofed-driver
 {{end}}
       hostNetwork: true
