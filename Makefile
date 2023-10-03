@@ -270,10 +270,10 @@ kustomize: ## Download kustomize locally if necessary.
 	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.5)
 
 .PHONY: operator-sdk
-OPERATOR_SDK = ./bin/operator-sdk
-operator-sdk: ## Download opm locally if necessary.
+OPERATOR_SDK = $(TOOLSDIR)/operator-sdk
+operator-sdk: ## Download operator-sdk locally if necessary.
 ifeq (,$(wildcard $(OPERATOR_SDK)))
-ifeq (,$(shell which opm 2>/dev/null))
+ifeq (,$(shell which operator-sdk 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPERATOR_SDK)) ;\
@@ -283,7 +283,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	chmod +x operator-sdk_$${OS}_$${ARCH} && mv operator-sdk_$${OS}_$${ARCH} ./bin/operator-sdk ;\
 	}
 else
-OPM = $(shell which operator-sdk)
+OPERATOR_SDK = $(shell which operator-sdk)
 endif
 endif
 
@@ -308,23 +308,6 @@ release-build:
 	cd hack && $(GO) run release.go --templateDir ./templates/samples/ --outputDir ../config/samples/
 	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
-
-.PHONY: opm
-OPM = ./bin/opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
-else
-OPM = $(shell which opm)
-endif
-endif
 
 # go-install-tool will 'go install' any package $2 and install it to $1.
 define go-install-tool
