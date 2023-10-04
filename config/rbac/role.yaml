@@ -266,6 +266,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - mellanox.com
+  resources:
+  - nicclusterpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
   - monitoring.coreos.com
   resources:
   - servicemonitors
