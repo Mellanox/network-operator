@@ -113,6 +113,13 @@ func (s *stateSharedDp) Sync(
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
+	waitForStaleObjectsRemoval, err := s.handleStaleStateObjects(ctx, objs)
+	if err != nil {
+		return SyncStateNotReady, errors.Wrap(err, "failed to handle state stale objects")
+	}
+	if waitForStaleObjectsRemoval {
+		return SyncStateNotReady, nil
+	}
 	// Check objects status
 	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
