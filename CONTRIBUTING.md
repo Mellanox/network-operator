@@ -30,3 +30,8 @@ Wrap it to 72 characters.
 
 Signed-off-by: <contributor@foo.com>
 ```
+
+## Format of PR title and description
+
+Pull Request title and description are expected to conform to [conventional commits specification](https://www.conventionalcommits.org)
+
