@@ -23,6 +23,7 @@ spec:
   # Add fields here
   enableInjector: false
   enableOperatorWebhook: false
+  logLevel: 2  
   configDaemonNodeSelector:
     {{- $defaults := dict "beta.kubernetes.io/os" "linux" "network.nvidia.com/operator.mofed.wait" "false" }}
     {{- $selectors := merge $defaults (.Values.sriovNetworkOperator.configDaemonNodeSelectorExtra | default dict  ) }}
