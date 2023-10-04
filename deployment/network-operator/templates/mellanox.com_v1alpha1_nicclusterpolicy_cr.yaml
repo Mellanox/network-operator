@@ -74,6 +74,9 @@ spec:
     repository: {{ .Values.rdmaSharedDevicePlugin.repository }}
     version: {{ .Values.rdmaSharedDevicePlugin.version }}
     imagePullSecrets: {{ include "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" . }}
+    {{- if .Values.rdmaSharedDevicePlugin.useCdi }}
+      useCdi: {{ .Values.rdmaSharedDevicePlugin.useCdi }}
+    {{- end }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -102,6 +105,9 @@ spec:
     repository: {{ .Values.sriovDevicePlugin.repository }}
     version: {{ .Values.sriovDevicePlugin.version }}
     imagePullSecrets: {{ include "network-operator.sriovDevicePlugin.imagePullSecrets" . }}
+    {{- if .Values.sriovDevicePlugin.useCdi }}
+    useCdi: {{ .Values.sriovDevicePlugin.useCdi }}
+    {{- end }}
     config: |
       {
         "resourceList": [
