@@ -3,12 +3,12 @@ NetworkOperator:
   repository: nvcr.io/nvstaging/mellanox
 SriovNetworkOperator:
   image: sriov-network-operator
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-23.10.0-beta.1
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: d8a33a883d0367cab51235374d2997eea1ac5f0d
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-23.10.0-beta.1
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: d8a33a883d0367cab51235374d2997eea1ac5f0d
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
