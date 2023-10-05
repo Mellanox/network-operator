@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
@@ -62,7 +62,8 @@ type stateNVIPAMCNI struct {
 
 type nvipamRuntimeSpec struct {
 	runtimeSpec
-	OSName string
+	// is true if cluster type is Openshift
+	IsOpenshift bool
 }
 
 type NVIPAMManifestRenderData struct {
@@ -89,13 +90,13 @@ func (s *stateNVIPAMCNI) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 
-	nodeInfo := infoCatalog.GetNodeInfoProvider()
-	if nodeInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
+	clusterInfo := infoCatalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr, nodeInfo, reqLogger)
+	objs, err := s.getManifestObjects(cr, clusterInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -131,27 +132,15 @@ func (s *stateNVIPAMCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateNVIPAMCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, nodeInfo nodeinfo.Provider,
+	cr *mellanoxv1alpha1.NicClusterPolicy, clusterInfo clustertype.Provider,
 	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
-	// TODO replace this code with reliable check for cluster type (Openshift or Kubernetes)
-	var osName string
-	attrs := nodeInfo.GetNodesAttributes()
-	if len(attrs) != 0 {
-		if err := s.checkAttributesExist(attrs[0], nodeinfo.AttrTypeOSName); err == nil {
-			osName = attrs[0].Attributes[nodeinfo.AttrTypeOSName]
-		}
-	} else {
-		reqLogger.V(consts.LogLevelInfo).Info("Can't detect Operating system in the cluster, " +
-			"assume that operator runs in a Kubernetes cluster")
-	}
-
 	renderData := &NVIPAMManifestRenderData{
 		CrSpec:       cr.Spec.NvIpam,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		Tolerations:  cr.Spec.Tolerations,
 		RuntimeSpec: &nvipamRuntimeSpec{
 			runtimeSpec: runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
-			OSName:      osName,
+			IsOpenshift: clusterInfo.IsOpenshift(),
 		},
 	}
 

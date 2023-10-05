@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 )
 
@@ -24,6 +25,7 @@ type InfoType uint
 
 const (
 	InfoTypeNodeInfo = iota
+	InfoTypeClusterType
 )
 
 func NewInfoCatalog() InfoCatalog {
@@ -41,6 +43,8 @@ type InfoCatalog interface {
 	Add(InfoType, InfoSource)
 	// GetNodeInfoProvider returns a reference nodeinfo.Provider from catalog or nil if provider does not exist
 	GetNodeInfoProvider() nodeinfo.Provider
+	// GetClusterTypeProvider returns a reference clustertype.Provider from catalog or nil if provider does not exist
+	GetClusterTypeProvider() clustertype.Provider
 }
 
 type infoCatalog struct {
@@ -57,4 +61,12 @@ func (sc *infoCatalog) GetNodeInfoProvider() nodeinfo.Provider {
 		return nil
 	}
 	return infoSource.(nodeinfo.Provider)
+}
+
+func (sc *infoCatalog) GetClusterTypeProvider() clustertype.Provider {
+	infoSource, ok := sc.infoSources[InfoTypeClusterType]
+	if !ok {
+		return nil
+	}
+	return infoSource.(clustertype.Provider)
 }

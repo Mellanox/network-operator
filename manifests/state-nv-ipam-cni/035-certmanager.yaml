@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-{{ if and (ne .RuntimeSpec.OSName "rhcos") (.CrSpec.EnableWebhook) }}
+{{ if and (not .RuntimeSpec.IsOpenshift) (.CrSpec.EnableWebhook) }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer

@@ -39,7 +39,7 @@ spec:
         nodeAffinity:
           {{- .NodeAffinity | yaml | nindent 10 }}
       {{- end }}
-      {{- if eq .RuntimeSpec.OSName "rhcos" }}
+      {{- if .RuntimeSpec.IsOpenshift }}
       serviceAccountName: ipoib-cni
       {{- end}}
       {{- if .CrSpec.ImagePullSecrets }}
@@ -75,7 +75,7 @@ spec:
         - name: cnibin
           hostPath:
             # /opt/cni/bin directory is read-only on OCP, so we need to use another one
-            {{- if eq .RuntimeSpec.OSName "rhcos" }}
+            {{- if .RuntimeSpec.IsOpenshift }}
             path: /var/lib/cni/bin
             {{- else}}
             path: /opt/cni/bin

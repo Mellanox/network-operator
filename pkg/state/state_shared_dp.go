@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
@@ -62,7 +62,8 @@ type stateSharedDp struct {
 
 type sharedDpRuntimeSpec struct {
 	runtimeSpec
-	OSName string
+	// is true if cluster type is Openshift
+	IsOpenshift bool
 }
 type sharedDpManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
@@ -89,12 +90,12 @@ func (s *stateSharedDp) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
-	nodeInfo := infoCatalog.GetNodeInfoProvider()
-	if nodeInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide node information")
+	clusterInfo := infoCatalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
-	objs, err := s.getManifestObjects(cr, nodeInfo, reqLogger)
+	objs, err := s.getManifestObjects(cr, clusterInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -128,23 +129,11 @@ func (s *stateSharedDp) GetWatchSources() map[string]*source.Kind {
 	return wr
 }
 
+//nolint:dupl
 func (s *stateSharedDp) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeInfo nodeinfo.Provider,
+	clusterInfo clustertype.Provider,
 	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
-	attrs := nodeInfo.GetNodesAttributes(
-		nodeinfo.NewNodeLabelFilterBuilder().
-			WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").
-			Build())
-	if len(attrs) == 0 {
-		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
-		return []*unstructured.Unstructured{}, nil
-	}
-
-	if err := s.checkAttributesExist(attrs[0], nodeinfo.AttrTypeOSName); err != nil {
-		return nil, err
-	}
-
 	renderData := &sharedDpManifestRenderData{
 		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
 		Tolerations:         cr.Spec.Tolerations,
@@ -152,7 +141,7 @@ func (s *stateSharedDp) getManifestObjects(
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sharedDpRuntimeSpec{
 			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			OSName:      attrs[0].Attributes[nodeinfo.AttrTypeOSName],
+			IsOpenshift: clusterInfo.IsOpenshift(),
 		},
 	}
 	// render objects

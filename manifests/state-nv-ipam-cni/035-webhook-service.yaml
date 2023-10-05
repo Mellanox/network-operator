@@ -18,7 +18,7 @@ metadata:
   name: nv-ipam-webhook-service
   namespace: {{ .RuntimeSpec.Namespace }}
   annotations:
-    {{- if eq .RuntimeSpec.OSName "rhcos" }}
+    {{- if .RuntimeSpec.IsOpenshift }}
     service.alpha.openshift.io/serving-cert-secret-name: nv-ipam-webhook-server-cert
     {{- end }}
 spec:

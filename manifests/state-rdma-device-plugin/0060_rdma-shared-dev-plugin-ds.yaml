@@ -27,7 +27,7 @@ spec:
     spec:
       priorityClassName: system-node-critical
       hostNetwork: true
-{{if eq .RuntimeSpec.OSName "rhcos"}}
+{{ if .RuntimeSpec.IsOpenshift }}
       serviceAccountName: rdma-shared
 {{end}}
       tolerations:

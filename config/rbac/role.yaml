@@ -155,6 +155,7 @@ rules:
 - apiGroups:
   - config.openshift.io
   resources:
+  - clusterversions
   - proxies
   verbs:
   - get

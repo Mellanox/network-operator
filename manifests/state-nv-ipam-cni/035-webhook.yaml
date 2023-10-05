@@ -17,7 +17,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: nv-ipam-validating-webhook-configuration
   annotations:
-    {{- if eq .RuntimeSpec.OSName "rhcos" }}
+    {{- if .RuntimeSpec.IsOpenshift }}
     service.beta.openshift.io/inject-cabundle: "true"
     {{- else }}
     cert-manager.io/inject-ca-from: {{ .RuntimeSpec.Namespace }}/nv-ipam-serving-cert
