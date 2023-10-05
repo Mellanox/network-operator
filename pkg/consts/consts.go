@@ -38,4 +38,5 @@ const (
 	// that network-operator pod should be skipped during the drain operation which
 	// is executed by the upgrade controller.
 	OfedDriverSkipDrainLabelSelector = "nvidia.com/ofed-driver-upgrade-drain.skip!=true"
+	ControllerRevisionAnnotation     = "nvidia.network-operator.revision"
 )
