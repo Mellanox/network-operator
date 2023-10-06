@@ -75,7 +75,7 @@ spec:
     version: {{ .Values.rdmaSharedDevicePlugin.version }}
     imagePullSecrets: {{ include "network-operator.rdmaSharedDevicePlugin.imagePullSecrets" . }}
     {{- if .Values.rdmaSharedDevicePlugin.useCdi }}
-      useCdi: {{ .Values.rdmaSharedDevicePlugin.useCdi }}
+    useCdi: {{ .Values.rdmaSharedDevicePlugin.useCdi }}
     {{- end }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
