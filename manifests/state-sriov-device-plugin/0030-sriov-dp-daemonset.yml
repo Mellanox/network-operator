@@ -114,6 +114,7 @@ spec:
               - key: config.json
                 path: config.json
         {{- if .CrSpec.UseCdi}}
+        - name: dynamic-cdi
           hostPath:
             path: /var/run/cdi
             type: DirectoryOrCreate
