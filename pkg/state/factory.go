@@ -30,7 +30,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
-// NewStateManager creates a state.Manager for the given CRD Kind
+// NewManager creates a state.Manager for the given CRD Kind
 func NewManager(
 	crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme, setupLog logr.Logger) (Manager, error) {
 	states, err := newStates(crdKind, k8sAPIClient, scheme)
