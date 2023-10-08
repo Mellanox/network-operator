@@ -13,20 +13,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 */}}
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: {{ include "network-operator.fullname" . }}
-  namespace: {{ .Release.Namespace }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ include "network-operator.fullname" . }}
-    namespace: {{ .Release.Namespace }}
-roleRef:
-  kind: Role
-  name: {{ include "network-operator.fullname" . }}
-  apiGroup: rbac.authorization.k8s.io
----
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
