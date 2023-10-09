@@ -255,7 +255,7 @@ func (s *stateSkel) handleStateObjectsDeletion(ctx context.Context) (SyncState, 
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"State spec in CR is nil, deleting existing objects if needed", "State:", s.name)
-	found, err := s.deleteStateRelatedObjects(ctx)
+	found, err := s.deleteStateRelatedObjects(ctx, stateObjects{})
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to delete k8s objects")
 	}
@@ -266,7 +266,50 @@ func (s *stateSkel) handleStateObjectsDeletion(ctx context.Context) (SyncState, 
 	return SyncStateIgnore, nil
 }
 
-func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context) (bool, error) {
+// is a mapping where GVK is a key and a map(set) with NamespacedNames is a value
+type stateObjects map[schema.GroupVersionKind]map[types.NamespacedName]struct{}
+
+// Add object name to the stateObjects map
+func (s stateObjects) Add(gvk schema.GroupVersionKind, name types.NamespacedName) {
+	byType := s[gvk]
+	if byType == nil {
+		byType = make(map[types.NamespacedName]struct{})
+	}
+	byType[name] = struct{}{}
+	s[gvk] = byType
+}
+
+// Exist checks if object name exist in the stateObjects map
+func (s stateObjects) Exist(gvk schema.GroupVersionKind, name types.NamespacedName) bool {
+	_, exist := s[gvk][name]
+	return exist
+}
+
+// remove stale object of the state, returns boolean which indicates if removal is in progress and
+// an error if failed to remove an object
+func (s *stateSkel) handleStaleStateObjects(ctx context.Context,
+	desiredObjs []*unstructured.Unstructured) (bool, error) {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info(
+		"check state for stale objects", "State:", s.name)
+	objsToKeep := stateObjects{}
+	for _, o := range desiredObjs {
+		objsToKeep.Add(o.GroupVersionKind(), types.NamespacedName{Name: o.GetName(), Namespace: o.GetNamespace()})
+	}
+	found, err := s.deleteStateRelatedObjects(ctx, objsToKeep)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to delete k8s objects")
+	}
+	if found {
+		reqLogger.V(consts.LogLevelInfo).Info("removal of the state stale objects is in progress ",
+			"State:", s.name)
+		return true, nil
+	}
+	reqLogger.V(consts.LogLevelInfo).Info("no stale objects detected", "State:", s.name)
+	return false, nil
+}
+
+func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context, stateObjectsToKeep stateObjects) (bool, error) {
 	stateLabel := map[string]string{
 		consts.StateLabel: s.name,
 	}
@@ -281,11 +324,15 @@ func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context) (bool, error)
 		if err != nil {
 			return false, err
 		}
-		if len(l.Items) > 0 {
-			found = true
-		}
 		for _, obj := range l.Items {
 			obj := obj
+			if stateObjectsToKeep.Exist(gvk, types.NamespacedName{
+				Name:      obj.GetName(),
+				Namespace: obj.GetNamespace()}) {
+				// should keep the object
+				continue
+			}
+			found = true
 			if obj.GetDeletionTimestamp() == nil {
 				err := s.client.Delete(ctx, &obj)
 				if err != nil {
