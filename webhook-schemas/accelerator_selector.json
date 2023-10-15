@@ -1,0 +1,124 @@
+{
+  "type": "object",
+  "properties": {
+    "selectors": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "vendors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "drivers": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "pciAddresses": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "vendors"
+                ]
+              },
+              {
+                "required": [
+                  "devices"
+                ]
+              },
+              {
+                "required": [
+                  "drivers"
+                ]
+              },
+              {
+                "required": [
+                  "pciAddresses"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "vendors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "devices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "drivers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pciAddresses": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "vendors"
+              ]
+            },
+            {
+              "required": [
+                "devices"
+              ]
+            },
+            {
+              "required": [
+                "drivers"
+              ]
+            },
+            {
+              "required": [
+                "pciAddresses"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

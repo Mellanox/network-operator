@@ -1,0 +1,212 @@
+{
+  "type": "object",
+  "properties": {
+    "selectors": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "vendors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "drivers": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "pfNames": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "rootDevices": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "linkTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "isRdma": {
+                "type": "boolean"
+              },
+              "auxTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "vendors"
+                ]
+              },
+              {
+                "required": [
+                  "devices"
+                ]
+              },
+              {
+                "required": [
+                  "drivers"
+                ]
+              },
+              {
+                "required": [
+                  "pfNames"
+                ]
+              },
+              {
+                "required": [
+                  "rootDevices"
+                ]
+              },
+              {
+                "required": [
+                  "linkTypes"
+                ]
+              },
+              {
+                "required": [
+                  "isRdma"
+                ]
+              },
+              {
+                "required": [
+                  "auxTypes"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "vendors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "devices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "drivers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pfNames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "rootDevices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "linkTypes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "isRdma": {
+              "type": "boolean"
+            },
+            "auxTypes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "vendors"
+              ]
+            },
+            {
+              "required": [
+                "devices"
+              ]
+            },
+            {
+              "required": [
+                "drivers"
+              ]
+            },
+            {
+              "required": [
+                "pfNames"
+              ]
+            },
+            {
+              "required": [
+                "rootDevices"
+              ]
+            },
+            {
+              "required": [
+                "linkTypes"
+              ]
+            },
+            {
+              "required": [
+                "isRdma"
+              ]
+            },
+            {
+              "required": [
+                "auxTypes"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

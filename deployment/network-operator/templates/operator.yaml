@@ -19,6 +19,7 @@ metadata:
   name: {{ include "network-operator.fullname" . }}
   labels:
     {{- include "network-operator.labels" . | nindent 4 }}
+    control-plane: {{ .Release.Name }}-controller
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
@@ -27,8 +28,11 @@ spec:
       {{- include "network-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: {{ .Chart.Name }}
       labels:
         nvidia.com/ofed-driver-upgrade-drain.skip: "true"
+        control-plane: {{ .Release.Name }}-controller
         {{- include "network-operator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.operator.nodeSelector }}
@@ -49,6 +53,16 @@ spec:
         - name: {{ .Chart.Name }}
           # Replace this with the built image name
           image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
+          {{- if .Values.operator.admissionController.enabled }}
+          ports:
+          - containerPort: 9443
+            name: webhook-server
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /tmp/k8s-webhook-server/serving-certs
+            name: cert
+            readOnly: true
+          {{- end }}
           command:
           - /manager
           env:
@@ -66,3 +80,15 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "network-operator"
+            - name: ENABLE_WEBHOOKS
+              value: "{{ .Values.operator.admissionController.enabled }}"
+      {{- if .Values.operator.admissionController.enabled }}
+      securityContext:
+        runAsUser: 65532
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+      {{- end }}

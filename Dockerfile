@@ -74,6 +74,7 @@ COPY --from=builder /workspace/manager .
 COPY --from=builder /workspace/kubectl /usr/local/bin
 COPY --from=builder /workspace/crds /crds
 
+COPY /webhook-schemas /webhook-schemas
 COPY manifests/ manifests/
 USER 65532:65532
 

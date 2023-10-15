@@ -20,9 +20,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
+
+	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
 func TestV1alpha1(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "V1alpha1 Suite")
 }
+
+var _ = BeforeSuite(func() {
+	mellanoxv1alpha1.InitSchemaValidator("../../webhook-schemas")
+})

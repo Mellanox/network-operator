@@ -59,3 +59,5 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "network-operator"
+            - name: ENABLE_WEBHOOKS
+              value: $ENABLE_WEBHOOKS

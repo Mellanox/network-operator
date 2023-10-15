@@ -144,6 +144,20 @@ operator:
   fullnameOverride: ""
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
   # tag
+  admissionController:
+    enabled: false
+    useCertManager: true
+    # certificate:
+      # tlsCrt: |
+      #   -----BEGIN CERTIFICATE-----
+      #   MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+      #   ...
+      #   -----END CERTIFICATE-----
+      # tlsKey: |
+      #   -----BEGIN EC PRIVATE KEY-----
+      #   MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+      #   ...
+      #  -----END EC PRIVATE KEY-----
 
 imagePullSecrets: []
 
