@@ -442,8 +442,7 @@ Deployment of NVIDIA Network Operator consists of:
     * mellanox.com_nicclusterpolicies_crd.yaml
     * mellanox.com_macvlan_crds.yaml
     * k8s.cni.cncf.io-networkattachmentdefinitions-crd.yaml
-* Deploying network operator resources found under `./deploy/` e.g. operator namespace,
-role, role binding, service account and the NVIDIA Network Operator daemonset
+* Deploying network operator resources by running `make deploy`
 * Defining and deploying a NICClusterPolicy custom resource.
 Example can be found under `./example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
 * Defining and deploying a MacvlanNetwork custom resource.
