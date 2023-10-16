@@ -167,7 +167,7 @@ ofedDriver:
   deploy: false
   image: mofed
   repository: nvcr.io/nvstaging/mellanox
-  version: 23.10-0.2.8.0
+  version: 23.10-0.3.8.0
   # imagePullSecrets: []
   # env, if defined will pass environment variables to the OFED container
   # env:
