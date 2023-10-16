@@ -44,6 +44,11 @@ var _ webhook.Validator = &HostDeviceNetwork{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (w *HostDeviceNetwork) ValidateCreate() error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	hostDeviceNetworkLog.Info("validate create", "name", w.Name)
 
 	return w.validateHostDeviceNetwork()
@@ -51,6 +56,11 @@ func (w *HostDeviceNetwork) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (w *HostDeviceNetwork) ValidateUpdate(_ runtime.Object) error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	hostDeviceNetworkLog.Info("validate update", "name", w.Name)
 
 	return w.validateHostDeviceNetwork()
@@ -58,6 +68,11 @@ func (w *HostDeviceNetwork) ValidateUpdate(_ runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (w *HostDeviceNetwork) ValidateDelete() error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	hostDeviceNetworkLog.Info("validate delete", "name", w.Name)
 
 	// Validation for delete call is not required

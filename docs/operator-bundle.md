@@ -81,3 +81,26 @@ To remove the operator when installed via `operator-sdk run`, use:
 operator-sdk cleanup --namespace nvidia-network-operator nvidia-network-operator
 ```
 
+### Add Environment Variables to Operator Deployment in OpenShift
+
+It is possible to add environment variables to operator deployment in OpenShift
+using the deployed operator's `Subscription`.
+
+Get the `Subscription` name:
+
+```
+kubectl get subscriptions.operators.coreos.com -n nvidia-network-operator
+NAME                                  PACKAGE                   SOURCE                            CHANNEL
+nvidia-network-operator-v23-7-0-sub   nvidia-network-operator   nvidia-network-operator-catalog   v23.7.0
+```
+
+Edit the `Subscription`, and add a section `spec.config.env` with needed vars and values.
+For example:
+
+```
+spec:
+  config:
+    env:
+      - name: SKIP_VALIDATIONS
+        value: "true"
+```

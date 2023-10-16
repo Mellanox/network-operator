@@ -1,5 +1,5 @@
 resources:
 - bases/nvidia-network-operator.clusterserviceversion.yaml
-- ../default
+- openshift
 - ../samples
 - ../scorecard

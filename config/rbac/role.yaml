@@ -208,6 +208,12 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - hostdevicenetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - hostdevicenetworks/status
   verbs:
   - get
@@ -225,6 +231,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - ipoibnetworks/finalizers
+  verbs:
+  - update
 - apiGroups:
   - mellanox.com
   resources:
@@ -248,6 +260,12 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - macvlannetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - macvlannetworks/status
   verbs:
   - get
@@ -266,6 +284,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - nicclusterpolicies/finalizers
+  verbs:
+  - update
 - apiGroups:
   - monitoring.coreos.com
   resources:

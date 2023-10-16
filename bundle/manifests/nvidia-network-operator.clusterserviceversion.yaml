@@ -59,7 +59,7 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 30
               },
-              "repository": "nvcr.io/nvidia/mellanox",
+              "repository": "nvcr.io/nvstaging/mellanox",
               "startupProbe": {
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
@@ -76,13 +76,13 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "23.07-0.5.0.0"
+              "version": "23.10-0.2.8.0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
-              "repository": "nvcr.io/nvidia/cloud-native",
-              "version": "v1.3.2"
+              "repository": "ghcr.io/mellanox",
+              "version": "sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775"
             }
           }
         }
@@ -284,6 +284,7 @@ spec:
         - apiGroups:
           - config.openshift.io
           resources:
+          - clusterversions
           - proxies
           verbs:
           - get
@@ -336,6 +337,12 @@ spec:
         - apiGroups:
           - mellanox.com
           resources:
+          - hostdevicenetworks/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - mellanox.com
+          resources:
           - hostdevicenetworks/status
           verbs:
           - get
@@ -353,6 +360,12 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - mellanox.com
+          resources:
+          - ipoibnetworks/finalizers
+          verbs:
+          - update
         - apiGroups:
           - mellanox.com
           resources:
@@ -376,6 +389,12 @@ spec:
         - apiGroups:
           - mellanox.com
           resources:
+          - macvlannetworks/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - mellanox.com
+          resources:
           - macvlannetworks/status
           verbs:
           - get
@@ -394,6 +413,12 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - mellanox.com
+          resources:
+          - nicclusterpolicies/finalizers
+          verbs:
+          - update
         - apiGroups:
           - monitoring.coreos.com
           resources:
@@ -479,35 +504,23 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - authentication.k8s.io
-          resources:
-          - tokenreviews
-          verbs:
-          - create
-        - apiGroups:
-          - authorization.k8s.io
-          resources:
-          - subjectaccessreviews
-          verbs:
-          - create
         serviceAccountName: nvidia-network-operator-controller-manager
       deployments:
       - label:
-          control-plane: controller-manager
+          control-plane: nvidia-network-operator-controller
         name: nvidia-network-operator-controller-manager
         spec:
           replicas: 1
           selector:
             matchLabels:
-              control-plane: controller-manager
+              control-plane: nvidia-network-operator-controller
           strategy: {}
           template:
             metadata:
               annotations:
                 kubectl.kubernetes.io/default-container: manager
               labels:
-                control-plane: controller-manager
+                control-plane: nvidia-network-operator-controller
                 nvidia.com/ofed-driver-upgrade-drain.skip: "true"
             spec:
               affinity:
@@ -529,28 +542,12 @@ spec:
                     weight: 1
               containers:
               - args:
-                - --secure-listen-address=0.0.0.0:8443
-                - --upstream=http://127.0.0.1:8080/
-                - --logtostderr=true
-                - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
-                name: kube-rbac-proxy
-                ports:
-                - containerPort: 8443
-                  name: https
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 128Mi
-                  requests:
-                    cpu: 5m
-                    memory: 64Mi
-              - args:
-                - --health-probe-bind-address=:8081
-                - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 command:
                 - /manager
+                env:
+                - name: ENABLE_WEBHOOKS
+                  value: "true"
                 image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7005fa24a1ae52d927e76d50d90fddf6b6c7b08885a2dad3c7e5e2c2ac21c834
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
@@ -560,6 +557,10 @@ spec:
                   initialDelaySeconds: 15
                   periodSeconds: 20
                 name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
                 readinessProbe:
                   httpGet:
                     path: /readyz
@@ -572,9 +573,13 @@ spec:
                     memory: 128Mi
                   requests:
                     cpu: 5m
-                    memory: 64M
+                    memory: 64Mi
                 securityContext:
                   allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
               securityContext:
                 runAsUser: 65532
               serviceAccountName: nvidia-network-operator-controller-manager
@@ -586,6 +591,11 @@ spec:
               - effect: NoSchedule
                 key: node-role.kubernetes.io/control-plane
                 operator: Equal
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  secretName: webhook-server-cert
       permissions:
       - rules:
         - apiGroups:
@@ -645,6 +655,48 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
+  version: 23.7.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: nvidia-network-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vhostdevicenetwork.kb.io
+    rules:
+    - apiGroups:
+      - mellanox.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - hostdevicenetworks
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-mellanox-com-v1alpha1-hostdevicenetwork
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: nvidia-network-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vnicclusterpolicy.kb.io
+    rules:
+    - apiGroups:
+      - mellanox.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - nicclusterpolicies
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
   - image: nvcr.io/nvidia/mellanox/mofed@sha256:a0c4562af2d25f87f5b37e53b6e4085559dfeed873279c77a355f7ad738afb60
     name: mofed
@@ -652,8 +704,5 @@ spec:
     name: sriov-network-device-plugin
   - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
     name: rdma-shared-device-plugin
-  - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
-    name: kube-rbac-proxy
   - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7005fa24a1ae52d927e76d50d90fddf6b6c7b08885a2dad3c7e5e2c2ac21c834
     name: network-operator
-  version: 23.7.0
