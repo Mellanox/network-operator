@@ -25,6 +25,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
+      control-plane: {{ .Release.Name }}-controller
       {{- include "network-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
@@ -65,15 +66,11 @@ spec:
           {{- end }}
           command:
           - /manager
+          args:
+          - --leader-elect
           env:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/manifests"
-            - name: WATCH_NAMESPACE
-              value: ""
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -82,10 +79,31 @@ spec:
               value: "network-operator"
             - name: ENABLE_WEBHOOKS
               value: "{{ .Values.operator.admissionController.enabled }}"
-      {{- if .Values.operator.admissionController.enabled }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 5m
+              memory: 64Mi
       securityContext:
         runAsUser: 65532
       terminationGracePeriodSeconds: 10
+      {{- if .Values.operator.admissionController.enabled }}
       volumes:
       - name: cert
         secret:

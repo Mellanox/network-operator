@@ -60,6 +60,12 @@ spec:
         image: controller:latest
         name: manager
         env:
+          - name: STATE_MANIFEST_BASE_DIR
+            value: "/manifests"
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
           - name: ENABLE_WEBHOOKS
             value: "false"
         securityContext:
@@ -78,10 +84,10 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 300m
-            memory: 100Mi
+            cpu: 500m
+            memory: 128Mi
           requests:
-            cpu: 200m
-            memory: 50Mi
+            cpu: 5m
+            memory: 64Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
