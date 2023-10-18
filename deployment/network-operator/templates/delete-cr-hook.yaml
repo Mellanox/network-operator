@@ -1,0 +1,89 @@
+{{- if .Values.deployCR }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-sa
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-role
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+rules:
+  - apiGroups:
+      - mellanox.com
+    resources:
+      - nicclusterpolicies
+    verbs:
+      - delete
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "network-operator.fullname" . }}-hooks-binding
+  annotations:
+    helm.sh/hook: post-delete
+    helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+    helm.sh/hook-weight: "0"
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "network-operator.fullname" . }}-hooks-sa
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "network-operator.fullname" . }}-hooks-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: network-operator-delete-cr
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+  labels:
+    {{- include "network-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: "network-operator"
+spec:
+  template:
+    metadata:
+      name: network-operator-delete-cr
+      labels:
+        {{- include "network-operator.labels" . | nindent 8 }}
+        app.kubernetes.io/component: "network-operator"
+    spec:
+      {{- with .Values.operator.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.affinity}}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "network-operator.fullname" . }}-hooks-sa
+      imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . }}
+      containers:
+        - name: delete-cr
+          image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - >
+              kubectl delete nicclusterpolicies.mellanox.com nic-cluster-policy;
+      restartPolicy: OnFailure
+{{- end }}
