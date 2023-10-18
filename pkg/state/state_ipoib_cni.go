@@ -35,6 +35,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
@@ -60,17 +61,11 @@ type stateIPoIBCNI struct {
 	stateSkel
 }
 
-type IPoIBCNIRuntimeSpec struct {
-	runtimeSpec
-	// is true if cluster type is Openshift
-	IsOpenshift bool
-}
-
 type IPoIBManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.ImageSpec
 	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *IPoIBCNIRuntimeSpec
+	RuntimeSpec  *cniRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -90,12 +85,17 @@ func (s *stateIPoIBCNI) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
+	staticInfo := infoCatalog.GetStaticConfigProvider()
+	if staticInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
+	}
+
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
-	objs, err := s.getManifestObjects(cr, clusterInfo, reqLogger)
+	objs, err := s.getManifestObjects(cr, staticInfo, clusterInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -136,15 +136,16 @@ func (s *stateIPoIBCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateIPoIBCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy,
+	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
 	clusterInfo clustertype.Provider, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	renderData := &IPoIBManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.IPoIB,
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
-		RuntimeSpec: &IPoIBCNIRuntimeSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+		RuntimeSpec: &cniRuntimeSpec{
+			runtimeSpec:     runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:     clusterInfo.IsOpenshift(),
+			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, clusterInfo),
 		},
 	}
 

@@ -79,7 +79,7 @@ spec:
             path: /etc/cni/net.d
         - name: cnibin
           hostPath:
-            path: /opt/cni/bin
+            path: {{ .RuntimeSpec.CniBinDirectory }}
       {{- if .CrSpec.Config }}
         - name: multus-cfg
           configMap:

@@ -42,6 +42,12 @@ type runtimeSpec struct {
 	Namespace string
 }
 
+type cniRuntimeSpec struct {
+	runtimeSpec
+	CniBinDirectory string
+	IsOpenshift     bool
+}
+
 // a state skeleton intended to be embedded in structs implementing the State interface
 // it provides many of the common constructs and functionality needed to implement a state.
 type stateSkel struct {

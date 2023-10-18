@@ -35,6 +35,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
@@ -60,17 +61,11 @@ type stateNVIPAMCNI struct {
 	stateSkel
 }
 
-type nvipamRuntimeSpec struct {
-	runtimeSpec
-	// is true if cluster type is Openshift
-	IsOpenshift bool
-}
-
 type NVIPAMManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.NVIPAMSpec
 	NodeAffinity *v1.NodeAffinity
 	Tolerations  []v1.Toleration
-	RuntimeSpec  *nvipamRuntimeSpec
+	RuntimeSpec  *cniRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -90,13 +85,18 @@ func (s *stateNVIPAMCNI) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 
+	staticInfo := infoCatalog.GetStaticConfigProvider()
+	if staticInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
+	}
+
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr, clusterInfo, reqLogger)
+	objs, err := s.getManifestObjects(cr, staticInfo, clusterInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -140,15 +140,17 @@ func (s *stateNVIPAMCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateNVIPAMCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, clusterInfo clustertype.Provider,
+	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
+	clusterInfo clustertype.Provider,
 	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	renderData := &NVIPAMManifestRenderData{
 		CrSpec:       cr.Spec.NvIpam,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		Tolerations:  cr.Spec.Tolerations,
-		RuntimeSpec: &nvipamRuntimeSpec{
-			runtimeSpec: runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+		RuntimeSpec: &cniRuntimeSpec{
+			runtimeSpec:     runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:     clusterInfo.IsOpenshift(),
+			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, clusterInfo),
 		},
 	}
 

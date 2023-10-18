@@ -68,4 +68,4 @@ spec:
       volumes:
         - name: cnibin
           hostPath:
-            path: /opt/cni/bin
+            path: {{ .RuntimeSpec.CniBinDirectory }}

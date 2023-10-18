@@ -77,7 +77,7 @@ spec:
       volumes:
         - name: cnibin
           hostPath:
-            path: /opt/cni/bin
+            path: {{ .RuntimeSpec.CniBinDirectory }}
         - name: cni-net-dir
           hostPath:
             path: /etc/cni/net.d
