@@ -81,6 +81,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
@@ -142,6 +154,19 @@ rules:
   - update
   - watch
 - apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - config.openshift.io
   resources:
   - clusterversions
@@ -173,13 +198,7 @@ rules:
 - apiGroups:
   - k8s.cni.cncf.io
   resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - mellanox.com
-  resources:
-  - '*'
+  - network-attachment-definitions
   verbs:
   - create
   - delete
@@ -203,6 +222,12 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - hostdevicenetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - hostdevicenetworks/status
   verbs:
   - get
@@ -220,6 +245,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - ipoibnetworks/finalizers
+  verbs:
+  - update
 - apiGroups:
   - mellanox.com
   resources:
@@ -243,10 +274,35 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - macvlannetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
   - macvlannetworks/status
   verbs:
   - get
   - patch
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
+  - nicclusterpolicies
+  - nicclusterpolicies/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mellanox.com
+  resources:
+  - nicclusterpolicies/finalizers
+  verbs:
   - update
 - apiGroups:
   - monitoring.coreos.com
@@ -325,31 +381,6 @@ rules:
   - whereabouts.cni.cncf.io
   resources:
   - overlappingrangeipreservations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - validatingwebhookconfigurations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cert-manager.io
-  resources:
-  - certificates
-  - issuers
   verbs:
   - create
   - delete
