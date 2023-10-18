@@ -59,6 +59,10 @@ func init() {
 }
 
 func setupWebhookControllers(mgr ctrl.Manager) error {
+	if os.Getenv("SKIP_VALIDATIONS") == "true" {
+		setupLog.Info("disabling admission controller validations")
+		mellanoxcomv1alpha1.DisableValidations()
+	}
 	if err := (&mellanoxcomv1alpha1.HostDeviceNetwork{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "HostDeviceNetwork")
 		return err

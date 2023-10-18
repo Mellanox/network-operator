@@ -50,6 +50,7 @@ type IPoIBNetworkReconciler struct {
 
 //nolint:lll
 // +kubebuilder:rbac:groups=mellanox.com,resources=ipoibnetworks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mellanox.com,resources=ipoibnetworks/finalizers,verbs=update
 // +kubebuilder:rbac:groups=mellanox.com,resources=ipoibnetworks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch;create;update;patch;delete
 

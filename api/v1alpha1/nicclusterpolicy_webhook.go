@@ -39,6 +39,8 @@ var nicClusterPolicyLog = logf.Log.WithName("nicclusterpolicy-resource")
 
 var schemaValidators *schemaValidator
 
+var skipValidations = false
+
 func (w *NicClusterPolicy) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	nicClusterPolicyLog.Info("Nic cluster policy webhook admission controller")
 	InitSchemaValidator("./webhook-schemas")
@@ -54,18 +56,33 @@ var _ webhook.Validator = &NicClusterPolicy{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (w *NicClusterPolicy) ValidateCreate() error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	nicClusterPolicyLog.Info("validate create", "name", w.Name)
 	return w.validateNicClusterPolicy()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (w *NicClusterPolicy) ValidateUpdate(_ runtime.Object) error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	nicClusterPolicyLog.Info("validate update", "name", w.Name)
 	return w.validateNicClusterPolicy()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (w *NicClusterPolicy) ValidateDelete() error {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil
+	}
+
 	nicClusterPolicyLog.Info("validate delete", "name", w.Name)
 
 	// Validation for delete call is not required
@@ -361,4 +378,9 @@ func InitSchemaValidator(schemaPath string) {
 		sv.schemas[strings.TrimSuffix(f.Name(), ".json")] = s
 	}
 	schemaValidators = sv
+}
+
+// DisableValidations will disable all CRs admission validations
+func DisableValidations() {
+	skipValidations = true
 }
