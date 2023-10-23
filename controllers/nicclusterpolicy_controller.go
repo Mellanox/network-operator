@@ -44,13 +44,15 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 // NicClusterPolicyReconciler reconciles a NicClusterPolicy object
 type NicClusterPolicyReconciler struct {
 	client.Client
-	Scheme              *runtime.Scheme
-	ClusterTypeProvider clustertype.Provider
+	Scheme               *runtime.Scheme
+	ClusterTypeProvider  clustertype.Provider
+	StaticConfigProvider staticconfig.Provider
 
 	stateManager state.Manager
 }
@@ -117,6 +119,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
 	sc.Add(state.InfoTypeClusterType, r.ClusterTypeProvider)
+	sc.Add(state.InfoTypeStaticConfig, r.StaticConfigProvider)
 	if instance.Spec.OFEDDriver != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
