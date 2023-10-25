@@ -35,6 +35,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+const (
+	fqdnRegex              = `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$`
+	sriovResourceNameRegex = `^([A-Za-z0-9][A-Za-z0-9_.]*)?[A-Za-z0-9]$`
+	rdmaResourceNameRegex  = `^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$`
+)
+
 // log is for logging in this package.
 var nicClusterPolicyLog = logf.Log.WithName("nicclusterpolicy-resource")
 
@@ -200,12 +206,9 @@ func (dp *DevicePluginSpec) validateSriovNetworkDevicePlugin(fldPath *field.Path
 			resourceJSONLoader := gojsonschema.NewStringLoader(string(resourceJSONString))
 			var selectorResult *gojsonschema.Result
 			var selectorErr error
-			resourceName := resource["resourceName"].(string)
-			if !isValidSriovNetworkDevicePluginResourceName(resourceName) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
-					"Invalid Resource name, it must consist of alphanumeric characters, '_' or '.', "+
-						"and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  "+
-						"or '123_abc', regex used for validation is '([A-Za-z0-9][A-Za-z0-9_.]*)?[A-Za-z0-9]')"))
+			var ok bool
+			ok, allErrs = validateResourceNamePrefix(resource, allErrs, fldPath, dp)
+			if !ok {
 				return allErrs
 			}
 			deviceType := resource["deviceType"]
@@ -229,6 +232,28 @@ func (dp *DevicePluginSpec) validateSriovNetworkDevicePlugin(fldPath *field.Path
 		}
 	}
 	return allErrs
+}
+
+func validateResourceNamePrefix(resource map[string]interface{},
+	allErrs field.ErrorList, fldPath *field.Path, dp *DevicePluginSpec) (bool, field.ErrorList) {
+	resourceName := resource["resourceName"].(string)
+	if !isValidSriovNetworkDevicePluginResourceName(resourceName) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+			"Invalid Resource name, it must consist of alphanumeric characters, '_' or '.', "+
+				"and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  "+
+				"or '123_abc', regex used for validation is "+sriovResourceNameRegex))
+		return false, allErrs
+	}
+	resourcePrefix, ok := resource["resourcePrefix"]
+	if ok {
+		if !isValidFQDN(resourcePrefix.(string)) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+				"Invalid Resource prefix, it must be a valid FQDN"+
+					"regex used for validation is "+fqdnRegex))
+			return false, allErrs
+		}
+	}
+	return true, allErrs
 }
 
 func (dp *DevicePluginSpec) validateRdmaSharedDevicePlugin(fldPath *field.Path) field.ErrorList {
@@ -265,8 +290,16 @@ func (dp *DevicePluginSpec) validateRdmaSharedDevicePlugin(fldPath *field.Path) 
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"),
 					dp.Config, "Invalid Resource name, it must consist of alphanumeric characters, "+
 						"'-', '_' or '.', and must start and end with an alphanumeric character "+
-						"(e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0"+
-						"-9_.]*)?[A-Za-z0-9]')"))
+						"(e.g. 'MyName',  or 'my.name',  or '123-abc') regex used for validation is "+rdmaResourceNameRegex))
+			}
+			resourcePrefix, ok := config["resourcePrefix"]
+			if ok {
+				if !isValidFQDN(resourcePrefix.(string)) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+						"Invalid Resource prefix, it must be a valid FQDN "+
+							"regex used for validation is "+fqdnRegex))
+					return allErrs
+				}
 			}
 		}
 	} else {
@@ -386,15 +419,18 @@ func isValidOFEDVersion(version string) bool {
 }
 
 func isValidSriovNetworkDevicePluginResourceName(resourceName string) bool {
-	resourceNamePattern := `^([A-Za-z0-9][A-Za-z0-9_.]*)?[A-Za-z0-9]$`
-	resourceNameRegex := regexp.MustCompile(resourceNamePattern)
+	resourceNameRegex := regexp.MustCompile(sriovResourceNameRegex)
 	return resourceNameRegex.MatchString(resourceName)
 }
 
 func isValidRdmaSharedDevicePluginResourceName(resourceName string) bool {
-	resourceNamePattern := `^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$`
-	resourceNameRegex := regexp.MustCompile(resourceNamePattern)
+	resourceNameRegex := regexp.MustCompile(rdmaResourceNameRegex)
 	return resourceNameRegex.MatchString(resourceName)
+}
+
+func isValidFQDN(input string) bool {
+	regex := regexp.MustCompile(fqdnRegex)
+	return regex.MatchString(input)
 }
 
 // +kubebuilder:object:generate=false
