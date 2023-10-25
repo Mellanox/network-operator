@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,12 +107,13 @@ We are validating here NicClusterPolicy:
 */
 func (w *NicClusterPolicy) validateNicClusterPolicy() error {
 	var allErrs field.ErrorList
+	// Validate Repository
+	allErrs = w.validateRepositories(allErrs)
 	// Validate IBKubernetes
 	ibKubernetes := w.Spec.IBKubernetes
 	if ibKubernetes != nil {
 		allErrs = append(allErrs, ibKubernetes.validate(field.NewPath("spec").Child("ibKubernetes"))...)
 	}
-
 	// Validate OFEDDriverSpec
 	ofedDriver := w.Spec.OFEDDriver
 	if ofedDriver != nil {
@@ -324,6 +326,54 @@ func (ofedSpec *OFEDDriverSpec) validateVersion(fldPath *field.Path) field.Error
 	if !isValidOFEDVersion(ofedSpec.Version) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), ofedSpec.Version,
 			`invalid OFED version, the regex used for validation is ^(\d+\.\d+-\d+(\.\d+)*)$ `))
+	}
+	return allErrs
+}
+
+func (w *NicClusterPolicy) validateRepositories(allErrs field.ErrorList) field.ErrorList {
+	fp := field.NewPath("spec")
+	if w.Spec.OFEDDriver != nil {
+		allErrs = validateRepository(w.Spec.OFEDDriver.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+	}
+	if w.Spec.RdmaSharedDevicePlugin != nil {
+		allErrs = validateRepository(w.Spec.RdmaSharedDevicePlugin.ImageSpec.Repository,
+			allErrs, fp, "rdmaSharedDevicePlugin")
+	}
+	if w.Spec.SriovDevicePlugin != nil {
+		allErrs = validateRepository(w.Spec.SriovDevicePlugin.ImageSpec.Repository, allErrs, fp, "sriovDevicePlugin")
+	}
+	if w.Spec.IBKubernetes != nil {
+		allErrs = validateRepository(w.Spec.IBKubernetes.ImageSpec.Repository, allErrs, fp, "ibKubernetes")
+	}
+	if w.Spec.NvIpam != nil {
+		allErrs = validateRepository(w.Spec.NvIpam.ImageSpec.Repository, allErrs, fp, "nvIpam")
+	}
+	if w.Spec.NicFeatureDiscovery != nil {
+		allErrs = validateRepository(w.Spec.NicFeatureDiscovery.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+	}
+	if w.Spec.SecondaryNetwork != nil {
+		snfp := fp.Child("secondaryNetwork")
+		if w.Spec.SecondaryNetwork.CniPlugins != nil {
+			allErrs = validateRepository(w.Spec.SecondaryNetwork.CniPlugins.Repository, allErrs, snfp, "cniPlugins")
+		}
+		if w.Spec.SecondaryNetwork.IPoIB != nil {
+			allErrs = validateRepository(w.Spec.SecondaryNetwork.IPoIB.Repository, allErrs, snfp, "ipoib")
+		}
+		if w.Spec.SecondaryNetwork.Multus != nil {
+			allErrs = validateRepository(w.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
+		}
+		if w.Spec.SecondaryNetwork.IpamPlugin != nil {
+			allErrs = validateRepository(w.Spec.SecondaryNetwork.IpamPlugin.Repository, allErrs, snfp, "ipamPlugin")
+		}
+	}
+	return allErrs
+}
+
+func validateRepository(repo string, allErrs field.ErrorList, fp *field.Path, child string) field.ErrorList {
+	_, err := reference.ParseNormalizedNamed(repo)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("repository"),
+			repo, "invalid container image repository format"))
 	}
 	return allErrs
 }

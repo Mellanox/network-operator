@@ -524,4 +524,224 @@ var _ = Describe("Validate", func() {
 				"Invalid type. Expected: string, given: integer"))
 		})
 	})
+	Context("Image repository tests", func() {
+		It("Invalid Repository IBKubernetes", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					IBKubernetes: &IBKubernetesSpec{
+						PKeyGUIDPoolRangeStart: "00:00:00:00:00:00:00:00",
+						PKeyGUIDPoolRangeEnd:   "00:00:00:00:00:00:00:02",
+						ImageSpec: ImageSpec{
+							Image:            "ib-kubernetes",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "v1.0.2",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository OFEDDriver", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					OFEDDriver: &OFEDDriverSpec{
+						ImageSpec: ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository RdmaSharedDevicePlugin", func() {
+			rdmaConfig := `{
+			"configList": [{
+				"resourceName": "rdma_shared_device_a",
+				"rdmaHcaMax": 63,
+				"selectors": {
+					"vendors": ["15b3"],
+					"deviceIDs": ["101b"]}}]}`
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: &DevicePluginSpec{
+						ImageSpecWithConfig: ImageSpecWithConfig{
+							Config: &rdmaConfig,
+							ImageSpec: ImageSpec{
+								Image:            "k8s-rdma-shared-dev-plugin",
+								Repository:       "ghcr.io/mellanox!@!#$!",
+								Version:          "sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775",
+								ImagePullSecrets: []string{},
+							},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SriovDevicePlugin", func() {
+			sriovConfig := `{
+				"resourceList": [{
+					"resourceName": "hostdev",
+					"selectors": {
+						"vendors": ["15b3"],
+						"devices": ["101b"]}}]}`
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SriovDevicePlugin: &DevicePluginSpec{
+						ImageSpecWithConfig: ImageSpecWithConfig{
+							Config: &sriovConfig,
+							ImageSpec: ImageSpec{
+								Image:            "sriov-network-device-plugin",
+								Repository:       "nvcr.io/nvstaging/mellanox!@!#$!",
+								Version:          "network-operator-23.10.0-beta.1",
+								ImagePullSecrets: []string{},
+							},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository NVIPAM", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					NvIpam: &NVIPAMSpec{
+						ImageSpecWithConfig: ImageSpecWithConfig{
+							ImageSpec: ImageSpec{
+								Image:            "mofed",
+								Repository:       "ghcr.io/mellanox!@!#$!",
+								Version:          "23.10-0.2.2.0",
+								ImagePullSecrets: []string{},
+							},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository NicFeatureDiscovery", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					NicFeatureDiscovery: &NICFeatureDiscoverySpec{
+						ImageSpec: ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SecondaryNetwork Multus", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SecondaryNetwork: &SecondaryNetworkSpec{
+						Multus: &MultusSpec{
+							ImageSpecWithConfig: ImageSpecWithConfig{
+								ImageSpec: ImageSpec{
+									Image:            "mofed",
+									Repository:       "ghcr.io/mellanox!@!#$!",
+									Version:          "23.10-0.2.2.0",
+									ImagePullSecrets: []string{},
+								},
+							},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SecondaryNetwork Multus", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SecondaryNetwork: &SecondaryNetworkSpec{
+						Multus: &MultusSpec{
+							ImageSpecWithConfig: ImageSpecWithConfig{
+								ImageSpec: ImageSpec{
+									Image:            "mofed",
+									Repository:       "ghcr.io/mellanox!@!#$!",
+									Version:          "23.10-0.2.2.0",
+									ImagePullSecrets: []string{},
+								},
+							},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SecondaryNetwork CniPlugins", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SecondaryNetwork: &SecondaryNetworkSpec{
+						CniPlugins: &ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SecondaryNetwork IPoIB", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SecondaryNetwork: &SecondaryNetworkSpec{
+						IPoIB: &ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+		It("Invalid Repository SecondaryNetwork IpamPlugin", func() {
+			nicClusterPolicy := NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: NicClusterPolicySpec{
+					SecondaryNetwork: &SecondaryNetworkSpec{
+						IpamPlugin: &ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+				"invalid container image repository format"))
+		})
+	})
 })
