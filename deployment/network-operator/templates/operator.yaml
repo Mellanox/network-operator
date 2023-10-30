@@ -25,7 +25,6 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: {{ .Release.Name }}-controller
       {{- include "network-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
