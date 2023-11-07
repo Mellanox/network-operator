@@ -50,6 +50,8 @@ spec:
                   properties:
                     eSwitchMode:
                       type: string
+                    externallyManaged:
+                      type: boolean
                     linkType:
                       type: string
                     mtu:
@@ -125,6 +127,8 @@ spec:
                       type: string
                     eSwitchMode:
                       type: string
+                    externallyManaged:
+                      type: boolean
                     linkSpeed:
                       type: string
                     linkType:

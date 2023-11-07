@@ -77,6 +77,10 @@ spec:
                 maximum: 2
                 minimum: 0
                 type: integer
+              useCDI:
+                description: Flag to enable Container Device Interface mode for SR-IOV
+                  Network Device Plugin
+                type: boolean
               maxParallelNodeConfiguration:
                 default: 1
                 description: How many nodes can be configured in parallel 0 means
