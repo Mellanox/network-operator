@@ -19,7 +19,7 @@ metadata:
 spec:
   resourceName: sriovswitchdev
   nodeSelector:
-    feature.node.kubernetes.io/network-sriov.capable: "true"
+    feature.node.kubernetes.io/pci-15b3.present: "true"
   numVfs: 1
   nicSelector:
     vendor: "15b3"
