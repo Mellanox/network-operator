@@ -49,6 +49,24 @@ spec:
                 - enable
                 - disable
                 type: string
+              logFile:
+                description: LogFile sets the log file of the SRIOV CNI plugin logs.
+                  If unset (default), this will log to stderr and thus to multus and
+                  container runtime logs.
+                type: string
+              logLevel:
+                default: info
+                description: LogLevel sets the log level of the SRIOV CNI plugin -
+                  either of panic, error, warning, info, debug. Defaults to info if
+                  left blank.
+                enum:
+                - panic
+                - error
+                - warning
+                - info
+                - debug
+                - ""
+                type: string
               maxTxRate:
                 description: Maximum tx rate, in Mbps, for the VF. Defaults to 0 (no
                   rate limiting)
@@ -86,6 +104,14 @@ spec:
                 maximum: 4096
                 minimum: 0
                 type: integer
+              vlanProto:
+                description: VLAN proto to assign for the VF. Defaults to 802.1q.
+                enum:
+                - 802.1q
+                - 802.1Q
+                - 802.1ad
+                - 802.1AD
+                type: string
               vlanQoS:
                 description: VLAN QoS ID to assign for the VF. Defaults to 0.
                 maximum: 7
