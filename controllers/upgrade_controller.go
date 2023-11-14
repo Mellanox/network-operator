@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
@@ -47,6 +48,7 @@ type UpgradeReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	StateManager upgrade.ClusterUpgradeStateManager
+	MigrationCh  chan struct{}
 }
 
 const plannedRequeueInterval = time.Minute * 2
@@ -64,6 +66,12 @@ const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
+	// Wait for migration flow to finish
+	select {
+	case <-r.MigrationCh:
+	case <-ctx.Done():
+		return ctrl.Result{}, fmt.Errorf("canceled")
+	}
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Reconciling Upgrade")
 

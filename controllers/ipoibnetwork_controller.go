@@ -18,6 +18,7 @@ package controllers //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -41,7 +42,8 @@ import (
 // IPoIBNetworkReconciler reconciles a IPoIBNetwork object
 type IPoIBNetworkReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme      *runtime.Scheme
+	MigrationCh chan struct{}
 
 	stateManager state.Manager
 }
@@ -57,6 +59,12 @@ type IPoIBNetworkReconciler struct {
 //
 //nolint:dupl
 func (r *IPoIBNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Wait for migration flow to finish
+	select {
+	case <-r.MigrationCh:
+	case <-ctx.Done():
+		return ctrl.Result{}, fmt.Errorf("canceled")
+	}
 	reqLogger := log.FromContext(ctx)
 	reqLogger.Info("Reconciling IPoIBNetwork")
 

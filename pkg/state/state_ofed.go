@@ -19,6 +19,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -37,12 +38,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -153,6 +156,8 @@ type ofedRuntimeSpec struct {
 	CPUArch             string
 	OSName              string
 	OSVer               string
+	Kernel              string
+	KernelHash          string
 	MOFEDImageName      string
 	InitContainerConfig initContainerConfig
 	// is true if cluster type is Openshift
@@ -160,6 +165,7 @@ type ofedRuntimeSpec struct {
 	ContainerResources ContainerResourcesMap
 	UseDtk             bool
 	DtkImageName       string
+	RhcosVersion       string
 }
 
 type ofedManifestRenderData struct {
@@ -398,44 +404,61 @@ func (s *stateOFED) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-
-	attrs := nodeInfo.GetNodesAttributes(
+	nodePools := nodeInfo.GetNodePools(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
-	if len(attrs) == 0 {
+	if len(nodePools) == 0 {
 		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
 		return []*unstructured.Unstructured{}, nil
 	}
 
-	// TODO: Render daemonset multiple times according to CPUXOS matrix (ATM assume all nodes are the same)
-	// Note: it is assumed MOFED driver container is able to handle multiple kernel version e.g by triggering DKMS
-	// if driver was compiled against a missmatching kernel to begin with.
-	if err := s.checkAttributesExist(attrs[0],
-		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
-		return nil, err
-	}
+	setProbesDefaults(cr)
+	// Update MOFED Env variables with defaults for the cluster
+	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env)
 
-	nodeAttr := attrs[0].Attributes
-
+	objs := make([]*unstructured.Unstructured, 0)
+	renderedObjsMap := stateObjects{}
 	useDtk := clusterInfo.IsOpenshift() && config.FromEnv().State.OFEDState.UseDTK
-	var dtkImageName string
-	if useDtk {
-		if err := s.checkAttributesExist(attrs[0], nodeinfo.AttrTypeOSTreeVersion); err != nil {
-			return nil, err
+
+	for _, np := range nodePools {
+		nodePool := np
+
+		// render objects
+		renderedObjs, err := renderObjects(ctx, &nodePool, useDtk, s, cr, reqLogger, clusterInfo)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to render objects")
 		}
-		dtk, err := s.getOCPDriverToolkitImage(ctx, nodeAttr[nodeinfo.AttrTypeOSTreeVersion])
+		for _, o := range renderedObjs {
+			if !renderedObjsMap.Exist(o.GroupVersionKind(), types.NamespacedName{
+				Name:      o.GetName(),
+				Namespace: o.GetNamespace()}) {
+				renderedObjsMap.Add(o.GroupVersionKind(), types.NamespacedName{Name: o.GetName(), Namespace: o.GetNamespace()})
+				objs = append(objs, o)
+			}
+		}
+	}
+	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
+	return objs, nil
+}
+
+func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool, s *stateOFED,
+	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger,
+	clusterInfo clustertype.Provider) ([]*unstructured.Unstructured, error) {
+	var dtkImageName string
+	rhcosVersion := nodePool.RhcosVersion
+	if useDtk {
+		if rhcosVersion == "" {
+			return nil, fmt.Errorf("required NFD Label missing: %s", nodeinfo.NodeLabelOSTreeVersion)
+		}
+		dtk, err := s.getOCPDriverToolkitImage(ctx, rhcosVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get OpenShift DTK image : %v", err)
 		}
 		dtkImageName = dtk
 	}
 
-	setProbesDefaults(cr)
-
-	// Update MOFED Env variables with defaults
-	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env)
-
 	additionalVolMounts := additionalVolumeMounts{}
-	osname := nodeAttr[nodeinfo.AttrTypeOSName]
+	osname := nodePool.OsName
+
 	// set any custom ssl key/certificate configuration provided
 	err := s.handleCertConfig(ctx, cr, osname, &additionalVolMounts)
 	if err != nil {
@@ -452,29 +475,28 @@ func (s *stateOFED) GetManifestObjects(
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
 			runtimeSpec:    runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CPUArch:        nodeAttr[nodeinfo.AttrTypeCPUArch],
-			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
-			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
-			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr, reqLogger),
+			CPUArch:        nodePool.Arch,
+			OSName:         nodePool.OsName,
+			OSVer:          nodePool.OsVersion,
+			Kernel:         nodePool.Kernel,
+			KernelHash:     getStringHash(nodePool.Kernel),
+			MOFEDImageName: s.getMofedDriverImageName(cr, nodePool, reqLogger),
 			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
 				config.FromEnv().State.OFEDState.InitContainerImage),
 			IsOpenshift:        clusterInfo.IsOpenshift(),
 			ContainerResources: createContainerResourcesMap(cr.Spec.OFEDDriver.ContainerResources),
 			UseDtk:             useDtk,
 			DtkImageName:       dtkImageName,
+			RhcosVersion:       rhcosVersion,
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,
 		AdditionalVolumeMounts: additionalVolMounts,
 	}
-	// render objects
+
 	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
-	objs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to render objects")
-	}
-	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
-	return objs, nil
+	renderedObjs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
+	return renderedObjs, err
 }
 
 // prepare configuration for the init container,
@@ -502,9 +524,8 @@ func (s *stateOFED) getInitContainerConfig(
 }
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
-// TODO(adrianc): in Network-Operator v1.5.0, we should just use the new naming scheme
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeAttr map[nodeinfo.AttributeType]string, reqLogger logr.Logger) string {
+	pool *nodeinfo.NodePool, reqLogger logr.Logger) string {
 	curDriverVer, err := semver.NewVersion(cr.Spec.OFEDDriver.Version)
 	if err != nil {
 		reqLogger.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
@@ -515,9 +536,9 @@ func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolic
 		cr.Spec.OFEDDriver.Repository,
 		cr.Spec.OFEDDriver.Image,
 		cr.Spec.OFEDDriver.Version,
-		nodeAttr[nodeinfo.AttrTypeOSName],
-		nodeAttr[nodeinfo.AttrTypeOSVer],
-		nodeAttr[nodeinfo.AttrTypeCPUArch])
+		pool.OsName,
+		pool.OsVersion,
+		pool.Arch)
 }
 
 // readOpenshiftProxyConfig reads ClusterWide Proxy configuration for Openshift
@@ -759,4 +780,13 @@ func (s *stateOFED) getOCPDriverToolkitImage(ctx context.Context, ostreeVersion 
 		return "", fmt.Errorf("failed to find DTK image for RHCOS version: %v", ostreeVersion)
 	}
 	return image, nil
+}
+
+// getStringHash returns a short deterministic hash
+func getStringHash(s string) string {
+	hasher := fnv.New32a()
+	if _, err := hasher.Write([]byte(s)); err != nil {
+		panic(err)
+	}
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }

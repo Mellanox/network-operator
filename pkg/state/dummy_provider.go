@@ -50,6 +50,17 @@ func (d *dummyProvider) GetNodesAttributes(...nodeinfo.Filter) []nodeinfo.NodeAt
 	return []nodeinfo.NodeAttributes{{Attributes: nodeAttr}}
 }
 
+func (d *dummyProvider) GetNodePools(...nodeinfo.Filter) []nodeinfo.NodePool {
+	return []nodeinfo.NodePool{
+		{
+			Name:      "ubuntu20.04-5.15",
+			OsName:    "ubuntu",
+			OsVersion: "20.04",
+			Kernel:    "5.15.0-78-generic",
+		},
+	}
+}
+
 func getDummyCatalog() InfoCatalog {
 	catalog := NewInfoCatalog()
 	catalog.Add(InfoTypeNodeInfo, &dummyProvider{})

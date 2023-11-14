@@ -21,6 +21,8 @@ of specific attributes (mainly labels) for easier use.
 package nodeinfo
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -35,6 +37,8 @@ var MellanoxNICListOptions = []client.ListOption{
 type Provider interface {
 	// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
 	GetNodesAttributes(filters ...Filter) []NodeAttributes
+	// GetNodePools partitions nodes into one or more node pools for nodes matching the filter criteria
+	GetNodePools(filters ...Filter) []NodePool
 }
 
 // NewProvider creates a new Provider object
@@ -57,4 +61,84 @@ func (p *provider) GetNodesAttributes(filters ...Filter) (attrs []NodeAttributes
 		attrs = append(attrs, newNodeAttributes(node))
 	}
 	return attrs
+}
+
+// NodePool represent a set of Nodes grouped by common attributes
+type NodePool struct {
+	Name         string
+	OsName       string
+	OsVersion    string
+	RhcosVersion string
+	Kernel       string
+	Arch         string
+}
+
+// GetNodePools partitions nodes into one or more node pools. The list of nodes to partition
+// is defined by the filters provided as input.
+//
+// Nodes are partitioned by osVersion-kernelVersion pair.
+func (p *provider) GetNodePools(filters ...Filter) []NodePool {
+	filtered := p.nodes
+	for _, filter := range filters {
+		filtered = filter.Apply(filtered)
+	}
+
+	nodePoolMap := make(map[string]NodePool)
+
+	for _, node := range filtered {
+		node := node
+		nodeLabels := node.GetLabels()
+
+		nodePool := NodePool{}
+		osName, ok := nodeLabels[NodeLabelOSName]
+		if !ok {
+			log.Info("WARNING: Could not find NFD labels for node. Is NFD installed?",
+				"Node", node.Name, "Label", NodeLabelOSName)
+			continue
+		}
+		nodePool.OsName = osName
+
+		osVersion, ok := nodeLabels[NodeLabelOSVer]
+		if !ok {
+			log.Info("WARNING: Could not find NFD labels for node. Is NFD installed?",
+				"Node", node.Name, "Label", NodeLabelOSVer)
+			continue
+		}
+		nodePool.OsVersion = osVersion
+
+		arch, ok := nodeLabels[NodeLabelCPUArch]
+		if !ok {
+			log.Info("WARNING: Could not find NFD labels for node. Is NFD installed?",
+				"Node", node.Name, "Label", NodeLabelCPUArch)
+			continue
+		}
+		nodePool.Arch = arch
+
+		rhcos, ok := nodeLabels[NodeLabelOSTreeVersion]
+		if ok {
+			nodePool.RhcosVersion = rhcos
+		}
+
+		kernel, ok := nodeLabels[NodeLabelKernelVerFull]
+		if !ok {
+			log.Info("WARNING: Could not find NFD labels for node. Is NFD installed?",
+				"Node", node.Name, "Label", NodeLabelKernelVerFull)
+			continue
+		}
+		nodePool.Kernel = kernel
+
+		nodePool.Name = fmt.Sprintf("%s%s-%s", nodePool.OsName, nodePool.OsVersion, nodePool.Kernel)
+
+		if _, exists := nodePoolMap[nodePool.Name]; !exists {
+			nodePoolMap[nodePool.Name] = nodePool
+			log.Info("NodePool found", "name", nodePool.Name)
+		}
+	}
+
+	nodePools := make([]NodePool, 0)
+	for _, np := range nodePoolMap {
+		nodePools = append(nodePools, np)
+	}
+
+	return nodePools
 }

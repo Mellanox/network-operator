@@ -55,9 +55,12 @@ var _ = Describe("Upgrade Controller", func() {
 	})
 	Context("When NicClusterPolicy CR is created", func() {
 		It("Upgrade policy is disabled", func() {
+			migrationCompletionChan := make(chan struct{})
+			close(migrationCompletionChan)
 			upgradeReconciler := &UpgradeReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:      k8sClient,
+				Scheme:      k8sClient.Scheme(),
+				MigrationCh: migrationCompletionChan,
 			}
 
 			req := ctrl.Request{NamespacedName: types.NamespacedName{Name: consts.NicClusterPolicyResourceName}}
@@ -76,10 +79,13 @@ var _ = Describe("Upgrade Controller", func() {
 				err := k8sClient.Create(goctx.TODO(), node)
 				Expect(err).NotTo(HaveOccurred())
 			}
+			migrationCompletionChan := make(chan struct{})
+			close(migrationCompletionChan)
 
 			upgradeReconciler := &UpgradeReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:      k8sClient,
+				Scheme:      k8sClient.Scheme(),
+				MigrationCh: migrationCompletionChan,
 			}
 			// Call removeNodeUpgradeStateLabels function
 			err := upgradeReconciler.removeNodeUpgradeStateLabels(goctx.TODO())
