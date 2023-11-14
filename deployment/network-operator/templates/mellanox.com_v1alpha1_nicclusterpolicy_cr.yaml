@@ -18,8 +18,6 @@ apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
   name: nic-cluster-policy
-  annotations:
-    helm.sh/hook: post-install,post-upgrade
 spec:
   {{- if .Values.nodeAffinity }}
   nodeAffinity:
