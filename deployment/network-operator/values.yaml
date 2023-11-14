@@ -99,8 +99,8 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-23.10.0-rc.1
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-23.10.0-rc.1
+    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-23.10.0-rc.3
+    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-23.10.0-rc.3
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.7.0
     ibSriovCni:  ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.0.3
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:2cc723dcbc712290055b763dc9d3c090ba41e929
