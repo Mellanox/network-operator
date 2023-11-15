@@ -74,9 +74,4 @@ spec:
       volumes:
         - name: cnibin
           hostPath:
-            # /opt/cni/bin directory is read-only on OCP, so we need to use another one
-            {{- if .RuntimeSpec.IsOpenshift }}
-            path: /var/lib/cni/bin
-            {{- else}}
-            path: /opt/cni/bin
-            {{- end}}
+            path: {{ .RuntimeSpec.CniBinDirectory }}

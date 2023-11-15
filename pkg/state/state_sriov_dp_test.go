@@ -31,6 +31,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
@@ -48,6 +49,10 @@ func (d *dummyProvider) IsKubernetes() bool {
 
 func (d *dummyProvider) IsOpenshift() bool {
 	return false
+}
+
+func (d *dummyProvider) GetStaticConfig() staticconfig.StaticConfig {
+	return staticconfig.StaticConfig{CniBinDirectory: ""}
 }
 
 func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, sriovConfig string) {

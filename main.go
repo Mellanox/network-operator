@@ -41,6 +41,7 @@ import (
 	"github.com/Mellanox/network-operator/controllers"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/migrate"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -78,14 +79,19 @@ func setupWebhookControllers(mgr ctrl.Manager) error {
 func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager) error {
 	ctrLog := setupLog.WithName("controller")
 	clusterTypeProvider, err := clustertype.NewProvider(ctx, c)
+
+	cniBinDir := os.Getenv("CNI_BIN_DIR")
+	staticInfoProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: cniBinDir})
+
 	if err != nil {
 		setupLog.Error(err, "unable to create cluster type provider")
 		return err
 	}
 	if err := (&controllers.NicClusterPolicyReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		ClusterTypeProvider: clusterTypeProvider, // we want to cache information about the cluster type
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		ClusterTypeProvider:  clusterTypeProvider, // we want to cache information about the cluster type
+		StaticConfigProvider: staticInfoProvider,
 	}).SetupWithManager(mgr, ctrLog.WithName("NicClusterPolicy")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
 		return err

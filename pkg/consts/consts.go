@@ -32,4 +32,6 @@ const (
 	NicClusterPolicyResourceName = "nic-cluster-policy"
 	OfedDriverLabel              = "nvidia.com/ofed-driver"
 	StateLabel                   = "nvidia.network-operator.state"
+	DefaultCniBinDirectory       = "/opt/cni/bin"
+	OcpCniBinDirectory           = "/var/lib/cni/bin"
 )

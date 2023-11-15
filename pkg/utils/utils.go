@@ -28,7 +28,9 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 const PodTemplateGenerationLabel = "pod-template-generation"
@@ -76,4 +78,18 @@ func GetPodTemplateGeneration(pod *v1.Pod, log logr.Logger) (int64, error) {
 		return 0, err
 	}
 	return generation, nil
+}
+
+func GetCniBinDirectory(staticInfo staticconfig.Provider,
+	clusterInfo clustertype.Provider) string {
+	// First we try to set the user-set value, then fallback to defaults for Openshift / K8s
+	userSetDirectory := staticInfo.GetStaticConfig().CniBinDirectory
+	if userSetDirectory != "" {
+		return userSetDirectory
+	} else if clusterInfo != nil && clusterInfo.IsOpenshift() {
+		// /opt/cni/bin directory is read-only on OCP, so we need to use another one
+		return consts.OcpCniBinDirectory
+	} else {
+		return consts.DefaultCniBinDirectory
+	}
 }

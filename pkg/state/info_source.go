@@ -19,6 +19,7 @@ package state
 import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 type InfoType uint
@@ -26,6 +27,7 @@ type InfoType uint
 const (
 	InfoTypeNodeInfo = iota
 	InfoTypeClusterType
+	InfoTypeStaticConfig
 )
 
 func NewInfoCatalog() InfoCatalog {
@@ -45,6 +47,8 @@ type InfoCatalog interface {
 	GetNodeInfoProvider() nodeinfo.Provider
 	// GetClusterTypeProvider returns a reference clustertype.Provider from catalog or nil if provider does not exist
 	GetClusterTypeProvider() clustertype.Provider
+	// GetStaticConfigProvider returns a reference staticinfo.Provider from catalog or nil if provider does not exist
+	GetStaticConfigProvider() staticconfig.Provider
 }
 
 type infoCatalog struct {
@@ -69,4 +73,12 @@ func (sc *infoCatalog) GetClusterTypeProvider() clustertype.Provider {
 		return nil
 	}
 	return infoSource.(clustertype.Provider)
+}
+
+func (sc *infoCatalog) GetStaticConfigProvider() staticconfig.Provider {
+	infoSource, ok := sc.infoSources[InfoTypeStaticConfig]
+	if !ok {
+		return nil
+	}
+	return infoSource.(staticconfig.Provider)
 }

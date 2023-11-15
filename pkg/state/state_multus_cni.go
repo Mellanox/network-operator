@@ -34,6 +34,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
@@ -63,14 +64,15 @@ type MultusManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.MultusSpec
 	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *runtimeSpec
+	RuntimeSpec  *cniRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateMultusCNI) Sync(ctx context.Context, customResource interface{}, _ InfoCatalog) (SyncState, error) {
+func (s *stateMultusCNI) Sync(
+	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	reqLogger.V(consts.LogLevelInfo).Info(
@@ -82,7 +84,12 @@ func (s *stateMultusCNI) Sync(ctx context.Context, customResource interface{}, _
 		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr, reqLogger)
+	staticInfo := infoCatalog.GetStaticConfigProvider()
+	if staticInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
+	}
+
+	objs, err := s.getManifestObjects(cr, staticInfo, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -124,13 +131,15 @@ func (s *stateMultusCNI) GetWatchSources() map[string]*source.Kind {
 }
 
 func (s *stateMultusCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
+	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	renderData := &MultusManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
-		RuntimeSpec: &runtimeSpec{
-			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
+		RuntimeSpec: &cniRuntimeSpec{
+			runtimeSpec:     runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, nil),
 		},
 	}
 

@@ -100,11 +100,7 @@ spec:
       volumes:
         - name: cnibin
           hostPath:
-            {{- if .RuntimeSpec.IsOpenshift }}
-            path: /var/lib/cni/bin
-            {{- else }}
-            path: /opt/cni/bin
-            {{- end }}
+            path: {{ .RuntimeSpec.CniBinDirectory }}
             type: DirectoryOrCreate
         - name: cniconf
           hostPath:
