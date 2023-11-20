@@ -211,8 +211,8 @@ type IBKubernetesSpec struct {
 type NVIPAMSpec struct {
 	// Enable deployment of the validation webhook
 	// +kubebuilder:default:=false
-	EnableWebhook       bool `json:"enableWebhook,omitempty"`
-	ImageSpecWithConfig `json:""`
+	EnableWebhook bool `json:"enableWebhook,omitempty"`
+	ImageSpec     `json:""`
 }
 
 // NicFeatureDiscoverySpec describes configuration options for nic-feature-discovery
