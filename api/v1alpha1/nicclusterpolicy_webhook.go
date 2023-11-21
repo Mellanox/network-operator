@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -62,38 +63,38 @@ func (w *NicClusterPolicy) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &NicClusterPolicy{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateCreate() error {
+func (w *NicClusterPolicy) ValidateCreate() (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	nicClusterPolicyLog.Info("validate create", "name", w.Name)
-	return w.validateNicClusterPolicy()
+	return nil, w.validateNicClusterPolicy()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateUpdate(_ runtime.Object) error {
+func (w *NicClusterPolicy) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	nicClusterPolicyLog.Info("validate update", "name", w.Name)
-	return w.validateNicClusterPolicy()
+	return nil, w.validateNicClusterPolicy()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateDelete() error {
+func (w *NicClusterPolicy) ValidateDelete() (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	nicClusterPolicyLog.Info("validate delete", "name", w.Name)
 
 	// Validation for delete call is not required
-	return nil
+	return nil, nil
 }
 
 /*

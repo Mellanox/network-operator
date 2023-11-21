@@ -18,10 +18,10 @@ package controllers //nolint:dupl
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,9 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -142,16 +139,15 @@ func (r *MacvlanNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog l
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxcomv1alpha1.MacvlanNetwork{}).
 		// Watch for changes to primary resource MacvlanNetwork
-		Watches(&source.Kind{Type: &mellanoxcomv1alpha1.MacvlanNetwork{}}, &handler.EnqueueRequestForObject{})
+		Watches(&mellanoxcomv1alpha1.MacvlanNetwork{}, &handler.EnqueueRequestForObject{})
 
 	// Watch for changes to secondary resource DaemonSet and requeue the owner MacvlanNetwork
 	ws := stateManager.GetWatchSources()
-	for i := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
-		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &mellanoxcomv1alpha1.MacvlanNetwork{},
-		})
+	for kindName := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", kindName)
+		builder = builder.Watches(ws[kindName],
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(),
+				&mellanoxcomv1alpha1.MacvlanNetwork{}, handler.OnlyControllerOwner()))
 	}
 
 	return builder.Complete(r)

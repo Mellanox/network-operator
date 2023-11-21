@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -43,40 +44,40 @@ func (w *HostDeviceNetwork) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &HostDeviceNetwork{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateCreate() error {
+func (w *HostDeviceNetwork) ValidateCreate() (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	hostDeviceNetworkLog.Info("validate create", "name", w.Name)
 
-	return w.validateHostDeviceNetwork()
+	return nil, w.validateHostDeviceNetwork()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateUpdate(_ runtime.Object) error {
+func (w *HostDeviceNetwork) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	hostDeviceNetworkLog.Info("validate update", "name", w.Name)
 
-	return w.validateHostDeviceNetwork()
+	return nil, w.validateHostDeviceNetwork()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateDelete() error {
+func (w *HostDeviceNetwork) ValidateDelete() (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
-		return nil
+		return nil, nil
 	}
 
 	hostDeviceNetworkLog.Info("validate delete", "name", w.Name)
 
 	// Validation for delete call is not required
-	return nil
+	return nil, nil
 }
 
 /*

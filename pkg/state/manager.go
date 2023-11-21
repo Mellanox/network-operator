@@ -21,7 +21,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
@@ -30,7 +29,7 @@ import (
 // A state manager invokes states in order to get the system to its desired state
 type Manager interface {
 	// GetWatchSources gets Resources that should be watched by a Controller for this state manager
-	GetWatchSources() []*source.Kind
+	GetWatchSources() map[string]client.Object
 	// SyncState reconciles the state of the system and returns a list of status of the applied states
 	// InfoCatalog is provided to optionally provide a State additional information sources required for it to perform
 	// the Sync operation.
@@ -57,8 +56,8 @@ type stateManager struct {
 	client client.Client
 }
 
-func (smgr *stateManager) GetWatchSources() []*source.Kind {
-	kindMap := make(map[string]*source.Kind)
+func (smgr *stateManager) GetWatchSources() map[string]client.Object {
+	kindMap := make(map[string]client.Object)
 	for _, state := range smgr.states {
 		wr := state.GetWatchSources()
 		// append to kindMap
@@ -68,12 +67,7 @@ func (smgr *stateManager) GetWatchSources() []*source.Kind {
 			}
 		}
 	}
-
-	kinds := make([]*source.Kind, 0, len(kindMap))
-	for _, kind := range kindMap {
-		kinds = append(kinds, kind)
-	}
-	return kinds
+	return kindMap
 }
 
 // SyncState attempts to reconcile the system by invoking Sync on each of the states

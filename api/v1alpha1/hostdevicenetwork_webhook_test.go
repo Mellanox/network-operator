@@ -31,7 +31,8 @@ var _ = Describe("Validate", func() {
 					ResourceName: "hostdev",
 				},
 			}
-			Expect(hostDeviceNetwork.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := hostDeviceNetwork.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Invalid ResourceName", func() {
 			hostDeviceNetwork := HostDeviceNetwork{
@@ -40,7 +41,8 @@ var _ = Describe("Validate", func() {
 					ResourceName: "hostdev!!",
 				},
 			}
-			Expect(hostDeviceNetwork.ValidateCreate().Error()).To(ContainSubstring("Invalid Resource name"))
+			_, err := hostDeviceNetwork.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
 		})
 	})
 })

@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
@@ -337,12 +336,12 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 	ctl := ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxv1alpha1.NicClusterPolicy{}).
 		// Watch for changes to primary resource NicClusterPolicy
-		Watches(&source.Kind{Type: &mellanoxv1alpha1.NicClusterPolicy{}}, &handler.EnqueueRequestForObject{})
+		Watches(&mellanoxv1alpha1.NicClusterPolicy{}, &handler.EnqueueRequestForObject{})
 
 	// we always add object with a same(static) key to the queue to reduce
 	// reconciliation count
 	updateEnqueue := handler.Funcs{
-		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
 				Name: consts.NicClusterPolicyResourceName,
 			}})
@@ -351,16 +350,15 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 
 	// Watch for "feature.node.kubernetes.io/pci-15b3.present" label applying
 	nodePredicates := builder.WithPredicates(MlnxLabelChangedPredicate{})
-	ctl = ctl.Watches(&source.Kind{Type: &corev1.Node{}}, updateEnqueue, nodePredicates)
+	ctl = ctl.Watches(&corev1.Node{}, updateEnqueue, nodePredicates)
 
 	ws := stateManager.GetWatchSources()
 
-	for i := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
-		ctl = ctl.Watches(ws[i], &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &mellanoxv1alpha1.NicClusterPolicy{},
-		}, builder.WithPredicates(IgnoreSameContentPredicate{}))
+	for kindName := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", kindName)
+		ctl = ctl.Watches(ws[kindName], handler.EnqueueRequestForOwner(
+			mgr.GetScheme(), mgr.GetRESTMapper(), &mellanoxv1alpha1.NicClusterPolicy{}, handler.OnlyControllerOwner()),
+			builder.WithPredicates(IgnoreSameContentPredicate{}))
 	}
 
 	return ctl.Complete(r)

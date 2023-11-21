@@ -16,7 +16,13 @@ limitations under the License.
 
 package v1alpha1
 
-import upgradeApi "github.com/NVIDIA/k8s-operator-libs/api/upgrade/v1alpha1"
+import (
+	"fmt"
+
+	upgradeApi "github.com/NVIDIA/k8s-operator-libs/api/upgrade/v1alpha1"
+
+	"github.com/Mellanox/network-operator/pkg/consts"
+)
 
 func GetDriverUpgradePolicy(
 	ofedUpgradePolicy *DriverUpgradePolicySpec) *upgradeApi.DriverUpgradePolicySpec {
@@ -32,6 +38,20 @@ func GetDriverUpgradePolicy(
 	driverUpgradePolicy.PodDeletion = nil
 	driverUpgradePolicy.WaitForCompletion = getWaitForCompletionSpec(ofedUpgradePolicy.WaitForCompletion)
 	driverUpgradePolicy.DrainSpec = getDrainSpec(ofedUpgradePolicy.DrainSpec)
+
+	if driverUpgradePolicy.DrainSpec != nil && driverUpgradePolicy.DrainSpec.Enable {
+		// We want to skip operator itself during the drain because the upgrade process might hang
+		// if the operator is evicted and can't be rescheduled to any other node, e.g. in a single-node cluster.
+		// It's safe to do because the goal of the node draining during the upgrade is to
+		// evict pods that might use driver and operator doesn't use in its own pod.
+		if driverUpgradePolicy.DrainSpec.PodSelector == "" {
+			driverUpgradePolicy.DrainSpec.PodSelector = consts.OfedDriverSkipDrainLabelSelector
+		} else {
+			driverUpgradePolicy.DrainSpec.PodSelector =
+				fmt.Sprintf("%s,%s", driverUpgradePolicy.DrainSpec.PodSelector,
+					consts.OfedDriverSkipDrainLabelSelector)
+		}
+	}
 
 	return &driverUpgradePolicy
 }

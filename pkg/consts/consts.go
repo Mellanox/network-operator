@@ -34,4 +34,8 @@ const (
 	StateLabel                   = "nvidia.network-operator.state"
 	DefaultCniBinDirectory       = "/opt/cni/bin"
 	OcpCniBinDirectory           = "/var/lib/cni/bin"
+	// OfedDriverSkipDrainLabelSelector contains labelselector which is used to indicate
+	// that network-operator pod should be skipped during the drain operation which
+	// is executed by the upgrade controller.
+	OfedDriverSkipDrainLabelSelector = "nvidia.com/ofed-driver-upgrade-drain.skip!=true"
 )

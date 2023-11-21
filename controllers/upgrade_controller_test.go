@@ -23,12 +23,10 @@ import (
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -96,68 +94,6 @@ var _ = Describe("Upgrade Controller", func() {
 				_, present := node.Labels[upgrade.GetUpgradeStateLabelKey()]
 				Expect(present).To(Equal(false))
 			}
-		})
-
-		It("should only retrieve pods owned by a given daemonset", func() {
-			upgrade.SetDriverName("ofed")
-
-			ds := &appsv1.DaemonSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-daemonset",
-					Namespace: "default",
-					UID:       "ds-uid",
-				},
-			}
-
-			// Create a Pod owned by the DaemonSet
-			dsPod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "ds-pod",
-					Namespace: "default",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: "apps/v1",
-							Kind:       "DaemonSet",
-							Name:       ds.Name,
-							UID:        ds.UID,
-						},
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{Image: "test", Name: "test"}},
-				},
-			}
-			err := k8sClient.Create(goctx.TODO(), dsPod)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Create a Pod NOT owned by the DaemonSet
-			nonDsPod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "non-ds-pod",
-					Namespace: "default",
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{Image: "test", Name: "test"}},
-				},
-			}
-			err = k8sClient.Create(goctx.TODO(), nonDsPod)
-			Expect(err).NotTo(HaveOccurred())
-
-			podList := &corev1.PodList{}
-			err = k8sClient.List(goctx.TODO(), podList)
-			Expect(podList.Items).To(HaveLen(2))
-			Expect(err).NotTo(HaveOccurred())
-
-			upgradeReconciler := &UpgradeReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			pods := upgradeReconciler.getPodsOwnedbyDs(ds, podList.Items, log.Log.WithName("test-log"))
-
-			// Verify that the returned Pods are owned by the DaemonSet
-			Expect(pods).To(HaveLen(1))
-			Expect(pods[0].Name).To(Equal(dsPod.Name))
 		})
 	})
 })

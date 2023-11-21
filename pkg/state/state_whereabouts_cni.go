@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -123,9 +122,9 @@ func (s *stateWhereaboutsCNI) Sync(
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateWhereaboutsCNI) GetWatchSources() map[string]*source.Kind {
-	wr := make(map[string]*source.Kind)
-	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
+func (s *stateWhereaboutsCNI) GetWatchSources() map[string]client.Object {
+	wr := make(map[string]client.Object)
+	wr["DaemonSet"] = &appsv1.DaemonSet{}
 	return wr
 }
 
