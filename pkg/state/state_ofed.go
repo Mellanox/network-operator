@@ -553,18 +553,19 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(
 		"name", cmName, "namespace", cmNamespace)
 
 	// check that CA bundle is populated by Openshift before proceed
-	err = wait.Poll(ocpTrustedCAConfigMapCheckInterval, ocpTrustedCAConfigMapCheckTimeout, func() (bool, error) {
-		err := s.client.Get(ctx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
-		if err != nil {
-			if apiErrors.IsNotFound(err) {
-				return false, nil
+	err = wait.PollUntilContextTimeout(ctx, ocpTrustedCAConfigMapCheckInterval,
+		ocpTrustedCAConfigMapCheckTimeout, true, func(innerCtx context.Context) (bool, error) {
+			err := s.client.Get(innerCtx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+			if err != nil {
+				if apiErrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
 			}
-			return false, err
-		}
-		return configMap.Data[ocpTrustedCABundleFileName] != "", nil
-	})
+			return configMap.Data[ocpTrustedCABundleFileName] != "", nil
+		})
 	if err != nil {
-		if !errors.Is(err, wait.ErrWaitTimeout) {
+		if !wait.Interrupted(err) {
 			return nil, errors.Wrap(err, "failed to check TrustedCAConfigMap content")
 		}
 		reqLogger.V(consts.LogLevelWarning).Info("TrustedCAConfigMap was not populated by Openshift,"+
