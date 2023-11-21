@@ -266,7 +266,7 @@ Known limitations:
 These limitations will be addressed in future releases.
 
 > __NOTE__: changes which were made directly in NicClusterPolicy CR (e.g. with `kubectl edit`)
-> will be overwritten by Helm upgrade
+> will be overwritten by Helm upgrade due to the `force` flag.
 
 ### Temporary disable network-operator
 
@@ -285,7 +285,7 @@ You have to wait for network-operator POD to remove before proceeding.
 ### Apply Helm chart update
 
 ```
-helm upgrade -n network-operator  network-operator mellanox/network-operator --version=<VERSION> -f values-<VERSION>.yaml
+helm upgrade -n network-operator  network-operator mellanox/network-operator --version=<VERSION> -f values-<VERSION>.yaml --force
 ```
 
 > __NOTE__: `--devel` option required if you want to use the beta release
