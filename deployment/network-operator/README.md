@@ -383,6 +383,7 @@ parameters.
 | `deployCR`                                           | bool   | `false`                                  | Deploy `NicClusterPolicy` custom resource according to provided parameters                                                                                                                                                                                     |
 | `nodeAffinity`                                       | yaml   | ``                                       | Override the node affinity for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.                                                                                                                                         |
 | `tolerations`                                        | yaml   | ``                                       | Set additional tolerations for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.                                                                                                                                         |
+| `useDTK`                                             | bool   | `True`                                   | Enable use of Driver ToolKit to compile OFED drivers (OpenShift Only).                                                                                                                                               |
 
 #### imagePullSecrets customization
 

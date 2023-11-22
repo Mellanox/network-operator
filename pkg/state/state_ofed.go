@@ -28,6 +28,7 @@ import (
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	"github.com/go-logr/logr"
 	osconfigv1 "github.com/openshift/api/config/v1"
+	apiimagev1 "github.com/openshift/api/image/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -156,6 +157,8 @@ type ofedRuntimeSpec struct {
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	UseDtk             bool
+	DtkImageName       string
 }
 
 type ofedManifestRenderData struct {
@@ -394,6 +397,7 @@ func (s *stateOFED) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
 	if len(attrs) == 0 {
@@ -409,6 +413,19 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, err
 	}
 	nodeAttr := attrs[0].Attributes
+
+	useDtk := clusterInfo.IsOpenshift() && config.FromEnv().State.OFEDState.UseDTK
+	var dtkImageName string
+	if useDtk {
+		if err := s.checkAttributesExist(attrs[0], nodeinfo.AttrTypeOSTreeVersion); err != nil {
+			return nil, err
+		}
+		dtk, err := s.getOCPDriverToolkitImage(ctx, nodeAttr[nodeinfo.AttrTypeOSTreeVersion])
+		if err != nil {
+			return nil, fmt.Errorf("failed to get OpenShift DTK image : %v", err)
+		}
+		dtkImageName = dtk
+	}
 
 	setProbesDefaults(cr)
 
@@ -441,6 +458,8 @@ func (s *stateOFED) GetManifestObjects(
 				config.FromEnv().State.OFEDState.InitContainerImage),
 			IsOpenshift:        clusterInfo.IsOpenshift(),
 			ContainerResources: createContainerResourcesMap(cr.Spec.OFEDDriver.ContainerResources),
+			UseDtk:             useDtk,
+			DtkImageName:       dtkImageName,
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,
@@ -734,4 +753,28 @@ func (s *stateOFED) handleRepoConfig(
 		}
 	}
 	return nil
+}
+
+// getOCPDriverToolkitImage gets the DTK ImageStream and return the DTK image according to OSTREE version
+func (s *stateOFED) getOCPDriverToolkitImage(ctx context.Context, ostreeVersion string) (string, error) {
+	reqLogger := log.FromContext(ctx)
+	dtkImageStream := &apiimagev1.ImageStream{}
+	name := "driver-toolkit"
+	namespace := "openshift"
+	err := s.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, dtkImageStream)
+	if err != nil {
+		reqLogger.Error(err, "Couldn't get the driver-toolkit imagestream")
+		return "", err
+	}
+	rhcosDriverToolkitImages := make(map[string]string)
+	reqLogger.Info("ocpDriverToolkitImages: driver-toolkit imagestream found")
+	for _, tag := range dtkImageStream.Spec.Tags {
+		rhcosDriverToolkitImages[tag.Name] = tag.From.Name
+	}
+
+	image, ok := rhcosDriverToolkitImages[ostreeVersion]
+	if !ok {
+		return "", fmt.Errorf("failed to find DTK image for RHCOS version: %v", ostreeVersion)
+	}
+	return image, nil
 }

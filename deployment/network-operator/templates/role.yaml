@@ -196,6 +196,14 @@ rules:
   - patch
   - update
 - apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - k8s.cni.cncf.io
   resources:
   - network-attachment-definitions

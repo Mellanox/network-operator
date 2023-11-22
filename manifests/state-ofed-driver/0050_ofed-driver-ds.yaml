@@ -84,6 +84,12 @@ spec:
             seLinuxOptions:
               level: "s0"
           env:
+          {{- if .RuntimeSpec.UseDtk }}
+            - name: DTK_OCP_DRIVER_BUILD
+              value: "true"
+            - name: DTK_OCP_NIC_SHARED_DIR
+              value: "/mnt/shared-doca-driver-toolkit"
+          {{- end }}
           {{- if .CrSpec.Env }}
           {{- range .CrSpec.Env }}
             {{ . | yaml | nindentPrefix 14 "- " }}
@@ -111,6 +117,10 @@ spec:
               readOnly: {{ .ReadOnly }}
             {{- end }}
             {{- end }}
+            {{- if .RuntimeSpec.UseDtk }}
+            - name: shared-doca-driver-toolkit
+              mountPath: /mnt/shared-doca-driver-toolkit
+            {{- end}}
           {{- with index .RuntimeSpec.ContainerResources "mofed-container" }}
           resources:
             {{- if .Requests }}
@@ -145,6 +155,41 @@ spec:
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: 1
             periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
+        {{- if .RuntimeSpec.UseDtk }}
+        - image: {{ .RuntimeSpec.DtkImageName }}
+          imagePullPolicy: IfNotPresent
+          name: openshift-driver-toolkit-ctr
+          command: [bash, -xc]
+          args:
+            - |
+              until [ -f /mnt/shared-doca-driver-toolkit/dtk_start_compile ]; do
+                echo Waiting for mofed-container container to prepare the shared directory
+                sleep 3
+              done
+              exec /mnt/shared-doca-driver-toolkit/dtk_nic_driver_build.sh
+          env:
+            - name: DTK_OCP_NIC_SHARED_DIR
+              value: "/mnt/shared-doca-driver-toolkit"
+          {{- if .CrSpec.Env }}
+          {{- range .CrSpec.Env }}
+            {{ . | yaml | nindentPrefix 14 "- " }}
+          {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: shared-doca-driver-toolkit
+              mountPath: /mnt/shared-doca-driver-toolkit
+          {{- with index .RuntimeSpec.ContainerResources "openshift-driver-toolkit-ctr" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+          {{- end }}
+        {{- end }}
       # unloading OFED modules can take more time than default terminationGracePeriod (30 sec)
       terminationGracePeriodSeconds: {{ .CrSpec.TerminationGracePeriodSeconds }}
       volumes:
@@ -174,6 +219,10 @@ spec:
             {{- range .ConfigMap.Items }}
             {{ . | yaml | nindentPrefix 14 "- " }}
             {{- end }}
+        {{- end }}
+        {{- if .RuntimeSpec.UseDtk }}
+        - name: shared-doca-driver-toolkit
+          emptyDir: {}
         {{- end }}
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"

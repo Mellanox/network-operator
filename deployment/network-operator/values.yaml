@@ -149,6 +149,7 @@ operator:
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
   # tag
   cniBinDirectory: /opt/cni/bin
+  useDTK: true
   admissionController:
     enabled: false
     useCertManager: true
