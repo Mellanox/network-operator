@@ -268,20 +268,6 @@ These limitations will be addressed in future releases.
 > __NOTE__: changes which were made directly in NicClusterPolicy CR (e.g. with `kubectl edit`)
 > will be overwritten by Helm upgrade due to the `force` flag.
 
-### Temporary disable network-operator
-
-This step is required to prevent the old network-operator version to handle the updated NicClusterPolicy CR. This
-limitation will be removed in future network-operator releases.
-
-```
-kubectl scale deployment --replicas=0 -n network-operator network-operator
-```
-
-You have to wait for network-operator POD to remove before proceeding.
-
-> __NOTE__: network-operator will be automatically enabled by helm upgrade command,
-> you don't need to enable it manually
-
 ### Apply Helm chart update
 
 ```
