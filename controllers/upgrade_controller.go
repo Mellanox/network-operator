@@ -18,28 +18,24 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
-	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -49,9 +45,8 @@ import (
 // UpgradeReconciler reconciles OFED Daemon Sets for upgrade
 type UpgradeReconciler struct {
 	client.Client
-	Scheme                   *runtime.Scheme
-	StateManager             *upgrade.ClusterUpgradeStateManager
-	NodeUpgradeStateProvider upgrade.NodeUpgradeStateProvider
+	Scheme       *runtime.Scheme
+	StateManager upgrade.ClusterUpgradeStateManager
 }
 
 const plannedRequeueInterval = time.Minute * 2
@@ -102,7 +97,9 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 
 	upgradePolicy := nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy
 
-	state, err := r.BuildState(ctx)
+	state, err := r.StateManager.BuildState(ctx,
+		config.FromEnv().State.NetworkOperatorResourceNamespace,
+		map[string]string{consts.OfedDriverLabel: ""})
 	if err != nil {
 		reqLogger.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state")
 		return ctrl.Result{}, err
@@ -184,125 +181,6 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 	return nil
 }
 
-// BuildState creates a snapshot of the current OFED upgrade state in the cluster (upgrade.ClusterUpgradeState)
-// It creates mappings between nodes and their upgrade state
-// Nodes are grouped together with the driver POD running on them and the daemon set, controlling this pod
-// This state is then used as an input for the upgrade.ClusterUpgradeStateManager
-func (r *UpgradeReconciler) BuildState(ctx context.Context) (*upgrade.ClusterUpgradeState, error) {
-	reqLogger := log.FromContext(ctx)
-	reqLogger.V(consts.LogLevelInfo).Info("Building state")
-
-	upgradeState := upgrade.NewClusterUpgradeState()
-
-	daemonSets, err := r.getDriverDaemonSets(ctx)
-	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get driver daemon set list")
-		return nil, err
-	}
-
-	reqLogger.V(consts.LogLevelDebug).Info("Got driver daemon sets", "length", len(daemonSets))
-
-	// Get list of driver pods
-	podList := &corev1.PodList{}
-
-	err = r.List(ctx, podList,
-		client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace),
-		client.MatchingLabels{consts.OfedDriverLabel: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	filteredPodList := []corev1.Pod{}
-	for _, ds := range daemonSets {
-		dsPods := r.getPodsOwnedbyDs(ds, podList.Items, reqLogger)
-		if int(ds.Status.DesiredNumberScheduled) != len(dsPods) {
-			reqLogger.V(consts.LogLevelInfo).Info("Driver daemon set has Unscheduled pods", "name", ds.Name)
-			return nil, fmt.Errorf("DS should not have Unscheduled pods")
-		}
-		filteredPodList = append(filteredPodList, dsPods...)
-	}
-
-	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
-
-	for i := range filteredPodList {
-		pod := &filteredPodList[i]
-		ownerDaemonSet := daemonSets[pod.OwnerReferences[0].UID]
-		nodeState, err := r.buildNodeUpgradeState(ctx, pod, ownerDaemonSet)
-		if err != nil {
-			reqLogger.V(consts.LogLevelError).Error(err, "Failed to build node upgrade state for pod", "pod", pod)
-			return nil, err
-		}
-		nodeStateLabel := nodeState.Node.Labels[upgradeStateLabel]
-		upgradeState.NodeStates[nodeStateLabel] = append(
-			upgradeState.NodeStates[nodeStateLabel], nodeState)
-	}
-
-	return &upgradeState, nil
-}
-
-// buildNodeUpgradeState creates a mapping between a node,
-// the driver POD running on them and the daemon set, controlling this pod
-func (r *UpgradeReconciler) buildNodeUpgradeState(
-	ctx context.Context, pod *corev1.Pod, ds *appsv1.DaemonSet) (*upgrade.NodeUpgradeState, error) {
-	reqLogger := log.FromContext(ctx)
-	node, err := r.NodeUpgradeStateProvider.GetNode(ctx, pod.Spec.NodeName)
-	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get node", "node", pod.Spec.NodeName)
-		return nil, err
-	}
-
-	upgradeStateLabel := upgrade.GetUpgradeStateLabelKey()
-	reqLogger.V(consts.LogLevelInfo).Info("Node hosting a driver pod",
-		"node", node.Name, "state", node.Labels[upgradeStateLabel])
-
-	return &upgrade.NodeUpgradeState{Node: node, DriverPod: pod, DriverDaemonSet: ds}, nil
-}
-
-// getDriverDaemonSets retrieves DaemonSets labeled with OfedDriverLabel and returns UID->DaemonSet map
-func (r *UpgradeReconciler) getDriverDaemonSets(ctx context.Context) (map[types.UID]*appsv1.DaemonSet, error) {
-	reqLogger := log.FromContext(ctx)
-	// Get list of driver pods
-	daemonSetList := &appsv1.DaemonSetList{}
-
-	err := r.List(ctx, daemonSetList,
-		client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace),
-		client.MatchingLabels{consts.OfedDriverLabel: ""})
-	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to get daemon set list")
-		return nil, err
-	}
-
-	daemonSetMap := make(map[types.UID]*appsv1.DaemonSet)
-	for i := range daemonSetList.Items {
-		daemonSet := &daemonSetList.Items[i]
-		daemonSetMap[daemonSet.UID] = daemonSet
-	}
-
-	return daemonSetMap, nil
-}
-
-// getPodsOwnedbyDs gets a list of pods return a list of the pods owned by the specified DaemonSet
-func (r *UpgradeReconciler) getPodsOwnedbyDs(
-	ds *appsv1.DaemonSet, pods []corev1.Pod, reqLogger logr.Logger) []corev1.Pod {
-	dsPodList := []corev1.Pod{}
-	for i := range pods {
-		pod := &pods[i]
-		if pod.OwnerReferences == nil || len(pod.OwnerReferences) < 1 {
-			reqLogger.V(consts.LogLevelWarning).Info("OFED Driver Pod has no owner DaemonSet", "pod", pod)
-			continue
-		}
-		reqLogger.V(consts.LogLevelDebug).Info("Pod", "pod", pod.Name, "owner", pod.OwnerReferences[0].Name)
-
-		if ds.UID == pod.OwnerReferences[0].UID {
-			dsPodList = append(dsPodList, *pod)
-		} else {
-			reqLogger.V(consts.LogLevelWarning).Info("OFED Driver Pod is not owned by an OFED Driver DaemonSet",
-				"pod", pod, "actual owner", pod.OwnerReferences[0])
-		}
-	}
-	return dsPodList
-}
-
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
@@ -317,22 +195,22 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	createUpdateDeleteEnqueue := handler.Funcs{
-		CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+		CreateFunc: func(_ context.Context, e event.CreateEvent, q workqueue.RateLimitingInterface) {
 			qHandler(q)
 		},
-		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			qHandler(q)
 		},
-		DeleteFunc: func(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
+		DeleteFunc: func(_ context.Context, e event.DeleteEvent, q workqueue.RateLimitingInterface) {
 			qHandler(q)
 		},
 	}
 
 	createUpdateEnqueue := handler.Funcs{
-		CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+		CreateFunc: func(_ context.Context, e event.CreateEvent, q workqueue.RateLimitingInterface) {
 			qHandler(q)
 		},
-		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			qHandler(q)
 		},
 	}
@@ -353,8 +231,8 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// we set it explicitly here to indicate that we rely on this default behavior
 		// UpgradeReconciler contains logic which is not concurrent friendly
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
-		Watches(&source.Kind{Type: &mellanoxv1alpha1.NicClusterPolicy{}}, createUpdateDeleteEnqueue).
-		Watches(&source.Kind{Type: &corev1.Node{}}, createUpdateEnqueue, nodePredicates).
-		Watches(&source.Kind{Type: &appsv1.DaemonSet{}}, createUpdateDeleteEnqueue, daemonSetPredicates).
+		Watches(&mellanoxv1alpha1.NicClusterPolicy{}, createUpdateDeleteEnqueue).
+		Watches(&corev1.Node{}, createUpdateEnqueue, nodePredicates).
+		Watches(&appsv1.DaemonSet{}, createUpdateDeleteEnqueue, daemonSetPredicates).
 		Complete(r)
 }

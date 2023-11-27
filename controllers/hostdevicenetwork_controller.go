@@ -17,7 +17,6 @@ package controllers //nolint:dupl
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -31,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -153,16 +151,14 @@ func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLo
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxcomv1alpha1.HostDeviceNetwork{}).
 		// Watch for changes to primary resource HostDeviceNetwork
-		Watches(&source.Kind{Type: &mellanoxcomv1alpha1.HostDeviceNetwork{}}, &handler.EnqueueRequestForObject{})
+		Watches(&mellanoxcomv1alpha1.HostDeviceNetwork{}, &handler.EnqueueRequestForObject{})
 
 	// Watch for changes to secondary resource DaemonSet and requeue the owner HostDeviceNetwork
 	ws := stateManager.GetWatchSources()
-	for i := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", fmt.Sprintf("%T", ws[i].Type))
-		builder = builder.Watches(ws[i], &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &mellanoxcomv1alpha1.HostDeviceNetwork{},
-		})
+	for kindName := range ws {
+		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", kindName)
+		builder = builder.Watches(ws[kindName], handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(),
+			&mellanoxcomv1alpha1.HostDeviceNetwork{}, handler.OnlyControllerOwner()))
 	}
 
 	return builder.Complete(r)

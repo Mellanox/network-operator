@@ -19,7 +19,7 @@ package state
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type SyncState string
@@ -48,5 +48,5 @@ type State interface {
 	// the Sync operation.
 	Sync(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error)
 	// Get a map of source kinds that should be watched for the state keyed by the source kind name
-	GetWatchSources() map[string]*source.Kind
+	GetWatchSources() map[string]client.Object
 }

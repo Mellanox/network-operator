@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
@@ -302,9 +301,9 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 }
 
 // GetWatchSources returns map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateOFED) GetWatchSources() map[string]*source.Kind {
-	wr := make(map[string]*source.Kind)
-	wr["DaemonSet"] = &source.Kind{Type: &appsv1.DaemonSet{}}
+func (s *stateOFED) GetWatchSources() map[string]client.Object {
+	wr := make(map[string]client.Object)
+	wr["DaemonSet"] = &appsv1.DaemonSet{}
 	return wr
 }
 
@@ -554,18 +553,19 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(
 		"name", cmName, "namespace", cmNamespace)
 
 	// check that CA bundle is populated by Openshift before proceed
-	err = wait.Poll(ocpTrustedCAConfigMapCheckInterval, ocpTrustedCAConfigMapCheckTimeout, func() (bool, error) {
-		err := s.client.Get(ctx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
-		if err != nil {
-			if apiErrors.IsNotFound(err) {
-				return false, nil
+	err = wait.PollUntilContextTimeout(ctx, ocpTrustedCAConfigMapCheckInterval,
+		ocpTrustedCAConfigMapCheckTimeout, true, func(innerCtx context.Context) (bool, error) {
+			err := s.client.Get(innerCtx, types.NamespacedName{Namespace: cmNamespace, Name: cmName}, configMap)
+			if err != nil {
+				if apiErrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
 			}
-			return false, err
-		}
-		return configMap.Data[ocpTrustedCABundleFileName] != "", nil
-	})
+			return configMap.Data[ocpTrustedCABundleFileName] != "", nil
+		})
 	if err != nil {
-		if !errors.Is(err, wait.ErrWaitTimeout) {
+		if !wait.Interrupted(err) {
 			return nil, errors.Wrap(err, "failed to check TrustedCAConfigMap content")
 		}
 		reqLogger.V(consts.LogLevelWarning).Info("TrustedCAConfigMap was not populated by Openshift,"+

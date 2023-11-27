@@ -19,12 +19,12 @@ package state
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fakeState struct {
 	name, description string
-	watchResources    map[string]*source.Kind
+	watchResources    map[string]client.Object
 	syncState         SyncState
 }
 
@@ -45,6 +45,6 @@ func (s *fakeState) Sync(_ context.Context, _ interface{}, _ InfoCatalog) (SyncS
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *fakeState) GetWatchSources() map[string]*source.Kind {
+func (s *fakeState) GetWatchSources() map[string]client.Object {
 	return s.watchResources
 }

@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -114,15 +113,15 @@ func (s *statePodSecurityPolicy) Sync(
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *statePodSecurityPolicy) GetWatchSources() map[string]*source.Kind {
-	wr := make(map[string]*source.Kind)
+func (s *statePodSecurityPolicy) GetWatchSources() map[string]client.Object {
+	wr := make(map[string]client.Object)
 	psp := &policyv1beta1.PodSecurityPolicyList{}
 	err := s.client.List(context.TODO(), psp)
 	if meta.IsNoMatchError(err) {
 		// We assume it's k8s v1.25 or newer so PodSecurityPolicy is not supported and no need to reconcile them
 		return wr
 	}
-	wr["PodSecurityPolicy"] = &source.Kind{Type: &policyv1beta1.PodSecurityPolicy{}}
+	wr["PodSecurityPolicy"] = &policyv1beta1.PodSecurityPolicy{}
 	return wr
 }
 

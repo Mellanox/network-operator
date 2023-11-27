@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -143,8 +144,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(clientConf, ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "12620820.mellanox.com",
@@ -176,9 +176,6 @@ func main() {
 
 	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
 
-	nodeUpgradeStateProvider := upgrade.NewNodeUpgradeStateProvider(
-		mgr.GetClient(), upgradeLogger.WithName("nodeUpgradeStateProvider"), nil)
-
 	clusterUpdateStateManager, err := upgrade.NewClusterUpgradeStateManager(
 		upgradeLogger.WithName("clusterUpgradeManager"), config.GetConfigOrDie(), nil)
 
@@ -188,10 +185,9 @@ func main() {
 	}
 
 	if err = (&controllers.UpgradeReconciler{
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
-		StateManager:             clusterUpdateStateManager,
-		NodeUpgradeStateProvider: nodeUpgradeStateProvider,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		StateManager: clusterUpdateStateManager,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
 		os.Exit(1)

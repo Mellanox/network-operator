@@ -19,18 +19,18 @@ package state
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 //nolint:unused
 type fakeMananger struct {
-	watchResources []*source.Kind
+	watchResources map[string]client.Object
 }
 
 // GetWatchSources gets Resources that should be watched by a Controller for this state manager
 //
 //nolint:unused
-func (m *fakeMananger) GetWatchSources() []*source.Kind {
+func (m *fakeMananger) GetWatchSources() map[string]client.Object {
 	return m.watchResources
 }
 

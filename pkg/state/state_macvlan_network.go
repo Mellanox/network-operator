@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -123,10 +122,10 @@ func (s *stateMacvlanNetwork) Sync(ctx context.Context, customResource interface
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateMacvlanNetwork) GetWatchSources() map[string]*source.Kind {
-	wr := make(map[string]*source.Kind)
-	wr["MacvlanNetwork"] = &source.Kind{Type: &mellanoxv1alpha1.MacvlanNetwork{}}
-	wr["NetworkAttachmentDefinition"] = &source.Kind{Type: &netattdefv1.NetworkAttachmentDefinition{}}
+func (s *stateMacvlanNetwork) GetWatchSources() map[string]client.Object {
+	wr := make(map[string]client.Object)
+	wr["MacvlanNetwork"] = &mellanoxv1alpha1.MacvlanNetwork{}
+	wr["NetworkAttachmentDefinition"] = &netattdefv1.NetworkAttachmentDefinition{}
 	return wr
 }
 

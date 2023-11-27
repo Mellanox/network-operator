@@ -40,7 +40,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Invalid GUID range", func() {
 			nicClusterPolicy := NicClusterPolicy{
@@ -58,7 +59,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"pKeyGUIDPoolRangeStart-pKeyGUIDPoolRangeEnd must be a valid range"))
 		})
 		It("Invalid start and end GUID", func() {
@@ -77,7 +79,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(And(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(And(
 				ContainSubstring("pKeyGUIDPoolRangeStart must be a valid GUID format"),
 				ContainSubstring("pKeyGUIDPoolRangeEnd must be a valid GUID format")))
 		})
@@ -95,7 +98,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("InValid MOFED version", func() {
 			nicClusterPolicy := NicClusterPolicy{
@@ -111,7 +115,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("invalid OFED version"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
 		})
 		It("Valid RDMA config JSON", func() {
 			rdmaConfig := `{
@@ -122,7 +127,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(rdmaConfig)
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Valid RDMA config JSON", func() {
 			rdmaConfig := `{
@@ -133,7 +139,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(rdmaConfig)
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Invalid RDMA config JSON, missing starting {", func() {
 			invalidRdmaConfigJSON := `
@@ -144,7 +151,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid json of RdmaSharedDevicePluginConfig"))
 		})
 		It("Invalid RDMA config JSON schema, resourceName not valid", func() {
@@ -156,7 +164,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("Invalid Resource name"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
 		})
 		It("Invalid RDMA config JSON schema, no configList provided", func() {
 			invalidRdmaConfigJSON := `{
@@ -167,7 +176,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("configList is required"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("configList is required"))
 		})
 		It("Invalid RDMA config JSON schema, none of the selectors are provided", func() {
 			invalidRdmaConfigJSON := `{
@@ -176,7 +186,8 @@ var _ = Describe("Validate", func() {
 					"rdmaHcaMax": 63,
 					"selectors": {}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("vendors is required"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("vendors is required"))
 		})
 		It("Invalid RDMA config JSON, vendors must be list of strings", func() {
 			invalidRdmaConfigJSON := `{
@@ -187,7 +198,8 @@ var _ = Describe("Validate", func() {
 						"vendors": [15],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid type. Expected: string, given: integer"))
 		})
 		It("Invalid RDMA config JSON, deviceIDs must be list of strings", func() {
@@ -199,7 +211,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": [1010]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid type. Expected: string, given: integer"))
 		})
 		It("Invalid RDMA config JSON resourcePrefix is not FQDN", func() {
@@ -212,7 +225,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
 			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid Resource prefix, it must be a valid FQDN"))
 		})
 		It("Valid SriovDevicePlugin config JSON", func() {
@@ -223,7 +237,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(sriovConfig)
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Valid SriovDevicePlugin config JSON, selectors object is a list ", func() {
 			sriovConfig := `{
@@ -233,7 +248,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}]}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(sriovConfig)
-			Expect(nicClusterPolicy.ValidateCreate()).NotTo(HaveOccurred())
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Invalid SriovDevicePlugin config JSON, missing starting {", func() {
 			invalidSriovConfigJSON := `
@@ -243,7 +259,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid json of SriovNetworkDevicePluginConfig"))
 		})
 		It("Invalid SriovDevicePlugin config JSON schema, resourceName not valid", func() {
@@ -254,7 +271,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("Invalid Resource name"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
 		})
 		It("Invalid SriovDevicePlugin config JSON schema, no resourceList provided", func() {
 			invalidSriovConfigJSON := `{
@@ -264,7 +282,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("resourceList is required"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("resourceList is required"))
 		})
 		It("Invalid SriovDevicePlugin config JSON schema, none of the selectors are provided", func() {
 			invalidSriovConfigJSON := `{
@@ -272,7 +291,8 @@ var _ = Describe("Validate", func() {
 					"resourceName": "sriov_network_device_plugin",
 					"selectors": {}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring("vendors is required"))
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring("vendors is required"))
 		})
 		It("Invalid SriovDevicePlugin config JSON, vendors must be list of strings", func() {
 			invalidSriovConfigJSON := `{
@@ -282,7 +302,8 @@ var _ = Describe("Validate", func() {
 						"vendors": [15],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid type. Expected: string, given: integer"))
 		})
 		It("Invalid SriovDevicePlugin config JSON, devices must be list of strings", func() {
@@ -293,8 +314,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": [1020]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid type. Expected: string, given: integer"))
 		})
 		It("Invalid SriovDevicePlugin resourcePrefix is not FQDN", func() {
@@ -306,7 +327,8 @@ var _ = Describe("Validate", func() {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
 			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"Invalid Resource prefix, it must be a valid FQDN"))
 		})
 	})
@@ -327,7 +349,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository OFEDDriver", func() {
@@ -344,7 +367,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository RdmaSharedDevicePlugin", func() {
@@ -371,7 +395,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SriovDevicePlugin", func() {
@@ -397,7 +422,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository NVIPAM", func() {
@@ -416,7 +442,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository NicFeatureDiscovery", func() {
@@ -433,7 +460,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SecondaryNetwork Multus", func() {
@@ -454,7 +482,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SecondaryNetwork Multus", func() {
@@ -475,7 +504,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SecondaryNetwork CniPlugins", func() {
@@ -492,7 +522,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SecondaryNetwork IPoIB", func() {
@@ -509,7 +540,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 		It("Invalid Repository SecondaryNetwork IpamPlugin", func() {
@@ -526,7 +558,8 @@ var _ = Describe("Validate", func() {
 					},
 				},
 			}
-			Expect(nicClusterPolicy.ValidateCreate().Error()).To(ContainSubstring(
+			_, err := nicClusterPolicy.ValidateCreate()
+			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
 	})
