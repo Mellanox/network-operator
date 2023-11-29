@@ -62,7 +62,8 @@ type stateSharedDp struct {
 type sharedDpRuntimeSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
-	IsOpenshift bool
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 type sharedDpManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
@@ -146,8 +147,9 @@ func (s *stateSharedDp) getManifestObjects(
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sharedDpRuntimeSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			ContainerResources: createContainerResourcesMap(cr.Spec.RdmaSharedDevicePlugin.ContainerResources),
 		},
 	}
 	// render objects

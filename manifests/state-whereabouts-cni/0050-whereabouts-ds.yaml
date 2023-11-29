@@ -60,6 +60,17 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        {{- with index .RuntimeSpec.ContainerResources "whereabouts" }}
+        resources:
+          {{- if .Requests }}
+          requests:
+            {{ .Requests | yaml | nindent 12}}
+          {{- end }}
+          {{- if .Limits }}
+          limits:
+            {{ .Limits | yaml | nindent 12}}
+          {{- end }}
+        {{- else }}
         resources:
           requests:
             cpu: "100m"
@@ -67,6 +78,7 @@ spec:
           limits:
             cpu: "100m"
             memory: "200Mi"
+        {{- end }}
         securityContext:
           privileged: true
         volumeMounts:

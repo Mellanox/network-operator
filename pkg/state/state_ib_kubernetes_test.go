@@ -19,6 +19,8 @@ package state
 import (
 	"strconv"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -94,6 +96,141 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 					Expect(value).To(Equal(envValues[name]))
 				}
 			}
+		})
+		It("Should Render ContainerResources", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			quantity, _ := resource.ParseQuantity("150Mi")
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name: "ib-kubernetes",
+				Requests: v1.ResourceList{
+					"cpu": quantity,
+				},
+				Limits: v1.ResourceList{
+					"cpu": quantity,
+				},
+			}}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			containers := templateSpec["containers"].([]interface{})
+			resources := containers[0].(map[string]interface{})["resources"].(map[string]interface{})
+			requests := resources["requests"].(map[string]interface{})
+			cpuRequest := requests["cpu"].(string)
+			Expect(cpuRequest).To(Equal(quantity.String()))
+			limits := resources["limits"].(map[string]interface{})
+			cpuLimit := limits["cpu"].(string)
+			Expect(cpuLimit).To(Equal(quantity.String()))
+		})
+		It("Should NOT Render ContainerResources with the wrong container name", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			quantity, _ := resource.ParseQuantity("150Mi")
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name: "ib-kubernetes-wrong",
+				Requests: v1.ResourceList{
+					"cpu": quantity,
+				},
+				Limits: v1.ResourceList{
+					"cpu": quantity,
+				},
+			}}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			containers := templateSpec["containers"].([]interface{})
+			resources := containers[0].(map[string]interface{})["resources"]
+			Expect(resources).To(BeNil())
+		})
+		It("Should not render limits if nil", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			quantity, _ := resource.ParseQuantity("150Mi")
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name: "ib-kubernetes",
+				Requests: v1.ResourceList{
+					"cpu": quantity,
+				},
+			}}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			containers := templateSpec["containers"].([]interface{})
+			resources := containers[0].(map[string]interface{})["resources"].(map[string]interface{})
+			requests := resources["requests"].(map[string]interface{})
+			cpuRequest := requests["cpu"].(string)
+			Expect(cpuRequest).To(Equal(quantity.String()))
+			limits := resources["limits"]
+			Expect(limits).To(BeNil())
 		})
 	})
 })

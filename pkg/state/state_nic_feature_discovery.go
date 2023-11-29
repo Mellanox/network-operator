@@ -71,7 +71,8 @@ type nfdManifestRenderData struct {
 type nfdRuntimeSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
-	IsOpenshift bool
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -145,8 +146,9 @@ func (s *stateNICFeatureDiscovery) getManifestObjects(
 		NodeAffinity: cr.Spec.NodeAffinity,
 		Tolerations:  cr.Spec.Tolerations,
 		RuntimeSpec: &nfdRuntimeSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			ContainerResources: createContainerResourcesMap(cr.Spec.NicFeatureDiscovery.ContainerResources),
 		},
 	}
 
