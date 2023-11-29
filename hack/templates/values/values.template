@@ -109,6 +109,7 @@ sriov-network-operator:
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
 operator:
+  resources: {}
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Equal"
@@ -176,6 +177,10 @@ ofedDriver:
   # env:
   #   - name: EXAMPLE_ENV_VAR
   #     value: example_env_var_value
+  containerResources:
+    - name: "mofed-container"
+      requests: {}
+      limits: {}
   terminationGracePeriodSeconds: 300
   # Private mirror repository configuration
   repoConfig:
@@ -229,6 +234,10 @@ rdmaSharedDevicePlugin:
   # it must be provided by the user when deploying the chart
   # each entry in the resources element will create a resource with the provided <name> and list of devices
   # example:
+  containerResources:
+    - name: "rdma-shared-dp"
+      requests: {}
+      limits: {}
   resources:
     - name: rdma_shared_device_a
       vendors: [15b3]
@@ -241,6 +250,10 @@ sriovDevicePlugin:
   version: {{ .SriovDevicePlugin.Version }}
   useCdi: false
   # imagePullSecrets: []
+  containerResources:
+    - name: "kube-sriovdp"
+      requests: {}
+      limits: {}
   resources:
     - name: hostdev
       vendors: [15b3]
@@ -251,6 +264,10 @@ ibKubernetes:
   repository: {{ .IbKubernetes.Repository }}
   version: {{ .IbKubernetes.Version }}
   # imagePullSecrets: []
+  containerResources:
+    - name: "ib-kubernetes"
+      requests: {}
+      limits: {}
   periodicUpdateSeconds: 5
   pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
   pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
@@ -263,6 +280,14 @@ nvIpam:
   version: {{ .NvIPAM.Version }}
   enableWebhook: false
   # imagePullSecrets: []
+  containerResources:
+    - name: "nv-ipam-node"
+      requests: {}
+      limits: {}
+    - name: "nv-ipam-controller"
+      requests: {}
+      limits: {}
+
 
 secondaryNetwork:
   deploy: true
@@ -272,6 +297,10 @@ secondaryNetwork:
     repository: {{ .CniPlugins.Repository }}
     version: {{ .CniPlugins.Version }}
     # imagePullSecrets: []
+    containerResources:
+      - name: "cni-plugins"
+        requests: {}
+        limits: {}
   multus:
     deploy: true
     image: {{ .Multus.Image }}
@@ -279,18 +308,30 @@ secondaryNetwork:
     version: {{ .Multus.Version }}
     # imagePullSecrets: []
     # config: ''
+    containerResources:
+      - name: "kube-multus"
+        requests: {}
+        limits: {}
   ipoib:
     deploy: false
     image: {{ .Ipoib.Image }}
     repository: {{ .Ipoib.Repository }}
     version: {{ .Ipoib.Version }}
     # imagePullSecrets: []
+    containerResources:
+      - name: "ipoib-cni"
+        requests: {}
+        limits: {}
   ipamPlugin:
     deploy: true
     image: {{ .IpamPlugin.Image }}
     repository: {{ .IpamPlugin.Repository }}
     version: {{ .IpamPlugin.Version }}
     # imagePullSecrets: []
+    containerResources:
+      - name: "whereabouts"
+        requests: {}
+        limits: {}
 
 nicFeatureDiscovery:
   deploy: false
@@ -298,6 +339,10 @@ nicFeatureDiscovery:
   repository: {{ .NicFeatureDiscovery.Repository }}
   version: {{ .NicFeatureDiscovery.Version }}
   # imagePullSecrets: []
+  containerResources:
+    - name: "nic-feature-discovery"
+      requests: {}
+      limits: {}
 
 # Can be set to nicclusterpolicy and override other ds node affinity,
 # e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/state-multus-cni/0050-multus-ds.yml#L26-L36
