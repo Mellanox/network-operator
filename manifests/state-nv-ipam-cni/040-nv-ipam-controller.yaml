@@ -119,10 +119,27 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
+          {{- $containerResourcesFound := false }}
+          {{- range .CrSpec.ContainerResources }}
+          {{- if eq .Name "nv-ipam-controller" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+            {{- $containerResourcesFound = true }}
+          {{- end }}
+          {{- end }}
+          {{- if not $containerResourcesFound }}
           resources:
             requests:
-              cpu: 100m
-              memory: 300Mi
+              cpu: "100m"
+              memory: "300Mi"
+          {{- end }}
           volumeMounts:
           {{- if .CrSpec.EnableWebhook }}
             - mountPath: /tmp/k8s-webhook-server/serving-certs

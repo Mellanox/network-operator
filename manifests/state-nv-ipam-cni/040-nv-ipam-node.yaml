@@ -81,13 +81,30 @@ spec:
           - --cni-log-file=/var/log/nv-ipam-cni.log
           - --cni-log-level=info # log level for shim CNI
           - --ippools-namespace=$(IPPOOLS_NAMESPACE)
+        {{- $containerResourcesFound := false }}
+          {{- range .CrSpec.ContainerResources }}
+          {{- if eq .Name "nv-ipam-node" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+            {{- $containerResourcesFound = true }}
+          {{- end }}
+          {{- end }}
+          {{- if not $containerResourcesFound }}
         resources:
           requests:
-            cpu: "100m"
+            cpu: "150m"
             memory: "50Mi"
           limits:
             cpu: "300m"
             memory: "300Mi"
+        {{- end }}
         securityContext:
           privileged: true
         volumeMounts:

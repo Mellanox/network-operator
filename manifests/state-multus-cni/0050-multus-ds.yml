@@ -55,6 +55,22 @@ spec:
             preStop:
               exec:
                 command: ["/bin/sh", "-c", "rm -f /host/etc/cni/net.d/00-multus.conf"]
+          {{- $containerResourcesFound := false }}
+          {{- range .CrSpec.ContainerResources }}
+          {{- if eq .Name "kube-multus" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+            {{- $containerResourcesFound = true }}
+          {{- end }}
+          {{- end }}
+          {{- if not $containerResourcesFound }}
           resources:
             requests:
               cpu: "100m"
@@ -62,6 +78,7 @@ spec:
             limits:
               cpu: "100m"
               memory: "50Mi"
+          {{- end }}
           securityContext:
             privileged: true
           volumeMounts:

@@ -63,6 +63,22 @@ spec:
           args:
             - --v=0
             - --logging-format=json
+          {{- $containerResourcesFound := false }}
+          {{- range .CrSpec.ContainerResources }}
+          {{- if eq .Name "nic-feature-discovery" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+            {{- $containerResourcesFound = true }}
+          {{- end }}
+          {{- end }}
+          {{- if not $containerResourcesFound }}
           resources:
             requests:
               cpu: "100m"
@@ -70,6 +86,7 @@ spec:
             limits:
               cpu: "300m"
               memory: "150Mi"
+          {{- end }}
           securityContext:
             privileged: true
           volumeMounts:

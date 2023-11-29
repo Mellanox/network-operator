@@ -93,6 +93,19 @@ spec:
             - name: host-config-volume
               mountPath: /host/etc/pcidp/
             {{- end}}
+          {{- range .CrSpec.ContainerResources }}
+          {{- if eq .Name "kube-sriovdp" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 12}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 12}}
+            {{- end }}
+          {{- end }}
+          {{- end }}
       volumes:
         - name: devicesock
           hostPath:
