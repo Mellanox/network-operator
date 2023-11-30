@@ -301,8 +301,6 @@ spec:
                 description: NVIPAMSpec describes configuration options for nv-ipam
                   1. Image information for nv-ipam 2. Configuration for nv-ipam
                 properties:
-                  config:
-                    type: string
                   enableWebhook:
                     default: false
                     description: Enable deployment of the validation webhook

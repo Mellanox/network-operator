@@ -431,13 +431,11 @@ var _ = Describe("Validate", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: NicClusterPolicySpec{
 					NvIpam: &NVIPAMSpec{
-						ImageSpecWithConfig: ImageSpecWithConfig{
-							ImageSpec: ImageSpec{
-								Image:            "mofed",
-								Repository:       "ghcr.io/mellanox!@!#$!",
-								Version:          "23.10-0.2.2.0",
-								ImagePullSecrets: []string{},
-							},
+						ImageSpec: ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox!@!#$!",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
 						},
 					},
 				},
