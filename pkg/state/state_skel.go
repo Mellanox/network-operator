@@ -36,6 +36,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/revision"
 )
 
 type runtimeSpec struct {
@@ -220,27 +221,39 @@ func (s *stateSkel) createOrUpdateObjs(
 
 		s.addStateSpecificLabels(desiredObj)
 
-		err := s.createObj(ctx, desiredObj)
-		if err == nil {
-			// object created successfully
+		desiredRev, err := revision.CalculateRevision(desiredObj)
+		if err != nil {
+			return err
+		}
+		revision.SetRevision(desiredObj, desiredRev)
+
+		alreadyExist := true
+		currentObj := desiredObj.NewEmptyInstance().(*unstructured.Unstructured)
+		currentObj.SetName(desiredObj.GetName())
+		currentObj.SetNamespace(desiredObj.GetNamespace())
+		if err := s.getObj(ctx, currentObj); err != nil {
+			if k8serrors.IsNotFound(err) {
+				alreadyExist = false
+			} else {
+				return err
+			}
+		}
+		if !alreadyExist {
+			err := s.createObj(ctx, desiredObj)
+			if err != nil {
+				return err
+			}
 			continue
 		}
-		if !k8serrors.IsAlreadyExists(err) {
-			// Some error occurred
-			return err
+		currRev := revision.GetRevision(currentObj)
+		if currRev != 0 && currRev == desiredRev {
+			reqLogger.V(consts.LogLevelInfo).Info("Object is already in sync")
+			continue
 		}
-
-		currentObj := desiredObj.DeepCopy()
-		if err := s.getObj(ctx, currentObj); err != nil {
-			// Some error occurred
-			return err
-		}
-
+		// update required
 		if err := s.mergeObjects(desiredObj, currentObj); err != nil {
 			return err
 		}
-
-		// Object found, Update it
 		if err := s.updateObj(ctx, desiredObj); err != nil {
 			return err
 		}
