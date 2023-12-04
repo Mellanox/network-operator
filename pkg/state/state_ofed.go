@@ -48,6 +48,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
@@ -61,6 +62,15 @@ const (
 	// format: <repo>/<image-name>:<driver-version>-<os-name><os-ver>-<cpu-arch>
 	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-ubuntu20.04-amd64
 	mofedImageFormat = "%s/%s:%s-%s%s-%s"
+
+	// precompiledTagFormat is the tag format for precompiled drivers.
+	// format: <driver-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
+	precompiledTagFormat = "%s-%s-%s%s-%s"
+
+	// precompiledImageFormat is the precompiled mofed driver container image name format
+	// format: <repo>/<image-name>:<driver-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
+	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-5.15.0-91-generic-ubuntu22.04-amd64
+	precompiledImageFormat = "%s/%s:%s-%s-%s%s-%s"
 )
 
 // Openshift cluster-wide Proxy
@@ -286,6 +296,7 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	}
 
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, log.FromContext(ctx))
+
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -396,14 +407,11 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
-	nodeInfo := catalog.GetNodeInfoProvider()
-	if nodeInfo == nil {
-		return nil, errors.New("nodeInfo provider required")
+	nodeInfo, clusterInfo, docaProvider, err := getProviders(catalog)
+	if err != nil {
+		return nil, err
 	}
-	clusterInfo := catalog.GetClusterTypeProvider()
-	if clusterInfo == nil {
-		return nil, errors.New("clusterInfo provider required")
-	}
+
 	nodePools := nodeInfo.GetNodePools(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
 	if len(nodePools) == 0 {
@@ -421,9 +429,8 @@ func (s *stateOFED) GetManifestObjects(
 
 	for _, np := range nodePools {
 		nodePool := np
-
 		// render objects
-		renderedObjs, err := renderObjects(ctx, &nodePool, useDtk, s, cr, reqLogger, clusterInfo)
+		renderedObjs, err := renderObjects(ctx, &nodePool, useDtk, s, cr, reqLogger, clusterInfo, docaProvider)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to render objects")
 		}
@@ -442,7 +449,19 @@ func (s *stateOFED) GetManifestObjects(
 
 func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool, s *stateOFED,
 	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger,
-	clusterInfo clustertype.Provider) ([]*unstructured.Unstructured, error) {
+	clusterInfo clustertype.Provider, docaProvider docadriverimages.Provider) ([]*unstructured.Unstructured, error) {
+	precompiledTag := fmt.Sprintf(precompiledTagFormat, cr.Spec.OFEDDriver.Version, nodePool.Kernel,
+		nodePool.OsName, nodePool.OsVersion, nodePool.Arch)
+	precompiledExists := docaProvider.TagExists(precompiledTag)
+	reqLogger.V(consts.LogLevelDebug).Info("Precompiled tag", "tag:", precompiledTag, "found:", precompiledExists)
+	if !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
+		return nil, fmt.Errorf("ForcePrecompiled is enabled and precompiled image was not found")
+	}
+
+	if precompiledExists {
+		useDtk = false
+	}
+
 	var dtkImageName string
 	rhcosVersion := nodePool.RhcosVersion
 	if useDtk {
@@ -480,7 +499,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 			OSVer:          nodePool.OsVersion,
 			Kernel:         nodePool.Kernel,
 			KernelHash:     getStringHash(nodePool.Kernel),
-			MOFEDImageName: s.getMofedDriverImageName(cr, nodePool, reqLogger),
+			MOFEDImageName: s.getMofedDriverImageName(cr, nodePool, precompiledExists, reqLogger),
 			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
 				config.FromEnv().State.OFEDState.InitContainerImage),
 			IsOpenshift:        clusterInfo.IsOpenshift(),
@@ -497,6 +516,22 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 	reqLogger.V(consts.LogLevelDebug).Info("Rendering objects", "data:", renderData)
 	renderedObjs, err := s.renderer.RenderObjects(&render.TemplatingData{Data: renderData})
 	return renderedObjs, err
+}
+
+func getProviders(catalog InfoCatalog) (nodeinfo.Provider, clustertype.Provider, docadriverimages.Provider, error) {
+	nodeInfo := catalog.GetNodeInfoProvider()
+	if nodeInfo == nil {
+		return nil, nil, nil, errors.New("nodeInfo provider required")
+	}
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, nil, nil, errors.New("clusterInfo provider required")
+	}
+	docaProvider := catalog.GetDocaDriverImageProvider()
+	if docaProvider == nil {
+		return nil, nil, nil, errors.New("docaProvider provider required")
+	}
+	return nodeInfo, clusterInfo, docaProvider, nil
 }
 
 // prepare configuration for the init container,
@@ -525,16 +560,21 @@ func (s *stateOFED) getInitContainerConfig(
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
-	pool *nodeinfo.NodePool, reqLogger logr.Logger) string {
+	pool *nodeinfo.NodePool, precompiledExists bool, reqLogger logr.Logger) string {
 	curDriverVer, err := semver.NewVersion(cr.Spec.OFEDDriver.Version)
 	if err != nil {
 		reqLogger.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
 	}
 	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v", "version", curDriverVer)
 
+	if precompiledExists {
+		return fmt.Sprintf(precompiledImageFormat,
+			cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
+			cr.Spec.OFEDDriver.Version, pool.Kernel,
+			pool.OsName, pool.OsVersion, pool.Arch)
+	}
 	return fmt.Sprintf(mofedImageFormat,
-		cr.Spec.OFEDDriver.Repository,
-		cr.Spec.OFEDDriver.Image,
+		cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
 		cr.Spec.OFEDDriver.Version,
 		pool.OsName,
 		pool.OsVersion,

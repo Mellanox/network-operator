@@ -32,6 +32,7 @@ spec:
     image: {{ .Values.ofedDriver.image }}
     repository: {{ .Values.ofedDriver.repository }}
     version: {{ .Values.ofedDriver.version }}
+    forcePrecompiled: {{ .Values.ofedDriver.forcePrecompiled }}
     {{- if .Values.ofedDriver.env }}
     env:
       {{ toYaml .Values.ofedDriver.env | nindent 6 }}

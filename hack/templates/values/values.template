@@ -280,6 +280,7 @@ ofedDriver:
       # podSelector: "app=myapp"
       # specify the length of time in seconds to wait before giving up for workload to finish, zero means infinite
       # timeoutSeconds: 300
+  forcePrecompiled: false
 
 rdmaSharedDevicePlugin:
   deploy: true

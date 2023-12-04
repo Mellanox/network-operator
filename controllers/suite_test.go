@@ -39,6 +39,7 @@ import (
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
+	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	// +kubebuilder:scaffold:imports
 )
@@ -133,13 +134,15 @@ var _ = BeforeSuite(func() {
 	clusterTypeProvider, err := clustertype.NewProvider(context.Background(), k8sClient)
 	Expect(err).NotTo(HaveOccurred())
 	staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "/opt/cni/bin"})
+	docaImagesProvider := docadriverimages.NewProvider(context.Background(), k8sClient)
 
 	err = (&NicClusterPolicyReconciler{
-		Client:               k8sManager.GetClient(),
-		Scheme:               k8sManager.GetScheme(),
-		ClusterTypeProvider:  clusterTypeProvider,
-		StaticConfigProvider: staticConfigProvider,
-		MigrationCh:          migrationCompletionChan,
+		Client:                   k8sManager.GetClient(),
+		Scheme:                   k8sManager.GetScheme(),
+		ClusterTypeProvider:      clusterTypeProvider,
+		StaticConfigProvider:     staticConfigProvider,
+		MigrationCh:              migrationCompletionChan,
+		DocaDriverImagesProvider: docaImagesProvider,
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 

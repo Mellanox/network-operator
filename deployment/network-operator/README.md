@@ -417,7 +417,7 @@ containerResources:
 #### Mellanox OFED driver
 
 | Name                                                        | Type   | Default                           | Description                                                                                                                                                                   |
-|-------------------------------------------------------------|--------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------------- | ------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ofedDriver.deploy`                                         | bool   | `false`                           | deploy Mellanox OFED driver container                                                                                                                                         |
 | `ofedDriver.repository`                                     | string | `mellanox`                        | Mellanox OFED driver image repository                                                                                                                                         |
 | `ofedDriver.image`                                          | string | `mofed`                           | Mellanox OFED driver image name                                                                                                                                               |
@@ -448,6 +448,7 @@ containerResources:
 | `ofedDriver.upgradePolicy.waitForCompletion.podSelector`    | string | not set                           | specifies a label selector for the pods to wait for completion before starting the driver upgrade                                                                             |
 | `ofedDriver.upgradePolicy.waitForCompletion.timeoutSeconds` | int    | not set                           | specify the length of time in seconds to wait before giving up for workload to finish, zero means infinite                                                                    |
 | `ofedDriver.containerResources`                             | []     | not set                           | Optional [resource requests and limits](#container-resources) for the `mofed-container` container                                                                             |
+| `ofedDriver.forcePrecompiled`                               | bool   | `false`                           | Fail Mellanox OFED deployment if precompiled OFED driver container image does not exists                                                                                      |
 
 #### RDMA Device Plugin
 
