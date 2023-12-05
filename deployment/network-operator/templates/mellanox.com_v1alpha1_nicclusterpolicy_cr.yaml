@@ -59,12 +59,20 @@ spec:
     upgradePolicy:
       autoUpgrade: {{ .Values.ofedDriver.upgradePolicy.autoUpgrade | default false }}
       maxParallelUpgrades: {{ .Values.ofedDriver.upgradePolicy.maxParallelUpgrades | default 0 }}
+      safeLoad: {{ .Values.ofedDriver.upgradePolicy.safeLoad | default false }}
+      {{- if .Values.ofedDriver.upgradePolicy.drain }}
       drain:
         enable: {{ .Values.ofedDriver.upgradePolicy.drain.enable | default true }}
         force: {{ .Values.ofedDriver.upgradePolicy.drain.force | default false }}
         podSelector: {{ .Values.ofedDriver.upgradePolicy.drain.podSelector | quote }}
         timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.drain.timeoutSeconds }}
         deleteEmptyDir: {{ .Values.ofedDriver.upgradePolicy.drain.deleteEmptyDir | default false}}
+      {{- end }}
+      {{- if .Values.ofedDriver.upgradePolicy.waitForCompletion }}
+      waitForCompletion:
+        podSelector: {{ .Values.ofedDriver.upgradePolicy.waitForCompletion.podSelector | default ""}}
+        timeoutSeconds: {{ .Values.ofedDriver.upgradePolicy.waitForCompletion.timeoutSeconds | default 0 }}
+      {{- end }}
     {{- end }}
   {{- end }}
   {{- if .Values.rdmaSharedDevicePlugin.deploy }}

@@ -78,6 +78,55 @@ var _ = Describe("MOFED state test", func() {
 		})
 	})
 
+	Context("Init container", func() {
+		It("getInitContainerConfig", func() {
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						OfedUpgradePolicy: &v1alpha1.DriverUpgradePolicySpec{
+							AutoUpgrade: true,
+							SafeLoad:    true,
+						},
+					},
+				},
+			}
+			cfg := stateOfed.getInitContainerConfig(cr, testLogger, "repository/image:version")
+			Expect(cfg.SafeLoadAnnotation).NotTo(BeEmpty())
+			Expect(cfg.SafeLoadEnable).To(BeTrue())
+			Expect(cfg.InitContainerEnable).To(BeTrue())
+			Expect(cfg.InitContainerImageName).To(Equal("repository/image:version"))
+		})
+		It("getInitContainerConfig - no image", func() {
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						OfedUpgradePolicy: &v1alpha1.DriverUpgradePolicySpec{
+							AutoUpgrade: true,
+							SafeLoad:    true,
+						},
+					},
+				},
+			}
+			cfg := stateOfed.getInitContainerConfig(cr, testLogger, "")
+			Expect(cfg.SafeLoadEnable).To(BeFalse())
+			Expect(cfg.InitContainerEnable).To(BeFalse())
+		})
+		It("getInitContainerConfig - SafeLoad disabled if AutoUpgrade is false ", func() {
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						OfedUpgradePolicy: &v1alpha1.DriverUpgradePolicySpec{
+							AutoUpgrade: false,
+							SafeLoad:    true,
+						},
+					},
+				},
+			}
+			cfg := stateOfed.getInitContainerConfig(cr, testLogger, "repository/image:version")
+			Expect(cfg.SafeLoadEnable).To(BeFalse())
+			Expect(cfg.InitContainerEnable).To(BeTrue())
+		})
+	})
 	Context("Proxy config", func() {
 		It("Set Proxy from Cluster Wide Proxy", func() {
 			cr := &v1alpha1.NicClusterPolicy{

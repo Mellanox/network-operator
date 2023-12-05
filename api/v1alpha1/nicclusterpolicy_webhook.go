@@ -100,7 +100,9 @@ func (w *NicClusterPolicy) ValidateDelete() (admission.Warnings, error) {
 /*
 We are validating here NicClusterPolicy:
  1. IBKubernetes.pKeyGUIDPoolRangeStart and IBKubernetes.pKeyGUIDPoolRangeEnd must be valid GUID and valid range.
- 2. OFEDDriver.version must be a valid ofed version.
+ 2. OFEDDriver driver configuration
+    2.1 version must be a valid ofed version.
+    2.2 safeLoad feature can be enabled only when autoUpgrade is enabled
  3. RdmaSharedDevicePlugin.Config.
     3.1. Configuration is a valid JSON and check its schema.
     3.2. resourceName is valid for k8s.
@@ -124,7 +126,10 @@ func (w *NicClusterPolicy) validateNicClusterPolicy() error {
 	// Validate OFEDDriverSpec
 	ofedDriver := w.Spec.OFEDDriver
 	if ofedDriver != nil {
-		allErrs = append(allErrs, ofedDriver.validateVersion(field.NewPath("spec").Child("ofedDriver"))...)
+		ofedDriverFieldPath := field.NewPath("spec").Child("ofedDriver")
+		allErrs = append(append(allErrs,
+			ofedDriver.validateVersion(ofedDriverFieldPath)...),
+			ofedDriver.validateSafeLoad(ofedDriverFieldPath)...)
 	}
 	// Validate RdmaSharedDevicePlugin
 	rdmaSharedDevicePlugin := w.Spec.RdmaSharedDevicePlugin
@@ -360,6 +365,24 @@ func (ofedSpec *OFEDDriverSpec) validateVersion(fldPath *field.Path) field.Error
 	if !isValidOFEDVersion(ofedSpec.Version) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), ofedSpec.Version,
 			`invalid OFED version, the regex used for validation is ^(\d+\.\d+-\d+(\.\d+)*)$ `))
+	}
+	return allErrs
+}
+
+func (ofedSpec *OFEDDriverSpec) validateSafeLoad(fldPath *field.Path) field.ErrorList {
+	upgradePolicy := ofedSpec.OfedUpgradePolicy
+	if upgradePolicy == nil {
+		return nil
+	}
+	if !upgradePolicy.SafeLoad {
+		return nil
+	}
+	allErrs := field.ErrorList{}
+	upgradePolicyFieldPath := fldPath.Child("upgradePolicy")
+	if !upgradePolicy.AutoUpgrade {
+		allErrs = append(allErrs, field.Forbidden(upgradePolicyFieldPath.Child("safeLoad"),
+			fmt.Sprintf("safeLoad requires %s to be true",
+				upgradePolicyFieldPath.Child("autoUpgrade").String())))
 	}
 	return allErrs
 }

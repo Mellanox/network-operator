@@ -7,7 +7,7 @@ It is possible to do a driver upgrade manually by following the [manual upgrade 
 This document describes the automatic upgrade flow for the containerized OFED driver.
 
 ### Upgrade NVIDIA Mellanox OFED automatically
-* Enable automatic MOFED upgrade, define UpgradePolicy section for ofedDriver in the [NicClusterPolicy spec:
+* Enable automatic MOFED upgrade, define UpgradePolicy section for ofedDriver in the NicClusterPolicy spec:
 ```
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
@@ -21,11 +21,13 @@ spec:
     version: 5.6-1.0.3.3
     upgradePolicy:
       # autoUpgrade is a global switch for automatic upgrade feature
-	  # if set to false all other options are ignored
+      # if set to false all other options are ignored
       autoUpgrade: true
       # maxParallelUpgrades indicates how many nodes can be upgraded in parallel
-	  # 0 means no limit, all nodes will be upgraded in parallel
+      # 0 means no limit, all nodes will be upgraded in parallel
       maxParallelUpgrades: 0
+      # cordon and drain (if enabled) a node before loading the driver on it
+      safeLoad: false
       # describes the configuration for waiting on job completions
       waitForCompletion:
         # specifies a label selector for the pods to wait for completion
@@ -49,11 +51,31 @@ spec:
 ```
 * Change ofedDriver version in the NicClusterPolicy
 * To check if upgrade is finished, query the status of `state-OFED` in the [NicClusterPolicy status](https://github.com/Mellanox/network-operator#nicclusterpolicy-status)
-* To track each node's upgrade status separately, run `kubectl describe node <node_name> | grep nvidia.com/ofed-upgrade-state`. See [Node upgrade states](#node-upgrade-states) section describing each state. 
+* To track each node's upgrade status separately, run `kubectl describe node <node_name> | grep nvidia.com/ofed-driver-upgrade-state`. See [Node upgrade states](#node-upgrade-states) section describing each state. 
+
+### Safe driver loading
+
+The state of the feature can be controlled with `ofedDriver.upgradePolicy.safeLoad` option.
+
+On Node startup, the OFED container takes some time to compile and load the driver. 
+During that time, workloads might get scheduled on that Node.
+When OFED is loaded, all existing PODs that use NVIDIA NICs will lose their network interfaces.
+Some such PODs might silently fail or hang.
+To avoid such a situation, before the OFED container is loaded, 
+the Node should get Cordoned and Drained to ensure all workloads are rescheduled.
+The Node should be un-cordoned when the driver is ready on it.
+
+The safe driver loading feature is implemented as a part of the upgrade flow,
+meaning safe driver loading is a special scenario of the upgrade procedure,
+where we upgrade from the inbox driver to the containerized OFED.
+
+When this feature is enabled, the initial OFED driver rollout on the large cluster can take much time.
+To speed up the rollout, the initial deployment can be done with the safe driver loading feature disabled,
+and this feature can be enabled later by updating NicClusterPolicy CR
 
 ### Details
 #### Node upgrade states
-Each node's upgrade status is reflected in its `nvidia.com/ofed-upgrade-state` label. This label can have the following values:
+Each node's upgrade status is reflected in its `nvidia.com/ofed-driver-upgrade-state` label. This label can have the following values:
 * Unknown (empty): node has this state when the upgrade flow is disabled or the node hasn't been processed yet
 * `upgrade-done` is set when OFED POD is up to date and running on the node, the node is schedulable
 UpgradeStateDone = "upgrade-done"

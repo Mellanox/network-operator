@@ -308,6 +308,7 @@ release-build:
 	cd hack && $(GO) run release.go --templateDir ./templates/samples/ --outputDir ../config/samples/
 	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
+	cd hack && $(GO) run release.go --templateDir ./templates/config/manager --outputDir ../config/manager/
 
 # go-install-tool will 'go install' any package $2 and install it to $1.
 define go-install-tool

@@ -37,6 +37,7 @@ type OperatorConfig struct {
 type StateConfig struct {
 	NetworkOperatorResourceNamespace string `env:"POD_NAMESPACE" envDefault:"nvidia-network-operator"`
 	ManifestBaseDir                  string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
+	OFEDState                        OFEDStateConfig
 }
 
 // Controller related configurations
@@ -44,6 +45,14 @@ type ControllerConfig struct {
 	//nolint:stylecheck
 	// Request requeue time(seconds) in case the system still needs to be reconciled
 	RequeueTimeSeconds uint `env:"CONTROLLER_REQUEST_REQUEUE_SECONDS" envDefault:"5"`
+}
+
+// OFEDStateConfig contains extra configuration options for the OFED state which
+// can't be configured via CRD
+type OFEDStateConfig struct {
+	// InitContainerImage is a full image name (registry, image name, tag) for the OFED init container.
+	// The init container will not be deployed if this variable is empty/not set.
+	InitContainerImage string `env:"OFED_INIT_CONTAINER_IMAGE"`
 }
 
 func FromEnv() *OperatorConfig {

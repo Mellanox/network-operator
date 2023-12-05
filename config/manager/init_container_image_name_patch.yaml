@@ -1,0 +1,5 @@
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: OFED_INIT_CONTAINER_IMAGE
+    value: "ghcr.io/mellanox/network-operator-init-container:v0.0.2"

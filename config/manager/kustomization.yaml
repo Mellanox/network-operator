@@ -7,6 +7,15 @@ commonLabels:
 generatorOptions:
   disableNameSuffixHash: true
 
+patches:
+- path: init_container_image_name_patch.yaml
+  target:
+    group: apps
+    kind: Deployment
+    name: controller-manager
+    namespace: system
+    version: v1
+
 kind: Kustomization
 images:
 - name: controller

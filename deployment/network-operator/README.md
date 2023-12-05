@@ -128,7 +128,7 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 > __Note:__ The labels which Network Operator depends on may change between releases.
 
 > __Note:__ By default the operator is deployed without an instance of `NicClusterPolicy` and `MacvlanNetwork`
-custom resources. The user is required to create it later with configuration matching the cluster or use chart parameters to deploy it together with the operator.
+> custom resources. The user is required to create it later with configuration matching the cluster or use chart parameters to deploy it together with the operator.
 
 #### Deploy development version of Network Operator
 
@@ -398,23 +398,37 @@ imagePullSecrets:
 
 #### Mellanox OFED driver
 
-| Name | Type | Default | Description                                                                                                                                                               |
-| ---- | ---- | ------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ofedDriver.deploy` | bool | `false` | deploy Mellanox OFED driver container                                                                                                                                     |
-| `ofedDriver.repository` | string | `mellanox` | Mellanox OFED driver image repository                                                                                                                                     |
-| `ofedDriver.image` | string | `mofed` | Mellanox OFED driver image name                                                                                                                                           |
-| `ofedDriver.version` | string | `5.9-0.5.6.0` | Mellanox OFED driver version                                                                                                                                              |
-| `ofedDriver.imagePullSecrets` | list | `[]` | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                        |
-| `ofedDriver.env` | list | `[]` | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image |
-| `ofedDriver.repoConfig.name` | string | `` | Private mirror repository configuration configMap name |
-| `ofedDriver.certConfig.name` | string | `` | Custom TLS key/certificate configuration configMap name |
-| `ofedDriver.terminationGracePeriodSeconds` | int | 300 | Mellanox OFED termination grace periods in seconds|
-| `ofedDriver.startupProbe.initialDelaySeconds` | int | 10 | Mellanox OFED startup probe initial delay                                                                                                                                 |
-| `ofedDriver.startupProbe.periodSeconds` | int | 20 | Mellanox OFED startup probe interval                                                                                                                                      |
-| `ofedDriver.livenessProbe.initialDelaySeconds` | int | 30 | Mellanox OFED liveness probe initial delay                                                                                                                                |
-| `ofedDriver.livenessProbe.periodSeconds` | int | 30 | Mellanox OFED liveness probe interval                                                                                                                                     |
-| `ofedDriver.readinessProbe.initialDelaySeconds` | int | 10 | Mellanox OFED readiness probe initial delay                                                                                                                               |
-| `ofedDriver.readinessProbe.periodSeconds` | int | 30 | Mellanox OFED readiness probe interval                                                                                                                                    |
+| Name                                                        | Type   | Default                           | Description                                                                                                                                                                   |
+|-------------------------------------------------------------|--------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ofedDriver.deploy`                                         | bool   | `false`                           | deploy Mellanox OFED driver container                                                                                                                                         |
+| `ofedDriver.repository`                                     | string | `mellanox`                        | Mellanox OFED driver image repository                                                                                                                                         |
+| `ofedDriver.image`                                          | string | `mofed`                           | Mellanox OFED driver image name                                                                                                                                               |
+| `ofedDriver.version`                                        | string | `5.9-0.5.6.0`                     | Mellanox OFED driver version                                                                                                                                                  |
+| `ofedDriver.initContainer.enable`                           | bool   | `true`                            | deploy init container                                                                                                                                                         |
+| `ofedDriver.initContainer.repository`                       | string | `ghcr.io/mellanox`                | init container image repository                                                                                                                                               |
+| `ofedDriver.initContainer.image`                            | string | `network-operator-init-container` | init container image name                                                                                                                                                     |
+| `ofedDriver.initContainer.version`                          | string | `v0.0.2`                          | init container image version                                                                                                                                                  |
+| `ofedDriver.imagePullSecrets`                               | list   | `[]`                              | An optional list of references to secrets to use for pulling any of the Mellanox OFED driver image                                                                            |
+| `ofedDriver.env`                                            | list   | `[]`                              | An optional list of [environment variables](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#envvar-v1-core) passed to the Mellanox OFED driver image     |
+| `ofedDriver.repoConfig.name`                                | string | ``                                | Private mirror repository configuration configMap name                                                                                                                        |
+| `ofedDriver.certConfig.name`                                | string | ``                                | Custom TLS key/certificate configuration configMap name                                                                                                                       |
+| `ofedDriver.terminationGracePeriodSeconds`                  | int    | 300                               | Mellanox OFED termination grace periods in seconds                                                                                                                            |
+| `ofedDriver.startupProbe.initialDelaySeconds`               | int    | 10                                | Mellanox OFED startup probe initial delay                                                                                                                                     |
+| `ofedDriver.startupProbe.periodSeconds`                     | int    | 20                                | Mellanox OFED startup probe interval                                                                                                                                          |
+| `ofedDriver.livenessProbe.initialDelaySeconds`              | int    | 30                                | Mellanox OFED liveness probe initial delay                                                                                                                                    |
+| `ofedDriver.livenessProbe.periodSeconds`                    | int    | 30                                | Mellanox OFED liveness probe interval                                                                                                                                         |
+| `ofedDriver.readinessProbe.initialDelaySeconds`             | int    | 10                                | Mellanox OFED readiness probe initial delay                                                                                                                                   |
+| `ofedDriver.readinessProbe.periodSeconds`                   | int    | 30                                | Mellanox OFED readiness probe interval                                                                                                                                        |
+| `ofedDriver.upgradePolicy.autoUpgrade`                      | bool   | `false`                           | global switch for automatic upgrade feature                                                                                                                                   |
+| `ofedDriver.upgradePolicy.maxParallelUpgrades`              | int    | 1                                 | how many nodes can be upgraded in parallel, 0 means no limit, all nodes will be upgraded in parallel                                                                          |
+| `ofedDriver.upgradePolicy.safeLoad`                         | bool   | `false`                           | cordon and drain (if enabled) a node before loading the driver on it, requires `ofedDriver.initContainer` to be enabled and `ofedDriver.upgradePolicy.autoUpgrade` to be true |
+| `ofedDriver.upgradePolicy.drain.enable`                     | bool   | `true`                            | drain a node before the driver restart                                                                                                                                        |
+| `ofedDriver.upgradePolicy.drain.force`                      | bool   | `false`                           | use force drain (check `kubectl drain` doc for details)                                                                                                                       |
+| `ofedDriver.upgradePolicy.drain.podSelector`                | string | ""                                | drain only pods matching this selector                                                                                                                                        |
+| `ofedDriver.upgradePolicy.drain.timeoutSeconds`             | int    | 300                               | timeout for drain operation                                                                                                                                                   |
+| `ofedDriver.upgradePolicy.drain.deleteEmptyDir`             | bool   | `false`                           | continue even if there are pods using emptyDir                                                                                                                                |
+| `ofedDriver.upgradePolicy.waitForCompletion.podSelector`    | string | not set                           | specifies a label selector for the pods to wait for completion before starting the driver upgrade                                                                             |
+| `ofedDriver.upgradePolicy.waitForCompletion.timeoutSeconds` | int    | not set                           | specify the length of time in seconds to wait before giving up for workload to finish, zero means infinite                                                                    |
 
 #### RDMA Device Plugin
 
@@ -592,7 +606,7 @@ optionally deployed components:
 | `nvIpam.enableWebhook`    | bool   | `false`            | Enable deployment of the validataion webhook for IPPool CRD                         |
 
 > __Note__: Supported X.509 certificate management system should be available in the cluster to enable the validation webhook.
-Currently supported systems are [certmanager](https://cert-manager.io/) and
+> Currently supported systems are [certmanager](https://cert-manager.io/) and
 [Openshift certificate management](https://docs.openshift.com/container-platform/4.13/security/certificates/service-serving-certificate.html)
 
 

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	"github.com/go-logr/logr"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
@@ -137,12 +138,20 @@ type additionalVolumeMounts struct {
 	Volumes      []v1.Volume
 }
 
+type initContainerConfig struct {
+	InitContainerEnable    bool
+	InitContainerImageName string
+	SafeLoadEnable         bool
+	SafeLoadAnnotation     string
+}
+
 type ofedRuntimeSpec struct {
 	runtimeSpec
-	CPUArch        string
-	OSName         string
-	OSVer          string
-	MOFEDImageName string
+	CPUArch             string
+	OSName              string
+	OSVer               string
+	MOFEDImageName      string
+	InitContainerConfig initContainerConfig
 	// is true if cluster type is Openshift
 	IsOpenshift bool
 }
@@ -448,7 +457,9 @@ func (s *stateOFED) getManifestObjects(
 			OSName:         nodeAttr[nodeinfo.AttrTypeOSName],
 			OSVer:          nodeAttr[nodeinfo.AttrTypeOSVer],
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr, reqLogger),
-			IsOpenshift:    clusterInfo.IsOpenshift(),
+			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
+				config.FromEnv().State.OFEDState.InitContainerImage),
+			IsOpenshift: clusterInfo.IsOpenshift(),
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,
@@ -462,6 +473,30 @@ func (s *stateOFED) getManifestObjects(
 	}
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
+}
+
+// prepare configuration for the init container,
+// the init container will be disabled if the image is empty
+func (s *stateOFED) getInitContainerConfig(
+	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger, image string) initContainerConfig {
+	var initContCfg initContainerConfig
+	safeLoadEnable := cr.Spec.OFEDDriver.OfedUpgradePolicy != nil &&
+		cr.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade &&
+		cr.Spec.OFEDDriver.OfedUpgradePolicy.SafeLoad
+	if image != "" {
+		initContCfg = initContainerConfig{
+			InitContainerEnable:    true,
+			InitContainerImageName: image,
+			SafeLoadEnable:         safeLoadEnable,
+			SafeLoadAnnotation:     upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
+		}
+	}
+
+	if safeLoadEnable && !initContCfg.InitContainerEnable {
+		reqLogger.Error(nil, "safe driver loading feature is enabled, but init container is "+
+			"disabled. It is required to enable init container to use safe driver loading feature.")
+	}
+	return initContCfg
 }
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
