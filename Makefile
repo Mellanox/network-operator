@@ -245,9 +245,6 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	kubectl apply -f hack/crds/*
 
-deploy-with-psp: deploy ## Deploy controller to the K8s cluster specified in ~/.kube/config and apply privileged pod security policy
-	$(KUSTOMIZE) build config/psp | kubectl apply -f -
-
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 	$(KUSTOMIZE) build config/resources-namespace | kubectl delete -f -

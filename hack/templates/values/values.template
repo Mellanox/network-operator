@@ -20,9 +20,6 @@ nfd:
   enabled: true
   deployNodeFeatureRules: true
 
-psp:
-  enabled: false
-
 upgradeCRDs: true
 
 sriovNetworkOperator:
