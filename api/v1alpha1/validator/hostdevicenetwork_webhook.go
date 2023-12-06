@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package validator
 
 import (
+	"context"
+	"errors"
 	"regexp"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,50 +27,66 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
 var hostDeviceNetworkLog = logf.Log.WithName("hostdevicenetwork-resource")
 
-func (w *HostDeviceNetwork) SetupWebhookWithManager(mgr ctrl.Manager) error {
+type hostDeviceNetworkValidator struct {
+	v1alpha1.HostDeviceNetwork
+}
+
+func SetupHostDeviceNetworkWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(w).
+		For(&v1alpha1.HostDeviceNetwork{}).
+		WithValidator(&hostDeviceNetworkValidator{}).
 		Complete()
 }
 
 //nolint:lll
 //+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-hostdevicenetwork,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=hostdevicenetworks,verbs=create;update,versions=v1alpha1,name=vhostdevicenetwork.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &HostDeviceNetwork{}
-
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateCreate() (admission.Warnings, error) {
+func (w *hostDeviceNetworkValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
 
+	hostDeviceNetwork, ok := obj.(*v1alpha1.HostDeviceNetwork)
+	if !ok {
+		return nil, errors.New("failed to unmarshal HostDeviceNetwork object to validate")
+	}
+	w.HostDeviceNetwork = *hostDeviceNetwork
 	hostDeviceNetworkLog.Info("validate create", "name", w.Name)
 
 	return nil, w.validateHostDeviceNetwork()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (w *hostDeviceNetworkValidator) ValidateUpdate(
+	_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
 
+	hostDeviceNetwork, ok := newObj.(*v1alpha1.HostDeviceNetwork)
+	if !ok {
+		return nil, errors.New("failed to unmarshal HostDeviceNetwork object to validate")
+	}
+	w.HostDeviceNetwork = *hostDeviceNetwork
 	hostDeviceNetworkLog.Info("validate update", "name", w.Name)
 
 	return nil, w.validateHostDeviceNetwork()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *HostDeviceNetwork) ValidateDelete() (admission.Warnings, error) {
+func (w *hostDeviceNetworkValidator) ValidateDelete(
+	_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
@@ -85,7 +103,7 @@ We are validating here HostDeviceNetwork:
   - ResourceName must be valid for k8s
 */
 
-func (w *HostDeviceNetwork) validateHostDeviceNetwork() error {
+func (w *hostDeviceNetworkValidator) validateHostDeviceNetwork() error {
 	resourceName := w.Spec.ResourceName
 	if !isValidHostDeviceNetworkResourceName(resourceName) {
 		var allErrs field.ErrorList
