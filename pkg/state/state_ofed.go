@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -112,21 +111,23 @@ var ConfigMapKeysOverride = map[string]map[string]string{
 }
 
 // NewStateOFED creates a new OFED driver state
-func NewStateOFED(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateOFED(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateOFED{
+	state := &stateOFED{
 		stateSkel: stateSkel{
 			name:        stateOFEDName,
 			description: stateOFEDDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
-		}}, nil
+		}}
+	return state, state, nil
 }
 
 type stateOFED struct {
@@ -273,12 +274,12 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 		}
 	}
 
-	objs, err := s.getManifestObjects(ctx, cr, nodeInfo, clusterInfo)
+	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, log.FromContext(ctx))
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
 	if len(objs) == 0 {
-		// getManifestObjects returned no objects, this means that no objects need to be applied to the cluster
+		// GetManifestObjects returned no objects, this means that no objects need to be applied to the cluster
 		// as (most likely) no Mellanox hardware is found (No mellanox labels where found).
 		// Return SyncStateNotReady so we retry the Sync.
 		return SyncStateNotReady, nil
@@ -376,11 +377,18 @@ func (s *stateOFED) handleAdditionalMounts(
 	return nil
 }
 
-func (s *stateOFED) getManifestObjects(
-	ctx context.Context,
-	cr *mellanoxv1alpha1.NicClusterPolicy,
-	nodeInfo nodeinfo.Provider, clusterInfo clustertype.Provider) ([]*unstructured.Unstructured, error) {
-	reqLogger := log.FromContext(ctx)
+//nolint:funlen
+func (s *stateOFED) GetManifestObjects(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	nodeInfo := catalog.GetNodeInfoProvider()
+	if nodeInfo == nil {
+		return nil, errors.New("nodeInfo provider required")
+	}
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, errors.New("clusterInfo provider required")
+	}
 	attrs := nodeInfo.GetNodesAttributes(
 		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
 	if len(attrs) == 0 {

@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	"context"
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,7 +76,9 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Name = "nic-cluster-policy"
 			cr.Spec.IBKubernetes = ibKubernetesSpec
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))

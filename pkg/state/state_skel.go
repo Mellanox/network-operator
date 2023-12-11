@@ -474,3 +474,7 @@ func (s *stateSkel) checkAttributesExist(attrs nodeinfo.NodeAttributes, attrType
 	}
 	return nil
 }
+
+func (s *stateSkel) SetRenderer(renderer render.Renderer) {
+	s.renderer = renderer
+}
