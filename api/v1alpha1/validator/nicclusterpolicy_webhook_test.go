@@ -25,11 +25,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
+	env "github.com/Mellanox/network-operator/pkg/config"
 )
 
 //nolint:dupl
 var _ = Describe("Validate", func() {
 	Context("NicClusterPolicy tests", func() {
+		BeforeEach(func() {
+			envConfig = env.StateConfig{
+				ManifestBaseDir: "../../../manifests",
+			}
+		})
 		It("Valid GUID range", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
@@ -676,7 +682,7 @@ var _ = Describe("Validate", func() {
 							ImagePullSecrets: []string{},
 							ContainerResources: []v1alpha1.ResourceRequirements{
 								{
-									Name:     "ofed",
+									Name:     "mofed-container",
 									Requests: v1.ResourceList{"cpu": resource.MustParse("500Mi")},
 									Limits:   v1.ResourceList{"cpu": resource.MustParse("100Mi")},
 								},
@@ -702,7 +708,7 @@ var _ = Describe("Validate", func() {
 							ImagePullSecrets: []string{},
 							ContainerResources: []v1alpha1.ResourceRequirements{
 								{
-									Name:     "ofed",
+									Name:     "mofed-container",
 									Requests: v1.ResourceList{"cpu": resource.MustParse("0Mi")},
 								},
 							},
@@ -714,6 +720,31 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
 				"resource Requests for cpu is zero"))
+		})
+		It("Invalid Resource Requests Container Name OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{
+								{
+									Name:     "invalid-container-name",
+									Requests: v1.ResourceList{"cpu": resource.MustParse("100Mi")},
+								},
+							},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring(
+				"container name invalid-container-name is unsupported for this state"))
 		})
 	})
 })
