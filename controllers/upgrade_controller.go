@@ -222,8 +222,10 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return ok
 	}))
 
-	// Watch for spec and annotation changes
-	nodePredicates := builder.WithPredicates(predicate.AnnotationChangedPredicate{})
+	// react only on label and annotation changes
+	nodePredicates := builder.WithPredicates(
+		predicate.Or(predicate.AnnotationChangedPredicate{},
+			predicate.LabelChangedPredicate{}))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxv1alpha1.NicClusterPolicy{}).
