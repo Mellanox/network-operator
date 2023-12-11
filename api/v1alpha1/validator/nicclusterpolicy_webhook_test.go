@@ -20,14 +20,22 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
+	env "github.com/Mellanox/network-operator/pkg/config"
 )
 
 //nolint:dupl
 var _ = Describe("Validate", func() {
 	Context("NicClusterPolicy tests", func() {
+		BeforeEach(func() {
+			envConfig = env.StateConfig{
+				ManifestBaseDir: "../../../manifests",
+			}
+		})
 		It("Valid GUID range", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
@@ -641,6 +649,126 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
+		})
+		It("Empty ContainerResources OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:              "mofed",
+							Repository:         "ghcr.io/mellanox",
+							Version:            "23.10-0.2.2.0",
+							ImagePullSecrets:   []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Resource Requests > Limits OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{
+								{
+									Name:     "mofed-container",
+									Requests: v1.ResourceList{"cpu": resource.MustParse("500Mi")},
+									Limits:   v1.ResourceList{"cpu": resource.MustParse("100Mi")},
+								},
+							},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring(
+				"resource request for cpu is greater than the limit"))
+		})
+		It("Invalid Resource Requests OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{
+								{
+									Name:     "mofed-container",
+									Requests: v1.ResourceList{"cpu": resource.MustParse("0Mi")},
+								},
+							},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring(
+				"resource Requests for cpu is zero"))
+		})
+		It("Unsupported Resource Request Type OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{
+								{
+									Name:     "mofed-container",
+									Requests: v1.ResourceList{"ephemeral-storage": resource.MustParse("2Gi")},
+								},
+							},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring(
+				"Unsupported value: ephemeral-storage: supported values: \"cpu\", \"memory\""))
+		})
+		It("Invalid Resource Requests Container Name OFEDDriver", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+							ContainerResources: []v1alpha1.ResourceRequirements{
+								{
+									Name:     "invalid-container-name",
+									Requests: v1.ResourceList{"cpu": resource.MustParse("100Mi")},
+								},
+							},
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring(
+				"Unsupported value: \"invalid-container-name\": supported values: \"mofed-container\""))
 		})
 	})
 })
