@@ -248,10 +248,12 @@ var _ = Describe("MOFED state test", func() {
 				},
 			}
 			By("Creating NodeProvider with 1 Node")
-			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, nodeinfo.NewProvider([]*v1.Node{
 				getNode("node1"),
-			})
-			objs, err := ofedState.getManifestObjects(ctx, cr, infoProvider, &dummyProvider{})
+			}))
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			// Expect 4 objects: DaemonSet, Service Account, Role, RoleBinding
 			Expect(len(objs)).To(Equal(4))

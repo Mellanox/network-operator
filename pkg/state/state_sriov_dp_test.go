@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -28,32 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
-
-type dummyProvider struct {
-}
-
-func (d *dummyProvider) GetClusterType() clustertype.Type {
-	return clustertype.Kubernetes
-}
-
-func (d *dummyProvider) IsKubernetes() bool {
-	return true
-}
-
-func (d *dummyProvider) IsOpenshift() bool {
-	return false
-}
-
-func (d *dummyProvider) GetStaticConfig() staticconfig.StaticConfig {
-	return staticconfig.StaticConfig{CniBinDirectory: ""}
-}
 
 func checkRenderedDpCm(obj *unstructured.Unstructured, namespace, sriovConfig string) {
 	Expect(obj.GetKind()).To(Equal("ConfigMap"))
@@ -146,8 +126,12 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 
 			cr.Spec.NodeAffinity = nodeAffinity
 
-			nodeInfo := &dummyProvider{}
-			objs, err := sriovDpState.getManifestObjects(cr, nodeInfo, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeNodeInfo, &dummyProvider{})
+			catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := sriovDpState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(3))

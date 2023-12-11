@@ -18,6 +18,7 @@ package state
 
 import "github.com/Mellanox/network-operator/api/v1alpha1"
 
+// ContainerResourcesMap is a helper struct for states to consume container resources when rendering manifests
 type ContainerResourcesMap map[string]v1alpha1.ResourceRequirements
 
 func createContainerResourcesMap(resources []v1alpha1.ResourceRequirements) ContainerResourcesMap {

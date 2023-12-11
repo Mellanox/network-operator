@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	"context"
 	"encoding/json"
 
 	v1 "k8s.io/api/core/v1"
@@ -77,9 +78,11 @@ var _ = Describe("IPoIB CNI State tests", func() {
 
 			cr.Spec.NodeAffinity = nodeAffinity
 
-			staticConfig := &dummyProvider{}
-			nodeInfo := &dummyProvider{}
-			objs, err := sriovDpState.getManifestObjects(cr, staticConfig, nodeInfo, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeNodeInfo, &dummyProvider{})
+			catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			objs, err := sriovDpState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))

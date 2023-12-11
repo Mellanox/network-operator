@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	"context"
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
@@ -77,7 +78,9 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Name = "nic-cluster-policy"
 			cr.Spec.IBKubernetes = ibKubernetesSpec
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))
@@ -129,7 +132,10 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))
 			ds := objs[3]
@@ -177,7 +183,10 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))
 			ds := objs[3]
@@ -217,7 +226,10 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
 			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			objs, err := ibKubernetesState.getManifestObjects(cr, &dummyProvider{}, testLogger)
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))
 			ds := objs[3]

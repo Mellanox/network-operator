@@ -33,7 +33,6 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
@@ -41,21 +40,24 @@ const stateCNIPluginsName = "state-container-networking-plugins"
 const stateCNIPluginsDescription = "Container Networking CNI Plugins deployed in the cluster"
 
 // NewStateCNIPlugins creates a new state for secondary container networking CNI plugins
-func NewStateCNIPlugins(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateCNIPlugins(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateCNIPlugins{
+	state := &stateCNIPlugins{
 		stateSkel: stateSkel{
 			name:        stateCNIPluginsName,
 			description: stateCNIPluginsDescription,
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
-		}}, nil
+		}}
+
+	return state, state, nil
 }
 
 type stateCNIPlugins struct {
@@ -92,7 +94,7 @@ func (s *stateCNIPlugins) Sync(
 		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
 	}
 
-	objs, err := s.getManifestObjects(cr, staticInfo, reqLogger)
+	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -133,9 +135,13 @@ func (s *stateCNIPlugins) GetWatchSources() map[string]client.Object {
 }
 
 //nolint:dupl
-func (s *stateCNIPlugins) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
-	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+func (s *stateCNIPlugins) GetManifestObjects(
+	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
 	renderData := &CNIPluginsManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.CniPlugins,
 		Tolerations:  cr.Spec.Tolerations,
