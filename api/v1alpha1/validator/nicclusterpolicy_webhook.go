@@ -23,12 +23,15 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apiresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -147,6 +150,7 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy() error {
 	var allErrs field.ErrorList
 	// Validate Repository
 	allErrs = w.validateRepositories(allErrs)
+	allErrs = w.validateContainerResources(allErrs)
 	// Validate IBKubernetes
 	ibKubernetes := w.Spec.IBKubernetes
 	if ibKubernetes != nil {
@@ -465,6 +469,99 @@ func validateRepository(repo string, allErrs field.ErrorList, fp *field.Path, ch
 		allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("repository"),
 			repo, "invalid container image repository format"))
 	}
+	return allErrs
+}
+
+func (w *nicClusterPolicyValidator) validateContainerResources(allErrs field.ErrorList) field.ErrorList {
+	fp := field.NewPath("spec")
+
+	states := map[string]interface{}{
+		"ofedDriver":             w.Spec.OFEDDriver,
+		"rdmaSharedDevicePlugin": w.Spec.RdmaSharedDevicePlugin,
+		"sriovDevicePlugin":      w.Spec.SriovDevicePlugin,
+		"ibKubernetes":           w.Spec.IBKubernetes,
+		"nvIpam":                 w.Spec.NvIpam,
+		"nicFeatureDiscovery":    w.Spec.NicFeatureDiscovery,
+	}
+	for stateName, state := range states {
+		allErrs = validateContainerResourcesIfNotNil(state, allErrs, fp, stateName)
+	}
+
+	if w.Spec.SecondaryNetwork != nil {
+		snfp := fp.Child("secondaryNetwork")
+
+		states := map[string]interface{}{
+			"cniPlugins": w.Spec.SecondaryNetwork.CniPlugins,
+			"ipoib":      w.Spec.SecondaryNetwork.IPoIB,
+			"multus":     w.Spec.SecondaryNetwork.Multus,
+			"ipamPlugin": w.Spec.SecondaryNetwork.IpamPlugin,
+		}
+		for stateName, state := range states {
+			allErrs = validateContainerResourcesIfNotNil(state, allErrs, snfp, stateName)
+		}
+	}
+	return allErrs
+}
+
+func validateContainerResourcesIfNotNil(resource interface{}, allErrs field.ErrorList,
+	fp *field.Path, fieldName string) field.ErrorList {
+	if resource == nil {
+		return allErrs
+	}
+
+	// Use reflection to check if ContainerResources is nil
+	val := reflect.ValueOf(resource)
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		imageSpec := val.Elem().FieldByName("ImageSpec")
+		if imageSpec.IsValid() {
+			containerResources := imageSpec.FieldByName("ContainerResources")
+			if containerResources.IsValid() && !containerResources.IsNil() {
+				return validateResourceRequirements(
+					containerResources.Interface().([]v1alpha1.ResourceRequirements), allErrs, fp, fieldName)
+			}
+		}
+	}
+
+	return allErrs
+}
+
+func validateResourceRequirements(resources []v1alpha1.ResourceRequirements, allErrs field.ErrorList,
+	fp *field.Path, child string) field.ErrorList {
+	if len(resources) == 0 {
+		allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("containerResources"),
+			resources, "should not be empty if declared"))
+	}
+
+	for _, reqs := range resources {
+		allErrs = validateResources(reqs.Requests, allErrs, fp, child, "Requests")
+		allErrs = validateResources(reqs.Limits, allErrs, fp, child, "Limits", reqs.Requests)
+	}
+
+	return allErrs
+}
+
+func validateResources(resources map[v1.ResourceName]apiresource.Quantity, allErrs field.ErrorList, fp *field.Path,
+	child, resourceType string, requests ...map[v1.ResourceName]apiresource.Quantity) field.ErrorList {
+	for resourceName, quantity := range resources {
+		if resourceName == v1.ResourceCPU || resourceName == v1.ResourceMemory {
+			if quantity.IsZero() {
+				allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("containerResources").
+					Child(resourceType).Child(string(resourceName)),
+					quantity, fmt.Sprintf("resource %s for %s is zero", resourceType, string(resourceName))))
+			}
+		}
+
+		if resourceType == "Limits" && len(requests) > 0 && requests[0] != nil {
+			if requestQuantity, hasRequest := requests[0][resourceName]; hasRequest {
+				if quantity.Cmp(requestQuantity) < 0 {
+					allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("containerResources").
+						Child("Requests").Child(string(resourceName)), quantity,
+						fmt.Sprintf("resource request for %s is greater than the limit", string(resourceName))))
+				}
+			}
+		}
+	}
+
 	return allErrs
 }
 
