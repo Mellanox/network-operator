@@ -20,6 +20,14 @@ spec:
     image: mofed
     repository: nvcr.io/nvstaging/mellanox
     version: 23.10-0.5.5.0
+    upgradePolicy:
+      autoUpgrade: true
+      drain:
+        deleteEmptyDir: true
+        enable: true
+        force: true
+        timeoutSeconds: 300
+      maxParallelUpgrades: 1
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10

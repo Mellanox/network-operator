@@ -66,7 +66,7 @@ metadata:
               },
               "terminationGracePeriodSeconds": 300,
               "upgradePolicy": {
-                "autoUpgrade": false,
+                "autoUpgrade": true,
                 "drain": {
                   "deleteEmptyDir": true,
                   "enable": true,
@@ -95,7 +95,7 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v23.7.0
+  name: nvidia-network-operator.v24.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -536,6 +536,14 @@ spec:
                 env:
                 - name: ENABLE_WEBHOOKS
                   value: "true"
+                - name: STATE_MANIFEST_BASE_DIR
+                  value: /manifests
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: OFED_INIT_CONTAINER_IMAGE
+                  value: ghcr.io/mellanox/network-operator-init-container:v0.0.2
                 image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7005fa24a1ae52d927e76d50d90fddf6b6c7b08885a2dad3c7e5e2c2ac21c834
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
@@ -643,7 +651,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 23.7.0
+  version: 24.1.0
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
