@@ -21,7 +21,7 @@ spec:
     repository: nvcr.io/nvstaging/mellanox
     version: 23.10-0.5.5.0
     upgradePolicy:
-      autoUpgrade: false
+      autoUpgrade: true
       drain:
         deleteEmptyDir: true
         enable: true

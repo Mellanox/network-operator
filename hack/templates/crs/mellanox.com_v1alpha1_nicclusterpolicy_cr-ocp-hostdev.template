@@ -21,7 +21,7 @@ spec:
     repository: {{ .Mofed.Repository }}
     version: {{ .Mofed.Version }}
     upgradePolicy:
-      autoUpgrade: false
+      autoUpgrade: true
       drain:
         deleteEmptyDir: true
         enable: true

@@ -300,8 +300,6 @@ spec:
                 description: NVIPAMSpec describes configuration options for nv-ipam
                   1. Image information for nv-ipam 2. Configuration for nv-ipam
                 properties:
-                  config:
-                    type: string
                   enableWebhook:
                     default: false
                     description: Enable deployment of the validation webhook
@@ -554,6 +552,11 @@ spec:
                           will be upgraded in parallel
                         minimum: 0
                         type: integer
+                      safeLoad:
+                        default: false
+                        description: SafeLoad turn on safe driver loading (cordon
+                          and drain the node before loading the driver)
+                        type: boolean
                       waitForCompletion:
                         description: WaitForCompletionSpec describes the configuration
                           for waiting on job completions

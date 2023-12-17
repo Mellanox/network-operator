@@ -31,7 +31,7 @@ spec:
       periodSeconds: 20
     terminationGracePeriodSeconds: 300
     upgradePolicy:
-      autoUpgrade: false
+      autoUpgrade: true
       drain:
         deleteEmptyDir: true
         enable: true

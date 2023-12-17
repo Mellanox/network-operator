@@ -20,6 +20,14 @@ spec:
     image: {{ .Mofed.Image }}
     repository: {{ .Mofed.Repository }}
     version: {{ .Mofed.Version }}
+    upgradePolicy:
+      autoUpgrade: true
+      drain:
+        deleteEmptyDir: true
+        enable: true
+        force: true
+        timeoutSeconds: 300
+      maxParallelUpgrades: 1
     startupProbe:
       initialDelaySeconds: 10
       periodSeconds: 10
