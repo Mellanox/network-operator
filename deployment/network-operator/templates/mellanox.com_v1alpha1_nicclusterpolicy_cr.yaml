@@ -45,6 +45,9 @@ spec:
       name: {{ .Values.ofedDriver.repoConfig.name }}
     {{- end }}
     imagePullSecrets: {{ include "network-operator.ofed.imagePullSecrets" . }}
+    {{- if .Values.ofedDriver.containerResources }}
+    containerResources: {{ toYaml .Values.ofedDriver.containerResources | nindent 6 }}
+    {{- end }}
     terminationGracePeriodSeconds: {{ .Values.ofedDriver.terminationGracePeriodSeconds }}
     startupProbe:
       initialDelaySeconds: {{ .Values.ofedDriver.startupProbe.initialDelaySeconds }}
@@ -106,6 +109,9 @@ spec:
           {{- end }}
         ]
       }
+    {{- if .Values.rdmaSharedDevicePlugin.containerResources }}
+    containerResources: {{ toYaml .Values.rdmaSharedDevicePlugin.containerResources | nindent 6 }}
+    {{- end }}
   {{- end }}
   {{- if .Values.sriovDevicePlugin.deploy }}
   sriovDevicePlugin:
@@ -138,6 +144,9 @@ spec:
           {{- end }}
         ]
       }
+    {{- if .Values.sriovDevicePlugin.containerResources }}
+    containerResources: {{ toYaml .Values.sriovDevicePlugin.containerResources | nindent 6 }}
+    {{- end }}
   {{- end }}
   {{- if .Values.ibKubernetes.deploy }}
   ibKubernetes:
@@ -145,6 +154,9 @@ spec:
     repository: {{ .Values.ibKubernetes.repository }}
     version: {{ .Values.ibKubernetes.version }}
     imagePullSecrets: {{ include "network-operator.ibKubernetes.imagePullSecrets" . }}
+    {{- if .Values.ibKubernetes.containerResources }}
+    containerResources: {{ toYaml .Values.ibKubernetes.containerResources | nindent 6 }}
+    {{- end }}
     pKeyGUIDPoolRangeStart: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeStart }}
     pKeyGUIDPoolRangeEnd: {{ .Values.ibKubernetes.pKeyGUIDPoolRangeEnd }}
     ufmSecret: {{ .Values.ibKubernetes.ufmSecret | quote }}
@@ -157,6 +169,9 @@ spec:
       repository: {{ .Values.secondaryNetwork.cniPlugins.repository }}
       version: {{ .Values.secondaryNetwork.cniPlugins.version }}
       imagePullSecrets: {{ include "network-operator.secondaryNetwork.cniPlugins.imagePullSecrets" . }}
+      {{- if .Values.secondaryNetwork.cniPlugins.containerResources }}
+      containerResources: {{ toYaml .Values.secondaryNetwork.cniPlugins.containerResources | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- if .Values.secondaryNetwork.multus.deploy }}
     multus:
@@ -164,6 +179,9 @@ spec:
       repository: {{ .Values.secondaryNetwork.multus.repository }}
       version: {{ .Values.secondaryNetwork.multus.version }}
       imagePullSecrets: {{ include "network-operator.secondaryNetwork.multus.imagePullSecrets" . }}
+      {{- if .Values.secondaryNetwork.multus.containerResources }}
+      containerResources: {{ toYaml .Values.secondaryNetwork.multus.containerResources | nindent 8 }}
+      {{- end }}
       {{- if .Values.secondaryNetwork.multus.config | empty | not }}
       config: {{ .Values.secondaryNetwork.multus.config | quote }}
       {{- end }}
@@ -173,6 +191,9 @@ spec:
       image: {{ .Values.secondaryNetwork.ipoib.image }}
       repository: {{ .Values.secondaryNetwork.ipoib.repository }}
       version: {{ .Values.secondaryNetwork.ipoib.version }}
+      {{- if .Values.secondaryNetwork.ipoib.containerResources }}
+      containerResources: {{ toYaml .Values.secondaryNetwork.ipoib.containerResources | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- if .Values.secondaryNetwork.ipamPlugin.deploy }}
     ipamPlugin:
@@ -180,6 +201,9 @@ spec:
       repository: {{ .Values.secondaryNetwork.ipamPlugin.repository }}
       version: {{ .Values.secondaryNetwork.ipamPlugin.version }}
       imagePullSecrets: {{ include "network-operator.secondaryNetwork.ipamPlugin.imagePullSecrets" . }}
+      {{- if .Values.secondaryNetwork.ipamPlugin.containerResources }}
+      containerResources: {{ toYaml .Values.secondaryNetwork.ipamPlugin.containerResources | nindent 8 }}
+      {{- end }}
     {{- end }}
   {{- end }}
   {{- if .Values.nvIpam.deploy }}
@@ -188,6 +212,9 @@ spec:
     repository: {{ .Values.nvIpam.repository }}
     version: {{ .Values.nvIpam.version }}
     imagePullSecrets: {{ include "network-operator.nvIpam.imagePullSecrets" . }}
+    {{- if .Values.nvIpam.containerResources }}
+    containerResources: {{ toYaml .Values.nvIpam.containerResources | nindent 6 }}
+    {{- end }}
     enableWebhook: {{ .Values.nvIpam.enableWebhook }}
   {{- end }}
   {{- if .Values.nicFeatureDiscovery.deploy }}
@@ -196,5 +223,8 @@ spec:
     repository: {{ .Values.nicFeatureDiscovery.repository }}
     version: {{ .Values.nicFeatureDiscovery.version }}
     imagePullSecrets: {{ include "network-operator.nicFeatureDiscovery.imagePullSecrets" . }}
+    {{- if .Values.nicFeatureDiscovery.containerResources }}
+    containerResources: {{ toYaml .Values.nicFeatureDiscovery.containerResources | nindent 6 }}
+    {{- end }}
   {{- end }}
 {{ end }}
