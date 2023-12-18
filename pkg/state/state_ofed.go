@@ -397,26 +397,7 @@ func (s *stateOFED) getManifestObjects(
 	}
 	nodeAttr := attrs[0].Attributes
 
-	if cr.Spec.OFEDDriver.StartupProbe == nil {
-		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
-		}
-	}
-
-	if cr.Spec.OFEDDriver.LivenessProbe == nil {
-		cr.Spec.OFEDDriver.LivenessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 30,
-			PeriodSeconds:       30,
-		}
-	}
-
-	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
-		cr.Spec.OFEDDriver.ReadinessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       30,
-		}
-	}
+	setProbesDefaults(cr)
 
 	// Update MOFED Env variables with defaults for the cluster
 	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env, nodeAttr)
@@ -424,29 +405,15 @@ func (s *stateOFED) getManifestObjects(
 	additionalVolMounts := additionalVolumeMounts{}
 	osname := nodeAttr[nodeinfo.AttrTypeOSName]
 	// set any custom ssl key/certificate configuration provided
-	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
-		destinationDir, err := getCertConfigPath(osname)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get destination directory for custom TLS certificates config: %v", err)
-		}
-
-		err = s.handleAdditionalMounts(ctx, &additionalVolMounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
-		}
+	err := s.handleCertConfig(ctx, cr, osname, additionalVolMounts)
+	if err != nil {
+		return nil, err
 	}
 
 	// set any custom repo configuration provided
-	if cr.Spec.OFEDDriver.RepoConfig != nil && cr.Spec.OFEDDriver.RepoConfig.Name != "" {
-		destinationDir, err := getRepoConfigPath(osname)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get destination directory for custom repo config: %v", err)
-		}
-
-		err = s.handleAdditionalMounts(ctx, &additionalVolMounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to mount volumes for custom repositories configuration: %v", err)
-		}
+	err = s.handleRepoConfig(ctx, cr, osname, additionalVolMounts)
+	if err != nil {
+		return nil, err
 	}
 
 	renderData := &ofedManifestRenderData{
@@ -693,5 +660,64 @@ func (e envVarsWithGet) Get(name string) *v1.EnvVar {
 		}
 	}
 
+	return nil
+}
+
+// setProbesDefaults populates NicClusterPolicy CR with default Probe values
+// if not provided by user
+func setProbesDefaults(cr *mellanoxv1alpha1.NicClusterPolicy) {
+	if cr.Spec.OFEDDriver.StartupProbe == nil {
+		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       10,
+		}
+	}
+
+	if cr.Spec.OFEDDriver.LivenessProbe == nil {
+		cr.Spec.OFEDDriver.LivenessProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 30,
+			PeriodSeconds:       30,
+		}
+	}
+
+	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
+		cr.Spec.OFEDDriver.ReadinessProbe = &mellanoxv1alpha1.PodProbeSpec{
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       30,
+		}
+	}
+}
+
+// handleCertConfig handles additional mounts required for Certificates if specified
+func (s *stateOFED) handleCertConfig(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, osname string, mounts additionalVolumeMounts) error {
+	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
+		destinationDir, err := getCertConfigPath(osname)
+		if err != nil {
+			return fmt.Errorf("failed to get destination directory for custom TLS certificates config: %v", err)
+		}
+
+		err = s.handleAdditionalMounts(ctx, &mounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
+		if err != nil {
+			return fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
+		}
+	}
+	return nil
+}
+
+// handleRepoConfig handles additional mounts required for custom repo if specified
+func (s *stateOFED) handleRepoConfig(
+	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, osname string, mounts additionalVolumeMounts) error {
+	if cr.Spec.OFEDDriver.RepoConfig != nil && cr.Spec.OFEDDriver.RepoConfig.Name != "" {
+		destinationDir, err := getRepoConfigPath(osname)
+		if err != nil {
+			return fmt.Errorf("failed to get destination directory for custom repo config: %v", err)
+		}
+
+		err = s.handleAdditionalMounts(ctx, &mounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
+		if err != nil {
+			return fmt.Errorf("failed to mount volumes for custom repositories configuration: %v", err)
+		}
+	}
 	return nil
 }

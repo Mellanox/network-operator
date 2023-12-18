@@ -40,6 +40,14 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: nvidia.com/ofed-driver
+                    operator: Exists
+              topologyKey: kubernetes.io/hostname
       serviceAccountName: ofed-driver
       hostNetwork: true
       {{- if .CrSpec.ImagePullSecrets }}

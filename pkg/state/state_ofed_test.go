@@ -17,16 +17,24 @@
 package state
 
 import (
+	"context"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
+	"github.com/Mellanox/network-operator/pkg/render"
+	"github.com/Mellanox/network-operator/pkg/testing/mocks"
+	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
 const (
@@ -35,13 +43,17 @@ const (
 	testClusterWideNoProxy    = "no-proxy-cluster-wide"
 	testNicPolicyHTTPProxy    = "http-policy"
 	testNicPolicyNoProxy      = "no-proxy-policy"
+	osName                    = "ubuntu"
+	osVer                     = "22.04"
 )
 
 var _ = Describe("MOFED state test", func() {
 	var stateOfed stateOFED
+	var ctx context.Context
 
 	BeforeEach(func() {
 		stateOfed = stateOFED{}
+		ctx = context.Background()
 	})
 
 	Context("getMofedDriverImageName", func() {
@@ -206,4 +218,105 @@ var _ = Describe("MOFED state test", func() {
 			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}}),
 		Entry("Ubuntu 23.04", "ubuntu", "23.04", []v1.EnvVar{}, []v1.EnvVar{}),
 	)
+
+	Context("Render Manifests", func() {
+		It("Should Render Mofed DaemonSet", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+			scheme := runtime.NewScheme()
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					scheme:      scheme,
+					renderer:    renderer,
+				},
+			}
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+			}
+			By("Creating NodeProvider with 1 Node")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1"),
+			})
+			objs, err := ofedState.getManifestObjects(ctx, cr, infoProvider, &dummyProvider{})
+			Expect(err).NotTo(HaveOccurred())
+			// Expect 4 objects: DaemonSet, Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
+			By("Verify DaemonSet")
+			for _, obj := range objs {
+				if obj.GetKind() != "DaemonSet" {
+					continue
+				}
+				ds := appsv1.DaemonSet{}
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ds.Name).To(Equal("mofed-ubuntu22.04-ds"))
+				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector)
+				verifyPodAntiInfinity(ds.Spec.Template.Spec.Affinity)
+			}
+		})
+	})
 })
+
+func verifyPodAntiInfinity(affinity *v1.Affinity) {
+	By("Verify PodAntiInfinity")
+	Expect(affinity).NotTo(BeNil())
+	expected := v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "nvidia.com/ofed-driver",
+								Operator: metav1.LabelSelectorOpExists,
+							},
+						},
+					},
+					TopologyKey: "kubernetes.io/hostname",
+				},
+			},
+		},
+	}
+	Expect(*affinity).To(BeEquivalentTo(expected))
+}
+
+func verifyDSNodeSelector(selector map[string]string) {
+	By("Verify NodeSelector")
+	nsMellanox, ok := selector["feature.node.kubernetes.io/pci-15b3.present"]
+	Expect(ok).To(BeTrue())
+	Expect(nsMellanox).To(Equal("true"))
+	nsOsName, ok := selector["feature.node.kubernetes.io/system-os_release.ID"]
+	Expect(ok).To(BeTrue())
+	Expect(nsOsName).To(Equal(osName))
+	nsOsVer, ok := selector["feature.node.kubernetes.io/system-os_release.VERSION_ID"]
+	Expect(ok).To(BeTrue())
+	Expect(nsOsVer).To(Equal(osVer))
+}
+
+func getNode(name string) *v1.Node {
+	return &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				nodeinfo.NodeLabelMlnxNIC: "true",
+				nodeinfo.NodeLabelOSName:  osName,
+				nodeinfo.NodeLabelOSVer:   osVer,
+				nodeinfo.NodeLabelCPUArch: "amd64",
+			},
+		},
+	}
+}
