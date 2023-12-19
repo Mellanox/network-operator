@@ -43,7 +43,6 @@ spec:
           image: {{ .Values.images.operator }}
           command:
             - sriov-network-operator
-          imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: 100m
@@ -69,8 +68,6 @@ spec:
               value: {{ .Values.images.webhook }}
             - name: RESOURCE_PREFIX
               value: {{ .Values.operator.resourcePrefix }}
-            - name: ENABLE_ADMISSION_CONTROLLER
-              value: {{ .Values.operator.enableAdmissionController | quote }}
             - name: IMAGE_PULL_SECRETS
               value: {{ join "," .Values.imagePullSecrets }}
             - name: NAMESPACE
@@ -91,3 +88,26 @@ spec:
               value: {{ .Values.operator.cniBinPath }}
             - name: CLUSTER_TYPE
               value: {{ .Values.operator.clusterType }}
+            - name: ADMISSION_CONTROLLERS_ENABLED
+              value: {{ .Values.operator.admissionControllers.enabled | quote }}
+        {{- if .Values.operator.admissionControllers.enabled }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_SECRET_NAME
+              value: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_INJECTOR_SECRET_NAME
+              value: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+        {{- if .Values.operator.admissionControllers.certificates.certManager.enabled }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_CERT_MANAGER_ENABLED
+              value: {{ .Values.operator.admissionControllers.certificates.certManager.enabled | quote }}
+        {{- else }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+                  key: ca.crt
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_INJECTOR_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+                  key: ca.crt
+        {{- end }}
+        {{- end }}
