@@ -64,6 +64,7 @@ type stateHostDeviceNetwork struct {
 	stateSkel
 }
 
+// HostDeviceManifestRenderData contains information used to render Kubernetes objects related to host devices.
 type HostDeviceManifestRenderData struct {
 	HostDeviceNetworkName string
 	CrSpec                mellanoxv1alpha1.HostDeviceNetworkSpec

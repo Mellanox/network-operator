@@ -18,12 +18,10 @@
 ----------------------------------------------------
 */
 
+// Package staticconfig provides static cluster information, required by network-operator
 package staticconfig
 
-/*
- static package provides static cluster information, required by network-operator
-*/
-
+// StaticConfig holds static config for the operator.
 type StaticConfig struct {
 	CniBinDirectory string
 }

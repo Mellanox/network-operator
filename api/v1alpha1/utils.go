@@ -24,6 +24,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
+// GetDriverUpgradePolicy gets the DriverUpgradePolicySpec for the OFED driver.
 func GetDriverUpgradePolicy(
 	ofedUpgradePolicy *DriverUpgradePolicySpec) *upgradeApi.DriverUpgradePolicySpec {
 	if ofedUpgradePolicy == nil {

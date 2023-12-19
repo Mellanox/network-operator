@@ -22,19 +22,24 @@ import (
 )
 
 const (
+	// NicClusterPolicyCRDName is used for the CRD Kind.
 	NicClusterPolicyCRDName = "NicClusterPolicy"
 )
 
-// Represents reconcile state of the system
+// State represents reconcile state of the system.
 type State string
 
 // TODO: use state.SyncState, but avoid circular dependency
 
 const (
-	StateReady    = "ready"
+	// StateReady describes when reconcile has completed successfully.
+	StateReady = "ready"
+	// StateNotReady describes when the reconcile has not fully completed.
 	StateNotReady = "notReady"
-	StateIgnore   = "ignore"
-	StateError    = "error"
+	// StateIgnore describes when the controller ignores the reconcile request.
+	StateIgnore = "ignore"
+	// StateError describes when the state is an error.
+	StateError = "error"
 )
 
 // ImageSpec Contains container image specifications
@@ -56,6 +61,7 @@ type ImageSpecWithConfig struct {
 	Config    *string `json:"config,omitempty"`
 }
 
+// PodProbeSpec describes a pod probe.
 type PodProbeSpec struct {
 	InitialDelaySeconds int `json:"initialDelaySeconds"`
 	PeriodSeconds       int `json:"periodSeconds"`
@@ -172,7 +178,7 @@ type MultusSpec struct {
 	ImageSpecWithConfig `json:""`
 }
 
-// SecondaryNetwork describes configuration options for secondary network
+// SecondaryNetworkSpec describes configuration options for secondary network
 type SecondaryNetworkSpec struct {
 	// Image and configuration information for multus
 	Multus *MultusSpec `json:"multus,omitempty"`
@@ -211,7 +217,7 @@ type NVIPAMSpec struct {
 	ImageSpec     `json:""`
 }
 
-// NicFeatureDiscoverySpec describes configuration options for nic-feature-discovery
+// NICFeatureDiscoverySpec describes configuration options for nic-feature-discovery
 type NICFeatureDiscoverySpec struct {
 	ImageSpec `json:""`
 }

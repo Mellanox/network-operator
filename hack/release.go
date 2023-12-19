@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main creates release templates.
 package main
 
 import (
@@ -30,6 +31,7 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
+// Release contains versions for operator release templates.
 type Release struct {
 	NetworkOperator              *mellanoxv1alpha1.ImageSpec
 	NetworkOperatorInitContainer *mellanoxv1alpha1.ImageSpec
@@ -50,7 +52,7 @@ type Release struct {
 }
 
 func readDefaults(releaseDefaults string) Release {
-	f, err := os.ReadFile(releaseDefaults)
+	f, err := os.ReadFile(filepath.Clean(releaseDefaults))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -133,7 +135,7 @@ func main() {
 		}
 		// Generate new file full path
 		outputFile := filepath.Join(*outputDir, strings.Replace(filepath.Base(file), ".template", ".yaml", 1))
-		f, err := os.Create(outputFile)
+		f, err := os.Create(filepath.Clean(outputFile))
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			return

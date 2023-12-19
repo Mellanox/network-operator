@@ -68,6 +68,7 @@ type ofedDriverSpecWrapper struct {
 	v1alpha1.OFEDDriverSpec
 }
 
+// SetupNicClusterPolicyWebhookWithManager sets up the webhook for NicClusterPolicy.
 func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 	nicClusterPolicyLog.Info("Nic cluster policy webhook admission controller")
 	InitSchemaValidator("./webhook-schemas")
@@ -495,6 +496,7 @@ type schemaValidator struct {
 	schemas map[string]*gojsonschema.Schema
 }
 
+// GetSchema returns the validation schema if it exists.
 func (sv *schemaValidator) GetSchema(schemaName string) (*gojsonschema.Schema, error) {
 	s, ok := sv.schemas[schemaName]
 	if !ok {
@@ -503,6 +505,7 @@ func (sv *schemaValidator) GetSchema(schemaName string) (*gojsonschema.Schema, e
 	return s, nil
 }
 
+// InitSchemaValidator sets up a schemaValidator from json schema files.
 func InitSchemaValidator(schemaPath string) {
 	sv := &schemaValidator{
 		schemas: make(map[string]*gojsonschema.Schema),

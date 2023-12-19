@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package validator contains webhook validation code for API types.
 package validator
 
 import (
@@ -39,6 +40,7 @@ type hostDeviceNetworkValidator struct {
 	v1alpha1.HostDeviceNetwork
 }
 
+// SetupHostDeviceNetworkWebhookWithManager sets up webhook for HostDeviceNetwork.
 func SetupHostDeviceNetworkWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&v1alpha1.HostDeviceNetwork{}).

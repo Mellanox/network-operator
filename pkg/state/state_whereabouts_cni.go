@@ -59,6 +59,7 @@ type stateWhereaboutsCNI struct {
 	stateSkel
 }
 
+// WhereaboutsManifestRenderData contains information used to render Kubernetes objects related to Whereabouts.
 type WhereaboutsManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.ImageSpec
 	Tolerations  []v1.Toleration

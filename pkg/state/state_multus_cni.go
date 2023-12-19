@@ -59,6 +59,7 @@ type stateMultusCNI struct {
 	stateSkel
 }
 
+// MultusManifestRenderData contains information used to render Kubernetes objects related to Multus.
 type MultusManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.MultusSpec
 	Tolerations  []v1.Toleration

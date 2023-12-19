@@ -29,6 +29,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 )
 
+// MlnxLabelChangedPredicate filters if nodeinfo.NodeLabelMlnxNIC label has changed.
 type MlnxLabelChangedPredicate struct {
 	predicate.Funcs
 }
@@ -39,6 +40,7 @@ func (p MlnxLabelChangedPredicate) hasMlnxLabel(labels map[string]string) bool {
 	return exist
 }
 
+// Update returns true if the nodeinfo.NodeLabelMlnxNIC has been changed.
 func (p MlnxLabelChangedPredicate) Update(e event.UpdateEvent) bool {
 	return p.hasMlnxLabel(e.ObjectOld.GetLabels()) != p.hasMlnxLabel(e.ObjectNew.GetLabels())
 }
@@ -49,6 +51,7 @@ type IgnoreSameContentPredicate struct {
 	predicate.Funcs
 }
 
+// Update returns true if the Update event should be processed.
 func (p IgnoreSameContentPredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil {
 		return false

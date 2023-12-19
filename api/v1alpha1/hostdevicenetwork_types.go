@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	// HostDeviceNetworkCRDName is used for the CRD Kind.
 	HostDeviceNetworkCRDName = "HostDeviceNetwork"
 )
 

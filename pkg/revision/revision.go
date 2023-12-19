@@ -11,6 +11,7 @@
  limitations under the License.
 */
 
+// Package revision manages revision annotation for Kubernetes objects.
 package revision
 
 import (

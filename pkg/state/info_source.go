@@ -22,19 +22,24 @@ import (
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
+// InfoType is used to categorize an InfoSource.
 type InfoType uint
 
 const (
+	// InfoTypeNodeInfo describes an InfoSource related to a node.
 	InfoTypeNodeInfo = iota
+	// InfoTypeClusterType describes an InfoSource related to a cluster.
 	InfoTypeClusterType
+	// InfoTypeStaticConfig describes an InfoSource related to a static configuration.
 	InfoTypeStaticConfig
 )
 
+// NewInfoCatalog returns an initialized InfoCatalog.
 func NewInfoCatalog() InfoCatalog {
 	return &infoCatalog{infoSources: make(map[InfoType]InfoSource)}
 }
 
-// InfoSource represents an object that is a souce of information
+// InfoSource represents an object that is a source of information.
 type InfoSource interface{}
 
 // InfoCatalog is an information catalog to be used to retrieve infoSources. used for State implementation that require

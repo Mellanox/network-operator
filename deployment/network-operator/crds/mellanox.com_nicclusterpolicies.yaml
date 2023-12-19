@@ -79,7 +79,7 @@ spec:
                 - version
                 type: object
               nicFeatureDiscovery:
-                description: NicFeatureDiscoverySpec describes configuration options
+                description: NICFeatureDiscoverySpec describes configuration options
                   for nic-feature-discovery
                 properties:
                   image:
@@ -612,8 +612,8 @@ spec:
                 - version
                 type: object
               secondaryNetwork:
-                description: SecondaryNetwork describes configuration options for
-                  secondary network
+                description: SecondaryNetworkSpec describes configuration options
+                  for secondary network
                 properties:
                   cniPlugins:
                     description: Image information for CNI plugins
@@ -781,7 +781,7 @@ spec:
                     name:
                       type: string
                     state:
-                      description: Represents reconcile state of the system
+                      description: State represents reconcile state of the system.
                       enum:
                       - ready
                       - notReady

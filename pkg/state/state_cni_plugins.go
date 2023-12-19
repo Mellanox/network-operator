@@ -62,6 +62,7 @@ type stateCNIPlugins struct {
 	stateSkel
 }
 
+// CNIPluginsManifestRenderData contains information used to render Kubernetes objects related to CNIPlugins.
 type CNIPluginsManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.ImageSpec
 	Tolerations  []v1.Toleration
