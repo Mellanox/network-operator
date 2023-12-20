@@ -26,6 +26,8 @@ import (
 	"regexp"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,9 +54,9 @@ var schemaValidators *schemaValidator
 
 var skipValidations = false
 
-type nicClusterPolicyValidator struct {
-	v1alpha1.NicClusterPolicy
-}
+type nicClusterPolicyValidator struct{}
+
+var _ webhook.CustomValidator = &nicClusterPolicyValidator{}
 
 type devicePluginSpecWrapper struct {
 	v1alpha1.DevicePluginSpec
@@ -91,9 +93,8 @@ func (w *nicClusterPolicyValidator) ValidateCreate(_ context.Context, obj runtim
 	if !ok {
 		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
-	w.NicClusterPolicy = *nicClusterPolicy
-	nicClusterPolicyLog.Info("validate create", "name", w.Name)
-	return nil, w.validateNicClusterPolicy()
+	nicClusterPolicyLog.Info("validate create", "name", nicClusterPolicy.Name)
+	return nil, w.validateNicClusterPolicy(nicClusterPolicy)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -108,19 +109,22 @@ func (w *nicClusterPolicyValidator) ValidateUpdate(
 	if !ok {
 		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
-	w.NicClusterPolicy = *nicClusterPolicy
-	nicClusterPolicyLog.Info("validate update", "name", w.Name)
-	return nil, w.validateNicClusterPolicy()
+	nicClusterPolicyLog.Info("validate update", "name", nicClusterPolicy.Name)
+	return nil, w.validateNicClusterPolicy(nicClusterPolicy)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, in runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
+	nicClusterPolicy, ok := in.(*v1alpha1.NicClusterPolicy)
+	if !ok {
+		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
+	}
 
-	nicClusterPolicyLog.Info("validate delete", "name", w.Name)
+	nicClusterPolicyLog.Info("validate delete", "name", nicClusterPolicy.Name)
 
 	// Validation for delete call is not required
 	return nil, nil
@@ -143,36 +147,36 @@ We are validating here NicClusterPolicy:
     4.3. At least one of the supported selectors exists.
     4.4. All selectors are strings.
 */
-func (w *nicClusterPolicyValidator) validateNicClusterPolicy() error {
+func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClusterPolicy) error {
 	var allErrs field.ErrorList
 	// Validate Repository
-	allErrs = w.validateRepositories(allErrs)
+	allErrs = w.validateRepositories(in, allErrs)
 	// Validate IBKubernetes
-	ibKubernetes := w.Spec.IBKubernetes
+	ibKubernetes := in.Spec.IBKubernetes
 	if ibKubernetes != nil {
-		wrapper := ibKubernetesSpecWrapper{IBKubernetesSpec: *w.Spec.IBKubernetes}
+		wrapper := ibKubernetesSpecWrapper{IBKubernetesSpec: *in.Spec.IBKubernetes}
 		allErrs = append(allErrs, wrapper.validate(field.NewPath("spec").Child("ibKubernetes"))...)
 	}
 	// Validate OFEDDriverSpec
-	ofedDriver := w.Spec.OFEDDriver
+	ofedDriver := in.Spec.OFEDDriver
 	if ofedDriver != nil {
-		wrapper := ofedDriverSpecWrapper{OFEDDriverSpec: *w.Spec.OFEDDriver}
+		wrapper := ofedDriverSpecWrapper{OFEDDriverSpec: *in.Spec.OFEDDriver}
 		ofedDriverFieldPath := field.NewPath("spec").Child("ofedDriver")
 		allErrs = append(append(allErrs,
 			wrapper.validateVersion(ofedDriverFieldPath)...),
 			wrapper.validateSafeLoad(ofedDriverFieldPath)...)
 	}
 	// Validate RdmaSharedDevicePlugin
-	rdmaSharedDevicePlugin := w.Spec.RdmaSharedDevicePlugin
+	rdmaSharedDevicePlugin := in.Spec.RdmaSharedDevicePlugin
 	if rdmaSharedDevicePlugin != nil {
-		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *w.Spec.RdmaSharedDevicePlugin}
+		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *in.Spec.RdmaSharedDevicePlugin}
 		allErrs = append(allErrs, wrapper.validateRdmaSharedDevicePlugin(
 			field.NewPath("spec").Child("rdmaSharedDevicePlugin"))...)
 	}
 	// Validate SriovDevicePlugin
-	sriovNetworkDevicePlugin := w.Spec.SriovDevicePlugin
+	sriovNetworkDevicePlugin := in.Spec.SriovDevicePlugin
 	if sriovNetworkDevicePlugin != nil {
-		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *w.Spec.SriovDevicePlugin}
+		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *in.Spec.SriovDevicePlugin}
 		allErrs = append(allErrs, wrapper.validateSriovNetworkDevicePlugin(
 			field.NewPath("spec").Child("sriovNetworkDevicePlugin"))...)
 	}
@@ -182,8 +186,9 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy() error {
 	}
 	return apierrors.NewInvalid(
 		schema.GroupKind{Group: "mellanox.com", Kind: "NicClusterPolicy"},
-		w.Name, allErrs)
+		in.Name, allErrs)
 }
+
 func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var sriovNetworkDevicePluginConfigJSON map[string]interface{}
@@ -420,40 +425,41 @@ func (ofedSpec *ofedDriverSpecWrapper) validateSafeLoad(fldPath *field.Path) fie
 	return allErrs
 }
 
-func (w *nicClusterPolicyValidator) validateRepositories(allErrs field.ErrorList) field.ErrorList {
+func (w *nicClusterPolicyValidator) validateRepositories(
+	in *v1alpha1.NicClusterPolicy, allErrs field.ErrorList) field.ErrorList {
 	fp := field.NewPath("spec")
-	if w.Spec.OFEDDriver != nil {
-		allErrs = validateRepository(w.Spec.OFEDDriver.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+	if in.Spec.OFEDDriver != nil {
+		allErrs = validateRepository(in.Spec.OFEDDriver.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
 	}
-	if w.Spec.RdmaSharedDevicePlugin != nil {
-		allErrs = validateRepository(w.Spec.RdmaSharedDevicePlugin.ImageSpec.Repository,
+	if in.Spec.RdmaSharedDevicePlugin != nil {
+		allErrs = validateRepository(in.Spec.RdmaSharedDevicePlugin.ImageSpec.Repository,
 			allErrs, fp, "rdmaSharedDevicePlugin")
 	}
-	if w.Spec.SriovDevicePlugin != nil {
-		allErrs = validateRepository(w.Spec.SriovDevicePlugin.ImageSpec.Repository, allErrs, fp, "sriovDevicePlugin")
+	if in.Spec.SriovDevicePlugin != nil {
+		allErrs = validateRepository(in.Spec.SriovDevicePlugin.ImageSpec.Repository, allErrs, fp, "sriovDevicePlugin")
 	}
-	if w.Spec.IBKubernetes != nil {
-		allErrs = validateRepository(w.Spec.IBKubernetes.ImageSpec.Repository, allErrs, fp, "ibKubernetes")
+	if in.Spec.IBKubernetes != nil {
+		allErrs = validateRepository(in.Spec.IBKubernetes.ImageSpec.Repository, allErrs, fp, "ibKubernetes")
 	}
-	if w.Spec.NvIpam != nil {
-		allErrs = validateRepository(w.Spec.NvIpam.ImageSpec.Repository, allErrs, fp, "nvIpam")
+	if in.Spec.NvIpam != nil {
+		allErrs = validateRepository(in.Spec.NvIpam.ImageSpec.Repository, allErrs, fp, "nvIpam")
 	}
-	if w.Spec.NicFeatureDiscovery != nil {
-		allErrs = validateRepository(w.Spec.NicFeatureDiscovery.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+	if in.Spec.NicFeatureDiscovery != nil {
+		allErrs = validateRepository(in.Spec.NicFeatureDiscovery.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
 	}
-	if w.Spec.SecondaryNetwork != nil {
+	if in.Spec.SecondaryNetwork != nil {
 		snfp := fp.Child("secondaryNetwork")
-		if w.Spec.SecondaryNetwork.CniPlugins != nil {
-			allErrs = validateRepository(w.Spec.SecondaryNetwork.CniPlugins.Repository, allErrs, snfp, "cniPlugins")
+		if in.Spec.SecondaryNetwork.CniPlugins != nil {
+			allErrs = validateRepository(in.Spec.SecondaryNetwork.CniPlugins.Repository, allErrs, snfp, "cniPlugins")
 		}
-		if w.Spec.SecondaryNetwork.IPoIB != nil {
-			allErrs = validateRepository(w.Spec.SecondaryNetwork.IPoIB.Repository, allErrs, snfp, "ipoib")
+		if in.Spec.SecondaryNetwork.IPoIB != nil {
+			allErrs = validateRepository(in.Spec.SecondaryNetwork.IPoIB.Repository, allErrs, snfp, "ipoib")
 		}
-		if w.Spec.SecondaryNetwork.Multus != nil {
-			allErrs = validateRepository(w.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
+		if in.Spec.SecondaryNetwork.Multus != nil {
+			allErrs = validateRepository(in.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
 		}
-		if w.Spec.SecondaryNetwork.IpamPlugin != nil {
-			allErrs = validateRepository(w.Spec.SecondaryNetwork.IpamPlugin.Repository, allErrs, snfp, "ipamPlugin")
+		if in.Spec.SecondaryNetwork.IpamPlugin != nil {
+			allErrs = validateRepository(in.Spec.SecondaryNetwork.IpamPlugin.Repository, allErrs, snfp, "ipamPlugin")
 		}
 	}
 	return allErrs
