@@ -46,6 +46,16 @@ jobs:
         uses: actions/checkout@v3
       - name: check manifests
         run: make check-manifests
+  diff-modules:
+    name: check go modules
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: check go modules
+        run: make check-go-modules
   diff-release-build:
     name: check release-build
     runs-on: ubuntu-20.04
