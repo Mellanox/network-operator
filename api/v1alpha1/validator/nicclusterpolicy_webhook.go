@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package validator
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -32,8 +34,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
 const (
@@ -49,43 +52,69 @@ var schemaValidators *schemaValidator
 
 var skipValidations = false
 
-func (w *NicClusterPolicy) SetupWebhookWithManager(mgr ctrl.Manager) error {
+type nicClusterPolicyValidator struct {
+	v1alpha1.NicClusterPolicy
+}
+
+type devicePluginSpecWrapper struct {
+	v1alpha1.DevicePluginSpec
+}
+
+type ibKubernetesSpecWrapper struct {
+	v1alpha1.IBKubernetesSpec
+}
+
+type ofedDriverSpecWrapper struct {
+	v1alpha1.OFEDDriverSpec
+}
+
+func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 	nicClusterPolicyLog.Info("Nic cluster policy webhook admission controller")
 	InitSchemaValidator("./webhook-schemas")
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(w).
+		For(&v1alpha1.NicClusterPolicy{}).
+		WithValidator(&nicClusterPolicyValidator{}).
 		Complete()
 }
 
 //nolint:lll
 //+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-nicclusterpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=nicclusterpolicies,verbs=create;update,versions=v1alpha1,name=vnicclusterpolicy.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &NicClusterPolicy{}
-
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateCreate() (admission.Warnings, error) {
+func (w *nicClusterPolicyValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
 
+	nicClusterPolicy, ok := obj.(*v1alpha1.NicClusterPolicy)
+	if !ok {
+		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
+	}
+	w.NicClusterPolicy = *nicClusterPolicy
 	nicClusterPolicyLog.Info("validate create", "name", w.Name)
 	return nil, w.validateNicClusterPolicy()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (w *nicClusterPolicyValidator) ValidateUpdate(
+	_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
 
+	nicClusterPolicy, ok := newObj.(*v1alpha1.NicClusterPolicy)
+	if !ok {
+		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
+	}
+	w.NicClusterPolicy = *nicClusterPolicy
 	nicClusterPolicyLog.Info("validate update", "name", w.Name)
 	return nil, w.validateNicClusterPolicy()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *NicClusterPolicy) ValidateDelete() (admission.Warnings, error) {
+func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
@@ -114,33 +143,37 @@ We are validating here NicClusterPolicy:
     4.3. At least one of the supported selectors exists.
     4.4. All selectors are strings.
 */
-func (w *NicClusterPolicy) validateNicClusterPolicy() error {
+func (w *nicClusterPolicyValidator) validateNicClusterPolicy() error {
 	var allErrs field.ErrorList
 	// Validate Repository
 	allErrs = w.validateRepositories(allErrs)
 	// Validate IBKubernetes
 	ibKubernetes := w.Spec.IBKubernetes
 	if ibKubernetes != nil {
-		allErrs = append(allErrs, ibKubernetes.validate(field.NewPath("spec").Child("ibKubernetes"))...)
+		wrapper := ibKubernetesSpecWrapper{IBKubernetesSpec: *w.Spec.IBKubernetes}
+		allErrs = append(allErrs, wrapper.validate(field.NewPath("spec").Child("ibKubernetes"))...)
 	}
 	// Validate OFEDDriverSpec
 	ofedDriver := w.Spec.OFEDDriver
 	if ofedDriver != nil {
+		wrapper := ofedDriverSpecWrapper{OFEDDriverSpec: *w.Spec.OFEDDriver}
 		ofedDriverFieldPath := field.NewPath("spec").Child("ofedDriver")
 		allErrs = append(append(allErrs,
-			ofedDriver.validateVersion(ofedDriverFieldPath)...),
-			ofedDriver.validateSafeLoad(ofedDriverFieldPath)...)
+			wrapper.validateVersion(ofedDriverFieldPath)...),
+			wrapper.validateSafeLoad(ofedDriverFieldPath)...)
 	}
 	// Validate RdmaSharedDevicePlugin
 	rdmaSharedDevicePlugin := w.Spec.RdmaSharedDevicePlugin
 	if rdmaSharedDevicePlugin != nil {
-		allErrs = append(allErrs, w.Spec.RdmaSharedDevicePlugin.validateRdmaSharedDevicePlugin(
+		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *w.Spec.RdmaSharedDevicePlugin}
+		allErrs = append(allErrs, wrapper.validateRdmaSharedDevicePlugin(
 			field.NewPath("spec").Child("rdmaSharedDevicePlugin"))...)
 	}
 	// Validate SriovDevicePlugin
 	sriovNetworkDevicePlugin := w.Spec.SriovDevicePlugin
 	if sriovNetworkDevicePlugin != nil {
-		allErrs = append(allErrs, w.Spec.SriovDevicePlugin.validateSriovNetworkDevicePlugin(
+		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *w.Spec.SriovDevicePlugin}
+		allErrs = append(allErrs, wrapper.validateSriovNetworkDevicePlugin(
 			field.NewPath("spec").Child("sriovNetworkDevicePlugin"))...)
 	}
 
@@ -151,7 +184,7 @@ func (w *NicClusterPolicy) validateNicClusterPolicy() error {
 		schema.GroupKind{Group: "mellanox.com", Kind: "NicClusterPolicy"},
 		w.Name, allErrs)
 }
-func (dp *DevicePluginSpec) validateSriovNetworkDevicePlugin(fldPath *field.Path) field.ErrorList {
+func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var sriovNetworkDevicePluginConfigJSON map[string]interface{}
 	sriovNetworkDevicePluginConfig := *dp.Config
@@ -241,7 +274,7 @@ func (dp *DevicePluginSpec) validateSriovNetworkDevicePlugin(fldPath *field.Path
 }
 
 func validateResourceNamePrefix(resource map[string]interface{},
-	allErrs field.ErrorList, fldPath *field.Path, dp *DevicePluginSpec) (bool, field.ErrorList) {
+	allErrs field.ErrorList, fldPath *field.Path, dp *devicePluginSpecWrapper) (bool, field.ErrorList) {
 	resourceName := resource["resourceName"].(string)
 	if !isValidSriovNetworkDevicePluginResourceName(resourceName) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
@@ -262,7 +295,7 @@ func validateResourceNamePrefix(resource map[string]interface{},
 	return true, allErrs
 }
 
-func (dp *DevicePluginSpec) validateRdmaSharedDevicePlugin(fldPath *field.Path) field.ErrorList {
+func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var rdmaSharedDevicePluginConfigJSON map[string]interface{}
 	rdmaSharedDevicePluginConfig := *dp.Config
@@ -317,7 +350,7 @@ func (dp *DevicePluginSpec) validateRdmaSharedDevicePlugin(fldPath *field.Path) 
 }
 
 // validate is a helper function to perform validation for IBKubernetesSpec.
-func (ibk *IBKubernetesSpec) validate(fldPath *field.Path) field.ErrorList {
+func (ibk *ibKubernetesSpecWrapper) validate(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !isValidPKeyGUID(ibk.PKeyGUIDPoolRangeStart) || !isValidPKeyGUID(ibk.PKeyGUIDPoolRangeEnd) {
@@ -358,7 +391,7 @@ func isValidPKeyRange(startGUID, endGUID string) bool {
 	return endGUIDIntValue.Cmp(startGUIDIntValue) > 0
 }
 
-func (ofedSpec *OFEDDriverSpec) validateVersion(fldPath *field.Path) field.ErrorList {
+func (ofedSpec *ofedDriverSpecWrapper) validateVersion(fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// Perform version validation logic here
@@ -369,7 +402,7 @@ func (ofedSpec *OFEDDriverSpec) validateVersion(fldPath *field.Path) field.Error
 	return allErrs
 }
 
-func (ofedSpec *OFEDDriverSpec) validateSafeLoad(fldPath *field.Path) field.ErrorList {
+func (ofedSpec *ofedDriverSpecWrapper) validateSafeLoad(fldPath *field.Path) field.ErrorList {
 	upgradePolicy := ofedSpec.OfedUpgradePolicy
 	if upgradePolicy == nil {
 		return nil
@@ -387,7 +420,7 @@ func (ofedSpec *OFEDDriverSpec) validateSafeLoad(fldPath *field.Path) field.Erro
 	return allErrs
 }
 
-func (w *NicClusterPolicy) validateRepositories(allErrs field.ErrorList) field.ErrorList {
+func (w *nicClusterPolicyValidator) validateRepositories(allErrs field.ErrorList) field.ErrorList {
 	fp := field.NewPath("spec")
 	if w.Spec.OFEDDriver != nil {
 		allErrs = validateRepository(w.Spec.OFEDDriver.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")

@@ -13,15 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package v1alpha1_test
+package validator
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"testing"
-
-	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 )
 
 func TestV1alpha1(t *testing.T) {
@@ -30,5 +28,5 @@ func TestV1alpha1(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	mellanoxv1alpha1.InitSchemaValidator("../../webhook-schemas")
+	InitSchemaValidator("../../../webhook-schemas")
 })

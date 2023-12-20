@@ -39,6 +39,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/api/v1alpha1/validator"
 	"github.com/Mellanox/network-operator/controllers"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/migrate"
@@ -63,13 +64,13 @@ func init() {
 func setupWebhookControllers(mgr ctrl.Manager) error {
 	if os.Getenv("SKIP_VALIDATIONS") == "true" {
 		setupLog.Info("disabling admission controller validations")
-		mellanoxcomv1alpha1.DisableValidations()
+		validator.DisableValidations()
 	}
-	if err := (&mellanoxcomv1alpha1.HostDeviceNetwork{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := validator.SetupHostDeviceNetworkWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "HostDeviceNetwork")
 		return err
 	}
-	if err := (&mellanoxcomv1alpha1.NicClusterPolicy{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := validator.SetupNicClusterPolicyWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "NicClusterPolicy")
 
 		return err
