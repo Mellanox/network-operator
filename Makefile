@@ -162,6 +162,14 @@ check-manifests: generate manifests
 	$(info checking for git diff after running 'make manifests')
 	git diff --quiet ; if [ $$? -eq 1 ] ; then echo "Please, commit manifests after running 'make manifests' command"; exit 1 ; fi
 
+.PHONY: check-go-modules
+check-go-modules: generate-go-modules
+	git diff --quiet HEAD go.sum; if [ $$? -eq 1 ] ; then echo "go.sum is out of date. Please commit after running 'make generate-go-modules' command"; exit 1; fi
+
+.PHONY: generate-go-modules
+generate-go-modules:
+	go mod tidy
+
 .PHONY: check-release-build
 check-release-build: release-build
 	$(info checking for git diff after running 'make release-build')
