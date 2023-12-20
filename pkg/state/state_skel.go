@@ -45,8 +45,9 @@ type runtimeSpec struct {
 
 type cniRuntimeSpec struct {
 	runtimeSpec
-	CniBinDirectory string
-	IsOpenshift     bool
+	CniBinDirectory    string
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 
 // a state skeleton intended to be embedded in structs implementing the State interface

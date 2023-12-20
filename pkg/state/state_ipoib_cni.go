@@ -142,9 +142,10 @@ func (s *stateIPoIBCNI) getManifestObjects(
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:     runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift:     clusterInfo.IsOpenshift(),
-			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.IPoIB.ContainerResources),
 		},
 	}
 

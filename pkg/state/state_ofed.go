@@ -153,7 +153,8 @@ type ofedRuntimeSpec struct {
 	MOFEDImageName      string
 	InitContainerConfig initContainerConfig
 	// is true if cluster type is Openshift
-	IsOpenshift bool
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 
 type ofedManifestRenderData struct {
@@ -426,7 +427,8 @@ func (s *stateOFED) getManifestObjects(
 			MOFEDImageName: s.getMofedDriverImageName(cr, nodeAttr, reqLogger),
 			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
 				config.FromEnv().State.OFEDState.InitContainerImage),
-			IsOpenshift: clusterInfo.IsOpenshift(),
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			ContainerResources: createContainerResourcesMap(cr.Spec.OFEDDriver.ContainerResources),
 		},
 		Tolerations:            cr.Spec.Tolerations,
 		NodeAffinity:           cr.Spec.NodeAffinity,

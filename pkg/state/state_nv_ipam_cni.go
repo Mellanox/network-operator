@@ -147,9 +147,10 @@ func (s *stateNVIPAMCNI) getManifestObjects(
 		NodeAffinity: cr.Spec.NodeAffinity,
 		Tolerations:  cr.Spec.Tolerations,
 		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:     runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift:     clusterInfo.IsOpenshift(),
-			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			runtimeSpec:        runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			ContainerResources: createContainerResourcesMap(cr.Spec.NvIpam.ContainerResources),
 		},
 	}
 

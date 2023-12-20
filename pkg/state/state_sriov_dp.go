@@ -63,7 +63,8 @@ type sriovDpRuntimeSpec struct {
 	runtimeSpec
 	CPUArch string
 	// is true if cluster type is Openshift
-	IsOpenshift bool
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 
 type sriovDpManifestRenderData struct {
@@ -148,8 +149,9 @@ func (s *stateSriovDp) getManifestObjects(
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &sriovDpRuntimeSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			ContainerResources: createContainerResourcesMap(cr.Spec.SriovDevicePlugin.ContainerResources),
 		},
 	}
 	// render objects

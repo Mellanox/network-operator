@@ -129,6 +129,7 @@ func (s *stateMultusCNI) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
+//nolint:dupl
 func (s *stateMultusCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
 	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
@@ -137,8 +138,9 @@ func (s *stateMultusCNI) getManifestObjects(
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:     runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, nil),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, nil),
+			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.Multus.ContainerResources),
 		},
 	}
 

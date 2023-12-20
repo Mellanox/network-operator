@@ -112,6 +112,17 @@ spec:
               readOnly: {{ .ReadOnly }}
             {{- end }}
             {{- end }}
+          {{- with index .RuntimeSpec.ContainerResources "mofed-container" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+          {{- end }}
           startupProbe:
             exec:
               command:

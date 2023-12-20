@@ -71,10 +71,22 @@ spec:
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/ib-kubernetes"]
+          {{- with index .RuntimeSpec.ContainerResources "ib-kubernetes" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+          {{- else }}
           resources:
             requests:
               cpu: 100m
               memory: 300Mi
+          {{- end }}
           env:
             - name: DAEMON_SM_PLUGIN
               value: "ufm"

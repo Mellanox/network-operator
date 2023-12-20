@@ -47,7 +47,8 @@ type ImageSpec struct {
 	Version string `json:"version"`
 	// +optional
 	// +kubebuilder:default:={}
-	ImagePullSecrets []string `json:"imagePullSecrets"`
+	ImagePullSecrets   []string               `json:"imagePullSecrets"`
+	ContainerResources []ResourceRequirements `json:"containerResources,omitempty"`
 }
 
 // ImageSpecWithConfig Contains ImageSpec and optional configuration
@@ -182,6 +183,22 @@ type SecondaryNetworkSpec struct {
 	IPoIB *ImageSpec `json:"ipoib,omitempty"`
 	// Image information for IPAM plugin
 	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
+}
+
+// ResourceRequirements describes the compute resource requirements.
+type ResourceRequirements struct {
+	// Name of the container the requirements are set for
+	Name string `json:"name"`
+	// Limits describes the maximum amount of compute resources allowed.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// +optional
+	Limits v1.ResourceList `json:"limits,omitempty"`
+	// Requests describes the minimum amount of compute resources required.
+	// If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+	// otherwise to an implementation-defined value. Requests cannot exceed Limits.
+	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// +optional
+	Requests v1.ResourceList `json:"requests,omitempty"`
 }
 
 // IBKubernetesSpec describes configuration options for ib-kubernetes

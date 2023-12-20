@@ -128,6 +128,7 @@ func (s *stateWhereaboutsCNI) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
+//nolint:dupl
 func (s *stateWhereaboutsCNI) getManifestObjects(
 	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
 	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
@@ -136,8 +137,9 @@ func (s *stateWhereaboutsCNI) getManifestObjects(
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:     runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory: utils.GetCniBinDirectory(staticConfig, nil),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, nil),
+			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.IpamPlugin.ContainerResources),
 		},
 	}
 	// render objects

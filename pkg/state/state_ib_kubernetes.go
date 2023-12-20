@@ -60,7 +60,8 @@ type stateIBKubernetes struct {
 type IBKubernetesSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
-	IsOpenshift bool
+	IsOpenshift        bool
+	ContainerResources ContainerResourcesMap
 }
 type IBKubernetesManifestRenderData struct {
 	CrSpec                      *mellanoxv1alpha1.IBKubernetesSpec
@@ -143,8 +144,9 @@ func (s *stateIBKubernetes) getManifestObjects(
 		NodeAffinity:                cr.Spec.NodeAffinity,
 		DeployInitContainer:         cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &IBKubernetesSpec{
-			runtimeSpec: runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
+			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:        clusterInfo.IsOpenshift(),
+			ContainerResources: createContainerResourcesMap(cr.Spec.IBKubernetes.ContainerResources),
 		},
 	}
 	// render objects

@@ -55,6 +55,17 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
+          {{- with index .RuntimeSpec.ContainerResources "cni-plugins" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+          {{- else }}
           resources:
             requests:
               cpu: "100m"
@@ -62,6 +73,7 @@ spec:
             limits:
               cpu: "100m"
               memory: "50Mi"
+          {{- end }}
           volumeMounts:
             - name: cnibin
               mountPath: /host/opt/cni/bin
