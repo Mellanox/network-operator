@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
@@ -35,9 +36,9 @@ import (
 // log is for logging in this package.
 var hostDeviceNetworkLog = logf.Log.WithName("hostdevicenetwork-resource")
 
-type hostDeviceNetworkValidator struct {
-	v1alpha1.HostDeviceNetwork
-}
+type hostDeviceNetworkValidator struct{}
+
+var _ webhook.CustomValidator = &hostDeviceNetworkValidator{}
 
 func SetupHostDeviceNetworkWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -55,15 +56,12 @@ func (w *hostDeviceNetworkValidator) ValidateCreate(_ context.Context, obj runti
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
-
 	hostDeviceNetwork, ok := obj.(*v1alpha1.HostDeviceNetwork)
 	if !ok {
 		return nil, errors.New("failed to unmarshal HostDeviceNetwork object to validate")
 	}
-	w.HostDeviceNetwork = *hostDeviceNetwork
-	hostDeviceNetworkLog.Info("validate create", "name", w.Name)
-
-	return nil, w.validateHostDeviceNetwork()
+	hostDeviceNetworkLog.Info("validate create", "name", hostDeviceNetwork.Name)
+	return nil, w.validateHostDeviceNetwork(hostDeviceNetwork)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -78,21 +76,25 @@ func (w *hostDeviceNetworkValidator) ValidateUpdate(
 	if !ok {
 		return nil, errors.New("failed to unmarshal HostDeviceNetwork object to validate")
 	}
-	w.HostDeviceNetwork = *hostDeviceNetwork
-	hostDeviceNetworkLog.Info("validate update", "name", w.Name)
+	hostDeviceNetworkLog.Info("validate update", "name", hostDeviceNetwork.Name)
 
-	return nil, w.validateHostDeviceNetwork()
+	return nil, w.validateHostDeviceNetwork(hostDeviceNetwork)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (w *hostDeviceNetworkValidator) ValidateDelete(
-	_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
 
-	hostDeviceNetworkLog.Info("validate delete", "name", w.Name)
+	hostDeviceNetwork, ok := obj.(*v1alpha1.HostDeviceNetwork)
+	if !ok {
+		return nil, errors.New("failed to unmarshal HostDeviceNetwork object to validate")
+	}
+
+	hostDeviceNetworkLog.Info("validate delete", "name", hostDeviceNetwork.Name)
 
 	// Validation for delete call is not required
 	return nil, nil
@@ -103,8 +105,8 @@ We are validating here HostDeviceNetwork:
   - ResourceName must be valid for k8s
 */
 
-func (w *hostDeviceNetworkValidator) validateHostDeviceNetwork() error {
-	resourceName := w.Spec.ResourceName
+func (w *hostDeviceNetworkValidator) validateHostDeviceNetwork(in *v1alpha1.HostDeviceNetwork) error {
+	resourceName := in.Spec.ResourceName
 	if !isValidHostDeviceNetworkResourceName(resourceName) {
 		var allErrs field.ErrorList
 		allErrs = append(allErrs, field.Invalid(field.NewPath("Spec"), resourceName,
@@ -113,7 +115,7 @@ func (w *hostDeviceNetworkValidator) validateHostDeviceNetwork() error {
 				"regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"))
 		return apierrors.NewInvalid(
 			schema.GroupKind{Group: "mellanox.com", Kind: "HostDeviceNetwork"},
-			w.Name, allErrs)
+			in.Name, allErrs)
 	}
 	return nil
 }
