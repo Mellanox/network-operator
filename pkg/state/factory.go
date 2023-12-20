@@ -30,6 +30,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
+var envConfig = config.FromEnv()
+
 // NewManager creates a state.Manager for the given CRD Kind
 func NewManager(
 	crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme, setupLog logr.Logger) (Manager, error) {
@@ -71,7 +73,7 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 
 // newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
 func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
-	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
+	manifestBaseDir := envConfig.State.ManifestBaseDir
 	ofedState, _, err := NewStateOFED(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ofed-driver"))
 	if err != nil {
