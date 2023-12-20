@@ -57,12 +57,15 @@ type stateIBKubernetes struct {
 	stateSkel
 }
 
+// IBKubernetesSpec holds additional information for rendering Kubernetes objects related to Infiniband.
 type IBKubernetesSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
 }
+
+// IBKubernetesManifestRenderData contains information used to render Kubernetes objects related to Infiniband.
 type IBKubernetesManifestRenderData struct {
 	CrSpec                      *mellanoxv1alpha1.IBKubernetesSpec
 	PeriodicUpdateSecondsString string
@@ -127,7 +130,7 @@ func (s *stateIBKubernetes) Sync(
 	return syncState, nil
 }
 
-// Get a map of source kinds that should be watched for the state keyed by the source kind name
+// GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name.
 func (s *stateIBKubernetes) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
 	wr["Deployment"] = &appsv1.Deployment{}

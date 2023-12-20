@@ -14,10 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package version holds information about the version of the Operator.
 package version
 
+// TODO: (killianmuldoon) See if this can be removed.
 var (
+	// Version is a semver version number.
 	Version = "x.x.x"
-	Date    = "1970-01-01T00:00:00"
-	Commit  = "N/A"
+	// Date is the date of the release.
+	Date = "1970-01-01T00:00:00"
+	// Commit is the release commit.
+	Commit = "N/A"
 )

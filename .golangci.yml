@@ -87,6 +87,12 @@ linters:
     - whitespace
 
 issues:
+  # Disable default golangci exclusions.
+  exclude-use-default: false
+  # Don't deduplicate output.
+  max-same-issues: 0
+  max-issues-per-linter: 0
+
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
     - path: _test\.go

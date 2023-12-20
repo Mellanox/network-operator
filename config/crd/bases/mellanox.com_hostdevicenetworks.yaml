@@ -64,7 +64,7 @@ spec:
                     name:
                       type: string
                     state:
-                      description: Represents reconcile state of the system
+                      description: State represents reconcile state of the system.
                       enum:
                       - ready
                       - notReady

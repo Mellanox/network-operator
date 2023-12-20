@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package render
-
 /*
- Render package renders k8s API objects from a given set of template .yaml files
- provided in a source directory and a RenderData struct to be used in the rendering process
+Package render renders k8s API objects from a given set of template .yaml files
+provided in a source directory and a RenderData struct to be used in the rendering process
 
- The objects are rendered in `Unstructured` format provided by
- k8s.io/apimachinery/pkg/apis/meta/v1/unstructured package.
+The objects are rendered in `Unstructured` format provided by
+k8s.io/apimachinery/pkg/apis/meta/v1/unstructured package.
 */
+package render
 
 import (
 	"bytes"
@@ -30,6 +29,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -43,6 +43,7 @@ const (
 	maxBufSizeForYamlDecode = 4096
 )
 
+// ManifestFileSuffix is the collection of suffixes considered when searching for Kubernetes manifest files.
 var ManifestFileSuffix = []string{"yaml", "yml", "json"}
 
 // Renderer renders k8s objects from a manifest source dir and TemplatingData used by the templating engine
@@ -105,7 +106,7 @@ func nindentPrefix(spaces int, prefix, v string) string {
 // renderFile renders a single file to a list of k8s unstructured objects
 func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	// Read file
-	txt, err := os.ReadFile(filePath)
+	txt, err := os.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read manifest file %s", filePath)
 	}

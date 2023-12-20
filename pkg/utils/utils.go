@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package utils contains utils used across the code base.
 package utils
 
 import (
@@ -33,6 +34,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
+// PodTemplateGenerationLabel is a label key used for pod template generation.
+// TODO: (killianmuldoon) Can we get rid of this and associated code?
 const PodTemplateGenerationLabel = "pod-template-generation"
 
 // GetFilesWithSuffix returns all files under a given base directory that have a specific suffix
@@ -65,12 +68,14 @@ func GetFilesWithSuffix(baseDir string, suffixes ...string) ([]string, error) {
 	return files, nil
 }
 
+// GetNetworkAttachmentDefLink returns the location of the passed NetworkAttachmentDefinition Kubernetes resource.
 func GetNetworkAttachmentDefLink(netAttDef *netattdefv1.NetworkAttachmentDefinition) (link string) {
 	link = fmt.Sprintf("%s/namespaces/%s/%s/%s",
 		netAttDef.APIVersion, netAttDef.Namespace, netAttDef.Kind, netAttDef.Name)
 	return
 }
 
+// GetPodTemplateGeneration returns the PodTemplateGeneration from the PodTemplateGenerationLabel.
 func GetPodTemplateGeneration(pod *v1.Pod, log logr.Logger) (int64, error) {
 	generation, err := strconv.ParseInt(pod.Labels[PodTemplateGenerationLabel], 10, 0)
 	if err != nil {
@@ -80,6 +85,7 @@ func GetPodTemplateGeneration(pod *v1.Pod, log logr.Logger) (int64, error) {
 	return generation, nil
 }
 
+// GetCniBinDirectory returns the location where the CNI binaries are stored on the node.
 func GetCniBinDirectory(staticInfo staticconfig.Provider,
 	clusterInfo clustertype.Provider) string {
 	// First we try to set the user-set value, then fallback to defaults for Openshift / K8s

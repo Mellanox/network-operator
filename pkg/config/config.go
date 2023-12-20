@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config contains configuration for the Operator.
 package config
 
 import (
@@ -25,7 +26,7 @@ import (
 var once sync.Once
 var operatorConfig *OperatorConfig
 
-// Operator related configurations
+// OperatorConfig holds configuration for the Operator.
 type OperatorConfig struct {
 	State      StateConfig
 	Controller ControllerConfig
@@ -33,14 +34,14 @@ type OperatorConfig struct {
 	DisableMigration bool `env:"DISABLE_MIGRATION" envDefault:"false"`
 }
 
-// state related configurations
+// StateConfig holds configuration for Operator State.
 type StateConfig struct {
 	NetworkOperatorResourceNamespace string `env:"POD_NAMESPACE" envDefault:"nvidia-network-operator"`
 	ManifestBaseDir                  string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
 	OFEDState                        OFEDStateConfig
 }
 
-// Controller related configurations
+// ControllerConfig holds configuration for Operator controllers.
 type ControllerConfig struct {
 	//nolint:stylecheck
 	// Request requeue time(seconds) in case the system still needs to be reconciled
@@ -55,6 +56,7 @@ type OFEDStateConfig struct {
 	InitContainerImage string `env:"OFED_INIT_CONTAINER_IMAGE"`
 }
 
+// FromEnv pulls the operator configuration from the environment.
 func FromEnv() *OperatorConfig {
 	once.Do(func() {
 		operatorConfig = &OperatorConfig{}

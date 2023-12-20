@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package nodeinfo
-
 /*
- nodeinfo package provides k8s node information. Apart from fetching k8s API Node objects, it wraps the lookup
- of specific attributes (mainly labels) for easier use.
+Package nodeinfo provides k8s node information. Apart from fetching k8s API Node objects, it wraps the lookup
+of specific attributes (mainly labels) for easier use.
 */
+package nodeinfo
 
 import (
 	corev1 "k8s.io/api/core/v1"

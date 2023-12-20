@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package migrate handles one time migrations.
 package migrate
 
 import (

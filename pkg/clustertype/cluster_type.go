@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clustertype provides information about the cluster type.
 package clustertype
 
 import (
@@ -25,14 +26,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-/*
- clustertype package provides information about the cluster type
-*/
-
+// Type is the type of Kubernetes cluster.
 type Type string
 
 const (
-	Openshift  Type = "openshift"
+	// Openshift is the Openshift distribution.
+	Openshift Type = "openshift"
+	// Kubernetes is the vanilla Kubernetes distribution.
 	Kubernetes Type = "kubernetes"
 )
 

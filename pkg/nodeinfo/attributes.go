@@ -26,7 +26,7 @@ import (
 
 var log = logf.Log.WithName("nodeinfo")
 
-// Node labels used by nodeinfo package
+// Node labels used by nodeinfo package.
 const (
 	NodeLabelOSName           = "feature.node.kubernetes.io/system-os_release.ID"
 	NodeLabelOSVer            = "feature.node.kubernetes.io/system-os_release.VERSION_ID"
@@ -39,6 +39,7 @@ const (
 	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
 )
 
+// AttributeType categorizes Attributes of the host.
 type AttributeType int
 
 // Attribute type Enum, add new types before Last and update the mapping below

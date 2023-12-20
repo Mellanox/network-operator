@@ -25,7 +25,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
-// StateManager manages a collection of states and handles transitions from State to State.
+// Manager manages a collection of states and handles transitions from State to State.
 // A state manager invokes states in order to get the system to its desired state
 type Manager interface {
 	// GetWatchSources gets Resources that should be watched by a Controller for this state manager
@@ -36,7 +36,7 @@ type Manager interface {
 	SyncState(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) Results
 }
 
-// Represent a Result of a single State.Sync() invocation
+// Result is the result of a single State.Sync() invocation
 type Result struct {
 	StateName string
 	Status    SyncState
@@ -44,7 +44,7 @@ type Result struct {
 	ErrInfo error
 }
 
-// Represent the Results of a collection of State.Sync() invocations, Status reflects the global status of all states.
+// Results is the result of a collection of State.Sync() invocations, Status reflects the global status of all states.
 // If all are SyncStateReady then Status is SyncStateReady, if one is SyncStateNotReady, Status is SyncStateNotReady
 type Results struct {
 	Status       SyncState

@@ -14,29 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package consts contains constants used throughout the project.
 package consts
 
-/*
-  This package contains constants used throughout the projects and does not fall into a particular package
-*/
-
+// Note: if a different logger is used than zap (operator-sdk default), these values would probably need to change.
 const (
-	// Note: if a different logger is used than zap (operator-sdk default), these values would probably need to change.
+	// LogLevelError is the ERROR log level.
 	LogLevelError = iota - 2
+	// LogLevelWarning is the WARNING log level.
 	LogLevelWarning
+	// LogLevelInfo is the INFO log level.
 	LogLevelInfo
+	// LogLevelDebug is the DEBUG log level.
 	LogLevelDebug
 )
 
 const (
+	// NicClusterPolicyResourceName is the name for the NicClusterPolicy resource.
 	NicClusterPolicyResourceName = "nic-cluster-policy"
-	OfedDriverLabel              = "nvidia.com/ofed-driver"
-	StateLabel                   = "nvidia.network-operator.state"
-	DefaultCniBinDirectory       = "/opt/cni/bin"
-	OcpCniBinDirectory           = "/var/lib/cni/bin"
+	// OfedDriverLabel is the label key for ofed driver Pods and DaemonSets.
+	OfedDriverLabel = "nvidia.com/ofed-driver"
+	// StateLabel is the label key describing which state the operator created a Kubernetes object from.
+	StateLabel = "nvidia.network-operator.state"
+	// DefaultCniBinDirectory is the default location of the CNI binaries on a host.
+	DefaultCniBinDirectory = "/opt/cni/bin"
+	// OcpCniBinDirectory is the location of the CNI binaries on an OpenShift host.
+	OcpCniBinDirectory = "/var/lib/cni/bin"
 	// OfedDriverSkipDrainLabelSelector contains labelselector which is used to indicate
 	// that network-operator pod should be skipped during the drain operation which
 	// is executed by the upgrade controller.
 	OfedDriverSkipDrainLabelSelector = "nvidia.com/ofed-driver-upgrade-drain.skip!=true"
-	ControllerRevisionAnnotation     = "nvidia.network-operator.revision"
+	// ControllerRevisionAnnotation is the key for annotations used to store revision information on Kubernetes objects.
+	ControllerRevisionAnnotation = "nvidia.network-operator.revision"
 )

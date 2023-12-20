@@ -60,6 +60,7 @@ type stateNVIPAMCNI struct {
 	stateSkel
 }
 
+// NVIPAMManifestRenderData contains information used to render Kubernetes objects related to NVIPAM.
 type NVIPAMManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.NVIPAMSpec
 	NodeAffinity *v1.NodeAffinity
@@ -129,7 +130,7 @@ func (s *stateNVIPAMCNI) Sync(
 	return syncState, nil
 }
 
-// Get a map of source kinds that should be watched for the state keyed by the source kind name
+// GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *stateNVIPAMCNI) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
 	wr["DaemonSet"] = &appsv1.DaemonSet{}

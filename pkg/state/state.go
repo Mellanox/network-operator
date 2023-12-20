@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package state contains tools for syncing the state of Kubernetes objects.
 package state
 
 import (
@@ -22,15 +23,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// SyncState represents the Sync state of a specific State or a collection of States
 type SyncState string
 
-// Represents the Sync state of a specific State or a collection of States
 const (
-	SyncStateReady    = "ready"
+	// SyncStateReady describes when no more syncing is needed.
+	SyncStateReady = "ready"
+	// SyncStateNotReady describes when more syncing is needed.
 	SyncStateNotReady = "notReady"
-	SyncStateIgnore   = "ignore"
-	SyncStateReset    = "reset"
-	SyncStateError    = "error"
+	// SyncStateIgnore describes when an object to be synced does not exist and can be ignored.
+	SyncStateIgnore = "ignore"
+	// SyncStateReset describes when the object being synced was reset.
+	// TODO (killianmuldoon) can this be removed?
+	SyncStateReset = "reset"
+	// SyncStateError describes when sync results in an error.
+	SyncStateError = "error"
 )
 
 // State Represents a single State that requires a set of k8s API operations to be performed.
@@ -47,6 +54,6 @@ type State interface {
 	// InfoCatalog is provided to optionally provide a State additional infoSources required for it to perform
 	// the Sync operation.
 	Sync(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error)
-	// Get a map of source kinds that should be watched for the state keyed by the source kind name
+	// GetWatchSources provides a map of source kinds that should be watched for the state keyed by the source kind name
 	GetWatchSources() map[string]client.Object
 }

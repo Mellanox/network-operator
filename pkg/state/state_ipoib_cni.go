@@ -60,6 +60,7 @@ type stateIPoIBCNI struct {
 	stateSkel
 }
 
+// IPoIBManifestRenderData contains information used to render Kubernetes objects related to IP over Infiniband.
 type IPoIBManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.ImageSpec
 	Tolerations  []v1.Toleration

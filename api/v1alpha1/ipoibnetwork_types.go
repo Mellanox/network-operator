@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	// IPoIBNetworkCRDName is used for the CRD Kind.
 	IPoIBNetworkCRDName = "IPoIBNetwork"
 )
 
