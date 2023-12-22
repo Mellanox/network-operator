@@ -141,6 +141,10 @@ func (s *stateNICFeatureDiscovery) GetWatchSources() map[string]client.Object {
 func (s *stateNICFeatureDiscovery) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	if cr == nil || cr.Spec.NicFeatureDiscovery == nil {
+		return nil, errors.New("failed to render objects: state spec is nil")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterType provider required")

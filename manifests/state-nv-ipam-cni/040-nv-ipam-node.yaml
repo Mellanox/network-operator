@@ -82,15 +82,15 @@ spec:
           - --cni-log-level=info # log level for shim CNI
           - --ippools-namespace=$(IPPOOLS_NAMESPACE)
         {{- with index .RuntimeSpec.ContainerResources "nv-ipam-node" }}
-          resources:
-            {{- if .Requests }}
-            requests:
-              {{ .Requests | yaml | nindent 14}}
-            {{- end }}
-            {{- if .Limits }}
-            limits:
-              {{ .Limits | yaml | nindent 14}}
-            {{- end }}
+        resources:
+          {{- if .Requests }}
+          requests:
+            {{ .Requests | yaml | nindent 12}}
+          {{- end }}
+          {{- if .Limits }}
+          limits:
+            {{ .Limits | yaml | nindent 12}}
+          {{- end }}
         {{- else }}
         resources:
           requests:

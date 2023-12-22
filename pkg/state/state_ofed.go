@@ -382,6 +382,10 @@ func (s *stateOFED) handleAdditionalMounts(
 func (s *stateOFED) GetManifestObjects(
 	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	if cr == nil || cr.Spec.OFEDDriver == nil {
+		return nil, errors.New("failed to render objects: state spec is nil")
+	}
+
 	nodeInfo := catalog.GetNodeInfoProvider()
 	if nodeInfo == nil {
 		return nil, errors.New("nodeInfo provider required")

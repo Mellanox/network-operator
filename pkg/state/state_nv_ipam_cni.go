@@ -142,6 +142,10 @@ func (s *stateNVIPAMCNI) GetWatchSources() map[string]client.Object {
 func (s *stateNVIPAMCNI) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	if cr == nil || cr.Spec.NvIpam == nil {
+		return nil, errors.New("failed to render objects: state spec is nil")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
