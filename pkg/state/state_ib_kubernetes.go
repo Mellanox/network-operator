@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
@@ -36,21 +35,23 @@ import (
 )
 
 // NewStateIBKubernetes creates a new ib-kubernetes state
-func NewStateIBKubernetes(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateIBKubernetes(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateIBKubernetes{
+	state := &stateIBKubernetes{
 		stateSkel: stateSkel{
 			name:        "state-ib-kubernetes",
 			description: "ib-kubernetes deployed in the cluster",
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
-		}}, nil
+		}}
+	return state, state, nil
 }
 
 type stateIBKubernetes struct {
@@ -97,7 +98,7 @@ func (s *stateIBKubernetes) Sync(
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
 
-	objs, err := s.getManifestObjects(cr, clusterInfo, reqLogger)
+	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -137,9 +138,13 @@ func (s *stateIBKubernetes) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
-func (s *stateIBKubernetes) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, clusterInfo clustertype.Provider,
-	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+func (s *stateIBKubernetes) GetManifestObjects(
+	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, errors.New("clusterType provider required")
+	}
 	renderData := &IBKubernetesManifestRenderData{
 		CrSpec:                      cr.Spec.IBKubernetes,
 		PeriodicUpdateSecondsString: strconv.Itoa(cr.Spec.IBKubernetes.PeriodicUpdateSeconds),

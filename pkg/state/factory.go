@@ -72,53 +72,53 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 // newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
 func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
-	ofedState, err := NewStateOFED(
+	ofedState, _, err := NewStateOFED(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ofed-driver"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create OFED driver State")
 	}
 
-	sharedDpState, err := NewStateSharedDp(
+	sharedDpState, _, err := NewStateSharedDp(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-rdma-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Shared Device plugin State")
 	}
-	sriovDpState, err := NewStateSriovDp(
+	sriovDpState, _, err := NewStateSriovDp(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-sriov-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create SR-IOV Device plugin State")
 	}
-	multusState, err := NewStateMultusCNI(
+	multusState, _, err := NewStateMultusCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-multus-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Multus CNI State")
 	}
-	cniPluginsState, err := NewStateCNIPlugins(
+	cniPluginsState, _, err := NewStateCNIPlugins(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-container-networking-plugins"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
-	ipoibState, err := NewStateIPoIBCNI(
+	ipoibState, _, err := NewStateIPoIBCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ipoib-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
-	whereaboutState, err := NewStateWhereaboutsCNI(
+	whereaboutState, _, err := NewStateWhereaboutsCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-whereabouts-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
 	}
-	ibKubernetesState, err := NewStateIBKubernetes(
+	ibKubernetesState, _, err := NewStateIBKubernetes(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ib-kubernetes"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
 	}
-	nvIpamCniState, err := NewStateNVIPAMCNI(
+	nvIpamCniState, _, err := NewStateNVIPAMCNI(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nv-ipam-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create nv-ipam-cni State")
 	}
-	nicFeatureDiscoveryState, err := NewStateNICFeatureDiscovery(
+	nicFeatureDiscoveryState, _, err := NewStateNICFeatureDiscovery(
 		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nic-feature-discovery"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create nic-feature-discovery State")

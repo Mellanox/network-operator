@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -30,15 +31,21 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
+	"golang.org/x/exp/slices"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apiresource "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
+	"github.com/Mellanox/network-operator/pkg/state"
 )
 
 const (
@@ -53,6 +60,8 @@ var nicClusterPolicyLog = logf.Log.WithName("nicclusterpolicy-resource")
 var schemaValidators *schemaValidator
 
 var skipValidations = false
+
+var envConfig = config.FromEnv().State
 
 type nicClusterPolicyValidator struct{}
 
@@ -152,6 +161,7 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClu
 	var allErrs field.ErrorList
 	// Validate Repository
 	allErrs = w.validateRepositories(in, allErrs)
+	allErrs = w.validateContainerResources(in, allErrs)
 	// Validate IBKubernetes
 	ibKubernetes := in.Spec.IBKubernetes
 	if ibKubernetes != nil {
@@ -329,15 +339,15 @@ func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field
 		configListInterface := rdmaSharedDevicePluginConfigJSON["configList"]
 		configList, _ := configListInterface.([]interface{})
 		for _, configInterface := range configList {
-			config := configInterface.(map[string]interface{})
-			resourceName := config["resourceName"].(string)
+			dpConfig := configInterface.(map[string]interface{})
+			resourceName := dpConfig["resourceName"].(string)
 			if !isValidRdmaSharedDevicePluginResourceName(resourceName) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"),
 					dp.Config, "Invalid Resource name, it must consist of alphanumeric characters, "+
 						"'-', '_' or '.', and must start and end with an alphanumeric character "+
 						"(e.g. 'MyName',  or 'my.name',  or '123-abc') regex used for validation is "+rdmaResourceNameRegex))
 			}
-			resourcePrefix, ok := config["resourcePrefix"]
+			resourcePrefix, ok := dpConfig["resourcePrefix"]
 			if ok {
 				if !isValidFQDN(resourcePrefix.(string)) {
 					allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
@@ -472,6 +482,178 @@ func validateRepository(repo string, allErrs field.ErrorList, fp *field.Path, ch
 		allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("repository"),
 			repo, "invalid container image repository format"))
 	}
+	return allErrs
+}
+
+// containerResourcesProvider is an interface for ImageSpec struct that allows to get container resources from all
+// structs, that embed ImageSpec
+type containerResourcesProvider interface {
+	GetContainerResources() []v1alpha1.ResourceRequirements
+}
+
+// newStateFunc is a common alias for all functions that create states deployed by nicClusterPolicy
+type newStateFunc func(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (state.State, state.ManifestRenderer, error)
+
+// stateRenderData is a helper struct that consolidates everything required to render a state
+type stateRenderData struct {
+	provider    containerResourcesProvider
+	newState    newStateFunc
+	manifestDir string
+}
+
+func (w *nicClusterPolicyValidator) validateContainerResources(
+	policy *v1alpha1.NicClusterPolicy, allErrs field.ErrorList) field.ErrorList {
+	fp := field.NewPath("spec")
+
+	manifestBaseDir := envConfig.ManifestBaseDir
+
+	states := map[string]stateRenderData{}
+
+	if policy.Spec.OFEDDriver != nil {
+		states["ofedDriver"] = stateRenderData{
+			policy.Spec.OFEDDriver, state.NewStateOFED,
+			filepath.Join(manifestBaseDir, "state-ofed-driver"),
+		}
+	}
+	if policy.Spec.RdmaSharedDevicePlugin != nil {
+		states["rdmaSharedDevicePlugin"] = stateRenderData{
+			policy.Spec.RdmaSharedDevicePlugin, state.NewStateSharedDp,
+			filepath.Join(manifestBaseDir, "state-rdma-device-plugin"),
+		}
+	}
+	if policy.Spec.SriovDevicePlugin != nil {
+		states["sriovDevicePlugin"] = stateRenderData{
+			policy.Spec.SriovDevicePlugin, state.NewStateSriovDp,
+			filepath.Join(manifestBaseDir, "state-sriov-device-plugin"),
+		}
+	}
+	if policy.Spec.IBKubernetes != nil {
+		states["ibKubernetes"] = stateRenderData{
+			policy.Spec.IBKubernetes, state.NewStateIBKubernetes,
+			filepath.Join(manifestBaseDir, "state-ib-kubernetes"),
+		}
+	}
+	if policy.Spec.NvIpam != nil {
+		states["nvIpam"] = stateRenderData{
+			policy.Spec.NvIpam, state.NewStateNVIPAMCNI,
+			filepath.Join(manifestBaseDir, "state-nv-ipam-cni"),
+		}
+	}
+	if policy.Spec.NicFeatureDiscovery != nil {
+		states["nicFeatureDiscovery"] = stateRenderData{
+			policy.Spec.NicFeatureDiscovery, state.NewStateNICFeatureDiscovery,
+			filepath.Join(manifestBaseDir, "state-nic-feature-discovery"),
+		}
+	}
+	for stateName, renderData := range states {
+		localData := renderData
+		allErrs = validateContainerResourcesIfNotNil(&localData, policy, allErrs, fp, stateName)
+	}
+
+	if policy.Spec.SecondaryNetwork != nil {
+		snfp := fp.Child("secondaryNetwork")
+
+		states := map[string]stateRenderData{}
+		if policy.Spec.SecondaryNetwork.CniPlugins != nil {
+			states["cniPlugins"] = stateRenderData{
+				policy.Spec.SecondaryNetwork.CniPlugins, state.NewStateCNIPlugins,
+				filepath.Join(manifestBaseDir, "state-container-networking-plugins"),
+			}
+		}
+		if policy.Spec.SecondaryNetwork.IPoIB != nil {
+			states["ipoib"] = stateRenderData{
+				policy.Spec.SecondaryNetwork.IPoIB, state.NewStateIPoIBCNI,
+				filepath.Join(manifestBaseDir, "state-ipoib-cni"),
+			}
+		}
+		if policy.Spec.SecondaryNetwork.Multus != nil {
+			states["multus"] = stateRenderData{
+				policy.Spec.SecondaryNetwork.Multus, state.NewStateMultusCNI,
+				filepath.Join(manifestBaseDir, "state-multus-cni"),
+			}
+		}
+		if policy.Spec.SecondaryNetwork.IpamPlugin != nil {
+			states["ipamPlugin"] = stateRenderData{
+				policy.Spec.SecondaryNetwork.IpamPlugin, state.NewStateWhereaboutsCNI,
+				filepath.Join(manifestBaseDir, "state-whereabouts-cni"),
+			}
+		}
+		for stateName, renderData := range states {
+			localData := renderData
+			allErrs = validateContainerResourcesIfNotNil(&localData, policy, allErrs, snfp, stateName)
+		}
+	}
+	return allErrs
+}
+
+func validateContainerResourcesIfNotNil(
+	resource *stateRenderData, policy *v1alpha1.NicClusterPolicy, allErrs field.ErrorList,
+	fp *field.Path, fieldName string) field.ErrorList {
+	if resource.provider == nil {
+		return allErrs
+	}
+
+	_, renderer, err := resource.newState(nil, nil, resource.manifestDir)
+	if err != nil {
+		nicClusterPolicyLog.Error(err, "failed to created state renderer")
+		return allErrs
+	}
+	return validateResourceRequirements(
+		resource.provider.GetContainerResources(), policy, renderer, allErrs, fp, fieldName)
+}
+
+func validateResourceRequirements(resources []v1alpha1.ResourceRequirements,
+	policy *v1alpha1.NicClusterPolicy, manifestRenderer state.ManifestRenderer,
+	allErrs field.ErrorList, fp *field.Path, child string) field.ErrorList {
+	if len(resources) == 0 {
+		return allErrs
+	}
+
+	supportedContainerNames, err := state.ParseContainerNames(manifestRenderer, policy, nicClusterPolicyLog)
+	if err != nil {
+		nicClusterPolicyLog.Error(err, "failed to parse container names")
+	}
+
+	for _, reqs := range resources {
+		allErrs = validateResources(reqs.Requests, allErrs, fp, child, "Requests")
+		allErrs = validateResources(reqs.Limits, allErrs, fp, child, "Limits", reqs.Requests)
+		if !slices.Contains(supportedContainerNames, reqs.Name) {
+			allErrs = append(
+				allErrs, field.NotSupported(fp.Child(child).Child("containerResources").Child("name"),
+					reqs.Name, supportedContainerNames))
+		}
+	}
+
+	return allErrs
+}
+
+func validateResources(resources map[v1.ResourceName]apiresource.Quantity, allErrs field.ErrorList, fp *field.Path,
+	child, resourceType string, requests ...map[v1.ResourceName]apiresource.Quantity) field.ErrorList {
+	for resourceName, quantity := range resources {
+		if resourceName == v1.ResourceCPU || resourceName == v1.ResourceMemory {
+			if quantity.IsZero() {
+				allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("containerResources").
+					Child(resourceType).Child(string(resourceName)),
+					quantity, fmt.Sprintf("resource %s for %s is zero", resourceType, string(resourceName))))
+			}
+		} else {
+			allErrs = append(allErrs, field.NotSupported(fp.Child(child).Child("containerResources").
+				Child(resourceType).Child(string(resourceName)),
+				resourceName, []string{string(v1.ResourceCPU), string(v1.ResourceMemory)}))
+		}
+
+		if resourceType == "Limits" && len(requests) > 0 && requests[0] != nil {
+			if requestQuantity, hasRequest := requests[0][resourceName]; hasRequest {
+				if quantity.Cmp(requestQuantity) < 0 {
+					allErrs = append(allErrs, field.Invalid(fp.Child(child).Child("containerResources").
+						Child("Requests").Child(string(resourceName)), quantity,
+						fmt.Sprintf("resource request for %s is greater than the limit", string(resourceName))))
+				}
+			}
+		}
+	}
+
 	return allErrs
 }
 

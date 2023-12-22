@@ -56,6 +56,14 @@ type ImageSpec struct {
 	ContainerResources []ResourceRequirements `json:"containerResources,omitempty"`
 }
 
+// GetContainerResources is a method to easily get container resources from struct, that embed ImageSpec
+func (is *ImageSpec) GetContainerResources() []ResourceRequirements {
+	if is == nil {
+		return nil
+	}
+	return is.ContainerResources
+}
+
 // ImageSpecWithConfig Contains ImageSpec and optional configuration
 type ImageSpecWithConfig struct {
 	ImageSpec `json:""`

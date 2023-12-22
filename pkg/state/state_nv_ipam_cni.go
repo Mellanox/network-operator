@@ -30,30 +30,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
 // NewStateNVIPAMCNI creates a new state for Multus
-func NewStateNVIPAMCNI(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateNVIPAMCNI(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateNVIPAMCNI{
+	state := &stateNVIPAMCNI{
 		stateSkel: stateSkel{
 			name:        "state-nv-ipam-cni",
 			description: "nv-ipam IPAM CNI deployed in the cluster",
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
-		}}, nil
+		}}
+	return state, state, nil
 }
 
 type stateNVIPAMCNI struct {
@@ -96,7 +96,7 @@ func (s *stateNVIPAMCNI) Sync(
 	}
 
 	// Fill ManifestRenderData and render objects
-	objs, err := s.getManifestObjects(cr, staticInfo, clusterInfo, reqLogger)
+	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -139,10 +139,17 @@ func (s *stateNVIPAMCNI) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
-func (s *stateNVIPAMCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
-	clusterInfo clustertype.Provider,
-	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+func (s *stateNVIPAMCNI) GetManifestObjects(
+	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, errors.New("clusterInfo provider required")
+	}
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
 	renderData := &NVIPAMManifestRenderData{
 		CrSpec:       cr.Spec.NvIpam,
 		NodeAffinity: cr.Spec.NodeAffinity,

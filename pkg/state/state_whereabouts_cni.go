@@ -33,26 +33,27 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
 // NewStateWhereaboutsCNI creates a new state for Whereabouts
-func NewStateWhereaboutsCNI(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateWhereaboutsCNI(
+	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
-	return &stateWhereaboutsCNI{
+	state := &stateWhereaboutsCNI{
 		stateSkel: stateSkel{
 			name:        "state-whereabouts-cni",
 			description: "whereabouts IPAM CNI deployed in the cluster",
 			client:      k8sAPIClient,
 			scheme:      scheme,
 			renderer:    renderer,
-		}}, nil
+		}}
+	return state, state, nil
 }
 
 type stateWhereaboutsCNI struct {
@@ -89,7 +90,7 @@ func (s *stateWhereaboutsCNI) Sync(
 		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
 	}
 
-	objs, err := s.getManifestObjects(cr, staticInfo, reqLogger)
+	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
@@ -130,9 +131,13 @@ func (s *stateWhereaboutsCNI) GetWatchSources() map[string]client.Object {
 }
 
 //nolint:dupl
-func (s *stateWhereaboutsCNI) getManifestObjects(
-	cr *mellanoxv1alpha1.NicClusterPolicy, staticConfig staticconfig.Provider,
-	reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+func (s *stateWhereaboutsCNI) GetManifestObjects(
+	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
 	renderData := &WhereaboutsManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.IpamPlugin,
 		Tolerations:  cr.Spec.Tolerations,
