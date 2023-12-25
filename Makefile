@@ -160,7 +160,7 @@ lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
 .PHONY: check-manifests
 check-manifests: generate manifests
 	$(info checking for git diff after running 'make manifests')
-	git diff --quiet ; if [ $$? -eq 1 ] ; then echo "Please, commit manifests after running 'make manifests' command"; exit 1 ; fi
+	git diff --quiet ; if [ $$? -eq 1 ] ; then echo "Please, commit manifests after running 'make manifests' and 'make generate' commands"; exit 1 ; fi
 
 .PHONY: check-go-modules
 check-go-modules: generate-go-modules
@@ -268,7 +268,7 @@ generate: controller-gen ## Generate code
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen:	## Download controller-gen locally if necessary
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
