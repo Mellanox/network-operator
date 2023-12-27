@@ -109,7 +109,13 @@ sriov-network-operator:
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
 operator:
-  resources: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 5m
+      memory: 64Mi
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Equal"
