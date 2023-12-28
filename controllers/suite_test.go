@@ -39,7 +39,6 @@ import (
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
-	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	// +kubebuilder:scaffold:imports
 )
@@ -56,6 +55,15 @@ const (
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var k8sManagerCancelFn context.CancelFunc
+
+type mockImageProvider struct {
+}
+
+func (d *mockImageProvider) TagExists(_ string) bool {
+	return false
+}
+
+func (d *mockImageProvider) SetImageSpec(*mellanoxcomv1alpha1.ImageSpec) {}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -134,7 +142,6 @@ var _ = BeforeSuite(func() {
 	clusterTypeProvider, err := clustertype.NewProvider(context.Background(), k8sClient)
 	Expect(err).NotTo(HaveOccurred())
 	staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "/opt/cni/bin"})
-	docaImagesProvider := docadriverimages.NewProvider(context.Background(), k8sClient)
 
 	err = (&NicClusterPolicyReconciler{
 		Client:                   k8sManager.GetClient(),
@@ -142,7 +149,7 @@ var _ = BeforeSuite(func() {
 		ClusterTypeProvider:      clusterTypeProvider,
 		StaticConfigProvider:     staticConfigProvider,
 		MigrationCh:              migrationCompletionChan,
-		DocaDriverImagesProvider: docaImagesProvider,
+		DocaDriverImagesProvider: &mockImageProvider{},
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 

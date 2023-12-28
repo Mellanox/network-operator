@@ -138,6 +138,84 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+	Context("When MOFED precompiled tag does not exists", func() {
+		It("should set error message in status", func() {
+			By("Create Node")
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node",
+					Labels: map[string]string{
+						nodeinfo.NodeLabelMlnxNIC:       "true",
+						nodeinfo.NodeLabelOSName:        "ubuntu",
+						nodeinfo.NodeLabelCPUArch:       "amd64",
+						nodeinfo.NodeLabelKernelVerFull: "generic-9.0.1",
+						nodeinfo.NodeLabelOSVer:         "20.0.4"},
+					Annotations: make(map[string]string),
+				},
+			}
+			err := k8sClient.Create(context.TODO(), node)
+			Expect(err).NotTo(HaveOccurred())
+			By("Create NicClusterPolicy with MOFED ForcePrecompiled")
+			cr := mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "nic-cluster-policy",
+					Namespace: "",
+				},
+				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &mellanoxv1alpha1.OFEDDriverSpec{
+						ForcePrecompiled: true,
+						ImageSpec: mellanoxv1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "acme.buzz",
+							Version:          "5.9-0.5.6.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+
+			err = k8sClient.Create(context.TODO(), &cr)
+			Expect(err).NotTo(HaveOccurred())
+
+			ncp := &mellanoxv1alpha1.NicClusterPolicy{}
+			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Wait for NicClusterPolicy OFED state error message to be populated")
+			msg := "failed to create k8s objects from manifest: " +
+				"failed to render objects: ForcePrecompiled is enabled " +
+				"and precompiled tag was not found: " +
+				"5.9-0.5.6.0-generic-9.0.1-ubuntu20.0.4-amd64"
+
+			Eventually(func() string {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
+				Expect(err).NotTo(HaveOccurred())
+				return getAppliedStateMessage(found.Status.AppliedStates, "state-OFED")
+			}, timeout*10, interval).Should(BeEquivalentTo(msg))
+
+			By("Set MOFED ForcePrecompiled to false")
+			patch := []byte(`{"spec": {"ofedDriver":{"forcePrecompiled": false}}}`)
+			Expect(k8sClient.Patch(context.TODO(), &cr, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+
+			By("Wait for NicClusterPolicy OFED state error message to be cleared")
+			msg = ""
+			Eventually(func() string {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
+				Expect(err).NotTo(HaveOccurred())
+				return getAppliedStateMessage(found.Status.AppliedStates, "state-OFED")
+			}, timeout*10, interval).Should(BeEquivalentTo(msg))
+
+			By("Delete NicClusterPolicy")
+			err = k8sClient.Delete(context.TODO(), &cr)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Delete Node")
+			err = k8sClient.Delete(context.TODO(), node)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
 	Context("When NicClusterPolicy CR is deleted", func() {
 		It("should set mofed.wait to false", func() {
 			By("Create Node")
@@ -318,3 +396,12 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 		})
 	})
 })
+
+func getAppliedStateMessage(states []mellanoxv1alpha1.AppliedState, stateName string) string {
+	for _, state := range states {
+		if state.Name == stateName {
+			return state.Message
+		}
+	}
+	return ""
+}

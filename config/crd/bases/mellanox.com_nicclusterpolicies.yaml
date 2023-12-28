@@ -1238,6 +1238,11 @@ spec:
                   description: AppliedState defines a finer-grained view of the observed
                     state of NicClusterPolicy
                   properties:
+                    message:
+                      description: |-
+                        Message is a human readable message indicating details about why
+                        the state is in this condition
+                      type: string
                     name:
                       type: string
                     state:
