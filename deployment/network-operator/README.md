@@ -450,15 +450,16 @@ containerResources:
 
 #### RDMA Device Plugin
 
-| Name                                        | Type   | Default                       | Description                                                                                             |
-|---------------------------------------------|--------|-------------------------------|---------------------------------------------------------------------------------------------------------|
-| `rdmaSharedDevicePlugin.deploy`             | bool   | `true`                        | Deploy RDMA Shared device plugin                                                                        |
-| `rdmaSharedDevicePlugin.repository`         | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository                                                              |
-| `rdmaSharedDevicePlugin.image`              | string | `k8s-rdma-shared-dev-plugin`  | RDMA Shared device plugin image name                                                                    |
-| `rdmaSharedDevicePlugin.version`            | string | `v1.3.2`                      | RDMA Shared device plugin version                                                                       |
-| `rdmaSharedDevicePlugin.imagePullSecrets`   | list   | `[]`                          | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image |
-| `rdmaSharedDevicePlugin.resources`          | list   | See below                     | RDMA Shared device plugin resources                                                                     |
-| `rdmaSharedDevicePlugin.containerResources` | []     | not set                       | Optional [resource requests and limits](#container-resources) for the `rdma-shated-dp` container        |
+| Name                                        | Type   | Default                       | Description                                                                                                                    |
+| ------------------------------------------- | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `rdmaSharedDevicePlugin.deploy`             | bool   | `true`                        | Deploy RDMA Shared device plugin                                                                                               |
+| `rdmaSharedDevicePlugin.repository`         | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository                                                                                     |
+| `rdmaSharedDevicePlugin.image`              | string | `k8s-rdma-shared-dev-plugin`  | RDMA Shared device plugin image name                                                                                           |
+| `rdmaSharedDevicePlugin.version`            | string | `v1.3.2`                      | RDMA Shared device plugin version                                                                                              |
+| `rdmaSharedDevicePlugin.imagePullSecrets`   | list   | `[]`                          | An optional list of references to secrets to use for pulling any of the RDMA Shared device plugin image                        |
+| `rdmaSharedDevicePlugin.resources`          | list   | See below                     | RDMA Shared device plugin resources                                                                                            |
+| `rdmaSharedDevicePlugin.containerResources` | []     | not set                       | Optional [resource requests and limits](#container-resources) for the `rdma-shared-dp` container                               |
+| `rdmaSharedDevicePlugin.useCdi`             | bool   | `false`                       | Enable Container Device Interface (CDI) mode. NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI |
 
 ##### RDMA Device Plugin Resource configurations
 
@@ -483,15 +484,16 @@ resources:
 
 #### SR-IOV Network Device plugin
 
-| Name                                   | Type   | Default                        | Description                                                                                                |
-|----------------------------------------|--------|--------------------------------|------------------------------------------------------------------------------------------------------------|
-| `sriovDevicePlugin.deploy`             | bool   | `false`                        | Deploy SR-IOV Network device plugin                                                                        |
-| `sriovDevicePlugin.repository`         | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository                                                              |
-| `sriovDevicePlugin.image`              | string | `sriov-network-device-plugin`  | SR-IOV Network device plugin image name                                                                    |
-| `sriovDevicePlugin.version`            | string | `v3.5.1`                       | SR-IOV Network device plugin version                                                                       |
-| `sriovDevicePlugin.imagePullSecrets`   | list   | `[]`                           | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image |
-| `sriovDevicePlugin.resources`          | list   | See below                      | SR-IOV Network device plugin resources                                                                     |
-| `sriovDevicePlugin.containerResources` | []     | not set                        | Optional [resource requests and limits](#container-resources) for the `kube-sriovdp` container             |
+| Name                                   | Type   | Default                        | Description                                                                                                                    |
+| -------------------------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `sriovDevicePlugin.deploy`             | bool   | `false`                        | Deploy SR-IOV Network device plugin                                                                                            |
+| `sriovDevicePlugin.repository`         | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository                                                                                  |
+| `sriovDevicePlugin.image`              | string | `sriov-network-device-plugin`  | SR-IOV Network device plugin image name                                                                                        |
+| `sriovDevicePlugin.version`            | string | `v3.5.1`                       | SR-IOV Network device plugin version                                                                                           |
+| `sriovDevicePlugin.imagePullSecrets`   | list   | `[]`                           | An optional list of references to secrets to use for pulling any of the SR-IOV Network device plugin image                     |
+| `sriovDevicePlugin.resources`          | list   | See below                      | SR-IOV Network device plugin resources                                                                                         |
+| `sriovDevicePlugin.containerResources` | []     | not set                        | Optional [resource requests and limits](#container-resources) for the `kube-sriovdp` container                                 |
+| `sriovDevicePlugin.useCdi`             | bool   | `false`                        | Enable Container Device Interface (CDI) mode. NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI |
 
 ##### SR-IOV Network Device Plugin Resource configurations
 
