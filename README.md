@@ -484,6 +484,7 @@ Specifying configuration either via Helm values when installing NVIDIA
 network operator, or by specifying them when directly creating NicClusterPolicy CR.
 These configurations eventually trigger the creation of a ConfigMap object in K8s.
 
+
 > __Note__: It is the responsibility of the user to delete any existing configurations (ConfigMaps) if
 > they were already created by the Network Operator as well as deleting his own configuration when they
 > are no longer required.
