@@ -170,9 +170,9 @@ imagePullSecrets: []
 deployCR: false
 ofedDriver:
   deploy: false
-  image: mofed
+  image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
-  version: 23.10-0.5.5.0
+  version: 24.01-0.0.6.0
   initContainer:
     enable: true
     repository: ghcr.io/mellanox
