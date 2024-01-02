@@ -15,7 +15,9 @@
 # Build the manager binary
 FROM golang:1.20 as builder
 
-ARG TARGETARCH=amd64
+ARG ARCH ?= $(shell go env GOARCH)
+ARG TARGETPLATFORM
+ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -32,7 +34,7 @@ COPY controllers/ controllers/
 COPY pkg/ pkg/
 
 # Add kubectl tool
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${TARGETPLATFORM}/kubectl"
 RUN chmod +x ./kubectl
 
 # Add helm chart DIR to get CRDs from it
@@ -44,7 +46,7 @@ RUN mkdir crds && \
     cp -r chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8-micro:8.8
 
