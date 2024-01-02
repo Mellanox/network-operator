@@ -1,0 +1,21 @@
+## This folder is strictly for local development work.
+
+# Adds namespace to all resources.
+namespace: nvidia-network-operator
+
+# Adds a prefix to all resource names.
+namePrefix: nvidia-network-operator-
+
+bases:
+- ../crd
+- ../rbac
+- ../manager
+
+patches:
+  - path: ./drop_manager_args_and_resources.yaml
+    target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1

@@ -1,0 +1,28 @@
+apiVersion: skaffold/v4beta8
+kind: Config
+metadata:
+  name: network-operator
+build:
+  artifacts:
+    - image: mellanox/network-operator
+      runtimeType: go
+      docker:
+       buildArgs:
+         ## Used for debugging. Disable inlining and optimizations in the go compiler. Passed to go build using `-gcflags`
+         GO_BUILD_GC_ARGS: "all=-N -l"
+       dockerfile: Dockerfile
+manifests:
+  ## Deploy the manager.
+  kustomize:
+    paths:
+      - config/dev
+  ## Deploy the network attachment definition CRD.
+  rawYaml:
+  - hack/crds/*
+portForward:
+      - resourceType: deployment
+        resourceName: nvidia-network-operator-controller-manager
+        namespace: nvidia-network-operator
+        port: 56268
+        localPort: 8080
+        address: 0.0.0.0

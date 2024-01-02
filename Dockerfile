@@ -19,6 +19,7 @@ ARG ARCH ?= $(shell go env GOARCH)
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG LDFLAGS
+ARG GO_BUILD_GC_ARGS
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -48,7 +49,7 @@ RUN mkdir crds && \
     cp -r chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -gcflags="${GO_BUILD_GC_ARGS}" -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8-micro:8.8
 
