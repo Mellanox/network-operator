@@ -92,12 +92,19 @@ UpgradeStateDone = "upgrade-done"
 ![State change diagram](images/ofed-upgrade-state-change-diagram.png)
 
 ### Troubleshooting
-#### Node is in `drain-failed` state
+#### Node is in `upgrade-failed` state
 * Drain the node manually by running `kubectl drain <node_name> --ignore-daemonsets`
 * Delete the MOFED pod on the node manually by running the following command:
 ```
 kubectl delete pod -n `kubectl get -A pods --field-selector spec.nodeName=<node_name> -l nvidia.com/ofed-driver --no-headers | awk '{print $1" "$2}'`
 ```
+
+>__NOTE__: If the "Safe driver loading" feature is enabled, you may also need to remove `nvidia.com/ofed-driver-upgrade.driver-wait-for-safe-load`
+annotation from the node object to unblock loading of the driver
+> 
+> `kubectl annotate node <node_name> nvidia.com/ofed-driver-upgrade.driver-wait-for-safe-load-`
+
+
 * Wait for the node to finish upgrading
 #### Updated MOFED pod failed to start / New version of MOFED can't install on the node
 * Manually delete the pod using by using `kubectl delete -n nvida-network-operator-resources <pod_name>`
