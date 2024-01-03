@@ -175,8 +175,7 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 		return r.handleMOFEDWaitLabelsNoConfig(ctx)
 	}
 	pods := &corev1.PodList{}
-	podLabel := "mofed-" + cr.Spec.OFEDDriver.Version
-	_ = r.Client.List(ctx, pods, client.MatchingLabels{"driver-pod": podLabel})
+	_ = r.Client.List(ctx, pods, client.MatchingLabels{"nvidia.com/ofed-driver": ""})
 	for i := range pods.Items {
 		pod := pods.Items[i]
 		labelValue := "true"
