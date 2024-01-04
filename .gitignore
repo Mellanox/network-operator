@@ -30,4 +30,5 @@ deployment/network-operator/charts/*.tgz
 # Folders
 bin
 testbin
+test
 build

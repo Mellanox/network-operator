@@ -54,6 +54,7 @@ const (
 
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var k8sManagerCancelFn context.CancelFunc
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -131,13 +132,18 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(ctrl.SetupSignalHandler())
+		var ctx context.Context
+		ctx, k8sManagerCancelFn = context.WithCancel(ctrl.SetupSignalHandler())
+		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
 	}()
 })
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	if k8sManagerCancelFn != nil {
+		k8sManagerCancelFn()
+	}
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })

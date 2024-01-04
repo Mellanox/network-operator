@@ -23,7 +23,7 @@ BUILDDIR=$(CURDIR)/build/_output
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
 PKGS=$(or $(PKG),$(shell $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
 TESTPKGS = $(shell $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
-ENVTEST_K8S_VERSION=1.24
+ENVTEST_K8S_VERSION=1.28
 
 # Version
 VERSION?=master
@@ -140,6 +140,22 @@ $(HELM): | $(TOOLSDIR) ; $(info  install helm...)
 	$Q env HELM_INSTALL_DIR=$(TOOLSDIR) PATH=$(PATH):$(TOOLSDIR) $(GET_HELM) --no-sudo -v $(HELM_VER)
 	$Q rm -f $(GET_HELM)
 
+# Tools for install and cleanup of controller-runtime envtest binaries.
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
+SETUP_ENVTEST_VER := v0.0.0-20231012212722-e25aeebc7846
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST_PATH := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+
+.PHONY: setup-envtest
+setup-envtest: ## Install setup-envtest and install envtest binaries.
+	GOBIN=$(TOOLSDIR) go install $(SETUP_ENVTEST_PKG)@$(SETUP_ENVTEST_VER)
+	mv $(TOOLSDIR)/$(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_PATH)
+	@echo KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)`
+
+.PHONY: clean-envtest ## Clean up assets installed by setup-envtest.
+clean-envtest: setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+	$(SETUP_ENVTEST_PATH) cleanup
+
 # Tests
 
 .PHONY: lint
@@ -184,27 +200,16 @@ test-race:    ARGS=-race         ## Run tests with race detector
 $(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
 $(TEST_TARGETS): test
 check test tests test-xml test-coverage: SHELL:=/bin/bash
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-check test tests: generate lint manifests ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
-test-xml: generate lint manifests | $(GO2XUNIT) ; $(info  running $(NAME:%=% )tests...) @ ## Run tests with xUnit output
-	mkdir test
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); 2>&1 $(GO) test -timeout $(TIMEOUT)s -v $(TESTPKGS) | tee test/tests.output
-	$(GO2XUNIT) -fail -input test/tests.output -output test/tests.xml
+check test tests: setup-envtest generate lint manifests ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
 COVERAGE_MODE = count
 .PHONY: test-coverage test-coverage-tools
 test-coverage-tools: | $(GOVERALLS)
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
-test-coverage: test-coverage-tools ; $(info  running coverage tests...) @ ## Run coverage tests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
+test-coverage: setup-envtest test-coverage-tools ; $(info  running coverage tests...) @ ## Run coverage tests
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
 .PHONY: image
