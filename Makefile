@@ -212,7 +212,11 @@ image-push:
 
 .PHONY: chart-build
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
-	$Q $(HELM) package deployment/network-operator/ --version $(VERSION)
+	@if [ -z "$(APP_VERSION)" ]; then \
+		echo "APP_VERSION is not set, skipping a part of the command."; \
+		$(HELM) package deployment/network-operator/ --version $(VERSION); \
+	else $(HELM) package deployment/network-operator/ --version $(VERSION) --app-version $(APP_VERSION); \
+	fi
 
 .PHONY: chart-push
 chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
