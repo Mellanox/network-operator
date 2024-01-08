@@ -584,7 +584,7 @@ optionally deployed components:
 | `cniPlugins.deploy`             | bool   | `true`                         | Deploy CNI Plugins Secondary Network                                                          |
 | `cniPlugins.image`              | string | `plugins`                      | CNI Plugins image name                                                                        |
 | `cniPlugins.repository`         | string | `ghcr.io/k8snetworkplumbingwg` | CNI Plugins image repository                                                                  |
-| `cniPlugins.version`            | string | `v0.8.7-amd64`                 | CNI Plugins image version                                                                     |
+| `cniPlugins.version`            | string | `v1.3.0`                       | CNI Plugins image version                                                                     |
 | `cniPlugins.imagePullSecrets`   | list   | `[]`                           | An optional list of references to secrets to use for pulling any of the CNI Plugins image     |
 | `cniPlugins.containerResources` | []     | not set                        | Optional [resource requests and limits](#container-resources) for the `cni-plugins` container |
 
