@@ -37,6 +37,7 @@ const (
 	NodeLabelNvGPU            = "nvidia.com/gpu.present"
 	NodeLabelWaitOFED         = "network.nvidia.com/operator.mofed.wait"
 	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
+	NodeLabelOSTreeVersion    = "feature.node.kubernetes.io/system-os_release.OSTREE_VERSION"
 )
 
 // AttributeType categorizes Attributes of the host.
@@ -51,6 +52,7 @@ const (
 	AttrTypeOSVer
 	// optional attrs
 	AttrTypeCudaVersionMajor
+	AttrTypeOSTreeVersion
 
 	OptionalAttrsStart = AttrTypeCudaVersionMajor
 )
@@ -66,6 +68,8 @@ var attrToLabel = []string{
 	NodeLabelOSVer,
 	// AttrTypeCudaVersionMajor
 	NodeLabelCudaVersionMajor,
+	// AttrTypeOSTreeVersion
+	NodeLabelOSTreeVersion,
 }
 
 // NodeAttributes provides attributes of a specific node

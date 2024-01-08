@@ -68,6 +68,8 @@ spec:
                 fieldPath: metadata.namespace
           - name: ENABLE_WEBHOOKS
             value: "false"
+          - name: USE_DTK
+            value: "true"
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:

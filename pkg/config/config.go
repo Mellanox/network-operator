@@ -54,6 +54,8 @@ type OFEDStateConfig struct {
 	// InitContainerImage is a full image name (registry, image name, tag) for the OFED init container.
 	// The init container will not be deployed if this variable is empty/not set.
 	InitContainerImage string `env:"OFED_INIT_CONTAINER_IMAGE"`
+	// UseDTK Enable use of Driver ToolKit side car to compile OFED drivers (Relevant for OpenShift only)
+	UseDTK bool `env:"USE_DTK" envDefault:"true"`
 }
 
 // FromEnv pulls the operator configuration from the environment.

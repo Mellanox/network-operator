@@ -26,11 +26,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
+	apiimagev1 "github.com/openshift/api/image/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
@@ -45,7 +48,23 @@ const (
 	testNicPolicyNoProxy      = "no-proxy-policy"
 	osName                    = "ubuntu"
 	osVer                     = "22.04"
+	rhcosOsTree               = "414.92.202311061957-0"
 )
+
+type openShiftClusterProvider struct {
+}
+
+func (d *openShiftClusterProvider) GetClusterType() clustertype.Type {
+	return clustertype.Openshift
+}
+
+func (d *openShiftClusterProvider) IsKubernetes() bool {
+	return false
+}
+
+func (d *openShiftClusterProvider) IsOpenshift() bool {
+	return true
+}
 
 var _ = Describe("MOFED state test", func() {
 	var stateOfed stateOFED
@@ -243,7 +262,7 @@ var _ = Describe("MOFED state test", func() {
 			}))
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			// Expect 4 objects: DaemonSet, Service Account, Role, RoleBinding
+			// Expect 4 objects: DaemonSet, Service Account, ClusterRole, ClusterRoleBinding
 			Expect(len(objs)).To(Equal(4))
 			By("Verify DaemonSet")
 			for _, obj := range objs {
@@ -256,6 +275,94 @@ var _ = Describe("MOFED state test", func() {
 				Expect(ds.Name).To(Equal("mofed-ubuntu22.04-ds"))
 				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector)
 				verifyPodAntiInfinity(ds.Spec.Template.Spec.Affinity)
+			}
+		})
+	})
+	Context("Render Manifests DTK", func() {
+		It("Should Render DaemonSet with DTK", func() {
+			dtkImageName := "quay.io/openshift-release-dev/ocp-v4.0-art-dev:414"
+			dtkImageStream := &apiimagev1.ImageStream{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ImageStream",
+					APIVersion: "image/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "driver-toolkit",
+					Namespace: "openshift",
+				},
+				Spec: apiimagev1.ImageStreamSpec{
+					Tags: []apiimagev1.TagReference{
+						{
+							Name: rhcosOsTree,
+							From: &v1.ObjectReference{
+								Kind: "DockerImage",
+								Name: dtkImageName,
+							},
+						},
+					},
+				},
+			}
+			scheme := runtime.NewScheme()
+			Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dtkImageStream).Build()
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      client,
+					scheme:      scheme,
+					renderer:    renderer,
+				},
+			}
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				Env: []v1.EnvVar{
+					{
+						Name:  "ENTRYPOINT_DEBUG",
+						Value: "true",
+					},
+				},
+			}
+			By("Creating NodeProvider with 1 Node with RHCOS OS TREE label")
+			node := getNode("node1")
+			node.Labels[nodeinfo.NodeLabelOSTreeVersion] = rhcosOsTree
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				node,
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &openShiftClusterProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			// Expect 6 object due to OpenShift: DaemonSet, Service Account, ClusterRole, ClusterRoleBinding
+			// Role, RoleBinding
+			Expect(len(objs)).To(Equal(6))
+			By("Verify DaemonSet with DTK")
+			for _, obj := range objs {
+				if obj.GetKind() != "DaemonSet" {
+					continue
+				}
+				ds := appsv1.DaemonSet{}
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+				Expect(err).NotTo(HaveOccurred())
+				By("Verify DaemonSet NodeSelector")
+				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector)
+				By("Verify DTK container image")
+				Expect(len(ds.Spec.Template.Spec.Containers)).To(Equal(2))
+				dtkContainer := ds.Spec.Template.Spec.Containers[1]
+				Expect(dtkContainer.Image).To(Equal(dtkImageName))
 			}
 		})
 	})

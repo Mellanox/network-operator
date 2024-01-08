@@ -78,6 +78,8 @@ spec:
               value: "network-operator"
             - name: ENABLE_WEBHOOKS
               value: "{{ .Values.operator.admissionController.enabled }}"
+            - name: USE_DTK
+              value: "{{ .Values.operator.useDTK }}"
             {{- if .Values.operator.cniBinDirectory }}
             - name: CNI_BIN_DIR
               value: "{{ .Values.operator.cniBinDirectory }}"
