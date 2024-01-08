@@ -17,7 +17,6 @@ limitations under the License.
 // Package version holds information about the version of the Operator.
 package version
 
-// TODO: (killianmuldoon) See if this can be removed.
 var (
 	// Version is a semver version number.
 	Version = "x.x.x"
