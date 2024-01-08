@@ -25,9 +25,56 @@ operator:
   nameOverride: ""
   fullnameOverride: ""
   resourcePrefix: "openshift.io"
-  enableAdmissionController: false
   cniBinPath: "/opt/cni/bin"
   clusterType: "kubernetes"
+  admissionControllers:
+    enabled: false
+    certificates:
+      secretNames:
+        operator: "operator-webhook-cert"
+        injector: "network-resources-injector-cert"
+      certManager:
+        # When enabled, makes use of certificates managed by cert-manager.
+        enabled: false
+        # When enabled, certificates are generated via cert-manager and then name will match the name of the secrets
+        # defined above
+        generateSelfSigned: false
+      # If not specified, no secret is created and secrets with the names defined above are expected to exist in the
+      # cluster. In that case, the ca.crt must be base64 encoded twice since it ends up being an env variable.
+      custom:
+        enabled: false
+    #   operator:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
+    #   injector:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
 
 # Image URIs for sriov-network-operator components
 images:

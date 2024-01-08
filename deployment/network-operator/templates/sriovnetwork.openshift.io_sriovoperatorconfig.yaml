@@ -22,8 +22,8 @@ metadata:
 spec:
   # Add fields here
   {{- with (index .Values "sriov-network-operator" "operator") }}
-  enableInjector: {{ .enableAdmissionController }}
-  enableOperatorWebhook: {{ .enableAdmissionController }}
+  enableInjector: {{ .admissionControllers.enabled }}
+  enableOperatorWebhook: {{ .admissionControllers.enabled }}
   {{- end }}
   configDaemonNodeSelector:
     {{- $defaults := dict "beta.kubernetes.io/os" "linux" "network.nvidia.com/operator.mofed.wait" "false" }}
