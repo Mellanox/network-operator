@@ -240,7 +240,6 @@ chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
 .PHONY: clean
 clean: ; $(info  Cleaning...)	 @ ## Cleanup everything
 	@rm -rf $(BUILDDIR)
-	@rm -rf  test
 	@rm -rf $(TOOLSDIR)
 
 .PHONY: help
