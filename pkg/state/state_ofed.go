@@ -408,14 +408,14 @@ func (s *stateOFED) GetManifestObjects(
 		nodeinfo.AttrTypeCPUArch, nodeinfo.AttrTypeOSName, nodeinfo.AttrTypeOSVer); err != nil {
 		return nil, err
 	}
-	nodeAttr := attrs[0].Attributes
 
 	setProbesDefaults(cr)
 
-	// Update MOFED Env variables with defaults for the cluster
-	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env, nodeAttr)
+	// Update MOFED Env variables with defaults
+	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env)
 
 	additionalVolMounts := additionalVolumeMounts{}
+	nodeAttr := attrs[0].Attributes
 	osname := nodeAttr[nodeinfo.AttrTypeOSName]
 	// set any custom ssl key/certificate configuration provided
 	err := s.handleCertConfig(ctx, cr, osname, additionalVolMounts)
@@ -627,40 +627,15 @@ func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPo
 }
 
 // mergeWithDefaultEnvs returns env variables provided in currentEnvs merged with default
-// env variables for MOFED container, taking into account attributes of the k8s cluster.
-func (s *stateOFED) mergeWithDefaultEnvs(
-	currentEnvs []v1.EnvVar, nodeAttrs map[nodeinfo.AttributeType]string) []v1.EnvVar {
+// env variables for MOFED container.
+func (s *stateOFED) mergeWithDefaultEnvs(currentEnvs []v1.EnvVar) []v1.EnvVar {
 	if envVarsWithGet(currentEnvs).Get("CREATE_IFNAMES_UDEV") != nil {
 		// already exists dont overwrite
 		return currentEnvs
 	}
 
-	// CREATE_IFNAMES_UDEV: should be set to true for ubuntu < 22.04 , RHEL < 9, OCP < 4.13 if not provided
-	osName := nodeAttrs[nodeinfo.AttrTypeOSName]
-	osVer := nodeAttrs[nodeinfo.AttrTypeOSVer]
-	createIfnameUdevEnv := v1.EnvVar{Name: "CREATE_IFNAMES_UDEV", Value: "true"}
-
-	currVer, err := semver.NewVersion(osVer)
-	if err != nil {
-		return currentEnvs
-	}
-
-	switch osName {
-	case "ubuntu":
-		if currVer.LessThan(semver.MustParse("22.04")) {
-			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
-		}
-	case "rhel":
-		if currVer.LessThan(semver.MustParse("9.0")) {
-			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
-		}
-	case "rhcos":
-		if currVer.LessThan(semver.MustParse("4.13")) {
-			currentEnvs = append(currentEnvs, createIfnameUdevEnv)
-		}
-	}
-
-	return currentEnvs
+	// CREATE_IFNAMES_UDEV: should be set to true if not provided.
+	return append(currentEnvs, v1.EnvVar{Name: "CREATE_IFNAMES_UDEV", Value: "true"})
 }
 
 // envVarsWithGet is a wrapper type for []EnvVar to extend with additional functionality

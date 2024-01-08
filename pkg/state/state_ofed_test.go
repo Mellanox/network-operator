@@ -190,33 +190,21 @@ var _ = Describe("MOFED state test", func() {
 	})
 
 	DescribeTable("mergeWithDefaultEnvs",
-		func(osName string, osVer string, currEnvs []v1.EnvVar, expectedEnvs []v1.EnvVar) {
-			nodeAttr := make(map[nodeinfo.AttributeType]string)
-			nodeAttr[nodeinfo.AttrTypeOSName] = osName
-			nodeAttr[nodeinfo.AttrTypeOSVer] = osVer
-
-			mergedEnvs := stateOfed.mergeWithDefaultEnvs(currEnvs, nodeAttr)
+		func(currEnvs []v1.EnvVar, expectedEnvs []v1.EnvVar) {
+			mergedEnvs := stateOfed.mergeWithDefaultEnvs(currEnvs)
 			Expect(mergedEnvs).To(BeEquivalentTo(expectedEnvs))
 		},
-		Entry("RHEL 8.6", "rhel", "8.6", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
+		Entry("add defaults when no env vars",
+			[]v1.EnvVar{}, []v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
+		Entry("add defaults when env vars provided",
+			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}},
 			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
-		Entry("RHEL 9.0", "rhel", "9.0", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}}),
-		Entry("RHEL 9.2", "rhel", "9.2", []v1.EnvVar{}, []v1.EnvVar{}),
-		Entry("RHEL 10.0", "rhel", "10.0", []v1.EnvVar{}, []v1.EnvVar{}),
-		Entry("OCP 4.10", "rhcos", "4.10", []v1.EnvVar{}, []v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
-		Entry("OCP 4.11", "rhcos", "4.11", []v1.EnvVar{}, []v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
-		Entry("OCP 4.12", "rhcos", "4.12", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
-		Entry("OCP 4.13", "rhcos", "4.13", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}}),
-		Entry("OCP 4.14", "rhcos", "4.13", []v1.EnvVar{}, []v1.EnvVar{}),
-		Entry("OCP 5.0", "rhcos", "5.0", []v1.EnvVar{}, []v1.EnvVar{}),
-		Entry("Ubuntu 20.04", "rhel", "8.6", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
-		Entry("Ubuntu 22.04", "ubuntu", "22.04", []v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}}),
-		Entry("Ubuntu 23.04", "ubuntu", "23.04", []v1.EnvVar{}, []v1.EnvVar{}),
+		Entry("override defaults by user",
+			[]v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "false"}},
+			[]v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "false"}}),
+		Entry("override defaults by user with additional env vars",
+			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "false"}},
+			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "false"}}),
 	)
 
 	Context("Render Manifests", func() {
