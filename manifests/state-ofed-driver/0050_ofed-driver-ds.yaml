@@ -101,6 +101,9 @@ spec:
               mountPath: /host/usr
             - name: host-udev
               mountPath: /host/lib/udev
+            - name: host-run-udev
+              mountPath: /run/udev
+              readOnly: true
             - name: host-lib-modules
               mountPath: /host/lib/modules
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
@@ -163,6 +166,9 @@ spec:
         - name: host-udev
           hostPath:
             path: /lib/udev
+        - name: host-run-udev
+          hostPath:
+            path: /run/udev
         - name: host-lib-modules
           hostPath:
             path: /lib/modules
