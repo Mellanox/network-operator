@@ -8,11 +8,11 @@ NetworkOperatorInitContainer:
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.1.0-beta.1
+  version: network-operator-24.1.0-beta.2
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.1.0-beta.1
+  version: network-operator-24.1.0-beta.2
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
@@ -52,7 +52,7 @@ Ipoib:
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.6.2 
+  version: v0.6.2
 nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
