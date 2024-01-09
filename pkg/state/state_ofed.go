@@ -413,6 +413,8 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, err
 	}
 
+	nodeAttr := attrs[0].Attributes
+
 	useDtk := clusterInfo.IsOpenshift() && config.FromEnv().State.OFEDState.UseDTK
 	var dtkImageName string
 	if useDtk {
@@ -432,7 +434,6 @@ func (s *stateOFED) GetManifestObjects(
 	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env)
 
 	additionalVolMounts := additionalVolumeMounts{}
-	nodeAttr := attrs[0].Attributes
 	osname := nodeAttr[nodeinfo.AttrTypeOSName]
 	// set any custom ssl key/certificate configuration provided
 	err := s.handleCertConfig(ctx, cr, osname, additionalVolMounts)
