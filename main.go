@@ -216,7 +216,6 @@ func main() {
 	}
 
 	setupLog.Info("starting manager", "version", version.Version, "commit", version.Commit, "buildDate", version.Date)
-	setupLog.Info("starting manager")
 	if err := mgr.Start(stopCtx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

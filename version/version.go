@@ -17,6 +17,8 @@ limitations under the License.
 // Package version holds information about the version of the Operator.
 package version
 
+// This version information is added during the build process and passed to go using `ldflags`
+// See: https://github.com/Mellanox/network-operator/blob/60efcfe699285a20dd9840383f63fd64aa9a40f6/Makefile#L28-L32
 var (
 	// Version is a semver version number.
 	Version = "x.x.x"

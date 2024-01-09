@@ -18,6 +18,7 @@ FROM golang:1.20 as builder
 ARG ARCH ?= $(shell go env GOARCH)
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+ARG LDFLAGS
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -32,6 +33,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
+COPY version/ version/
 
 # Add kubectl tool
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${TARGETPLATFORM}/kubectl"
@@ -46,7 +48,7 @@ RUN mkdir crds && \
     cp -r chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8-micro:8.8
 
