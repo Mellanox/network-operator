@@ -618,7 +618,7 @@ optionally deployed components:
 | `ipamPlugin.deploy`             | bool   | `true`                         | Deploy IPAM CNI Plugin Secondary Network                                                      |
 | `ipamPlugin.image`              | string | `whereabouts`                  | IPAM CNI Plugin image name                                                                    |
 | `ipamPlugin.repository`         | string | `ghcr.io/k8snetworkplumbingwg` | IPAM CNI Plugin image repository                                                              |
-| `ipamPlugin.version`            | string | `v0.5.4-amd64`                 | IPAM CNI Plugin image version                                                                 |
+| `ipamPlugin.version`            | string | `v0.6.2`                       | IPAM CNI Plugin image version                                                                 |
 | `ipamPlugin.imagePullSecrets`   | list   | `[]`                           | An optional list of references to secrets to use for pulling any of the IPAM CNI Plugin image |
 | `ipamPlugin.containerResources` | []     | not set                        | Optional [resource requests and limits](#container-resources) for the `whereabouts` container |
 
