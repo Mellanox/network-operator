@@ -36,6 +36,7 @@ type Release struct {
 	NetworkOperator              *mellanoxv1alpha1.ImageSpec
 	NetworkOperatorInitContainer *mellanoxv1alpha1.ImageSpec
 	SriovNetworkOperator         *mellanoxv1alpha1.ImageSpec
+	SriovNetworkOperatorWebhook  *mellanoxv1alpha1.ImageSpec
 	SriovConfigDaemon            *mellanoxv1alpha1.ImageSpec
 	SriovCni                     *mellanoxv1alpha1.ImageSpec
 	SriovIbCni                   *mellanoxv1alpha1.ImageSpec

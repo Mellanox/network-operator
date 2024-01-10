@@ -149,7 +149,7 @@ sriov-network-operator:
     ibSriovCni: {{ .SriovIbCni.Repository }}/{{ .SriovIbCni.Image }}:{{ .SriovIbCni.Version }}
     sriovDevicePlugin: {{ .SriovDevicePlugin.Repository }}/{{ .SriovDevicePlugin.Image }}:{{ .SriovDevicePlugin.Version }}
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
-    webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook:v1.1.0
+    webhook: {{ .SriovNetworkOperatorWebhook.Repository }}/{{ .SriovNetworkOperatorWebhook.Image }}:{{ .SriovNetworkOperatorWebhook.Version }}
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
 
