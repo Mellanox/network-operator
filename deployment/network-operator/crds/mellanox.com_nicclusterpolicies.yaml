@@ -409,7 +409,6 @@ spec:
                       type: object
                     type: array
                   enableWebhook:
-                    default: false
                     description: Enable deployment of the validation webhook
                     type: boolean
                   image:
