@@ -100,10 +100,10 @@ sriov-network-operator:
           injector: "network-resources-injector-cert"
         certManager:
           # When enabled, makes use of certificates managed by cert-manager.
-          enabled: false
+          enabled: true
           # When enabled, certificates are generated via cert-manager and then name will match the name of the secrets
           # defined above
-          generateSelfSigned: false
+          generateSelfSigned: true
         # If not specified, no secret is created and secrets with the names defined above are expected to exist in the
         # cluster. In that case, the ca.crt must be base64 encoded twice since it ends up being an env variable.
         custom:
