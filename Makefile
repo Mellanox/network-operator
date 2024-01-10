@@ -29,7 +29,7 @@ ENVTEST_K8S_VERSION=1.28
 VERSION?=master
 DATE=`date -Iseconds`
 COMMIT?=`git rev-parse --verify HEAD`
-LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
+LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(BUILD_VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
 
 BUILD_VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
 BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
@@ -218,6 +218,7 @@ image: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg VERSION="$(BUILD_VERSION)" \
 		--build-arg VCS_REF="$(VCS_REF)" \
 		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
+		--build-arg LDFLAGS=$(LDFLAGS) \
 		-t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-push:
@@ -240,7 +241,6 @@ chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
 .PHONY: clean
 clean: ; $(info  Cleaning...)	 @ ## Cleanup everything
 	@rm -rf $(BUILDDIR)
-	@rm -rf  test
 	@rm -rf $(TOOLSDIR)
 
 .PHONY: help

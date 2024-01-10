@@ -46,6 +46,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/migrate"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
+	"github.com/Mellanox/network-operator/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -214,7 +215,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", version.Version, "commit", version.Commit, "buildDate", version.Date)
 	if err := mgr.Start(stopCtx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

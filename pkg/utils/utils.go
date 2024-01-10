@@ -21,25 +21,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/go-logr/logr"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
-// PodTemplateGenerationLabel is a label key used for pod template generation.
-// TODO: (killianmuldoon) Can we get rid of this and associated code?
-const PodTemplateGenerationLabel = "pod-template-generation"
-
 // GetFilesWithSuffix returns all files under a given base directory that have a specific suffix
-// The operation is performed recurively on sub directories as well
+// The operation is performed recursively on subdirectories as well.
 func GetFilesWithSuffix(baseDir string, suffixes ...string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
@@ -73,16 +66,6 @@ func GetNetworkAttachmentDefLink(netAttDef *netattdefv1.NetworkAttachmentDefinit
 	link = fmt.Sprintf("%s/namespaces/%s/%s/%s",
 		netAttDef.APIVersion, netAttDef.Namespace, netAttDef.Kind, netAttDef.Name)
 	return
-}
-
-// GetPodTemplateGeneration returns the PodTemplateGeneration from the PodTemplateGenerationLabel.
-func GetPodTemplateGeneration(pod *v1.Pod, log logr.Logger) (int64, error) {
-	generation, err := strconv.ParseInt(pod.Labels[PodTemplateGenerationLabel], 10, 0)
-	if err != nil {
-		log.V(consts.LogLevelInfo).Error(err, "Failed to get pod template generation", "pod", pod)
-		return 0, err
-	}
-	return generation, nil
 }
 
 // GetCniBinDirectory returns the location where the CNI binaries are stored on the node.
