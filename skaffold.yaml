@@ -3,6 +3,8 @@ kind: Config
 metadata:
   name: network-operator
 build:
+  local:
+    useBuildkit: true
   artifacts:
     - image: mellanox/network-operator
       runtimeType: go
@@ -16,9 +18,6 @@ manifests:
   kustomize:
     paths:
       - config/dev
-  ## Deploy the network attachment definition CRD.
-  rawYaml:
-  - hack/crds/*
 portForward:
       - resourceType: deployment
         resourceName: nvidia-network-operator-controller-manager
