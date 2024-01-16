@@ -78,7 +78,6 @@ func GetCniBinDirectory(staticInfo staticconfig.Provider,
 	} else if clusterInfo != nil && clusterInfo.IsOpenshift() {
 		// /opt/cni/bin directory is read-only on OCP, so we need to use another one
 		return consts.OcpCniBinDirectory
-	} else {
-		return consts.DefaultCniBinDirectory
 	}
+	return consts.DefaultCniBinDirectory
 }
