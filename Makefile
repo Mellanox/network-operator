@@ -18,19 +18,20 @@ PACKAGE=network-operator
 ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 CHART_PATH=$(CURDIR)/deployment/$(PACKAGE)
-TOOLSDIR=$(CURDIR)/bin
+TOOLSDIR=$(CURDIR)/hack/tools/bin
 BUILDDIR=$(CURDIR)/build/_output
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
 PKGS=$(or $(PKG),$(shell $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
 TESTPKGS = $(shell $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 ENVTEST_K8S_VERSION=1.28
+ARCH ?= $(shell go env GOARCH)
+OS ?= $(shell go env GOOS)
 
 # Version
 VERSION?=master
 DATE=`date -Iseconds`
 COMMIT?=`git rev-parse --verify HEAD`
 LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(BUILD_VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
-
 BUILD_VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
 BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
 VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
@@ -64,21 +65,6 @@ ifdef HTTPS_PROXY
 	DOCKERARGS += --build-arg https_proxy=$(HTTPS_PROXY)
 endif
 IMAGE_BUILD_OPTS += $(DOCKERARGS)
-
-# Go tools
-GO      = go
-GOLANGCI_LINT = $(TOOLSDIR)/golangci-lint
-# golangci-lint version should be updated periodically
-# we keep it fixed to avoid it from unexpectedly failing on the project
-# in case of a version bump
-GOLANGCI_LINT_VER = v1.52.2
-
-HADOLINT = $(TOOLSDIR)/hadolint
-HADOLINT_VER = v1.23.0
-
-HELM = $(TOOLSDIR)/helm
-GET_HELM = $(TOOLSDIR)/get_helm.sh
-HELM_VER = v3.5.3
 
 # timeout for tests, seconds
 TIMEOUT = 120
@@ -122,39 +108,71 @@ $(BUILDDIR)/$(BINARY_NAME): $(GOFILES) | $(BUILDDIR)
 	CGO_ENABLED=0 $(GO) build -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v -ldflags=$(LDFLAGS)
 
 # Tools
+GO = go
 
-$(GOLANGCI_LINT): ; $(info  installing golangci-lint...)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VER))
+# golangci-lint is used to lint go code.
+GOLANGCI_LINT_PKG=github.com/golangci/golangci-lint/cmd/golangci-lint
+GOLANGCI_LINT_BIN= golangci-lint
+GOLANGCI_LINT_VER = v1.52.2
+GOLANGCI_LINT = $(TOOLSDIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
+$(GOLANGCI_LINT):
+	$(call go-install-tool,$(GOLANGCI_LINT_PKG),$(GOLANGCI_LINT_BIN),$(GOLANGCI_LINT_VER))
 
-GOVERALLS = $(TOOLSDIR)/goveralls
-$(GOVERALLS): | $(TOOLSDIR) ; $(info  installing goveralls...)
-	$(call go-install-tool,$(GOVERALLS),github.com/mattn/goveralls@latest)
+# controller gen is used to generate manifests and code for Kubernetes controllers.
+CONTROLLER_GEN_PKG = sigs.k8s.io/controller-tools/cmd/controller-gen
+CONTROLLER_GEN_BIN = controller-gen
+CONTROLLER_GEN_VER = v0.13.0
+CONTROLLER_GEN = $(TOOLSDIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
+$(CONTROLLER_GEN):
+	$(call go-install-tool,$(CONTROLLER_GEN_PKG),$(CONTROLLER_GEN_BIN),$(CONTROLLER_GEN_VER))
 
-$(HADOLINT): | $(TOOLSDIR) ; $(info  install hadolint...)
+# kustomize is used to generate manifests for OpenShift bundles and developer deployments.
+KUSTOMIZE_PKG = sigs.k8s.io/kustomize/kustomize/v4
+KUSTOMIZE_BIN = kustomize
+KUSTOMIZE_VER = v4.5.5
+KUSTOMIZE = $(TOOLSDIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER)
+$(KUSTOMIZE):
+	$(call go-install-tool,$(KUSTOMIZE_PKG),$(KUSTOMIZE_BIN),$(KUSTOMIZE_VER))
+
+# setup-envtest is used to install test Kubernetes control plane components for envtest-based tests.
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST_VER := v0.0.0-20240110160329-8f8247fdc1c3
+SETUP_ENVTEST := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+$(SETUP_ENVTEST):
+	$(call go-install-tool,$(SETUP_ENVTEST_PKG),$(SETUP_ENVTEST_BIN),$(SETUP_ENVTEST_VER))
+
+# hadolint is used to lint docker files.
+HADOLINT_BIN = hadolint
+HADOLINT_VER = v1.23.0
+HADOLINT = $(abspath $(TOOLSDIR)/$(HADOLINT_BIN)-$(HADOLINT_VER))
+$(HADOLINT): | $(TOOLSDIR)
+	$Q echo "Installing hadolint-$(HADOLINT_VER) to $(TOOLSDIR)"
 	$Q curl -sSfL -o $(HADOLINT)  https://github.com/hadolint/hadolint/releases/download/$(HADOLINT_VER)/hadolint-Linux-x86_64
 	$Q chmod +x $(HADOLINT)
 
-$(HELM): | $(TOOLSDIR) ; $(info  install helm...)
+# helm is used to manage helm deployments and artifacts.
+GET_HELM = $(TOOLSDIR)/get_helm.sh
+HELM_VER = v3.5.3
+HELM_BIN = helm
+HELM = $(abspath $(TOOLSDIR)/$(HELM_BIN)-$(HELM_VER))
+$(HELM): | $(TOOLSDIR)
+	$Q echo "Installing helm-$(HELM_VER) to $(TOOLSDIR)"
 	$Q curl -fsSL -o $(GET_HELM) https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 	$Q chmod +x $(GET_HELM)
 	$Q env HELM_INSTALL_DIR=$(TOOLSDIR) PATH=$(PATH):$(TOOLSDIR) $(GET_HELM) --no-sudo -v $(HELM_VER)
+	$Q mv $(TOOLSDIR)/$(HELM_BIN) $(TOOLSDIR)/$(HELM_BIN)-$(HELM_VER)
 	$Q rm -f $(GET_HELM)
 
-# Tools for install and cleanup of controller-runtime envtest binaries.
-SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
-SETUP_ENVTEST_VER := v0.0.0-20231012212722-e25aeebc7846
-SETUP_ENVTEST_BIN := setup-envtest
-SETUP_ENVTEST_PATH := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
-
-.PHONY: setup-envtest
-setup-envtest: ## Install setup-envtest and install envtest binaries.
-	GOBIN=$(TOOLSDIR) go install $(SETUP_ENVTEST_PKG)@$(SETUP_ENVTEST_VER)
-	mv $(TOOLSDIR)/$(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_PATH)
-	@echo KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)`
-
-.PHONY: clean-envtest ## Clean up assets installed by setup-envtest.
-clean-envtest: setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
-	$(SETUP_ENVTEST_PATH) cleanup
+# operator-sdk is used to generate operator-sdk bundles
+OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download
+OPERATOR_SDK_BIN = operator-sdk
+OPERATOR_SDK_VER = v1.23.0
+OPERATOR_SDK = $(abspath $(TOOLSDIR)/$(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER))
+$(OPERATOR_SDK): | $(TOOLSDIR)
+	$Q echo "Installing $(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER) to $(TOOLSDIR)"
+	$Q curl -sSfL $(OPERATOR_SDK_DL_URL)/$(OPERATOR_SDK_VER)/operator-sdk_$(OS)_$(ARCH) -o $(OPERATOR_SDK)
+	$Q chmod +x $(OPERATOR_SDK)
 
 # Tests
 
@@ -166,7 +184,6 @@ lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-l
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
 # DL3018 - allow installing apks without explicit version
 # DL3006 - Always tag the version of an image explicitly (until https://github.com/hadolint/hadolint/issues/339 is fixed)
-
 	$Q $(HADOLINT) --ignore DL3018 --ignore DL3006 Dockerfile
 
 .PHONY: lint-helm
@@ -201,15 +218,23 @@ $(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
 $(TEST_TARGETS): test
 check test tests test-xml test-coverage: SHELL:=/bin/bash
 
-check test tests: setup-envtest generate lint manifests ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
-	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
+.PHONY: setup-envtest
+setup-envtest: $(SETUP_ENVTEST)  ## Install envtest binaries
+	@echo KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)`
+
+.PHONY: clean-envtest
+clean-envtest: setup-envtest ;## Clean up assets installed by setup-envtest
+	$Q $(SETUP_ENVTEST) cleanup
+
+check test tests: setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
 COVERAGE_MODE = count
-.PHONY: test-coverage test-coverage-tools
-test-coverage-tools: | $(GOVERALLS)
+.PHONY: test-coverage
+
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
-test-coverage: setup-envtest test-coverage-tools ; $(info  running coverage tests...) @ ## Run coverage tests
-	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST_PATH) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
+test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
 
 # Container image
 .PHONY: image
@@ -257,7 +282,7 @@ install: manifests	## Install CRDs into a cluster
 uninstall: manifests	## Uninstall CRDs from a cluster
 	sh kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy: manifests $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${TAG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	kubectl apply -f hack/crds/*
@@ -268,42 +293,15 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	kubectl delete -f hack/crds/*
 
 .PHONY: manifests
-manifests: controller-gen	## Generate manifests e.g. CRD, RBAC etc.
+manifests: $(CONTROLLER_GEN)	## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	cp config/crd/bases/* deployment/network-operator/crds/
 
-generate: controller-gen ## Generate code
+generate: $(CONTROLLER_GEN) ## Generate code
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen:	## Download controller-gen locally if necessary
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0)
-
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.5)
-
-.PHONY: operator-sdk
-OPERATOR_SDK = $(TOOLSDIR)/operator-sdk
-operator-sdk: ## Download operator-sdk locally if necessary.
-ifeq (,$(wildcard $(OPERATOR_SDK)))
-ifeq (,$(shell which operator-sdk 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPERATOR_SDK)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.22.0 && \
-	curl -LO $${OPERATOR_SDK_DL_URL}/operator-sdk_$${OS}_$${ARCH} && \
-	chmod +x operator-sdk_$${OS}_$${ARCH} && mv operator-sdk_$${OS}_$${ARCH} ./bin/operator-sdk ;\
-	}
-else
-OPERATOR_SDK = $(shell which operator-sdk)
-endif
-endif
-
-
 .PHONY: bundle
-bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+bundle: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
@@ -326,8 +324,7 @@ release-build:
 
 # go-install-tool will 'go install' any package $2 and install it to $1.
 define go-install-tool
-@[ -f $(1) ] || { \
-echo "Downloading $(2)" ;\
-GOBIN=$(TOOLSDIR) go install $(2) ;\
-}
+	$Q echo "Installing $(2)-$(3) to $(TOOLSDIR)"
+	$Q GOBIN=$(TOOLSDIR) go install $(1)@$(3)
+	$Q mv $(TOOLSDIR)/$(2) $(TOOLSDIR)/$(2)-$(3)
 endef
