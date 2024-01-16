@@ -144,7 +144,7 @@ $(SETUP_ENVTEST):
 
 # hadolint is used to lint docker files.
 HADOLINT_BIN = hadolint
-HADOLINT_VER = v1.23.0
+HADOLINT_VER = v2.12.0
 HADOLINT = $(abspath $(TOOLSDIR)/$(HADOLINT_BIN)-$(HADOLINT_VER))
 $(HADOLINT): | $(TOOLSDIR)
 	$Q echo "Installing hadolint-$(HADOLINT_VER) to $(TOOLSDIR)"
@@ -182,9 +182,7 @@ lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-l
 
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
-# DL3018 - allow installing apks without explicit version
-# DL3006 - Always tag the version of an image explicitly (until https://github.com/hadolint/hadolint/issues/339 is fixed)
-	$Q $(HADOLINT) --ignore DL3018 --ignore DL3006 Dockerfile
+	$Q $(HADOLINT) Dockerfile
 
 .PHONY: lint-helm
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
