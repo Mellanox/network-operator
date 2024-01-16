@@ -153,7 +153,7 @@ $(HADOLINT): | $(TOOLSDIR)
 
 # helm is used to manage helm deployments and artifacts.
 GET_HELM = $(TOOLSDIR)/get_helm.sh
-HELM_VER = v3.5.3
+HELM_VER = v3.13.3
 HELM_BIN = helm
 HELM = $(abspath $(TOOLSDIR)/$(HELM_BIN)-$(HELM_VER))
 $(HELM): | $(TOOLSDIR)
