@@ -55,7 +55,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - depguard
     - dogsled
     - dupl
     - errcheck
@@ -95,6 +94,11 @@ issues:
 
   # Excluding configuration per-path, per-linter, per-text and per-source
   exclude-rules:
+    - path: _test\.go
+      linters:
+      - revive
+      - stylecheck
+      text: "should not use dot imports"
     - path: _test\.go
       linters:
         - gomnd

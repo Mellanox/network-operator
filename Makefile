@@ -113,7 +113,7 @@ GO = go
 # golangci-lint is used to lint go code.
 GOLANGCI_LINT_PKG=github.com/golangci/golangci-lint/cmd/golangci-lint
 GOLANGCI_LINT_BIN= golangci-lint
-GOLANGCI_LINT_VER = v1.52.2
+GOLANGCI_LINT_VER = v1.55.2
 GOLANGCI_LINT = $(TOOLSDIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 $(GOLANGCI_LINT):
 	$(call go-install-tool,$(GOLANGCI_LINT_PKG),$(GOLANGCI_LINT_BIN),$(GOLANGCI_LINT_VER))
@@ -144,7 +144,7 @@ $(SETUP_ENVTEST):
 
 # hadolint is used to lint docker files.
 HADOLINT_BIN = hadolint
-HADOLINT_VER = v1.23.0
+HADOLINT_VER = v2.12.0
 HADOLINT = $(abspath $(TOOLSDIR)/$(HADOLINT_BIN)-$(HADOLINT_VER))
 $(HADOLINT): | $(TOOLSDIR)
 	$Q echo "Installing hadolint-$(HADOLINT_VER) to $(TOOLSDIR)"
@@ -153,7 +153,7 @@ $(HADOLINT): | $(TOOLSDIR)
 
 # helm is used to manage helm deployments and artifacts.
 GET_HELM = $(TOOLSDIR)/get_helm.sh
-HELM_VER = v3.5.3
+HELM_VER = v3.13.3
 HELM_BIN = helm
 HELM = $(abspath $(TOOLSDIR)/$(HELM_BIN)-$(HELM_VER))
 $(HELM): | $(TOOLSDIR)
@@ -182,9 +182,7 @@ lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-l
 
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
-# DL3018 - allow installing apks without explicit version
-# DL3006 - Always tag the version of an image explicitly (until https://github.com/hadolint/hadolint/issues/339 is fixed)
-	$Q $(HADOLINT) --ignore DL3018 --ignore DL3006 Dockerfile
+	$Q $(HADOLINT) Dockerfile
 
 .PHONY: lint-helm
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
