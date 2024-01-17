@@ -37,3 +37,22 @@ From the root directory of the `network-operator` repository run:
 This config runs the go debugger `delve` and exposes port `8080` on the remote host that runs the pod.
 
 You can attach to this debugger using your IDE [following the instructions on the `skaffold` documentation.](https://skaffold.dev/docs/workflows/debug/#detailed-debugger-configuration-and-setup). 
+
+With VSCode your launch.json should look similar to the below. Note that `remotePath` is set to `""` which is different from the config in the documentation linked above.
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Skaffold Debug",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "host": "X.X.X.X", // ENTER your hostname here.
+      "port": 8080,
+      "cwd": "${workspaceFolder}",
+      "remotePath": ""
+    }
+  ]
+}
+```
