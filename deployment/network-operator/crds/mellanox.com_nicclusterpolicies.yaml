@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: nicclusterpolicies.mellanox.com
 spec:
   group: mellanox.com
@@ -27,14 +27,19 @@ spec:
         description: NicClusterPolicy is the Schema for the nicclusterpolicies API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -57,8 +62,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -71,11 +77,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -85,6 +91,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -129,8 +136,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -143,11 +151,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -157,6 +165,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -176,21 +185,20 @@ spec:
                   rules.
                 properties:
                   preferredDuringSchedulingIgnoredDuringExecution:
-                    description: The scheduler will prefer to schedule pods to nodes
-                      that satisfy the affinity expressions specified by this field,
-                      but it may choose a node that violates one or more of the expressions.
-                      The node that is most preferred is the one with the greatest
-                      sum of weights, i.e. for each node that meets all of the scheduling
-                      requirements (resource request, requiredDuringScheduling affinity
-                      expressions, etc.), compute a sum by iterating through the elements
-                      of this field and adding "weight" to the sum if the node matches
-                      the corresponding matchExpressions; the node(s) with the highest
-                      sum are the most preferred.
+                    description: |-
+                      The scheduler will prefer to schedule pods to nodes that satisfy
+                      the affinity expressions specified by this field, but it may choose
+                      a node that violates one or more of the expressions. The node that is
+                      most preferred is the one with the greatest sum of weights, i.e.
+                      for each node that meets all of the scheduling requirements (resource
+                      request, requiredDuringScheduling affinity expressions, etc.),
+                      compute a sum by iterating through the elements of this field and adding
+                      "weight" to the sum if the node matches the corresponding matchExpressions; the
+                      node(s) with the highest sum are the most preferred.
                     items:
-                      description: An empty preferred scheduling term matches all
-                        objects with implicit weight 0 (i.e. it's a no-op). A null
-                        preferred scheduling term matches no objects (i.e. is also
-                        a no-op).
+                      description: |-
+                        An empty preferred scheduling term matches all objects with implicit weight 0
+                        (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
                       properties:
                         preference:
                           description: A node selector term, associated with the corresponding
@@ -200,28 +208,26 @@ spec:
                               description: A list of node selector requirements by
                                 node's labels.
                               items:
-                                description: A node selector requirement is a selector
-                                  that contains values, a key, and an operator that
-                                  relates the key and values.
+                                description: |-
+                                  A node selector requirement is a selector that contains values, a key, and an operator
+                                  that relates the key and values.
                                 properties:
                                   key:
                                     description: The label key that the selector applies
                                       to.
                                     type: string
                                   operator:
-                                    description: Represents a key's relationship to
-                                      a set of values. Valid operators are In, NotIn,
-                                      Exists, DoesNotExist. Gt, and Lt.
+                                    description: |-
+                                      Represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
                                     type: string
                                   values:
-                                    description: An array of string values. If the
-                                      operator is In or NotIn, the values array must
-                                      be non-empty. If the operator is Exists or DoesNotExist,
-                                      the values array must be empty. If the operator
-                                      is Gt or Lt, the values array must have a single
-                                      element, which will be interpreted as an integer.
-                                      This array is replaced during a strategic merge
-                                      patch.
+                                    description: |-
+                                      An array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. If the operator is Gt or Lt, the values
+                                      array must have a single element, which will be interpreted as an integer.
+                                      This array is replaced during a strategic merge patch.
                                     items:
                                       type: string
                                     type: array
@@ -234,28 +240,26 @@ spec:
                               description: A list of node selector requirements by
                                 node's fields.
                               items:
-                                description: A node selector requirement is a selector
-                                  that contains values, a key, and an operator that
-                                  relates the key and values.
+                                description: |-
+                                  A node selector requirement is a selector that contains values, a key, and an operator
+                                  that relates the key and values.
                                 properties:
                                   key:
                                     description: The label key that the selector applies
                                       to.
                                     type: string
                                   operator:
-                                    description: Represents a key's relationship to
-                                      a set of values. Valid operators are In, NotIn,
-                                      Exists, DoesNotExist. Gt, and Lt.
+                                    description: |-
+                                      Represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
                                     type: string
                                   values:
-                                    description: An array of string values. If the
-                                      operator is In or NotIn, the values array must
-                                      be non-empty. If the operator is Exists or DoesNotExist,
-                                      the values array must be empty. If the operator
-                                      is Gt or Lt, the values array must have a single
-                                      element, which will be interpreted as an integer.
-                                      This array is replaced during a strategic merge
-                                      patch.
+                                    description: |-
+                                      An array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. If the operator is Gt or Lt, the values
+                                      array must have a single element, which will be interpreted as an integer.
+                                      This array is replaced during a strategic merge patch.
                                     items:
                                       type: string
                                     type: array
@@ -277,47 +281,46 @@ spec:
                       type: object
                     type: array
                   requiredDuringSchedulingIgnoredDuringExecution:
-                    description: If the affinity requirements specified by this field
-                      are not met at scheduling time, the pod will not be scheduled
-                      onto the node. If the affinity requirements specified by this
-                      field cease to be met at some point during pod execution (e.g.
-                      due to an update), the system may or may not try to eventually
-                      evict the pod from its node.
+                    description: |-
+                      If the affinity requirements specified by this field are not met at
+                      scheduling time, the pod will not be scheduled onto the node.
+                      If the affinity requirements specified by this field cease to be met
+                      at some point during pod execution (e.g. due to an update), the system
+                      may or may not try to eventually evict the pod from its node.
                     properties:
                       nodeSelectorTerms:
                         description: Required. A list of node selector terms. The
                           terms are ORed.
                         items:
-                          description: A null or empty node selector term matches
-                            no objects. The requirements of them are ANDed. The TopologySelectorTerm
-                            type implements a subset of the NodeSelectorTerm.
+                          description: |-
+                            A null or empty node selector term matches no objects. The requirements of
+                            them are ANDed.
+                            The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
                           properties:
                             matchExpressions:
                               description: A list of node selector requirements by
                                 node's labels.
                               items:
-                                description: A node selector requirement is a selector
-                                  that contains values, a key, and an operator that
-                                  relates the key and values.
+                                description: |-
+                                  A node selector requirement is a selector that contains values, a key, and an operator
+                                  that relates the key and values.
                                 properties:
                                   key:
                                     description: The label key that the selector applies
                                       to.
                                     type: string
                                   operator:
-                                    description: Represents a key's relationship to
-                                      a set of values. Valid operators are In, NotIn,
-                                      Exists, DoesNotExist. Gt, and Lt.
+                                    description: |-
+                                      Represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
                                     type: string
                                   values:
-                                    description: An array of string values. If the
-                                      operator is In or NotIn, the values array must
-                                      be non-empty. If the operator is Exists or DoesNotExist,
-                                      the values array must be empty. If the operator
-                                      is Gt or Lt, the values array must have a single
-                                      element, which will be interpreted as an integer.
-                                      This array is replaced during a strategic merge
-                                      patch.
+                                    description: |-
+                                      An array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. If the operator is Gt or Lt, the values
+                                      array must have a single element, which will be interpreted as an integer.
+                                      This array is replaced during a strategic merge patch.
                                     items:
                                       type: string
                                     type: array
@@ -330,28 +333,26 @@ spec:
                               description: A list of node selector requirements by
                                 node's fields.
                               items:
-                                description: A node selector requirement is a selector
-                                  that contains values, a key, and an operator that
-                                  relates the key and values.
+                                description: |-
+                                  A node selector requirement is a selector that contains values, a key, and an operator
+                                  that relates the key and values.
                                 properties:
                                   key:
                                     description: The label key that the selector applies
                                       to.
                                     type: string
                                   operator:
-                                    description: Represents a key's relationship to
-                                      a set of values. Valid operators are In, NotIn,
-                                      Exists, DoesNotExist. Gt, and Lt.
+                                    description: |-
+                                      Represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
                                     type: string
                                   values:
-                                    description: An array of string values. If the
-                                      operator is In or NotIn, the values array must
-                                      be non-empty. If the operator is Exists or DoesNotExist,
-                                      the values array must be empty. If the operator
-                                      is Gt or Lt, the values array must have a single
-                                      element, which will be interpreted as an integer.
-                                      This array is replaced during a strategic merge
-                                      patch.
+                                    description: |-
+                                      An array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. If the operator is Gt or Lt, the values
+                                      array must have a single element, which will be interpreted as an integer.
+                                      This array is replaced during a strategic merge patch.
                                     items:
                                       type: string
                                     type: array
@@ -369,8 +370,10 @@ spec:
                     x-kubernetes-map-type: atomic
                 type: object
               nvIpam:
-                description: NVIPAMSpec describes configuration options for nv-ipam
-                  1. Image information for nv-ipam 2. Configuration for nv-ipam
+                description: |-
+                  NVIPAMSpec describes configuration options for nv-ipam
+                  1. Image information for nv-ipam
+                  2. Configuration for nv-ipam
                 properties:
                   containerResources:
                     items:
@@ -384,8 +387,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -398,11 +402,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -415,6 +419,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -452,8 +457,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -466,11 +472,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -488,15 +494,16 @@ spec:
                             C_IDENTIFIER.
                           type: string
                         value:
-                          description: 'Variable references $(VAR_NAME) are expanded
-                            using the previously defined environment variables in
-                            the container and any service environment variables. If
-                            a variable cannot be resolved, the reference in the input
-                            string will be unchanged. Double $$ are reduced to a single
-                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
                             "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-                            Escaped references will never be expanded, regardless
-                            of whether the variable exists or not. Defaults to "".'
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
                           type: string
                         valueFrom:
                           description: Source for the environment variable's value.
@@ -509,9 +516,10 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -522,11 +530,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             fieldRef:
-                              description: 'Selects a field of the pod: supports metadata.name,
-                                metadata.namespace, `metadata.labels[''<KEY>'']`,
-                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
-                                spec.serviceAccountName, status.hostIP, status.podIP,
-                                status.podIPs.'
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                               properties:
                                 apiVersion:
                                   description: Version of the schema the FieldPath
@@ -541,10 +547,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             resourceFieldRef:
-                              description: 'Selects a resource of the container: only
-                                resources limits and requests (limits.cpu, limits.memory,
-                                limits.ephemeral-storage, requests.cpu, requests.memory
-                                and requests.ephemeral-storage) are currently supported.'
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                               properties:
                                 containerName:
                                   description: 'Container name: required for volumes,
@@ -574,9 +579,10 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -595,6 +601,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -643,8 +650,9 @@ spec:
                     type: object
                   terminationGracePeriodSeconds:
                     default: 300
-                    description: TerminationGracePeriodSeconds specifies the length
-                      of time in seconds to wait before killing the OFED pod on termination
+                    description: |-
+                      TerminationGracePeriodSeconds specifies the length of time in seconds
+                      to wait before killing the OFED pod on termination
                     format: int64
                     minimum: 0
                     type: integer
@@ -653,8 +661,9 @@ spec:
                     properties:
                       autoUpgrade:
                         default: false
-                        description: AutoUpgrade is a global switch for automatic
-                          upgrade feature if set to false all other options are ignored
+                        description: |-
+                          AutoUpgrade is a global switch for automatic upgrade feature
+                          if set to false all other options are ignored
                         type: boolean
                       drain:
                         description: DrainSpec describes configuration for node drain
@@ -662,9 +671,9 @@ spec:
                         properties:
                           deleteEmptyDir:
                             default: false
-                            description: DeleteEmptyDir indicates if should continue
-                              even if there are pods using emptyDir (local data that
-                              will be deleted when the node is drained)
+                            description: |-
+                              DeleteEmptyDir indicates if should continue even if there are pods using emptyDir
+                              (local data that will be deleted when the node is drained)
                             type: boolean
                           enable:
                             default: true
@@ -676,9 +685,10 @@ spec:
                             description: Force indicates if force draining is allowed
                             type: boolean
                           podSelector:
-                            description: 'PodSelector specifies a label selector to
-                              filter pods on the node that need to be drained For
-                              more details on label selectors, see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+                            description: |-
+                              PodSelector specifies a label selector to filter pods on the node that need to be drained
+                              For more details on label selectors, see:
+                              https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
                             type: string
                           timeoutSeconds:
                             default: 300
@@ -690,9 +700,9 @@ spec:
                         type: object
                       maxParallelUpgrades:
                         default: 1
-                        description: MaxParallelUpgrades indicates how many nodes
-                          can be upgraded in parallel 0 means no limit, all nodes
-                          will be upgraded in parallel
+                        description: |-
+                          MaxParallelUpgrades indicates how many nodes can be upgraded in parallel
+                          0 means no limit, all nodes will be upgraded in parallel
                         minimum: 0
                         type: integer
                       safeLoad:
@@ -705,15 +715,16 @@ spec:
                           for waiting on job completions
                         properties:
                           podSelector:
-                            description: 'PodSelector specifies a label selector for
-                              the pods to wait for completion For more details on
-                              label selectors, see: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+                            description: |-
+                              PodSelector specifies a label selector for the pods to wait for completion
+                              For more details on label selectors, see:
+                              https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
                             type: string
                           timeoutSeconds:
                             default: 0
-                            description: TimeoutSecond specifies the length of time
-                              in seconds to wait before giving up on pod termination,
-                              zero means infinite
+                            description: |-
+                              TimeoutSecond specifies the length of time in seconds
+                              to wait before giving up on pod termination, zero means infinite
                             minimum: 0
                             type: integer
                         type: object
@@ -727,9 +738,10 @@ spec:
                 - version
                 type: object
               rdmaSharedDevicePlugin:
-                description: DevicePluginSpec describes configuration options for
-                  device plugin 1. Image information for device plugin 2. Device plugin
-                  configuration
+                description: |-
+                  DevicePluginSpec describes configuration options for device plugin
+                  1. Image information for device plugin
+                  2. Device plugin configuration
                 properties:
                   config:
                     type: string
@@ -745,8 +757,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -759,11 +772,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -773,6 +786,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -808,8 +822,9 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Limits describes the maximum amount of
-                                compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                             name:
                               description: Name of the container the requirements
@@ -822,11 +837,11 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Requests describes the minimum amount
-                                of compute resources required. If Requests is omitted
-                                for a container, it defaults to Limits if that is
-                                explicitly specified, otherwise to an implementation-defined
-                                value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                           required:
                           - name
@@ -836,6 +851,7 @@ spec:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
+                        default: []
                         items:
                           type: string
                         type: array
@@ -865,8 +881,9 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Limits describes the maximum amount of
-                                compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                             name:
                               description: Name of the container the requirements
@@ -879,11 +896,11 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Requests describes the minimum amount
-                                of compute resources required. If Requests is omitted
-                                for a container, it defaults to Limits if that is
-                                explicitly specified, otherwise to an implementation-defined
-                                value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                           required:
                           - name
@@ -893,6 +910,7 @@ spec:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
+                        default: []
                         items:
                           type: string
                         type: array
@@ -922,8 +940,9 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Limits describes the maximum amount of
-                                compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                             name:
                               description: Name of the container the requirements
@@ -936,11 +955,11 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Requests describes the minimum amount
-                                of compute resources required. If Requests is omitted
-                                for a container, it defaults to Limits if that is
-                                explicitly specified, otherwise to an implementation-defined
-                                value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                           required:
                           - name
@@ -950,6 +969,7 @@ spec:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
+                        default: []
                         items:
                           type: string
                         type: array
@@ -981,8 +1001,9 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Limits describes the maximum amount of
-                                compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                             name:
                               description: Name of the container the requirements
@@ -995,11 +1016,11 @@ spec:
                                 - type: string
                                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                 x-kubernetes-int-or-string: true
-                              description: 'Requests describes the minimum amount
-                                of compute resources required. If Requests is omitted
-                                for a container, it defaults to Limits if that is
-                                explicitly specified, otherwise to an implementation-defined
-                                value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                               type: object
                           required:
                           - name
@@ -1009,6 +1030,7 @@ spec:
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
+                        default: []
                         items:
                           type: string
                         type: array
@@ -1025,9 +1047,10 @@ spec:
                     type: object
                 type: object
               sriovDevicePlugin:
-                description: DevicePluginSpec describes configuration options for
-                  device plugin 1. Image information for device plugin 2. Device plugin
-                  configuration
+                description: |-
+                  DevicePluginSpec describes configuration options for device plugin
+                  1. Image information for device plugin
+                  2. Device plugin configuration
                 properties:
                   config:
                     type: string
@@ -1043,8 +1066,9 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Limits describes the maximum amount of compute
-                            resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                         name:
                           description: Name of the container the requirements are
@@ -1057,11 +1081,11 @@ spec:
                             - type: string
                             pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                             x-kubernetes-int-or-string: true
-                          description: 'Requests describes the minimum amount of compute
-                            resources required. If Requests is omitted for a container,
-                            it defaults to Limits if that is explicitly specified,
-                            otherwise to an implementation-defined value. Requests
-                            cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       required:
                       - name
@@ -1071,6 +1095,7 @@ spec:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
+                    default: []
                     items:
                       type: string
                     type: array
@@ -1089,40 +1114,39 @@ spec:
                 type: object
               tolerations:
                 items:
-                  description: The pod this Toleration is attached to tolerates any
-                    taint that matches the triple <key,value,effect> using the matching
-                    operator <operator>.
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
                   properties:
                     effect:
-                      description: Effect indicates the taint effect to match. Empty
-                        means match all taint effects. When specified, allowed values
-                        are NoSchedule, PreferNoSchedule and NoExecute.
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
                       type: string
                     key:
-                      description: Key is the taint key that the toleration applies
-                        to. Empty means match all taint keys. If the key is empty,
-                        operator must be Exists; this combination means to match all
-                        values and all keys.
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
                       type: string
                     operator:
-                      description: Operator represents a key's relationship to the
-                        value. Valid operators are Exists and Equal. Defaults to Equal.
-                        Exists is equivalent to wildcard for value, so that a pod
-                        can tolerate all taints of a particular category.
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
                       type: string
                     tolerationSeconds:
-                      description: TolerationSeconds represents the period of time
-                        the toleration (which must be of effect NoExecute, otherwise
-                        this field is ignored) tolerates the taint. By default, it
-                        is not set, which means tolerate the taint forever (do not
-                        evict). Zero and negative values will be treated as 0 (evict
-                        immediately) by the system.
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
                       format: int64
                       type: integer
                     value:
-                      description: Value is the taint value the toleration matches
-                        to. If the operator is Exists, the value should be empty,
-                        otherwise just a regular string.
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
                       type: string
                   type: object
                 type: array
