@@ -167,7 +167,7 @@ $(HELM): | $(TOOLSDIR)
 # operator-sdk is used to generate operator-sdk bundles
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download
 OPERATOR_SDK_BIN = operator-sdk
-OPERATOR_SDK_VER = v1.23.0
+OPERATOR_SDK_VER = v1.33.0
 OPERATOR_SDK = $(abspath $(TOOLSDIR)/$(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER))
 $(OPERATOR_SDK): | $(TOOLSDIR)
 	$Q echo "Installing $(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER) to $(TOOLSDIR)"

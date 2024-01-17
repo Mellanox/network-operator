@@ -88,9 +88,10 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    createdAt: "2024-01-17T13:39:15Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     operatorframework.io/suggested-namespace: nvidia-network-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.23.0
+    operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
