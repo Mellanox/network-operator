@@ -703,3 +703,14 @@ spec:
     targetPort: 9443
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
+  relatedImages:
+    - image: nvcr.io/nvidia/mellanox/mofed@sha256:ada9d1c4bf8eda0d6b76f2d3c0f67c9cd6862284f1312c6a6f142d5c217543b4
+      name: mofed
+    - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
+      name: sriov-network-device-plugin
+    - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
+      name: rdma-shared-device-plugin
+    - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
+      name: kube-rbac-proxy
+    - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:e9cf9a438be8cfb7472998abef55f1ace964dae7f9043a697fabcae751eb96e3
+      name: network-operator
