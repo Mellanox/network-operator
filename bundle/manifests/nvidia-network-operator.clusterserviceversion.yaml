@@ -50,7 +50,7 @@ metadata:
           },
           "spec": {
             "ofedDriver": {
-              "image": "mofed",
+              "image": "doca-driver",
               "livenessProbe": {
                 "initialDelaySeconds": 30,
                 "periodSeconds": 30
@@ -76,7 +76,7 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "23.10-0.2.8.0"
+              "version": "24.01-0.1.7.0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
@@ -88,14 +88,15 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    createdAt: "2024-01-17T13:39:15Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     operatorframework.io/suggested-namespace: nvidia-network-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.22.0
+    operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v24.1.0
+  name: nvidia-network-operator.v23.10.0-1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -310,6 +311,14 @@ spec:
           - create
           - patch
           - update
+        - apiGroups:
+          - image.openshift.io
+          resources:
+          - imagestreams
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - k8s.cni.cncf.io
           resources:
@@ -542,9 +551,11 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
+                - name: USE_DTK
+                  value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container:v0.0.2
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7005fa24a1ae52d927e76d50d90fddf6b6c7b08885a2dad3c7e5e2c2ac21c834
+                image: network-operator@sha256:e9cf9a438be8cfb7472998abef55f1ace964dae7f9043a697fabcae751eb96e3
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -651,7 +662,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 24.1.0
+  version: 23.10.0-1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -694,11 +705,13 @@ spec:
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
-  - image: nvcr.io/nvidia/mellanox/mofed@sha256:a0c4562af2d25f87f5b37e53b6e4085559dfeed873279c77a355f7ad738afb60
-    name: mofed
-  - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
-    name: sriov-network-device-plugin
-  - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
-    name: rdma-shared-device-plugin
-  - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:7005fa24a1ae52d927e76d50d90fddf6b6c7b08885a2dad3c7e5e2c2ac21c834
-    name: network-operator
+    - image: nvcr.io/nvidia/mellanox/mofed@sha256:ada9d1c4bf8eda0d6b76f2d3c0f67c9cd6862284f1312c6a6f142d5c217543b4
+      name: mofed
+    - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
+      name: sriov-network-device-plugin
+    - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
+      name: rdma-shared-device-plugin
+    - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
+      name: kube-rbac-proxy
+    - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:e9cf9a438be8cfb7472998abef55f1ace964dae7f9043a697fabcae751eb96e3
+      name: network-operator

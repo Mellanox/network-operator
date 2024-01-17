@@ -121,7 +121,7 @@ $(GOLANGCI_LINT):
 # controller gen is used to generate manifests and code for Kubernetes controllers.
 CONTROLLER_GEN_PKG = sigs.k8s.io/controller-tools/cmd/controller-gen
 CONTROLLER_GEN_BIN = controller-gen
-CONTROLLER_GEN_VER = v0.13.0
+CONTROLLER_GEN_VER = v0.14.0
 CONTROLLER_GEN = $(TOOLSDIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
 $(CONTROLLER_GEN):
 	$(call go-install-tool,$(CONTROLLER_GEN_PKG),$(CONTROLLER_GEN_BIN),$(CONTROLLER_GEN_VER))
@@ -167,7 +167,7 @@ $(HELM): | $(TOOLSDIR)
 # operator-sdk is used to generate operator-sdk bundles
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download
 OPERATOR_SDK_BIN = operator-sdk
-OPERATOR_SDK_VER = v1.23.0
+OPERATOR_SDK_VER = v1.33.0
 OPERATOR_SDK = $(abspath $(TOOLSDIR)/$(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER))
 $(OPERATOR_SDK): | $(TOOLSDIR)
 	$Q echo "Installing $(OPERATOR_SDK_BIN)-$(OPERATOR_SDK_VER) to $(TOOLSDIR)"
