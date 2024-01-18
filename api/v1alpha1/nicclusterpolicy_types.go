@@ -246,20 +246,38 @@ type NICFeatureDiscoverySpec struct {
 	ImageSpec `json:""`
 }
 
+// DOCATelemetryServiceConfig contains configuration for the DOCATelemetryService.
+type DOCATelemetryServiceConfig struct {
+	// FromConfigMap sets the configMap the DOCATelemetryService gets its configuration from. The ConfigMap must be in
+	// the same namespace as the NICClusterPolicy.
+	// +optional
+	FromConfigMap string `json:"fromConfigMap"`
+}
+
+// DOCATelemetryServiceSpec is the configuration for DOCA Telemetry Service.
+type DOCATelemetryServiceSpec struct {
+	ImageSpec `json:""`
+	// +optional
+	// Config contains custom config for the DOCATelemetryService.
+	// If set no default config will be deployed.
+	Config *DOCATelemetryServiceConfig `json:"config"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	NodeAffinity           *v1.NodeAffinity         `json:"nodeAffinity,omitempty"`
-	Tolerations            []v1.Toleration          `json:"tolerations,omitempty"`
-	OFEDDriver             *OFEDDriverSpec          `json:"ofedDriver,omitempty"`
-	RdmaSharedDevicePlugin *DevicePluginSpec        `json:"rdmaSharedDevicePlugin,omitempty"`
-	SriovDevicePlugin      *DevicePluginSpec        `json:"sriovDevicePlugin,omitempty"`
-	IBKubernetes           *IBKubernetesSpec        `json:"ibKubernetes,omitempty"`
-	SecondaryNetwork       *SecondaryNetworkSpec    `json:"secondaryNetwork,omitempty"`
-	NvIpam                 *NVIPAMSpec              `json:"nvIpam,omitempty"`
-	NicFeatureDiscovery    *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
+	NodeAffinity           *v1.NodeAffinity          `json:"nodeAffinity,omitempty"`
+	Tolerations            []v1.Toleration           `json:"tolerations,omitempty"`
+	OFEDDriver             *OFEDDriverSpec           `json:"ofedDriver,omitempty"`
+	RdmaSharedDevicePlugin *DevicePluginSpec         `json:"rdmaSharedDevicePlugin,omitempty"`
+	SriovDevicePlugin      *DevicePluginSpec         `json:"sriovDevicePlugin,omitempty"`
+	IBKubernetes           *IBKubernetesSpec         `json:"ibKubernetes,omitempty"`
+	SecondaryNetwork       *SecondaryNetworkSpec     `json:"secondaryNetwork,omitempty"`
+	NvIpam                 *NVIPAMSpec               `json:"nvIpam,omitempty"`
+	NicFeatureDiscovery    *NICFeatureDiscoverySpec  `json:"nicFeatureDiscovery,omitempty"`
+	DOCATelemetryService   *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy

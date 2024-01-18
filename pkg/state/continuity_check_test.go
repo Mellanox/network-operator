@@ -135,6 +135,7 @@ var _ = Describe("Continuity check", func() {
 			cr.Spec.SecondaryNetwork.IpamPlugin = &imageSpec
 			cr.Spec.SecondaryNetwork.IPoIB = &imageSpec
 			cr.Spec.SecondaryNetwork.Multus = &mellanoxv1alpha1.MultusSpec{ImageSpecWithConfig: imageSpecWithConfig}
+			cr.Spec.DOCATelemetryService = &mellanoxv1alpha1.DOCATelemetryServiceSpec{ImageSpec: imageSpec}
 
 			manifestsBaseDir := filepath.Join("..", "..", "manifests")
 			envConfig = &config.OperatorConfig{State: config.StateConfig{ManifestBaseDir: manifestsBaseDir}}

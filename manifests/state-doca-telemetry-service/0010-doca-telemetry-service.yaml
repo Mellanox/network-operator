@@ -1,0 +1,139 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: doca-telemetry-service
+  namespace: {{ .RuntimeSpec.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: doca-telemetry
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: doca-telemetry
+    spec:
+      # hostNetwork is required to expose sysfs counters folder
+      hostNetwork: true
+      {{- if .NodeAffinity }}
+      affinity:
+        nodeAffinity:
+          {{- .NodeAffinity | yaml | nindent 10 }}
+      {{- end }}
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: doca-telemetry-service
+        image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+        {{- with .RuntimeSpec.ContainerResources }}
+        {{- with index . "nic-feature-discovery" }}
+        resources:
+          {{- if .Requests }}
+          requests:
+            {{ .Requests | yaml | nindent 14}}
+          {{- end }}
+          {{- if .Limits }}
+          limits:
+            { { .Limits | yaml | nindent 14 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        volumeMounts:
+        - name: doca-telemetry-service-configmap
+          mountPath: /configmap
+        - name: pod-device-resources
+          mountPath: /var/lib/kubelet/pod-resources
+        - name: cni
+          mountPath: /var/run/k8s.cni.cncf.io/devinfo/cni
+        env:
+        - name: MY_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: PROMETHEUS_XCSET_JOIN_FIELDS
+          value: "hca"
+        - name: PROMETHEUS_XCSET_MANDATORY_TYPES
+          value: "counters,pod_resources_event"
+        command: [ "/bin/bash", "-c", "rm -rf /config/* && DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
+        securityContext:
+          privileged: true
+      volumes:
+        - name: doca-telemetry-service-configmap
+          configMap:
+            name: {{ .ConfigMapName }}
+        - name: pod-device-resources
+          hostPath:
+            path: /var/lib/kubelet/pod-resources
+        - name: cni
+          hostPath:
+            path: /var/run/k8s.cni.cncf.io/devinfo/cni/
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .ConfigMapName }}
+  namespace: {{ .RuntimeSpec.Namespace }}
+data:
+  dts_config_map.ini: |
+    ############################ GENERAL CONFIGURATION ############################
+    # Port for TCP connection with aggregator
+    port=0
+    # Timeout for forced page rotation
+    sync-time-limit=10000
+
+    # Sizes of internal buffers used by counter and event providers.
+    # By the default they set to 1MB, however
+    # If set to 0 buffers will be rounded up to fit at least a single data payload.
+    counter-buffer-size=0
+    event-buffer-size=0
+
+    # Verbosity levels: error=3, info=6, debug=7
+    verbose=6
+
+    # Sampling interval for providers in ms
+    update=1000
+
+    # Configuration cache folder that is used on restarts.
+    runtime-configuration-folder=/config/clx_last_runtime_conf
+    idle-time-limit=0
+
+    ################################### PROVIDERS #################################
+    enable-explicitly=true
+
+    #####################################
+    # DOCA TELEMETRY SERVICE PROVIDERS: #
+    #####################################
+
+    enable-provider=sysfs
+    enable-provider=pod_resources
+    enable-provider=ethtool
+    enable-provider=ifconfig
+
+    ################################ DATA OUTPUTS #################################
+
+    ################################ Prometheus ###################################
+    # Set address and port for Prometheus endpoint.
+    # If not set, the Prometheus endpoint is disabled.
+    prometheus=http://0.0.0.0:9189
+
+    # Prometheus can use data field as index to keep several data records with
+    # different index value. Index fields will be added to Prometheus labels
+    # Comma-separated counterset description for Prometheus indexing
+    #prometheus-indexes=idx1,idx2
+
+    # Comma-separated fieldset description for Prometheus indexing
+    #prometheus-fset-indexes=idx1,idx2
+    prometheus-fset-indexes=device_name,device_id,pod_name,id
+
+    # Comma-separated list of counter names to be ignored by Prometheus exporter
+    #prometheus-ignore-names=counter_name1,counter_name_2
+
+    # Comma-separated list of data source tags to be ignored by Prometheus exporter
+    prometheus-ignore-tags=FI_metrics
+

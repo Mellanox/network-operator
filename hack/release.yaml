@@ -65,3 +65,7 @@ nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: ghcr.io/mellanox
   version: v0.0.1
+docaTelemetryService:
+  image: doca_telemetry
+  repository: nvcr.io/nvidia/doca
+  version: 1.15.5-doca2.5.0-host

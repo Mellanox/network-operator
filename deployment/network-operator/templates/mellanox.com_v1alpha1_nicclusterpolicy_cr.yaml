@@ -227,4 +227,14 @@ spec:
     containerResources: {{ toYaml .Values.nicFeatureDiscovery.containerResources | nindent 6 }}
     {{- end }}
   {{- end }}
+  {{- if .Values.docaTelemetryService.deploy }}
+  docaTelemetryService:
+    image: {{ .Values.docaTelemetryService.image }}
+    repository: {{ .Values.docaTelemetryService.repository }}
+    version: {{ .Values.docaTelemetryService.version }}
+    imagePullSecrets: {{ include "network-operator.docaTelemetryService.imagePullSecrets" . }}
+    {{- if .Values.docaTelemetryService.containerResources }}
+    containerResources: {{ toYaml .Values.docaTelemetryService.containerResources | nindent 6 }}
+    {{- end }}
+  {{- end }}
 {{ end }}
