@@ -232,7 +232,7 @@ COVERAGE_MODE = count
 
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
 test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
-	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverpkg=./... -coverprofile=network-operator.cover ./...
 
 # Container image
 .PHONY: image
