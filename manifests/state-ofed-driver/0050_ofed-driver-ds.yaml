@@ -124,7 +124,8 @@ spec:
             - name: shared-doca-driver-toolkit
               mountPath: /mnt/shared-doca-driver-toolkit
             {{- end}}
-          {{- with index .RuntimeSpec.ContainerResources "mofed-container" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "mofed-container" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -134,6 +135,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- end }}
           startupProbe:
             exec:

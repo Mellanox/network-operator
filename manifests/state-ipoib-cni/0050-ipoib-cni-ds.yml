@@ -59,7 +59,8 @@ spec:
       containers:
         - name: ipoib-cni
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
-          {{- with index .RuntimeSpec.ContainerResources "ipoib-cni" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "ipoib-cni" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -69,6 +70,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- else }}
           resources:
             requests:

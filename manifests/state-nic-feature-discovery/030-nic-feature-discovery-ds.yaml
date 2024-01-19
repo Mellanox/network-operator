@@ -63,7 +63,8 @@ spec:
           args:
             - --v=0
             - --logging-format=json
-          {{- with index .RuntimeSpec.ContainerResources "nic-feature-discovery" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "nic-feature-discovery" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -73,6 +74,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- else }}
           resources:
             requests:
