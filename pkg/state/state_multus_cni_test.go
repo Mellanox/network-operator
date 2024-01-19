@@ -111,22 +111,21 @@ var _ = Describe("Multus CNI state", func() {
 					},
 				},
 			))
-			// TODO: Check why this reports nil
-			// cpu, _ := resource.ParseQuantity("100m")
-			// mem, _ := resource.ParseQuantity("50Mi")
 
-			// Expect(daemonSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(
-			// 	corev1.ResourceRequirements{
-			// 		Requests: corev1.ResourceList{
-			// 			corev1.ResourceCPU:    cpu,
-			// 			corev1.ResourceMemory: mem,
-			// 		},
-			// 		Limits: corev1.ResourceList{
-			// 			corev1.ResourceCPU:    cpu,
-			// 			corev1.ResourceMemory: mem,
-			// 		},
-			// 	},
-			// ))
+			cpu, _ := resource.ParseQuantity("100m")
+			mem, _ := resource.ParseQuantity("50Mi")
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Resources).To(Equal(
+				corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    cpu,
+						corev1.ResourceMemory: mem,
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    cpu,
+						corev1.ResourceMemory: mem,
+					},
+				},
+			))
 			Expect(daemonSet.Spec.Template.Spec.Containers[0].Image).To(Equal("myrepo/myimage:myversion"))
 		})).To(BeTrue())
 	})
