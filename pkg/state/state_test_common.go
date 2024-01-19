@@ -29,3 +29,18 @@ func checkRenderedNetAttachDef(obj *unstructured.Unstructured, namespace, name, 
 	Expect(obj.Object["spec"].(map[string]interface{})["config"].(string)).To(ContainSubstring(name))
 	Expect(obj.Object["spec"].(map[string]interface{})["config"].(string)).To(ContainSubstring(ipam))
 }
+
+type checkFunc func(object *unstructured.Unstructured)
+
+func runFuncForObjectInSlice(objects []*unstructured.Unstructured, objectKind string, f checkFunc) bool {
+	var found bool
+	for _, obj := range objects {
+		if obj.GetKind() != objectKind {
+			continue
+		}
+		found = true
+
+		f(obj)
+	}
+	return found
+}

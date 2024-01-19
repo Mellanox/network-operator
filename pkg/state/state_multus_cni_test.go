@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -66,15 +67,9 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "ServiceAccount" {
-				continue
-			}
-			found = true
+		Expect(runFuncForObjectInSlice(objs, "ServiceAccount", func(obj *unstructured.Unstructured) {
 			Expect(obj.GetNamespace()).To(Equal(networkOperatorResourceNamespace))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render ClusterRoleBinding", func() {
@@ -83,22 +78,14 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "ClusterRoleBinding" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "ClusterRoleBinding", func(obj *unstructured.Unstructured) {
 			var clusterRoleBinding rbacv1.ClusterRoleBinding
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &clusterRoleBinding)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(clusterRoleBinding.Subjects)).To(Equal(1))
 			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(networkOperatorResourceNamespace))
-		}
-		Expect(found).To(BeTrue())
-
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset", func() {
@@ -107,13 +94,7 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -147,8 +128,7 @@ var _ = Describe("Multus CNI state", func() {
 			// 	},
 			// ))
 			Expect(daemonSet.Spec.Template.Spec.Containers[0].Image).To(Equal("myrepo/myimage:myversion"))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset with NodeAffinity when specified in CR", func() {
@@ -174,20 +154,13 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(daemonSet.Spec.Template.Spec.Affinity.NodeAffinity).To(Equal(&nodeAffinity))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset with ImagePullSecrets when specified in CR", func() {
@@ -198,13 +171,7 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -215,8 +182,7 @@ var _ = Describe("Multus CNI state", func() {
 					Name: "myimagepullsecret",
 				},
 			))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset with Tolerations when specified in CR", func() {
@@ -232,13 +198,7 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -253,8 +213,7 @@ var _ = Describe("Multus CNI state", func() {
 					},
 				},
 			))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset with Resources when specified in CR", func() {
@@ -279,13 +238,7 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -302,8 +255,7 @@ var _ = Describe("Multus CNI state", func() {
 					},
 				},
 			))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 	})
 
 	It("should render resources correctly when config is specified in CR", func() {
@@ -315,29 +267,16 @@ var _ = Describe("Multus CNI state", func() {
 		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		var found bool
-		for _, obj := range objs {
-			if obj.GetKind() != "ConfigMap" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "ConfigMap", func(obj *unstructured.Unstructured) {
 			var configMap corev1.ConfigMap
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &configMap)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(configMap.Namespace).To(Equal(networkOperatorResourceNamespace))
 			Expect(configMap.Data["cni-conf.json"]).To(Equal(configString))
-		}
-		Expect(found).To(BeTrue())
+		})).To(BeTrue())
 
-		found = false
-		for _, obj := range objs {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			found = true
-
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -367,8 +306,8 @@ var _ = Describe("Multus CNI state", func() {
 					},
 				},
 			))
-		}
-		Expect(found).To(BeTrue())
+
+		})).To(BeTrue())
 	})
 
 	It("should not render ConfigMap if config is not specified in CR", func() {
