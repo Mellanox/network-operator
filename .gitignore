@@ -32,3 +32,4 @@ bin
 testbin
 test
 build
+hack/manifests
