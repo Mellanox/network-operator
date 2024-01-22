@@ -174,6 +174,24 @@ $(OPERATOR_SDK): | $(TOOLSDIR)
 	$Q curl -sSfL $(OPERATOR_SDK_DL_URL)/$(OPERATOR_SDK_VER)/operator-sdk_$(OS)_$(ARCH) -o $(OPERATOR_SDK)
 	$Q chmod +x $(OPERATOR_SDK)
 
+# minikube is used to set-up a local kubernetes cluster for dev work.
+MINIKUBE_VER := v0.0.0-20231012212722-e25aeebc7846
+MINIKUBE_BIN := minikube
+MINIKUBE := $(abspath $(TOOLSDIR)/$(MINIKUBE_BIN)-$(MINIKUBE_VER))
+$(MINIKUBE): | $(TOOLSDIR)
+	$Q echo "Installing minikube-$(MINIKUBE_VER) to $(TOOLSDIR)"
+	$Q curl -fsSL https://storage.googleapis.com/minikube/releases/latest/minikube-$(OS)-$(ARCH) -o $(MINIKUBE)
+	$Q chmod +x $(MINIKUBE)
+
+# skaffold is used to run a debug build of the network operator for dev work.
+SKAFFOLD_VER := v2.10.0
+SKAFFOLD_BIN := skaffold
+SKAFFOLD := $(abspath $(TOOLSDIR)/$(SKAFFOLD_BIN)-$(SKAFFOLD_VER))
+$(SKAFFOLD): | $(TOOLSDIR)
+	$Q echo "Installing skaffold-$(SKAFFOLD_VER) to $(TOOLSDIR)"
+	$Q curl -fsSL https://storage.googleapis.com/skaffold/releases/latest/skaffold-$(OS)-$(ARCH) -o $(SKAFFOLD)
+	$Q chmod +x $(SKAFFOLD)
+
 # Tests
 
 .PHONY: lint
@@ -319,6 +337,23 @@ release-build:
 	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
 	cd hack && $(GO) run release.go --templateDir ./templates/config/manager --outputDir ../config/manager/
+
+# dev environment
+
+MINIKUBE_CLUSTER_NAME = net-op-dev
+dev-minikube: $(MINIKUBE) ## Create a minikube cluster for development.
+	CLUSTER_NAME=$(MINIKUBE_CLUSTER_NAME) MINIKUBE_BIN=$(MINIKUBE) $(CURDIR)/hack/scripts/minikube-install.sh
+
+clean-minikube: $(MINIKUBE)  ## Delete the development minikube cluster.
+	$(MINIKUBE) delete -p $(MINIKUBE_CLUSTER_NAME)
+
+SKAFFOLD_REGISTRY=localhost:5000
+dev-skaffold: $(SKAFFOLD) dev-minikube ## Create a development minikube cluster and deploy the operator in debug mode.
+	## Deploy the network attachment definition CRD.
+	kubectl apply -f hack/crds/*
+	# Use minikube for docker build and deployment.
+	$Q eval $$($(MINIKUBE) -p $(MINIKUBE_CLUSTER_NAME) docker-env); \
+	$(SKAFFOLD) debug --default-repo=$(SKAFFOLD_REGISTRY) --detect-minikube=false
 
 # go-install-tool will 'go install' any package $2 and install it to $1.
 define go-install-tool
