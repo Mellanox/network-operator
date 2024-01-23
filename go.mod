@@ -7,7 +7,7 @@ require (
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20231108143032-f10500268f23
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/containers/image/v5 v5.29.0
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.4.0
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.30.0
