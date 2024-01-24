@@ -71,7 +71,8 @@ spec:
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/ib-kubernetes"]
-          {{- with index .RuntimeSpec.ContainerResources "ib-kubernetes" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "ib-kubernetes" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -81,6 +82,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- else }}
           resources:
             requests:
