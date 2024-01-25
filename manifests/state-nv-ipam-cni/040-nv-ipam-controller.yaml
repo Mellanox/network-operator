@@ -119,7 +119,8 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
-          {{- with index .RuntimeSpec.ContainerResources "nv-ipam-controller" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "nv-ipam-controller" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -129,6 +130,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- else }}
           resources:
             requests:

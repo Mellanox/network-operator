@@ -78,7 +78,8 @@ spec:
           - name: host-config-volume
             mountPath: /host/etc/pcidp/
           {{- end }}
-        {{- with index .RuntimeSpec.ContainerResources "rdma-shared-dp" }}
+        {{- with .RuntimeSpec.ContainerResources }}
+        {{- with index . "rdma-shared-dp" }}
         resources:
           {{- if .Requests }}
           requests:
@@ -88,6 +89,7 @@ spec:
           limits:
             {{ .Limits | yaml | nindent 12}}
           {{- end }}
+        {{- end }}
         {{- end }}
       volumes:
         - name: device-plugin

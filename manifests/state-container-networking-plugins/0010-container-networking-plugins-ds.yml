@@ -55,7 +55,8 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
-          {{- with index .RuntimeSpec.ContainerResources "cni-plugins" }}
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "cni-plugins" }}
           resources:
             {{- if .Requests }}
             requests:
@@ -65,6 +66,7 @@ spec:
             limits:
               {{ .Limits | yaml | nindent 14}}
             {{- end }}
+          {{- end }}
           {{- else }}
           resources:
             requests:
