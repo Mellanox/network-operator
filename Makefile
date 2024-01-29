@@ -21,8 +21,7 @@ CHART_PATH=$(CURDIR)/deployment/$(PACKAGE)
 TOOLSDIR=$(CURDIR)/hack/tools/bin
 BUILDDIR=$(CURDIR)/build/_output
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
-PKGS=$(or $(PKG),$(shell $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
-TESTPKGS = $(shell $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
+TESTPKGS=./...
 ENVTEST_K8S_VERSION=1.28
 ARCH ?= $(shell go env GOARCH)
 OS ?= $(shell go env GOOS)
@@ -250,7 +249,7 @@ COVERAGE_MODE = count
 
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
 test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
-	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverprofile=network-operator.cover ./...
+	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverpkg=./... -coverprofile=network-operator.cover $(TESTPKGS)
 
 # Container image
 .PHONY: image
