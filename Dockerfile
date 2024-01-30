@@ -15,41 +15,39 @@
 # Build the manager binary
 FROM golang:1.20 as builder
 
-ARG ARCH ?= $(shell go env GOARCH)
+WORKDIR /workspace
+# Add kubectl tool
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
-ARG LDFLAGS
-ARG GO_BUILD_GC_ARGS
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${TARGETPLATFORM}/kubectl"
+RUN chmod +x ./kubectl
 
-WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download -x
+
 
 # Copy the go source
-COPY main.go main.go
-COPY api/ api/
-COPY controllers/ controllers/
-COPY pkg/ pkg/
-COPY version/ version/
+COPY ./ ./
 
-# Add kubectl tool
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${TARGETPLATFORM}/kubectl"
-RUN chmod +x ./kubectl
-
-# Add helm chart DIR to get CRDs from it
-COPY deployment/network-operator chart
 # copy CRDs from helm charts
 RUN mkdir crds && \
-    cp -r chart/crds /workspace/crds/network-operator/ && \
-    cp -r chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
-    cp -r chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
+    cp -r deployment/network-operator/crds /workspace/crds/network-operator/ && \
+    cp -r deployment/network-operator/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
+    cp -r deployment/network-operator/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GO_BUILD_GC_ARGS}" -a -o manager main.go
+ARG ARCH ?= $(shell go env GOARCH)
+ARG LDFLAGS
+ARG GO_BUILD_GC_ARGS
+RUN --mount=type=cache,target=/root/.cache/go-build \
+        --mount=type=cache,target=/go/pkg/mod \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GO_BUILD_GC_ARGS}" -o manager main.go
+
 
 FROM registry.access.redhat.com/ubi8-micro:8.8
 

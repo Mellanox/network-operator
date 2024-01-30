@@ -37,7 +37,7 @@ VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
 VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
 
 # Docker
-IMAGE_BUILDER?=@docker
+IMAGE_BUILDER?=docker
 IMAGEDIR=$(CURDIR)/images
 DOCKERFILE?=$(CURDIR)/Dockerfile
 TAG?=mellanox/network-operator
@@ -254,7 +254,7 @@ test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run covera
 # Container image
 .PHONY: image
 image: ; $(info Building Docker image...)  @ ## Build container image
-	$(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
+	$Q DOCKER_BUILDKIT=1 $(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
 		--build-arg VERSION="$(BUILD_VERSION)" \
 		--build-arg VCS_REF="$(VCS_REF)" \
 		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
