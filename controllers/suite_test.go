@@ -118,6 +118,12 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&MacvlanNetworkReconciler{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager, testSetupLog)
+	Expect(err).ToNot(HaveOccurred())
+
 	clusterTypeProvider, err := clustertype.NewProvider(context.Background(), k8sClient)
 	Expect(err).NotTo(HaveOccurred())
 	staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "/opt/cni/bin"})
