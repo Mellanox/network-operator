@@ -354,6 +354,7 @@ dev-skaffold: $(SKAFFOLD) dev-minikube ## Create a development minikube cluster 
 	$Q eval $$($(MINIKUBE) -p $(MINIKUBE_CLUSTER_NAME) docker-env); \
 	$(SKAFFOLD) debug --default-repo=$(SKAFFOLD_REGISTRY) --detect-minikube=false
 
+
 # go-install-tool will 'go install' a go module $1 with version $3 and install it with the name $2-$3 to $TOOLSDIR.
 define go-install-tool
 	$Q echo "Installing $(2)-$(3) to $(TOOLSDIR)"
