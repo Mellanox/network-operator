@@ -230,7 +230,6 @@ var _ = Describe("MOFED state test", func() {
 		It("Should Render Mofed DaemonSet", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ofed-driver"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -241,7 +240,6 @@ var _ = Describe("MOFED state test", func() {
 					name:        stateOFEDName,
 					description: stateOFEDDescription,
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}
@@ -316,7 +314,6 @@ var _ = Describe("MOFED state test", func() {
 					name:        stateOFEDName,
 					description: stateOFEDDescription,
 					client:      client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

@@ -51,7 +51,7 @@ var _ = Describe("CNI plugins state", func() {
 		Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 		manifestDir := "../../manifests/state-container-networking-plugins"
-		s, _, err := state.NewStateCNIPlugins(client, scheme, manifestDir)
+		s, _, err := state.NewStateCNIPlugins(client, manifestDir)
 		Expect(err).NotTo(HaveOccurred())
 		cniPluginsState = s
 		catalog = getTestCatalog()

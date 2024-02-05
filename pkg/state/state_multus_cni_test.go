@@ -46,14 +46,12 @@ var _ = Describe("Multus CNI state", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		client := mocks.ControllerRuntimeClient{}
-		scheme := runtime.NewScheme()
 		renderer := render.NewRenderer(files)
 		state = stateMultusCNI{
 			stateSkel: stateSkel{
 				name:        "state-multus-cni",
 				description: "multus CNI deployed in the cluster",
 				client:      &client,
-				scheme:      scheme,
 				renderer:    renderer,
 			}}
 		catalog = NewInfoCatalog()

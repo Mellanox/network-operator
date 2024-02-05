@@ -324,7 +324,7 @@ func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(
 //nolint:dupl
 func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxv1alpha1.NicClusterPolicyCRDName, mgr.GetClient(), mgr.GetScheme(),
+	stateManager, err := state.NewManager(mellanoxv1alpha1.NicClusterPolicyCRDName, mgr.GetClient(),
 		setupLog.WithName("StateManager"))
 	if err != nil {
 		setupLog.V(consts.LogLevelError).Error(err, "Error creating state manager.")

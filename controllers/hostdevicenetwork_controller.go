@@ -141,7 +141,7 @@ NextResult:
 //nolint:dupl
 func (r *HostDeviceNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(), mgr.GetScheme(),
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.HostDeviceNetworkCRDName, mgr.GetClient(),
 		setupLog.WithName("StateManager"))
 	if err != nil {
 		// Error creating stateManager

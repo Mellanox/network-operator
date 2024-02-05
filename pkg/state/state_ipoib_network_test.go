@@ -17,8 +17,6 @@ limitations under the License.
 package state
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -34,7 +32,6 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ipoib-network"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -46,7 +43,6 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 					name:        stateName,
 					description: "IPoIBNetwork net-attach-def CR deployed in cluster",
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

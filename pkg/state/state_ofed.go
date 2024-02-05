@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -113,7 +112,7 @@ var ConfigMapKeysOverride = map[string]map[string]string{
 
 // NewStateOFED creates a new OFED driver state
 func NewStateOFED(
-	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
+	k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
@@ -125,7 +124,6 @@ func NewStateOFED(
 			name:        stateOFEDName,
 			description: stateOFEDDescription,
 			client:      k8sAPIClient,
-			scheme:      scheme,
 			renderer:    renderer,
 		}}
 	return state, state, nil
@@ -291,7 +289,7 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 
 	// Create objects if they dont exist, Update objects if they do exist
 	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
-		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(cr, obj, s.client.Scheme()); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
 		return nil
@@ -577,7 +575,7 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(
 			ocpTrustedCABundleFileName: "",
 		},
 	}
-	if err := controllerutil.SetControllerReference(cr, configMap, s.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(cr, configMap, s.client.Scheme()); err != nil {
 		return nil, err
 	}
 

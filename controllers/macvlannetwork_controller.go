@@ -127,7 +127,7 @@ func (r *MacvlanNetworkReconciler) updateCrStatus(
 //nolint:dupl
 func (r *MacvlanNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.MacvlanNetworkCRDName, mgr.GetClient(), mgr.GetScheme(),
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.MacvlanNetworkCRDName, mgr.GetClient(),
 		setupLog.WithName("StateManager"))
 	if err != nil {
 		// Error creating stateManager

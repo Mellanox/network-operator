@@ -493,7 +493,7 @@ type containerResourcesProvider interface {
 
 // newStateFunc is a common alias for all functions that create states deployed by nicClusterPolicy
 type newStateFunc func(
-	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (state.State, state.ManifestRenderer, error)
+	k8sAPIClient client.Client, manifestDir string) (state.State, state.ManifestRenderer, error)
 
 // stateRenderData is a helper struct that consolidates everything required to render a state
 type stateRenderData struct {
@@ -594,7 +594,7 @@ func validateContainerResourcesIfNotNil(
 		return allErrs
 	}
 
-	_, renderer, err := resource.newState(nil, nil, resource.manifestDir)
+	_, renderer, err := resource.newState(nil, resource.manifestDir)
 	if err != nil {
 		nicClusterPolicyLog.Error(err, "failed to created state renderer")
 		return allErrs
