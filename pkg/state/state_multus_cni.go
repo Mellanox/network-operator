@@ -143,13 +143,17 @@ func (s *stateMultusCNI) GetManifestObjects(
 	if staticConfig == nil {
 		return nil, errors.New("staticConfig provider required")
 	}
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, errors.New("clusterInfo provider required")
+	}
 	renderData := &MultusManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, nil),
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
 			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.Multus.ContainerResources),
 		},
 	}

@@ -58,6 +58,7 @@ var _ = Describe("Multus CNI state", func() {
 			}}
 		catalog = NewInfoCatalog()
 		catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
+		catalog.Add(InfoTypeClusterType, &dummyProvider{})
 		networkOperatorResourceNamespace = config.FromEnv().State.NetworkOperatorResourceNamespace
 	})
 
