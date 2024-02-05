@@ -26,7 +26,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
@@ -67,7 +66,6 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 		It("Should Apply", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-sriov-device-plugin"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -79,7 +77,6 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 					name:        stateName,
 					description: "SR-IOV device plugin deployed in the cluster",
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -38,7 +37,6 @@ var _ = Describe("IPoIB CNI State tests", func() {
 		It("Should Apply", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ipoib-cni"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -50,7 +48,6 @@ var _ = Describe("IPoIB CNI State tests", func() {
 					name:        stateName,
 					description: "IPoIB CNI deployed in the cluster",
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

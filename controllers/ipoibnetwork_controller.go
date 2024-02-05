@@ -132,7 +132,7 @@ func (r *IPoIBNetworkReconciler) updateCrStatus(
 //nolint:dupl
 func (r *IPoIBNetworkReconciler) SetupWithManager(mgr ctrl.Manager, setupLog logr.Logger) error {
 	// Create state manager
-	stateManager, err := state.NewManager(mellanoxcomv1alpha1.IPoIBNetworkCRDName, mgr.GetClient(), mgr.GetScheme(),
+	stateManager, err := state.NewManager(mellanoxcomv1alpha1.IPoIBNetworkCRDName, mgr.GetClient(),
 		setupLog.WithName("StateManager"))
 	if err != nil {
 		// Error creating stateManager

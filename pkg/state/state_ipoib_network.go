@@ -26,7 +26,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,7 +43,7 @@ const (
 )
 
 // NewStateIPoIBNetwork creates a new state for IPoIBNetwork CR
-func NewStateIPoIBNetwork(k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, error) {
+func NewStateIPoIBNetwork(k8sAPIClient client.Client, manifestDir string) (State, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get files from manifest dir")
@@ -56,7 +55,6 @@ func NewStateIPoIBNetwork(k8sAPIClient client.Client, scheme *runtime.Scheme, ma
 			name:        stateIPoIBNetworkName,
 			description: stateIPoIBNetworkDescription,
 			client:      k8sAPIClient,
-			scheme:      scheme,
 			renderer:    renderer,
 		}}, nil
 }
@@ -95,7 +93,7 @@ func (s *stateIPoIBNetwork) Sync(ctx context.Context, customResource interface{}
 	}
 
 	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
-		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(cr, obj, s.client.Scheme()); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
 		return nil

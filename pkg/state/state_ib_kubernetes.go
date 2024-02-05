@@ -22,7 +22,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,7 +35,7 @@ import (
 
 // NewStateIBKubernetes creates a new ib-kubernetes state
 func NewStateIBKubernetes(
-	k8sAPIClient client.Client, scheme *runtime.Scheme, manifestDir string) (State, ManifestRenderer, error) {
+	k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
@@ -48,7 +47,6 @@ func NewStateIBKubernetes(
 			name:        "state-ib-kubernetes",
 			description: "ib-kubernetes deployed in the cluster",
 			client:      k8sAPIClient,
-			scheme:      scheme,
 			renderer:    renderer,
 		}}
 	return state, state, nil
@@ -108,7 +106,7 @@ func (s *stateIBKubernetes) Sync(
 
 	// Create objects if they dont exist, Update objects if they do exist
 	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
-		if err := controllerutil.SetControllerReference(cr, obj, s.scheme); err != nil {
+		if err := controllerutil.SetControllerReference(cr, obj, s.client.Scheme()); err != nil {
 			return errors.Wrap(err, "failed to set controller reference for object")
 		}
 		return nil

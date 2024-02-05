@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/render"
@@ -45,7 +44,6 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-hostdevice-network"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -57,7 +55,6 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 					name:        stateName,
 					description: "Host Device net-attach-def CR deployed in cluster",
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

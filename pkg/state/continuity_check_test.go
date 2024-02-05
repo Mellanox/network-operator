@@ -138,7 +138,7 @@ var _ = Describe("Continuity check", func() {
 
 			manifestsBaseDir := filepath.Join("..", "..", "manifests")
 			envConfig = &config.OperatorConfig{State: config.StateConfig{ManifestBaseDir: manifestsBaseDir}}
-			states, err := newNicClusterPolicyStates(nil, nil)
+			states, err := newNicClusterPolicyStates(nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, state := range states {

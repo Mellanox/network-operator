@@ -22,7 +22,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,7 +38,6 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ib-kubernetes"
-			scheme := runtime.NewScheme()
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
 			Expect(err).NotTo(HaveOccurred())
@@ -51,7 +49,6 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 					name:        stateName,
 					description: "ib-kubernetes deployed in the cluster",
 					client:      &client,
-					scheme:      scheme,
 					renderer:    renderer,
 				},
 			}

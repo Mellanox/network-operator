@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -34,8 +33,8 @@ var envConfig = config.FromEnv()
 
 // NewManager creates a state.Manager for the given CRD Kind
 func NewManager(
-	crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme, setupLog logr.Logger) (Manager, error) {
-	states, err := newStates(crdKind, k8sAPIClient, scheme)
+	crdKind string, k8sAPIClient client.Client, setupLog logr.Logger) (Manager, error) {
+	states, err := newStates(crdKind, k8sAPIClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create state manager")
 	}
@@ -55,16 +54,16 @@ func NewManager(
 }
 
 // newStates creates States that compose a State manager
-func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
+func newStates(crdKind string, k8sAPIClient client.Client) ([]State, error) {
 	switch crdKind {
 	case mellanoxv1alpha1.NicClusterPolicyCRDName:
-		return newNicClusterPolicyStates(k8sAPIClient, scheme)
+		return newNicClusterPolicyStates(k8sAPIClient)
 	case mellanoxv1alpha1.MacvlanNetworkCRDName:
-		return newMacvlanNetworkStates(k8sAPIClient, scheme)
+		return newMacvlanNetworkStates(k8sAPIClient)
 	case mellanoxv1alpha1.HostDeviceNetworkCRDName:
-		return newHostDeviceNetworkStates(k8sAPIClient, scheme)
+		return newHostDeviceNetworkStates(k8sAPIClient)
 	case mellanoxv1alpha1.IPoIBNetworkCRDName:
-		return newIPoIBNetworkStates(k8sAPIClient, scheme)
+		return newIPoIBNetworkStates(k8sAPIClient)
 	default:
 		break
 	}
@@ -72,56 +71,56 @@ func newStates(crdKind string, k8sAPIClient client.Client, scheme *runtime.Schem
 }
 
 // newNicClusterPolicyStates creates states that reconcile NicClusterPolicy CRD
-func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
+func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := envConfig.State.ManifestBaseDir
 	ofedState, _, err := NewStateOFED(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ofed-driver"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ofed-driver"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create OFED driver State")
 	}
 
 	sharedDpState, _, err := NewStateSharedDp(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-rdma-device-plugin"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-rdma-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Shared Device plugin State")
 	}
 	sriovDpState, _, err := NewStateSriovDp(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-sriov-device-plugin"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-sriov-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create SR-IOV Device plugin State")
 	}
 	multusState, _, err := NewStateMultusCNI(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-multus-cni"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-multus-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Multus CNI State")
 	}
 	cniPluginsState, _, err := NewStateCNIPlugins(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-container-networking-plugins"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-container-networking-plugins"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
 	ipoibState, _, err := NewStateIPoIBCNI(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ipoib-cni"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ipoib-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
 	whereaboutState, _, err := NewStateWhereaboutsCNI(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-whereabouts-cni"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-whereabouts-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
 	}
 	ibKubernetesState, _, err := NewStateIBKubernetes(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ib-kubernetes"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ib-kubernetes"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create ib-kubernetes State")
 	}
 	nvIpamCniState, _, err := NewStateNVIPAMCNI(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nv-ipam-cni"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-nv-ipam-cni"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create nv-ipam-cni State")
 	}
 	nicFeatureDiscoveryState, _, err := NewStateNICFeatureDiscovery(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-nic-feature-discovery"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-nic-feature-discovery"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create nic-feature-discovery State")
 	}
@@ -133,11 +132,11 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client, scheme *runtime.Schem
 }
 
 // newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD
-func newMacvlanNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
+func newMacvlanNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
 	macvlanNetworkState, err := NewStateMacvlanNetwork(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-macvlan-network"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-macvlan-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create MacvlanNetwork CRD State")
 	}
@@ -145,11 +144,11 @@ func newMacvlanNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme)
 }
 
 // newHostDeviceNetworkStates creates states that reconcile HostDeviceNetwork CRD
-func newHostDeviceNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
+func newHostDeviceNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
 	hostdeviceNetworkState, err := NewStateHostDeviceNetwork(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-hostdevice-network"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-hostdevice-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
 	}
@@ -157,11 +156,11 @@ func newHostDeviceNetworkStates(k8sAPIClient client.Client, scheme *runtime.Sche
 }
 
 // newIPoIBNetworkStates creates states that reconcile IPoIBNetwork CRD
-func newIPoIBNetworkStates(k8sAPIClient client.Client, scheme *runtime.Scheme) ([]State, error) {
+func newIPoIBNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
 	ipoibNetworkState, err := NewStateIPoIBNetwork(
-		k8sAPIClient, scheme, filepath.Join(manifestBaseDir, "state-ipoib-network"))
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ipoib-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
 	}
