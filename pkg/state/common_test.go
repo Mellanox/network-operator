@@ -17,51 +17,19 @@ limitations under the License.
 package state_test
 
 import (
-	"github.com/Mellanox/network-operator/pkg/clustertype"
-	"github.com/Mellanox/network-operator/pkg/nodeinfo"
+	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
+	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 )
-
-type testProvider struct {
-	isOpenshift bool
-	cniBinDir   string
-}
-
-func (tp *testProvider) GetClusterType() clustertype.Type {
-	if tp.isOpenshift {
-		return clustertype.Openshift
-	}
-	return clustertype.Kubernetes
-}
-
-func (tp *testProvider) IsKubernetes() bool {
-	return !tp.isOpenshift
-}
-
-func (tp *testProvider) IsOpenshift() bool {
-	return tp.isOpenshift
-}
-
-func (tp *testProvider) GetStaticConfig() staticconfig.StaticConfig {
-	return staticconfig.StaticConfig{CniBinDirectory: tp.cniBinDir}
-}
-
-func (tp *testProvider) GetNodesAttributes(...nodeinfo.Filter) []nodeinfo.NodeAttributes {
-	nodeAttr := make(map[nodeinfo.AttributeType]string)
-	nodeAttr[nodeinfo.AttrTypeCPUArch] = "amd64"
-	nodeAttr[nodeinfo.AttrTypeOSName] = "ubuntu"
-	nodeAttr[nodeinfo.AttrTypeOSVer] = "20.04"
-
-	return []nodeinfo.NodeAttributes{{Attributes: nodeAttr}}
-}
 
 func getTestCatalog() state.InfoCatalog {
 	catalog := state.NewInfoCatalog()
-	tp := &testProvider{isOpenshift: false, cniBinDir: ""}
-	catalog.Add(state.InfoTypeNodeInfo, tp)
-	catalog.Add(state.InfoTypeStaticConfig, tp)
-	catalog.Add(state.InfoTypeClusterType, tp)
-
+	clusterTypeProvider := clustertype_mocks.Provider{}
+	clusterTypeProvider.On("IsOpenshift").Return(false)
+	staticConfigProvider := staticconfig_mocks.Provider{}
+	staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
+	catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+	catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
 	return catalog
 }

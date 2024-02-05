@@ -30,6 +30,8 @@ var MellanoxNICListOptions = []client.ListOption{
 	client.MatchingLabels{NodeLabelMlnxNIC: "true"}}
 
 // Provider provides Node attributes
+//
+//go:generate mockery --name Provider
 type Provider interface {
 	// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
 	GetNodesAttributes(filters ...Filter) []NodeAttributes

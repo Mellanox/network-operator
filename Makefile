@@ -191,6 +191,16 @@ $(SKAFFOLD): | $(TOOLSDIR)
 	$Q curl -fsSL https://storage.googleapis.com/skaffold/releases/latest/skaffold-$(OS)-$(ARCH) -o $(SKAFFOLD)
 	$Q chmod +x $(SKAFFOLD)
 
+# mockery is used to generate mocks for unit tests.
+MOCKERY_PKG := github.com/vektra/mockery/v2
+MOCKERY_VER := v2.32.2
+MOCKERY_BIN := mockery
+MOCKERY_PATH = $(abspath $(TOOLSDIR)/$(MOCKERY_BIN))
+MOCKERY = $(abspath $(TOOLSDIR)/$(MOCKERY_BIN))-$(MOCKERY_VER)
+$(MOCKERY): | $(TOOLSDIR)
+	$(call go-install-tool,$(MOCKERY_PKG),$(MOCKERY_BIN),$(MOCKERY_VER))
+	$Q ln $(MOCKERY) $(MOCKERY_PATH)
+
 # Tests
 
 .PHONY: lint
@@ -250,6 +260,10 @@ COVERAGE_MODE = count
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
 test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
 	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverpkg=./... -coverprofile=network-operator.cover $(TESTPKGS)
+
+.PHONY: generate-mocks
+generate-mocks: | $(MOCKERY) ; $(info  running mockery...) @ ## Run mockery
+	$Q PATH=$(TOOLSDIR):$(PATH) go generate ./...
 
 # Container image
 .PHONY: image
