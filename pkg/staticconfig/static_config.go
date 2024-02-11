@@ -27,6 +27,8 @@ type StaticConfig struct {
 }
 
 // Provider provides static cluster attributes
+//
+//go:generate mockery --name Provider
 type Provider interface {
 	GetStaticConfig() StaticConfig
 }

@@ -27,8 +27,11 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 
+	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
+	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -96,10 +99,15 @@ var _ = Describe("CNI plugins state", func() {
 		It("should create Daemonset with user specified CNI bin dir", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			testCniBinDIr := "/opt/mydir/cni"
-			catalog = state.NewInfoCatalog()
-			catalog.Add(state.InfoTypeClusterType, &testProvider{isOpenshift: false})
-			catalog.Add(state.InfoTypeStaticConfig, &testProvider{cniBinDir: testCniBinDIr})
+			testCniBinDir := "/opt/mydir/cni"
+			catalog := state.NewInfoCatalog()
+			clusterTypeProvider := clustertype_mocks.Provider{}
+			clusterTypeProvider.On("IsOpenshift").Return(false)
+			staticConfigProvider := staticconfig_mocks.Provider{}
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: testCniBinDir})
+			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
+
 			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
@@ -108,7 +116,7 @@ var _ = Describe("CNI plugins state", func() {
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
-			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = testCniBinDIr
+			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = testCniBinDir
 			By("Verify CNI bin dir")
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 		})
@@ -117,8 +125,12 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			catalog = state.NewInfoCatalog()
-			catalog.Add(state.InfoTypeClusterType, &testProvider{isOpenshift: true})
-			catalog.Add(state.InfoTypeStaticConfig, &testProvider{cniBinDir: ""})
+			clusterTypeProvider := clustertype_mocks.Provider{}
+			clusterTypeProvider.On("IsOpenshift").Return(true)
+			staticConfigProvider := staticconfig_mocks.Provider{}
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
+			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
 			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
@@ -265,8 +277,9 @@ var _ = Describe("CNI plugins state", func() {
 		It("should fail if clustertype provider not set in catalog", func() {
 			By("Sync")
 			catalog := state.NewInfoCatalog()
-			tp := &testProvider{isOpenshift: false, cniBinDir: ""}
-			catalog.Add(state.InfoTypeStaticConfig, tp)
+			staticConfigProvider := staticconfig_mocks.Provider{}
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
+			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
 			Expect(err).To(HaveOccurred())
