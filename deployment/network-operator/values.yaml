@@ -400,8 +400,8 @@ secondaryNetwork:
   ipoib:
     deploy: false
     image: ipoib-cni
-    repository: nvcr.io/nvidia/cloud-native
-    version: v1.1.0
+    repository: ghcr.io/mellanox
+    version: 428715a57c0b633e48ec7620f6e3af6863149ccf
     # imagePullSecrets: []
     # containerResources:
     #   - name: "ipoib-cni"
