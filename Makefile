@@ -305,7 +305,7 @@ image-build: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg LDFLAGS=$(LDFLAGS) \
 		--build-arg ARCH="$(ARCH)" \
 		--build-arg GCFLAGS="$(GCFLAGS)" \
-		-t $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
+		-t $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-build-%:
 	make ARCH=$* image-build
@@ -314,14 +314,14 @@ image-build-%:
 image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
 
 image-push-for-arch:
-	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION)
+	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH)
 
 image-push-for-arch-%:
 	make ARCH=$* image-push-for-arch
 
 .PHONY: image-push-multiarch
 image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
-	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) $(shell echo $(BUILD_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMAGE)\-&:$(VERSION)~g")
+	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) $(shell echo $(BUILD_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMAGE):$(VERSION)\-&~g")
 	$(IMAGE_BUILDER) manifest push --purge  $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: chart-build
