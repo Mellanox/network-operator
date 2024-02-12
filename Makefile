@@ -32,6 +32,7 @@ VERSION?=master
 DATE=`date -Iseconds`
 COMMIT?=`git rev-parse --verify HEAD`
 LDFLAGS="-X github.com/Mellanox/network-operator/version.Version=$(BUILD_VERSION) -X github.com/Mellanox/network-operator/version.Commit=$(COMMIT) -X github.com/Mellanox/network-operator/version.Date=$(DATE)"
+GCFLAGS=""
 BUILD_VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
 BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
 VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
@@ -39,13 +40,16 @@ VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
 
 # Docker
 IMAGE_BUILDER?=docker
-IMAGEDIR=$(CURDIR)/images
 DOCKERFILE?=$(CURDIR)/Dockerfile
 TAG?=mellanox/network-operator
+REGISTRY?=docker.io
+IMAGE_NAME?=network-operator
+CONTROLLER_IMAGE=$(REGISTRY)/$(IMAGE_NAME)
 IMAGE_BUILD_OPTS?=
 BUNDLE_IMG?=network-operator-bundle:$(VERSION)
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+BUILD_ARCH= amd64 arm64
 
 # USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
 # You can enable this value if you would like to use SHA Based Digests
@@ -219,7 +223,8 @@ lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-l
 
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
-	$Q $(HADOLINT) Dockerfile
+# Ignoring warning DL3029: Do not use --platform flag with FROM
+	$Q $(HADOLINT) --ignore DL3029 Dockerfile
 
 .PHONY: lint-helm
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
@@ -283,10 +288,41 @@ image: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg VCS_REF="$(VCS_REF)" \
 		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
 		--build-arg LDFLAGS=$(LDFLAGS) \
+		--build-arg ARCH="$(ARCH)" \
+		--build-arg GCFLAGS="$(GCFLAGS)" \
 		-t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-push:
 	$(IMAGE_BUILDER) push $(TAG)
+
+# Container image
+.PHONY: image-build
+image-build: ; $(info Building Docker image...)  @ ## Build container image
+	DOCKER_BUILDKIT=1 $(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
+		--build-arg VERSION="$(BUILD_VERSION)" \
+		--build-arg VCS_REF="$(VCS_REF)" \
+		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
+		--build-arg LDFLAGS=$(LDFLAGS) \
+		--build-arg ARCH="$(ARCH)" \
+		--build-arg GCFLAGS="$(GCFLAGS)" \
+		-t $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
+
+image-build-%:
+	make ARCH=$* image-build
+
+.PHONY: image-build-multiarch
+image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
+
+image-push-for-arch:
+	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION)
+
+image-push-for-arch-%:
+	make ARCH=$* image-push-for-arch
+
+.PHONY: image-push-multiarch
+image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
+	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) $(shell echo $(BUILD_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMAGE)\-&:$(VERSION)~g")
+	$(IMAGE_BUILDER) manifest push --purge  $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: chart-build
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
