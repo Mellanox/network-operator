@@ -19,6 +19,7 @@ ORG_PATH=github.com/Mellanox
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 CHART_PATH=$(CURDIR)/deployment/$(PACKAGE)
 TOOLSDIR=$(CURDIR)/hack/tools/bin
+MANIFESTDIR=$(CURDIR)/hack/manifests
 BUILDDIR=$(CURDIR)/build/_output
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
 TESTPKGS=./...
@@ -95,6 +96,9 @@ endif
 all: lint build
 
 $(TOOLSDIR):
+	@mkdir -p $@
+
+$(MANIFESTDIR):
 	@mkdir -p $@
 
 $(BUILDDIR): ; $(info Creating build directory...)
@@ -201,6 +205,12 @@ $(MOCKERY): | $(TOOLSDIR)
 	$(call go-install-tool,$(MOCKERY_PKG),$(MOCKERY_BIN),$(MOCKERY_VER))
 	$Q ln $(MOCKERY) $(MOCKERY_PATH)
 
+# cert-manager is used for webhook certs in the dev setup.
+CERT_MANAGER_YAML=$(MANIFESTDIR)/cert-manager.yaml
+CERT_MANAGER_VER=v1.13.3
+$(CERT_MANAGER_YAML): | $(MANIFESTDIR)
+	curl -fSsL "https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VER)/cert-manager.yaml" -o $(CERT_MANAGER_YAML)
+
 # Tests
 
 .PHONY: lint
@@ -296,6 +306,7 @@ chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
 clean: ; $(info  Cleaning...)	 @ ## Cleanup everything
 	@rm -rf $(BUILDDIR)
 	@rm -rf $(TOOLSDIR)
+	@rm -rf $(MANIFESTDIR)
 
 .PHONY: help
 help: ## Show this message
@@ -361,9 +372,13 @@ clean-minikube: $(MINIKUBE)  ## Delete the development minikube cluster.
 	$(MINIKUBE) delete -p $(MINIKUBE_CLUSTER_NAME)
 
 SKAFFOLD_REGISTRY=localhost:5000
-dev-skaffold: $(SKAFFOLD) dev-minikube ## Create a development minikube cluster and deploy the operator in debug mode.
+dev-skaffold: $(SKAFFOLD) $(CERT_MANAGER_YAML) dev-minikube ## Create a development minikube cluster and deploy the operator in debug mode.
 	## Deploy the network attachment definition CRD.
 	kubectl apply -f hack/crds/*
+	## Deploy cert manager to provide certificates for webhooks.
+	$Q kubectl apply -f $(CERT_MANAGER_YAML) \
+	&& echo "Waiting for cert-manager deployment to be ready."\
+	&& kubectl wait --for=condition=ready pod -l app=webhook --timeout=60s -n cert-manager
 	# Use minikube for docker build and deployment.
 	$Q eval $$($(MINIKUBE) -p $(MINIKUBE_CLUSTER_NAME) docker-env); \
 	$(SKAFFOLD) debug --default-repo=$(SKAFFOLD_REGISTRY) --detect-minikube=false

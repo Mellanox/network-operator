@@ -82,7 +82,7 @@ if [[ $($MINIKUBE_BIN status -p $CLUSTER_NAME  -f '{{.Name}}') == $CLUSTER_NAME 
   exit 0
 fi
 
-$MINIKUBE_BIN start --profile $CLUSTER_NAME $MINIKUBE_ARGS
+$MINIKUBE_BIN start --profile $CLUSTER_NAME $MINIKUBE_ARGS $MINIKUBE_EXTRA_ARGS
 
 ## Set environment variables to use the Minikube VM docker build for
 if [[ "$USE_MINIKUBE_DOCKER" == "true" ]]; then
