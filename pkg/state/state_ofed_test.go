@@ -214,16 +214,31 @@ var _ = Describe("MOFED state test", func() {
 			Expect(mergedEnvs).To(BeEquivalentTo(expectedEnvs))
 		},
 		Entry("add defaults when no env vars",
-			[]v1.EnvVar{}, []v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
+			[]v1.EnvVar{}, []v1.EnvVar{
+				{Name: envVarCreateIfNamesUdev, Value: "true"},
+				{Name: envVarDriversInventoryPath, Value: defaultDriversInventoryPath}}),
 		Entry("add defaults when env vars provided",
 			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "true"}}),
+			[]v1.EnvVar{
+				{Name: "Foo", Value: "Bar"},
+				{Name: envVarCreateIfNamesUdev, Value: "true"},
+				{Name: envVarDriversInventoryPath, Value: defaultDriversInventoryPath}}),
 		Entry("override defaults by user",
-			[]v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "false"}},
-			[]v1.EnvVar{{Name: "CREATE_IFNAMES_UDEV", Value: "false"}}),
+			[]v1.EnvVar{
+				{Name: envVarCreateIfNamesUdev, Value: "false"},
+				{Name: envVarDriversInventoryPath, Value: ""}},
+			[]v1.EnvVar{
+				{Name: envVarCreateIfNamesUdev, Value: "false"},
+				{Name: envVarDriversInventoryPath, Value: ""}}),
 		Entry("override defaults by user with additional env vars",
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "false"}},
-			[]v1.EnvVar{{Name: "Foo", Value: "Bar"}, {Name: "CREATE_IFNAMES_UDEV", Value: "false"}}),
+			[]v1.EnvVar{
+				{Name: "Foo", Value: "Bar"},
+				{Name: envVarCreateIfNamesUdev, Value: "false"},
+				{Name: envVarDriversInventoryPath, Value: ""}},
+			[]v1.EnvVar{
+				{Name: "Foo", Value: "Bar"},
+				{Name: envVarCreateIfNamesUdev, Value: "false"},
+				{Name: envVarDriversInventoryPath, Value: ""}}),
 	)
 
 	Context("Render Manifests", func() {
