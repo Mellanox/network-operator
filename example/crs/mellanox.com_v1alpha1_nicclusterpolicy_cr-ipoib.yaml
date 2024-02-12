@@ -63,8 +63,8 @@ spec:
       version: v1.3.0
     ipoib:
       image: ipoib-cni
-      repository: nvcr.io/nvidia/cloud-native
-      version: v1.1.0
+      repository: ghcr.io/mellanox
+      version: 428715a57c0b633e48ec7620f6e3af6863149ccf
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
