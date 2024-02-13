@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Ensure the final image uses the correct platform
+ARG ARCH
+
 # Build the manager binary
 FROM golang:1.20 as builder
 
 WORKDIR /workspace
 # Add kubectl tool
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${TARGETPLATFORM}/kubectl"
-RUN chmod +x ./kubectl
+# Using the $ARCH in the name of the binary here ensures we don't get any cross-arch caching after this binary is downloaded.
+ARG ARCH
+RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH}
+RUN chmod +x ./kubectl-${ARCH}
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -29,7 +32,6 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download -x
-
 
 # Copy the go source
 COPY ./ ./
@@ -41,16 +43,15 @@ RUN mkdir crds && \
     cp -r deployment/network-operator/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
 
 # Build
-ARG ARCH ?= $(shell go env GOARCH)
 ARG LDFLAGS
-ARG GO_BUILD_GC_ARGS
-RUN --mount=type=cache,target=/root/.cache/go-build \
-        --mount=type=cache,target=/go/pkg/mod \
-      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GO_BUILD_GC_ARGS}" -o manager main.go
+ARG GCFLAGS
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go
 
+FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.8
 
-FROM registry.access.redhat.com/ubi8-micro:8.8
-
+ARG ARCH
 ARG BUILD_DATE
 ARG VERSION
 ARG VCS_REF
@@ -74,7 +75,7 @@ LABEL org.label-schema.vcs-url="https://github.com/Mellanox/network-operator"
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY --from=builder /workspace/kubectl /usr/local/bin
+COPY --from=builder /workspace/kubectl-${ARCH} /usr/local/bin/kubectl
 COPY --from=builder /workspace/crds /crds
 
 COPY /webhook-schemas /webhook-schemas

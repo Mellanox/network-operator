@@ -11,7 +11,7 @@ build:
       docker:
        buildArgs:
          ## Used for debugging. Disable inlining and optimizations in the go compiler. Passed to go build using `-gcflags`
-         GO_BUILD_GC_ARGS: "all=-N -l"
+         GCFLAGS: "all=-N -l"
        dockerfile: Dockerfile
 manifests:
   ## Deploy the manager.

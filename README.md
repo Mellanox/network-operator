@@ -447,13 +447,17 @@ Example can be found under `./example/crs/mellanox.com_v1alpha1_macvlannetwork_c
 A deployment example can be found under `example` folder [here](https://github.com/Mellanox/network-operator/blob/master/example/README.md).
 
 ## Docker image
-Network operator uses `alpine` base image by default. To build Network operator with
-another base image you need to pass `BASE_IMAGE` argument:
-
+To build a container image for Network Operator use:
+```bash
+make image
 ```
-docker build -t network-operator \
---build-arg BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:latest \
-.
+
+To build a multi-arch image and publish to a registry use:
+```bash
+export REGISTRY=example.com/registry 
+export IMAGE_NAME=network-operator 
+export VERSION=v1.1.1 
+make image-build-multiarch image-push-multiarch
 ```
 
 ## Driver Containers
