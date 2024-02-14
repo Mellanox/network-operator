@@ -295,7 +295,11 @@ image: ; $(info Building Docker image...)  @ ## Build container image
 image-push:
 	$(IMAGE_BUILDER) push $(TAG)
 
-# Container image
+# Targets for multi-arch container builds
+# The multi arch build flow first builds containers locally with a suffix in the image tag stating the architecture.
+# Each of these images is then tagged and pushed to the registry as `$(CONTROLLER_IMAGE):$(VERSION)`.
+# A manifest is created linking all of the images together.
+# None of the resulting images in the registry have an architecture specific tag or name.
 .PHONY: image-build
 image-build: ; $(info Building Docker image...)  @ ## Build container image
 	DOCKER_BUILDKIT=1 $(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
@@ -305,24 +309,28 @@ image-build: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg LDFLAGS=$(LDFLAGS) \
 		--build-arg ARCH="$(ARCH)" \
 		--build-arg GCFLAGS="$(GCFLAGS)" \
-		-t $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
+		-t $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-build-%:
-	make ARCH=$* image-build
+	$(MAKE) ARCH=$* image-build
 
 .PHONY: image-build-multiarch
 image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
 
-image-push-for-arch:
-	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE)-$(ARCH):$(VERSION)
+DOCKER_MANIFEST_CREATE_ARGS?="--amend"
+image-manifest-for-arch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
+	$(IMAGE_BUILDER) manifest create $(DOCKER_MANIFEST_CREATE_ARGS)  $(CONTROLLER_IMAGE):$(VERSION) $(shell $(IMAGE_BUILDER) inspect --format='{{index .RepoDigests 0}}' $(CONTROLLER_IMAGE):$(VERSION))
 
 image-push-for-arch-%:
-	make ARCH=$* image-push-for-arch
+	$(IMAGE_BUILDER) tag $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH) $(CONTROLLER_IMAGE):$(VERSION)
+	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)
+
+image-manifest-for-arch-%:
+	$(MAKE) ARCH=$* image-manifest-for-arch
 
 .PHONY: image-push-multiarch
-image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
-	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) $(shell echo $(BUILD_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMAGE)\-&:$(VERSION)~g")
-	$(IMAGE_BUILDER) manifest push --purge  $(CONTROLLER_IMAGE):$(VERSION)
+image-push-multiarch: $(addprefix image-manifest-for-arch-,$(BUILD_ARCH))
+	$(IMAGE_BUILDER) manifest push  $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: chart-build
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
