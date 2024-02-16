@@ -129,7 +129,7 @@ func (s *stateNICFeatureDiscovery) Sync(
 	return syncState, nil
 }
 
-// Get a map of source kinds that should be watched for the state keyed by the source kind name
+// GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *stateNICFeatureDiscovery) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
 	wr["DaemonSet"] = &appsv1.DaemonSet{}
