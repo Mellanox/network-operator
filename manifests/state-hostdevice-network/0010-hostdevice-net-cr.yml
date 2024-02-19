@@ -10,5 +10,5 @@ spec:
   "cniVersion":"0.3.1",
   "name":"{{.HostDeviceNetworkName}}",
   "type":"host-device",
-  "ipam": {{.CrSpec.IPAM}}
+  "ipam":{{or .CrSpec.IPAM "{}"}}
 }'
