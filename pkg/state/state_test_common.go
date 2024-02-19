@@ -18,17 +18,7 @@ package state
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	. "github.com/onsi/gomega" //nolint
 )
-
-func checkRenderedNetAttachDef(obj *unstructured.Unstructured, namespace, name, ipam string) {
-	Expect(obj.GetKind()).To(Equal("NetworkAttachmentDefinition"))
-	Expect(obj.Object["metadata"].(map[string]interface{})["name"].(string)).To(Equal(name))
-	Expect(obj.Object["metadata"].(map[string]interface{})["namespace"].(string)).To(Equal(namespace))
-	Expect(obj.Object["spec"].(map[string]interface{})["config"].(string)).To(ContainSubstring(name))
-	Expect(obj.Object["spec"].(map[string]interface{})["config"].(string)).To(ContainSubstring(ipam))
-}
 
 type checkFunc func(object *unstructured.Unstructured)
 
