@@ -416,7 +416,7 @@ clean-minikube: $(MINIKUBE)  ## Delete the development minikube cluster.
 	$(MINIKUBE) delete -p $(MINIKUBE_CLUSTER_NAME)
 
 SKAFFOLD_REGISTRY=localhost:5000
-dev-skaffold: $(SKAFFOLD) $(CERT_MANAGER_YAML) dev-minikube ## Create a development minikube cluster and deploy the operator in debug mode.
+dev-skaffold: $(SKAFFOLD) $(CERT_MANAGER_YAML) manifests generate dev-minikube ## Create a development minikube cluster and deploy the operator in debug mode.
 	## Deploy the network attachment definition CRD.
 	kubectl apply -f hack/crds/*
 	## Deploy cert manager to provide certificates for webhooks.

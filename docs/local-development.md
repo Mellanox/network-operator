@@ -72,7 +72,7 @@ From the root directory of the `network-operator` repository run:
 
 Export a registry to push images to:
 
-`export REGISTRY="localhost:5000`
+`export REGISTRY="localhost:5000"`
 
 From the root directory of the `network-operator` repository run:
 

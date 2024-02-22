@@ -12,6 +12,7 @@ build:
        buildArgs:
          ## Used for debugging. Disable inlining and optimizations in the go compiler. Passed to go build using `-gcflags`
          GCFLAGS: "all=-N -l"
+         ARCH: "amd64"
        dockerfile: Dockerfile
 manifests:
   ## Deploy the manager.
