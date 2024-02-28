@@ -65,7 +65,7 @@ spec:
   - networking
   links:
   - name: Network Operator Documentation
-    url: https://docs.nvidia.com/networking/display/COKAN10/Network+Operator
+    url: https://docs.nvidia.com/networking/display/kubernetes2410
   - name: GitHub repository
     url: https://github.com/Mellanox/network-operator/
   maintainers:

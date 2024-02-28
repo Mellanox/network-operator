@@ -20,7 +20,7 @@ RDMA workloads in a kubernetes cluster including:
 
 ### Documentation
 
-For more information please visit the official [documentation](https://docs.mellanox.com/display/COKAN10).
+For more information please visit the official [documentation](https://docs.nvidia.com/networking/display/kubernetes2410).
 
 ## Additional components
 
