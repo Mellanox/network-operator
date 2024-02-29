@@ -80,9 +80,12 @@ const (
 
 // names of environment variables which used for OFED proxy configuration
 const (
-	envVarNameHTTPProxy  = "HTTP_PROXY"
-	envVarNameHTTPSProxy = "HTTPS_PROXY"
-	envVarNameNoProxy    = "NO_PROXY"
+	envVarNameHTTPProxy         = "HTTP_PROXY"
+	envVarNameHTTPSProxy        = "HTTPS_PROXY"
+	envVarNameNoProxy           = "NO_PROXY"
+	envVarCreateIfNamesUdev     = "CREATE_IFNAMES_UDEV"
+	envVarDriversInventoryPath  = "NVIDIA_NIC_DRIVERS_INVENTORY_PATH"
+	defaultDriversInventoryPath = "/mnt/drivers-inventory"
 )
 
 // CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
@@ -647,13 +650,18 @@ func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPo
 // mergeWithDefaultEnvs returns env variables provided in currentEnvs merged with default
 // env variables for MOFED container.
 func (s *stateOFED) mergeWithDefaultEnvs(currentEnvs []v1.EnvVar) []v1.EnvVar {
-	if envVarsWithGet(currentEnvs).Get("CREATE_IFNAMES_UDEV") != nil {
-		// already exists dont overwrite
-		return currentEnvs
-	}
+	envs := currentEnvs
 
 	// CREATE_IFNAMES_UDEV: should be set to true if not provided.
-	return append(currentEnvs, v1.EnvVar{Name: "CREATE_IFNAMES_UDEV", Value: "true"})
+	if envVarsWithGet(currentEnvs).Get(envVarCreateIfNamesUdev) == nil {
+		envs = append(envs, v1.EnvVar{Name: envVarCreateIfNamesUdev, Value: "true"})
+	}
+	// NVIDIA_NIC_DRIVERS_INVENTORY_PATH: should be set to true if not provided.
+	if envVarsWithGet(currentEnvs).Get(envVarDriversInventoryPath) == nil {
+		envs = append(envs, v1.EnvVar{Name: envVarDriversInventoryPath, Value: defaultDriversInventoryPath})
+	}
+
+	return envs
 }
 
 // envVarsWithGet is a wrapper type for []EnvVar to extend with additional functionality

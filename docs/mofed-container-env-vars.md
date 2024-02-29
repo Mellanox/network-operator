@@ -23,6 +23,7 @@ In most deployments its expected to not require setting those.
 | UNLOAD_STORAGE_MODULES |N|`"false"`| unload host storage modules prior to loading mofed modules  |
 | ENABLE_NFSRDMA |N|`"false"`| enable loading of nfs relates storage modules from mofed container|
 | RESTORE_DRIVER_ON_POD_TERMINATION |N|`"true"`| restore host drivers when container is gracefully stopped |
+| NVIDIA_NIC_DRIVERS_INVENTORY_PATH | N | `"/mnt/drivers-inventory"` | enable use of a persistent directory to store drivers' build artifacts to avoid recompilation between runs. Keep the default value or set to "" to disable. |
 
 In addition, the user can specify essentially any environment variables to be exposed to the MOFED container such as
 the standard `"HTTP_PROXY"`, `"HTTPS_PROXY"`, `"NO_PROXY"`

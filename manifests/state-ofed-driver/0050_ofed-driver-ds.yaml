@@ -112,6 +112,8 @@ spec:
               readOnly: true
             - name: host-lib-modules
               mountPath: /host/lib/modules
+            - name: drivers-inventory
+              mountPath: /mnt/drivers-inventory
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
             {{- range .AdditionalVolumeMounts.VolumeMounts }}
             - name: {{ .Name }}
@@ -219,6 +221,10 @@ spec:
         - name: host-lib-modules
           hostPath:
             path: /lib/modules
+        - name: drivers-inventory
+          hostPath:
+            path: /var/opt/mofed-container/inventory
+            type: DirectoryOrCreate
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
           configMap:
