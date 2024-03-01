@@ -221,6 +221,10 @@ $(CERT_MANAGER_YAML): | $(MANIFESTDIR)
 lint: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint
 	$Q $(GOLANGCI_LINT) run --timeout=10m
 
+.PHONY: lint-fix
+lint-fix: | $(GOLANGCI_LINT) ; $(info  running golangci-lint...) @ ## Run golangci-lint and fix findings where possible
+	$Q $(GOLANGCI_LINT) run --timeout=10m --fix
+
 .PHONY: lint-dockerfile
 lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...) @ ## Run hadolint
 # Ignoring warning DL3029: Do not use --platform flag with FROM
