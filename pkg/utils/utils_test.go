@@ -26,20 +26,29 @@ import (
 )
 
 var _ = Describe("Utils tests", func() {
-	var clusterTypeProvider mocks.Provider
 
 	Context("Testing CniBinDirectory retrieval", func() {
 		It("Should return user set directory", func() {
 			userSetDir := "/user/set/directory"
 			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: userSetDir})
+			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(false)
 			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
 			Expect(result).To(Equal(userSetDir))
 		})
 
-		It("Should return Openshift directory for OCP cluster", func() {
+		It("Should return user set directory for OCP cluster", func() {
 			userSetDir := "/user/set/directory"
 			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: userSetDir})
+			clusterTypeProvider := mocks.Provider{}
+			clusterTypeProvider.On("IsOpenshift").Return(true)
+			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
+			Expect(result).To(Equal(userSetDir))
+		})
+
+		It("Should return default Openshift directory for OCP cluster", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: ""})
+			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(true)
 			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
 			Expect(result).To(Equal(consts.OcpCniBinDirectory))
@@ -47,6 +56,7 @@ var _ = Describe("Utils tests", func() {
 
 		It("Should return default K8s directory for non-OCP cluster", func() {
 			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: ""})
+			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(false)
 			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
 			Expect(result).To(Equal(consts.DefaultCniBinDirectory))
