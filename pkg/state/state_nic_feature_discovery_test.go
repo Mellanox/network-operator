@@ -22,9 +22,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("NicClusterPolicyReconciler Controller", func() {

@@ -28,11 +28,18 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      tolerations:
+      {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: NoSchedule
       containers:
       - name: doca-telemetry-service
         image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
         {{- with .RuntimeSpec.ContainerResources }}
-        {{- with index . "nic-feature-discovery" }}
+        {{- with index . "doca-telemetry-service" }}
         resources:
           {{- if .Requests }}
           requests:
@@ -40,7 +47,7 @@ spec:
           {{- end }}
           {{- if .Limits }}
           limits:
-            { { .Limits | yaml | nindent 14 }}
+            {{ .Limits | yaml | nindent 14 }}
           {{- end }}
         {{- end }}
         {{- end }}
