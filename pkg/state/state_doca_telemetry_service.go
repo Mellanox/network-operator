@@ -52,11 +52,12 @@ const (
 
 // DOCATelemetryServiceManifestRenderData is used to render Kubernetes objects related to DOCA Telemetry Service.
 type DOCATelemetryServiceManifestRenderData struct {
-	CrSpec        *mellanoxv1alpha1.DOCATelemetryServiceSpec
-	ConfigMapName string
-	RuntimeSpec   *dtsRuntimeSpec
-	Tolerations   []v1.Toleration
-	NodeAffinity  *v1.NodeAffinity
+	CrSpec          *mellanoxv1alpha1.DOCATelemetryServiceSpec
+	ConfigMapName   string
+	DeployConfigMap bool
+	RuntimeSpec     *dtsRuntimeSpec
+	Tolerations     []v1.Toleration
+	NodeAffinity    *v1.NodeAffinity
 }
 
 // Sync attempt to get the system to match the desired state which State represents.
@@ -123,10 +124,11 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 		configMapName = dts.Config.FromConfigMap
 	}
 	renderData := &DOCATelemetryServiceManifestRenderData{
-		CrSpec:        dts,
-		ConfigMapName: configMapName,
-		Tolerations:   cr.Spec.Tolerations,
-		NodeAffinity:  cr.Spec.NodeAffinity,
+		CrSpec:          dts,
+		ConfigMapName:   configMapName,
+		DeployConfigMap: shouldDeployConfigMap(cr.Spec.DOCATelemetryService),
+		Tolerations:     cr.Spec.Tolerations,
+		NodeAffinity:    cr.Spec.NodeAffinity,
 		RuntimeSpec: &dtsRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			ContainerResources: createContainerResourcesMap(cr.Spec.DOCATelemetryService.ContainerResources),
@@ -140,16 +142,6 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
 
-	// Remove the configMap from the deployment if an explicit config is set.
-	if !shouldDeployConfigMap(cr.Spec.DOCATelemetryService) {
-		for i := range renderedObjects {
-			if renderedObjects[i].GetKind() == "ConfigMap" {
-				reqLogger.V(consts.LogLevelDebug).Info("Not rendering ConfigMap for DocaTelemetryService")
-				renderedObjects = append(renderedObjects[:i], renderedObjects[i+1:]...)
-				continue
-			}
-		}
-	}
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", renderedObjects)
 	return renderedObjects, nil
 }

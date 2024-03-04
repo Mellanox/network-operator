@@ -73,6 +73,7 @@ spec:
         - name: cni
           hostPath:
             path: /var/run/k8s.cni.cncf.io/devinfo/cni/
+{{ if .DeployConfigMap }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -136,4 +137,4 @@ data:
 
     # Comma-separated list of data source tags to be ignored by Prometheus exporter
     prometheus-ignore-tags=FI_metrics
-
+{{end}}
