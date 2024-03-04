@@ -100,7 +100,7 @@ var _ = Describe("Validate", func() {
 				ContainSubstring("pKeyGUIDPoolRangeStart must be a valid GUID format"),
 				ContainSubstring("pKeyGUIDPoolRangeEnd must be a valid GUID format")))
 		})
-		It("Valid MOFED version", func() {
+		It("Valid MOFED version (old scheme)", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -110,6 +110,42 @@ var _ = Describe("Validate", func() {
 							Image:            "mofed",
 							Repository:       "ghcr.io/mellanox",
 							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version (old scheme with container version suffix)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0.1",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "24.01-0.3.3.1-0",
 							ImagePullSecrets: []string{},
 						},
 					},

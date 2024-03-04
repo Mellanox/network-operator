@@ -659,7 +659,7 @@ func validateResources(resources map[v1.ResourceName]apiresource.Quantity, allEr
 
 // isValidOFEDVersion is a custom function to validate OFED version
 func isValidOFEDVersion(version string) bool {
-	versionPattern := `^(\d+\.\d+-\d+(\.\d+)*)$`
+	versionPattern := `^(\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
 	versionRegex := regexp.MustCompile(versionPattern)
 	return versionRegex.MatchString(version)
 }
