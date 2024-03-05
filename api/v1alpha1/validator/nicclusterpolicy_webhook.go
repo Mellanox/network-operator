@@ -25,13 +25,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
-	"golang.org/x/exp/slices"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apiresource "k8s.io/apimachinery/pkg/api/resource"
