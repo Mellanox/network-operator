@@ -441,6 +441,21 @@ nicFeatureDiscovery:
   #       cpu: "300m"
   #       memory: "150Mi"
 
+docaTelemetryService:
+  deploy: false
+  image: {{ .DOCATelemetryService.Image }}
+  repository: {{ .DOCATelemetryService.Repository }}
+  version: {{ .DOCATelemetryService.Version }}
+  # imagePullSecrets: []
+  # containerResources:
+  #   - name: "doca-telemetry-service"
+  #     requests:
+  #       cpu: "100m"
+  #       memory: "50Mi"
+  #     limits:
+  #       cpu: "300m"
+  #       memory: "150Mi"
+
 # Can be set to nicclusterpolicy and override other ds node affinity,
 # e.g. https://github.com/Mellanox/network-operator/blob/master/manifests/state-multus-cni/0050-multus-ds.yml#L26-L36
 #nodeAffinity:

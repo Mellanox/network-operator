@@ -228,3 +228,20 @@ imagePullSecrets helpers
 {{- end }}
 {{- $imagePullSecrets | toJson }}
 {{- end }}
+
+{{- define "network-operator.docaTelemetryService.imagePullSecrets" }}
+{{- $imagePullSecrets := list }}
+{{- if .Values.docaTelemetryService.imagePullSecrets }}
+{{- range .Values.docaTelemetryService.imagePullSecrets }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
+{{- end }}
+{{- else }}
+{{- if .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+{{- $imagePullSecrets  = append $imagePullSecrets  . }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $imagePullSecrets | toJson }}
+{{- end }}
+
