@@ -120,10 +120,10 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 
 ##### Currently the following NFD labels are used:
 
-| Label | Where |
-| ----- | ----- |
+| Label                                         | Where                                             |
+|-----------------------------------------------|---------------------------------------------------|
 | `feature.node.kubernetes.io/pci-15b3.present` | Nodes bearing Nvidia Mellanox Networking hardware |
-| `nvidia.com/gpu.present` | Nodes bearing Nvidia GPU hardware |
+| `nvidia.com/gpu.present`                      | Nodes bearing Nvidia GPU hardware                 |
 
 > __Note:__ The labels which Network Operator depends on may change between releases.
 
@@ -383,7 +383,7 @@ parameters.
 | `deployCR`                                           | bool   | `false`                                  | Deploy `NicClusterPolicy` custom resource according to provided parameters                                                                                                                                                                                     |
 | `nodeAffinity`                                       | yaml   | ``                                       | Override the node affinity for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.                                                                                                                                         |
 | `tolerations`                                        | yaml   | ``                                       | Set additional tolerations for various Daemonsets deployed by network operator, e.g. whereabouts, multus, cni-plugins.                                                                                                                                         |
-| `useDTK`                                             | bool   | `True`                                   | Enable use of Driver ToolKit to compile OFED drivers (OpenShift Only).                                                                                                                                               |
+| `useDTK`                                             | bool   | `True`                                   | Enable use of Driver ToolKit to compile OFED drivers (OpenShift Only).                                                                                                                                                                                         |
 
 #### imagePullSecrets customization
 
@@ -452,7 +452,7 @@ containerResources:
 #### RDMA Device Plugin
 
 | Name                                        | Type   | Default                       | Description                                                                                                                    |
-| ------------------------------------------- | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+|---------------------------------------------|--------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | `rdmaSharedDevicePlugin.deploy`             | bool   | `true`                        | Deploy RDMA Shared device plugin                                                                                               |
 | `rdmaSharedDevicePlugin.repository`         | string | `nvcr.io/nvidia/cloud-native` | RDMA Shared device plugin image repository                                                                                     |
 | `rdmaSharedDevicePlugin.image`              | string | `k8s-rdma-shared-dev-plugin`  | RDMA Shared device plugin image name                                                                                           |
@@ -486,7 +486,7 @@ resources:
 #### SR-IOV Network Device plugin
 
 | Name                                   | Type   | Default                        | Description                                                                                                                    |
-| -------------------------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+|----------------------------------------|--------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | `sriovDevicePlugin.deploy`             | bool   | `false`                        | Deploy SR-IOV Network device plugin                                                                                            |
 | `sriovDevicePlugin.repository`         | string | `ghcr.io/k8snetworkplumbingwg` | SR-IOV Network device plugin image repository                                                                                  |
 | `sriovDevicePlugin.image`              | string | `sriov-network-device-plugin`  | SR-IOV Network device plugin image name                                                                                        |
@@ -647,13 +647,26 @@ optionally deployed components:
 leverages [Node Feature Discovery](https://kubernetes-sigs.github.io/node-feature-discovery/stable/get-started/index.html)
 to advertise NIC specific labels on K8s Node objects.
 
-| Name                                     | Type   | Default                  | Description                                                                                             |
-|------------------------------------------| ------ |--------------------------|---------------------------------------------------------------------------------------------------------|
-| `nicFeatureDiscovery.deploy`             | bool   | `false`                  | Deploy NVIDIA NIC Feature Discovery                                                                     |
-| `nicFeatureDiscovery.image`              | string | `nic-feature-discovery`  | NVIDIA NIC Feature Discovery image name                                                                 |
-| `nicFeatureDiscovery.repository`         | string | `ghcr.io/mellanox`       | NVIDIA NIC Feature Discovery image repository                                                           |
-| `nicFeatureDiscovery.version`            | string | `v0.0.1`                 | NVIDIA NIC Feature Discovery image version                                                              |
-| `nicFeatureDiscovery.containerResources` | []     | not set                  | Optional [resource requests and limits](#container-resources) for the `nic-feature-discovery` container |
+| Name                                     | Type   | Default                 | Description                                                                                             |
+|------------------------------------------|--------|-------------------------|---------------------------------------------------------------------------------------------------------|
+| `nicFeatureDiscovery.deploy`             | bool   | `false`                 | Deploy NVIDIA NIC Feature Discovery                                                                     |
+| `nicFeatureDiscovery.image`              | string | `nic-feature-discovery` | NVIDIA NIC Feature Discovery image name                                                                 |
+| `nicFeatureDiscovery.repository`         | string | `ghcr.io/mellanox`      | NVIDIA NIC Feature Discovery image repository                                                           |
+| `nicFeatureDiscovery.version`            | string | `v0.0.1`                | NVIDIA NIC Feature Discovery image version                                                              |
+| `nicFeatureDiscovery.containerResources` | []     | not set                 | Optional [resource requests and limits](#container-resources) for the `nic-feature-discovery` container |
+
+#### DOCA Telemetry Service
+
+[DOCA Telemetry Service](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/doca/containers/doca_telemetry) exports metrics from NVIDIA NICs on K8s Nodes.
+
+| Name                                      | Type   | Default                 | Description                                                                                             |
+|-------------------------------------------|--------|-------------------------|---------------------------------------------------------------------------------------------------------|
+| `docaTelemetryService.deploy`             | bool   | `false`                 | Deploy DOCA Telemetry Service                                                                           |
+| `docaTelemetryService.image`              | string | `doca_telemetry`        | DOCA Telemetry Service image name                                                                       |
+| `docaTelemetryService.repository`         | string | `nvcr.io/nvidia/doca`   | DOCA Telemetry Service image repository                                                                 |
+| `docaTelemetryService.version`            | string | `1.15.5-doca2.5.0-host` | DOCA Telemetry Service image version                                                                    |
+| `docaTelemetryService.imagePullSecrets`   | string | not set                 | An optional list of references to secrets to use for pulling the DOCA Telemetry Service images          |
+| `docaTelemetryService.containerResources` | []     | not set                 | Optional [resource requests and limits](#container-resources) for the `nic-feature-discovery` container |
 
 ## Deployment Examples
 
