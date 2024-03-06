@@ -181,6 +181,14 @@ spec:
           {{- end }}
           {{- end }}
           volumeMounts:
+            {{- if.AdditionalVolumeMounts.VolumeMounts }}
+            {{- range .AdditionalVolumeMounts.VolumeMounts }}
+            - name: {{ .Name }}
+              mountPath: {{ .MountPath }}
+              subPath: {{ .SubPath }}
+              readOnly: {{ .ReadOnly }}
+            {{- end }}
+            {{- end }}
             - name: shared-doca-driver-toolkit
               mountPath: /mnt/shared-doca-driver-toolkit
           {{- with index .RuntimeSpec.ContainerResources "openshift-driver-toolkit-ctr" }}
