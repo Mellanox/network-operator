@@ -20,6 +20,7 @@ import (
 	"context"
 	"strings"
 
+	"golang.org/x/exp/slices"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -277,7 +278,7 @@ var _ = Describe("MOFED state test", func() {
 		})
 	})
 	Context("Render Manifests DTK", func() {
-		It("Should Render DaemonSet with DTK", func() {
+		It("Should Render DaemonSet with DTK and additional mounts", func() {
 			dtkImageName := "quay.io/openshift-release-dev/ocp-v4.0-art-dev:414"
 			dtkImageStream := &apiimagev1.ImageStream{
 				TypeMeta: metav1.TypeMeta{
@@ -300,9 +301,24 @@ var _ = Describe("MOFED state test", func() {
 					},
 				},
 			}
+			cmRepo := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "repo-cm",
+					Namespace: "nvidia-network-operator",
+				},
+				Data: map[string]string{"ubi.repo": "somerepocontents"},
+			}
+			cmCert := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cert-cm",
+					Namespace: "nvidia-network-operator",
+				},
+				Data: map[string]string{"my-cert": "somecertificate"},
+			}
 			scheme := runtime.NewScheme()
+			Expect(v1.AddToScheme(scheme)).NotTo(HaveOccurred())
 			Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
-			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dtkImageStream).Build()
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dtkImageStream, cmRepo, cmCert).Build()
 			manifestBaseDir := "../../manifests/state-ofed-driver"
 
 			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
@@ -324,6 +340,12 @@ var _ = Describe("MOFED state test", func() {
 					Image:      "mofed",
 					Repository: "nvcr.io/mellanox",
 					Version:    "23.10-0.5.5.0",
+				},
+				RepoConfig: &v1alpha1.ConfigMapNameReference{
+					Name: "repo-cm",
+				},
+				CertConfig: &v1alpha1.ConfigMapNameReference{
+					Name: "cert-cm",
 				},
 				Env: []v1.EnvVar{
 					{
@@ -360,6 +382,9 @@ var _ = Describe("MOFED state test", func() {
 				Expect(len(ds.Spec.Template.Spec.Containers)).To(Equal(2))
 				dtkContainer := ds.Spec.Template.Spec.Containers[1]
 				Expect(dtkContainer.Image).To(Equal(dtkImageName))
+				verifyAdditionalMounts(ds.Spec.Template.Spec.Containers[0].VolumeMounts)
+				verifyAdditionalMounts(ds.Spec.Template.Spec.Containers[1].VolumeMounts)
+				verifyAdditionalVolumes(ds.Spec.Template.Spec.Volumes)
 			}
 		})
 	})
@@ -386,6 +411,78 @@ func verifyPodAntiInfinity(affinity *v1.Affinity) {
 		},
 	}
 	Expect(*affinity).To(BeEquivalentTo(expected))
+}
+
+func verifyAdditionalMounts(mounts []v1.VolumeMount) {
+	By("Verify Additional Mounts")
+	repo := v1.VolumeMount{
+		Name:             "repo-cm",
+		ReadOnly:         true,
+		MountPath:        "/etc/apt/sources.list.d/ubi.repo",
+		SubPath:          "ubi.repo",
+		MountPropagation: nil,
+		SubPathExpr:      "",
+	}
+	Expect(slices.Contains(mounts, repo)).To(BeTrue())
+	cert := v1.VolumeMount{
+		Name:             "cert-cm",
+		ReadOnly:         true,
+		MountPath:        "/etc/ssl/certs/my-cert",
+		SubPath:          "my-cert",
+		MountPropagation: nil,
+		SubPathExpr:      "",
+	}
+	Expect(slices.Contains(mounts, cert)).To(BeTrue())
+}
+
+func verifyAdditionalVolumes(volumes []v1.Volume) {
+	By("Verify Additional Volumes")
+	certVol := v1.Volume{
+		Name: "cert-cm",
+		VolumeSource: v1.VolumeSource{
+			ConfigMap: &v1.ConfigMapVolumeSource{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "cert-cm",
+				},
+				Items: []v1.KeyToPath{
+					{
+						Key:  "my-cert",
+						Path: "my-cert",
+					},
+				},
+			},
+		},
+	}
+	repoVol := v1.Volume{
+		Name: "repo-cm",
+		VolumeSource: v1.VolumeSource{
+			ConfigMap: &v1.ConfigMapVolumeSource{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "repo-cm",
+				},
+				Items: []v1.KeyToPath{
+					{
+						Key:  "ubi.repo",
+						Path: "ubi.repo",
+					},
+				},
+			},
+		},
+	}
+	foundCert := false
+	foundRepo := false
+	for i := range volumes {
+		if volumes[i].Name == "cert-cm" {
+			Expect(volumes[i]).To(BeEquivalentTo(certVol))
+			foundCert = true
+		}
+		if volumes[i].Name == "repo-cm" {
+			Expect(volumes[i]).To(BeEquivalentTo(repoVol))
+			foundRepo = true
+		}
+	}
+	Expect(foundCert).To(BeTrue())
+	Expect(foundRepo).To(BeTrue())
 }
 
 func verifyDSNodeSelector(selector map[string]string) {
