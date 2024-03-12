@@ -664,7 +664,7 @@ to advertise NIC specific labels on K8s Node objects.
 | `docaTelemetryService.deploy`             | bool   | `false`                 | Deploy DOCA Telemetry Service                                                                           |
 | `docaTelemetryService.image`              | string | `doca_telemetry`        | DOCA Telemetry Service image name                                                                       |
 | `docaTelemetryService.repository`         | string | `nvcr.io/nvidia/doca`   | DOCA Telemetry Service image repository                                                                 |
-| `docaTelemetryService.version`            | string | `1.15.5-doca2.5.0-host` | DOCA Telemetry Service image version                                                                    |
+| `docaTelemetryService.version`            | string | `1.16.5-doca2.6.0-host` | DOCA Telemetry Service image version                                                                    |
 | `docaTelemetryService.imagePullSecrets`   | string | not set                 | An optional list of references to secrets to use for pulling the DOCA Telemetry Service images          |
 | `docaTelemetryService.containerResources` | []     | not set                 | Optional [resource requests and limits](#container-resources) for the `nic-feature-discovery` container |
 

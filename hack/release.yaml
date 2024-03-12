@@ -68,4 +68,4 @@ nicFeatureDiscovery:
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
-  version: 1.15.5-doca2.5.0-host
+  version: 1.16.5-doca2.6.0-host
