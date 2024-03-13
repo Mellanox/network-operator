@@ -15,20 +15,22 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
+    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
     nvidia.com/ofed-driver: ""
-  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-ds
+    mofed-ds-format-version: "1"
+  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
   updateStrategy:
     type: OnDelete
   selector:
     matchLabels:
-      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
+      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
   template:
     metadata:
       labels:
-        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}
+        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
+        kernel: {{ .RuntimeSpec.Kernel }}
         nvidia.com/ofed-driver: ""
     spec:
       priorityClassName: system-node-critical
@@ -250,6 +252,10 @@ spec:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         feature.node.kubernetes.io/system-os_release.ID: {{ .RuntimeSpec.OSName }}
         feature.node.kubernetes.io/system-os_release.VERSION_ID: "{{ .RuntimeSpec.OSVer }}"
+        feature.node.kubernetes.io/kernel-version.full: "{{ .RuntimeSpec.Kernel }}"
+        {{- if .RuntimeSpec.UseDtk }}
+        feature.node.kubernetes.io/system-os_release.OSTREE_VERSION: "{{ .RuntimeSpec.RhcosVersion }}"
+        {{- end }}
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:

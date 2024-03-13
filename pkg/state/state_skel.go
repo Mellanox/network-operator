@@ -19,7 +19,6 @@ package state
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -33,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/revision"
 )
@@ -462,16 +460,6 @@ func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured, reqLogger l
 		return true, nil
 	}
 	return false, nil
-}
-
-// Check if provided attrTypes are present in NodeAttributes.Attributes
-func (s *stateSkel) checkAttributesExist(attrs nodeinfo.NodeAttributes, attrTypes ...nodeinfo.AttributeType) error {
-	for _, t := range attrTypes {
-		if _, ok := attrs.Attributes[t]; !ok {
-			return fmt.Errorf("mandatory node attribute does not exist for node %s", attrs.Name)
-		}
-	}
-	return nil
 }
 
 func (s *stateSkel) SetRenderer(renderer render.Renderer) {

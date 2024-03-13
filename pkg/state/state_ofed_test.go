@@ -18,7 +18,9 @@ package state
 
 import (
 	"context"
+	"fmt"
 	"slices"
+
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,6 +52,8 @@ const (
 	osName                    = "ubuntu"
 	osVer                     = "22.04"
 	rhcosOsTree               = "414.92.202311061957-0"
+	kernelFull1               = "5.15.0-78-generic"
+	kernelFull2               = "5.15.0-91-generic"
 )
 
 type openShiftClusterProvider struct {
@@ -77,10 +81,11 @@ var _ = Describe("MOFED state test", func() {
 	})
 
 	Context("getMofedDriverImageName", func() {
-		nodeAttr := make(map[nodeinfo.AttributeType]string)
-		nodeAttr[nodeinfo.AttrTypeCPUArch] = "amd64"
-		nodeAttr[nodeinfo.AttrTypeOSName] = "ubuntu"
-		nodeAttr[nodeinfo.AttrTypeOSVer] = "20.04"
+		nodePool := &nodeinfo.NodePool{
+			OsName:    "ubuntu",
+			OsVersion: "20.04",
+			Arch:      "amd64",
+		}
 
 		cr := &v1alpha1.NicClusterPolicy{
 			Spec: v1alpha1.NicClusterPolicySpec{
@@ -95,17 +100,17 @@ var _ = Describe("MOFED state test", func() {
 
 		It("generates new image format", func() {
 			cr.Spec.OFEDDriver.Version = "5.7-1.0.0.0"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodeAttr, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.7-1.0.0.0-ubuntu20.04-amd64"))
 		})
 		It("generates new image format double digit minor", func() {
 			cr.Spec.OFEDDriver.Version = "5.10-0.0.0.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodeAttr, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.10-0.0.0.1-ubuntu20.04-amd64"))
 		})
 		It("return new image format in case of a bad version", func() {
 			cr.Spec.OFEDDriver.Version = "1.1.1.1.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodeAttr, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:1.1.1.1.1-ubuntu20.04-amd64"))
 		})
 	})
@@ -242,8 +247,18 @@ var _ = Describe("MOFED state test", func() {
 				{Name: envVarDriversInventoryPath, Value: ""}}),
 	)
 
+	DescribeTable("GetStringHash",
+		func(input, hash string) {
+			computedHash := getStringHash(input)
+			Expect(computedHash).To(BeEquivalentTo(hash))
+		},
+		Entry("kernel rhcos", "5.14.0-284.43.1.el9_2.x86_64", "687cd9dc94"),
+		Entry("kernel ubuntu", "5.15.0-78-generic", "54669c9886"),
+		Entry("kernel ubuntu - patch 91", "5.15.0-91-generic", "6d568d699f"),
+	)
+
 	Context("Render Manifests", func() {
-		It("Should Render Mofed DaemonSet", func() {
+		It("Should Render multiple DaemonSet", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ofed-driver"
 
@@ -268,17 +283,21 @@ var _ = Describe("MOFED state test", func() {
 					Version:    "23.10-0.5.5.0",
 				},
 			}
-			By("Creating NodeProvider with 1 Node")
+
+			By("Creating NodeProvider with 3 Nodes, that form 2 Node pools")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+				getNode("node2", kernelFull2),
+				getNode("node3", kernelFull2),
+			})
 			catalog := NewInfoCatalog()
 			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-			catalog.Add(InfoTypeNodeInfo, nodeinfo.NewProvider([]*v1.Node{
-				getNode("node1"),
-			}))
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			// Expect 4 objects: DaemonSet, Service Account, ClusterRole, ClusterRoleBinding
-			Expect(len(objs)).To(Equal(4))
-			By("Verify DaemonSet")
+			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(5))
+			By("Verify DaemonSets NodeSelector")
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
 					continue
@@ -286,8 +305,12 @@ var _ = Describe("MOFED state test", func() {
 				ds := appsv1.DaemonSet{}
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(ds.Name).To(Equal("mofed-ubuntu22.04-ds"))
-				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector)
+				if ds.Name == fmt.Sprintf("mofed-%s%s-%s-ds", osName, osVer, "54669c9886") {
+					verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector, kernelFull1)
+				}
+				if ds.Name == fmt.Sprintf("mofed-%s%s-%s-ds", osName, osVer, "6d568d699f") {
+					verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector, kernelFull2)
+				}
 				verifyPodAntiInfinity(ds.Spec.Template.Spec.Affinity)
 			}
 		})
@@ -370,7 +393,7 @@ var _ = Describe("MOFED state test", func() {
 				},
 			}
 			By("Creating NodeProvider with 1 Node with RHCOS OS TREE label")
-			node := getNode("node1")
+			node := getNode("node1", kernelFull1)
 			node.Labels[nodeinfo.NodeLabelOSTreeVersion] = rhcosOsTree
 			infoProvider := nodeinfo.NewProvider([]*v1.Node{
 				node,
@@ -392,7 +415,7 @@ var _ = Describe("MOFED state test", func() {
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
 				Expect(err).NotTo(HaveOccurred())
 				By("Verify DaemonSet NodeSelector")
-				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector)
+				verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector, kernelFull1)
 				By("Verify DTK container image")
 				Expect(len(ds.Spec.Template.Spec.Containers)).To(Equal(2))
 				dtkContainer := ds.Spec.Template.Spec.Containers[1]
@@ -500,7 +523,7 @@ func verifyAdditionalVolumes(volumes []v1.Volume) {
 	Expect(foundRepo).To(BeTrue())
 }
 
-func verifyDSNodeSelector(selector map[string]string) {
+func verifyDSNodeSelector(selector map[string]string, kernelFull string) {
 	By("Verify NodeSelector")
 	nsMellanox, ok := selector["feature.node.kubernetes.io/pci-15b3.present"]
 	Expect(ok).To(BeTrue())
@@ -511,17 +534,21 @@ func verifyDSNodeSelector(selector map[string]string) {
 	nsOsVer, ok := selector["feature.node.kubernetes.io/system-os_release.VERSION_ID"]
 	Expect(ok).To(BeTrue())
 	Expect(nsOsVer).To(Equal(osVer))
+	nsKernelMinor, ok := selector["feature.node.kubernetes.io/kernel-version.full"]
+	Expect(ok).To(BeTrue())
+	Expect(nsKernelMinor).To(Equal(kernelFull))
 }
 
-func getNode(name string) *v1.Node {
+func getNode(name, kernelFull string) *v1.Node {
 	return &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				nodeinfo.NodeLabelMlnxNIC: "true",
-				nodeinfo.NodeLabelOSName:  osName,
-				nodeinfo.NodeLabelOSVer:   osVer,
-				nodeinfo.NodeLabelCPUArch: "amd64",
+				nodeinfo.NodeLabelMlnxNIC:       "true",
+				nodeinfo.NodeLabelOSName:        osName,
+				nodeinfo.NodeLabelOSVer:         osVer,
+				nodeinfo.NodeLabelKernelVerFull: kernelFull,
+				nodeinfo.NodeLabelCPUArch:       "amd64",
 			},
 		},
 	}

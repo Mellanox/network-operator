@@ -18,6 +18,7 @@ package controllers //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -41,8 +42,9 @@ import (
 // MacvlanNetworkReconciler reconciles a MacvlanNetwork object
 type MacvlanNetworkReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log         logr.Logger
+	Scheme      *runtime.Scheme
+	MigrationCh chan struct{}
 
 	stateManager state.Manager
 }
@@ -58,6 +60,12 @@ type MacvlanNetworkReconciler struct {
 //
 //nolint:dupl
 func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Wait for migration flow to finish
+	select {
+	case <-r.MigrationCh:
+	case <-ctx.Done():
+		return ctrl.Result{}, fmt.Errorf("canceled")
+	}
 	reqLogger := log.FromContext(ctx)
 	reqLogger.Info("Reconciling MacvlanNetwork")
 

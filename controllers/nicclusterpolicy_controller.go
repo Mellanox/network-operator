@@ -52,6 +52,7 @@ type NicClusterPolicyReconciler struct {
 	Scheme               *runtime.Scheme
 	ClusterTypeProvider  clustertype.Provider
 	StaticConfigProvider staticconfig.Provider
+	MigrationCh          chan struct{}
 
 	stateManager state.Manager
 }
@@ -87,6 +88,12 @@ type NicClusterPolicyReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Wait for migration flow to finish
+	select {
+	case <-r.MigrationCh:
+	case <-ctx.Done():
+		return ctrl.Result{}, fmt.Errorf("canceled")
+	}
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Reconciling NicClusterPolicy")
 
@@ -179,6 +186,10 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 	_ = r.Client.List(ctx, pods, client.MatchingLabels{"nvidia.com/ofed-driver": ""})
 	for i := range pods.Items {
 		pod := pods.Items[i]
+		if pod.Spec.NodeName == "" {
+			// In case that Pod is in Pending state
+			continue
+		}
 		labelValue := "true"
 		// We assume that OFED pod contains only one container to simplify the logic.
 		// We can revisit this logic in the future if needed

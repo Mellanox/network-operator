@@ -20,11 +20,11 @@ SriovConfigDaemon:
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v2.7.0
+  version: 3e6368077716f6b8368b0e036a1290d1c64cf1fb
 SriovIbCni:
   image: ib-sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v1.0.3
+  version: fc002af57a81855542759d0f77d16dacd7e1aa38
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox

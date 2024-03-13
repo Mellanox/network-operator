@@ -106,21 +106,27 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	migrationCompletionChan := make(chan struct{})
+	close(migrationCompletionChan)
+
 	err = (&HostDeviceNetworkReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:      k8sManager.GetClient(),
+		Scheme:      k8sManager.GetScheme(),
+		MigrationCh: migrationCompletionChan,
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IPoIBNetworkReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:      k8sManager.GetClient(),
+		Scheme:      k8sManager.GetScheme(),
+		MigrationCh: migrationCompletionChan,
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&MacvlanNetworkReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:      k8sManager.GetClient(),
+		Scheme:      k8sManager.GetScheme(),
+		MigrationCh: migrationCompletionChan,
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -133,6 +139,7 @@ var _ = BeforeSuite(func() {
 		Scheme:               k8sManager.GetScheme(),
 		ClusterTypeProvider:  clusterTypeProvider,
 		StaticConfigProvider: staticConfigProvider,
+		MigrationCh:          migrationCompletionChan,
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
