@@ -18,6 +18,7 @@ package migrate
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -29,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,9 +61,21 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	testLog = logf.Log.WithName("test-log").WithName("setup")
 
-	By("bootstrapping test environment")
+	err := mellanoxcomv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
-	testEnv = &envtest.Environment{}
+	// +kubebuilder:scaffold:scheme
+
+	By("bootstrapping test environment")
+	// Go to project root directory
+	err = os.Chdir("../..")
+	Expect(err).NotTo(HaveOccurred())
+
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{"config/crd/bases"},
+		CRDInstallOptions:     envtest.CRDInstallOptions{ErrorIfPathMissing: true},
+		ErrorIfCRDPathMissing: true,
+	}
 
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())

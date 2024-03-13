@@ -82,7 +82,7 @@ func setupWebhookControllers(mgr ctrl.Manager) error {
 	return nil
 }
 
-func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager) error {
+func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager, migrationChan chan struct{}) error {
 	ctrLog := setupLog.WithName("controller")
 	clusterTypeProvider, err := clustertype.NewProvider(ctx, c)
 
@@ -98,27 +98,31 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager)
 		Scheme:               mgr.GetScheme(),
 		ClusterTypeProvider:  clusterTypeProvider, // we want to cache information about the cluster type
 		StaticConfigProvider: staticInfoProvider,
+		MigrationCh:          migrationChan,
 	}).SetupWithManager(mgr, ctrLog.WithName("NicClusterPolicy")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
 		return err
 	}
 	if err := (&controllers.MacvlanNetworkReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		MigrationCh: migrationChan,
 	}).SetupWithManager(mgr, ctrLog.WithName("MacVlanNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MacvlanNetwork")
 		return err
 	}
 	if err := (&controllers.HostDeviceNetworkReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		MigrationCh: migrationChan,
 	}).SetupWithManager(mgr, ctrLog.WithName("HostDeviceNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HostDeviceNetwork")
 		return err
 	}
 	if err := (&controllers.IPoIBNetworkReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		MigrationCh: migrationChan,
 	}).SetupWithManager(mgr, ctrLog.WithName("IPoIBNetwork")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IPoIBNetwork")
 		return err
@@ -166,35 +170,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	// run migration logic before controllers start
-	if err := migrate.Migrate(stopCtx, setupLog.WithName("migrate"), directClient); err != nil {
-		setupLog.Error(err, "failed to run migration logic")
+	migrationCompletionChan := make(chan struct{})
+	m := migrate.Migrator{
+		K8sClient:      directClient,
+		MigrationCh:    migrationCompletionChan,
+		LeaderElection: enableLeaderElection,
+		Logger:         ctrl.Log.WithName("Migrator"),
+	}
+	err = mgr.Add(&m)
+	if err != nil {
+		setupLog.Error(err, "failed to add Migrator to the Manager")
 		os.Exit(1)
 	}
 
-	err = setupCRDControllers(stopCtx, directClient, mgr)
+	err = setupCRDControllers(stopCtx, directClient, mgr, migrationCompletionChan)
 	if err != nil {
 		os.Exit(1)
 	}
 
-	upgrade.SetDriverName("ofed")
-
-	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
-
-	clusterUpdateStateManager, err := upgrade.NewClusterUpgradeStateManager(
-		upgradeLogger.WithName("clusterUpgradeManager"), config.GetConfigOrDie(), nil)
-
+	err = setupUpgradeController(mgr, migrationCompletionChan)
 	if err != nil {
-		setupLog.Error(err, "unable to create new ClusterUpdateStateManager", "controller", "Upgrade")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.UpgradeReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		StateManager: clusterUpdateStateManager,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
 		os.Exit(1)
 	}
 
@@ -220,4 +215,29 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func setupUpgradeController(mgr ctrl.Manager, migrationChan chan struct{}) error {
+	upgrade.SetDriverName("ofed")
+
+	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
+
+	clusterUpdateStateManager, err := upgrade.NewClusterUpgradeStateManager(
+		upgradeLogger.WithName("clusterUpgradeManager"), config.GetConfigOrDie(), nil)
+
+	if err != nil {
+		setupLog.Error(err, "unable to create new ClusterUpdateStateManager", "controller", "Upgrade")
+		return err
+	}
+
+	if err = (&controllers.UpgradeReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		StateManager: clusterUpdateStateManager,
+		MigrationCh:  migrationChan,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
+		return err
+	}
+	return nil
 }
