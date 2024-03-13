@@ -15,7 +15,7 @@ spec:
       labels:
         app.kubernetes.io/name: doca-telemetry
     spec:
-      # hostNetwork is required to expose sysfs counters folder
+      # Required by the sysfs collector only.
       hostNetwork: true
       {{- if .NodeAffinity }}
       affinity:
@@ -54,11 +54,14 @@ spec:
         volumeMounts:
         - name: doca-telemetry-service-configmap
           mountPath: /configmap
+        # Required by the pod_resources collector only.
         - name: pod-device-resources
           mountPath: /var/lib/kubelet/pod-resources
+        # Required by the pod_resources collector only.
         - name: cni
           mountPath: /var/run/k8s.cni.cncf.io/devinfo/cni
         env:
+        # Required by the pod_resources collector only.
         - name: MY_POD_UID
           valueFrom:
             fieldRef:
@@ -68,15 +71,18 @@ spec:
         - name: PROMETHEUS_XCSET_MANDATORY_TYPES
           value: "counters,pod_resources_event"
         command: [ "/bin/bash", "-c", "rm -rf /config/* && DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
+        # Required only for the sysfs collector only.
         securityContext:
           privileged: true
       volumes:
         - name: doca-telemetry-service-configmap
           configMap:
             name: {{ .ConfigMapName }}
+        # Required by the pod_resources collector only.
         - name: pod-device-resources
           hostPath:
             path: /var/lib/kubelet/pod-resources
+        # Required by the pod_resources collector only.
         - name: cni
           hostPath:
             path: /var/run/k8s.cni.cncf.io/devinfo/cni/
@@ -88,6 +94,7 @@ metadata:
   name: {{ .ConfigMapName }}
   namespace: {{ .RuntimeSpec.Namespace }}
 data:
+  # This configmap name is hardcoded inside the DTS container and needs to stay in sync.
   dts_config_map.ini: |
     ############################ GENERAL CONFIGURATION ############################
     # Port for TCP connection with aggregator
