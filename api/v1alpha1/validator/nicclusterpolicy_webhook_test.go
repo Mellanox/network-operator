@@ -806,6 +806,103 @@ var _ = Describe("Validate", func() {
 			Expect(err.Error()).To(ContainSubstring(
 				"Unsupported value: \"invalid-container-name\": supported values: \"mofed-container\""))
 		})
+		It("passes when DocaTelemetryService imageSpec is valid", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					DOCATelemetryService: &v1alpha1.DOCATelemetryServiceSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "doca-telemetry-service",
+							Repository: "ghcr.io/mellanox",
+							Version:    "1.2",
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("fails when DocaTelemetryService has an invalid repository", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					DOCATelemetryService: &v1alpha1.DOCATelemetryServiceSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "doca-telemetry-service",
+							Repository: "{ghcr.io/mellanox}",
+							Version:    "1.2",
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("spec.docaTelemetryService.repository: Invalid value"))
+		})
+		It("passes when config.ConfigMap is valid", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					DOCATelemetryService: &v1alpha1.DOCATelemetryServiceSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "doca-telemetry-service",
+							Repository: "ghcr.io/mellanox",
+							Version:    "1.2",
+						},
+						Config: &v1alpha1.DOCATelemetryServiceConfig{
+							// ConfigMap must not be empty.
+							FromConfigMap: "telemetry-configmap",
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("fails when config.ConfigMap is too short", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					DOCATelemetryService: &v1alpha1.DOCATelemetryServiceSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "doca-telemetry-service",
+							Repository: "ghcr.io/mellanox",
+							Version:    "1.2",
+						},
+						Config: &v1alpha1.DOCATelemetryServiceConfig{
+							// ConfigMap has a minimum length.
+							FromConfigMap: "",
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("a lowercase RFC 1123 subdomain must consist of"))
+		})
+		It("fails when config.ConfigMap contains invalid characters", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					DOCATelemetryService: &v1alpha1.DOCATelemetryServiceSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "doca-telemetry-service",
+							Repository: "ghcr.io/mellanox",
+							Version:    "1.2",
+						},
+						Config: &v1alpha1.DOCATelemetryServiceConfig{
+							// ConfigMap must not contain `/`.
+							FromConfigMap: "telemetry/configmap",
+						},
+					},
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("a lowercase RFC 1123 subdomain must consist of"))
+		})
 	})
 })
 
