@@ -28,6 +28,7 @@ import (
 	"slices"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -77,6 +78,10 @@ type ibKubernetesSpecWrapper struct {
 
 type ofedDriverSpecWrapper struct {
 	v1alpha1.OFEDDriverSpec
+}
+
+type docaTelemetryServiceWrapper struct {
+	v1alpha1.DOCATelemetryServiceSpec
 }
 
 // SetupNicClusterPolicyWebhookWithManager sets up the webhook for NicClusterPolicy.
@@ -156,6 +161,8 @@ We are validating here NicClusterPolicy:
     4.2. resourceName is valid for k8s.
     4.3. At least one of the supported selectors exists.
     4.4. All selectors are strings.
+ 5. DocaTelemetryService.Config.
+    5.1 config.FromConfigMap is valid
 */
 func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClusterPolicy) error {
 	var allErrs field.ErrorList
@@ -191,7 +198,13 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClu
 		allErrs = append(allErrs, wrapper.validateSriovNetworkDevicePlugin(
 			field.NewPath("spec").Child("sriovNetworkDevicePlugin"))...)
 	}
-
+	// Validate DOCATelemetryService
+	docaTelemetryService := in.Spec.DOCATelemetryService
+	if docaTelemetryService != nil {
+		dtsWrapper := docaTelemetryServiceWrapper{*in.Spec.DOCATelemetryService}
+		allErrs = append(allErrs, dtsWrapper.validate(
+			field.NewPath("spec").Child("docaTelemetryService"))...)
+	}
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -365,6 +378,18 @@ func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field
 	return allErrs
 }
 
+func (dts *docaTelemetryServiceWrapper) validate(fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if dts.Config == nil {
+		return nil
+	}
+	if errs := validation.IsDNS1123Subdomain(dts.Config.FromConfigMap); len(errs) > 0 {
+		allErrs = append(allErrs,
+			field.Invalid(fldPath.Child("config", "FromConfigMap"), dts.Config.FromConfigMap, fmt.Sprintf("%s", errs)))
+	}
+	return allErrs
+}
+
 // validate is a helper function to perform validation for IBKubernetesSpec.
 func (ibk *ibKubernetesSpecWrapper) validate(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
@@ -457,6 +482,9 @@ func (w *nicClusterPolicyValidator) validateRepositories(
 	}
 	if in.Spec.NicFeatureDiscovery != nil {
 		allErrs = validateRepository(in.Spec.NicFeatureDiscovery.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+	}
+	if in.Spec.DOCATelemetryService != nil {
+		allErrs = validateRepository(in.Spec.DOCATelemetryService.ImageSpec.Repository, allErrs, fp, "docaTelemetryService")
 	}
 	if in.Spec.SecondaryNetwork != nil {
 		snfp := fp.Child("secondaryNetwork")
