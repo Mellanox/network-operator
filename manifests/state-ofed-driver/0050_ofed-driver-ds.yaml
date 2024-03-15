@@ -144,7 +144,7 @@ spec:
           startupProbe:
             exec:
               command:
-                [sh, -c, 'ls /.driver-ready']
+                [sh, -c, 'ls /run/mellanox/drivers/.driver-ready']
             initialDelaySeconds: {{ .CrSpec.StartupProbe.InitialDelaySeconds }}
             failureThreshold: 60
             successThreshold: 1
