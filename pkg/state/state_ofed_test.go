@@ -54,6 +54,7 @@ const (
 	rhcosOsTree               = "414.92.202311061957-0"
 	kernelFull1               = "5.15.0-78-generic"
 	kernelFull2               = "5.15.0-91-generic"
+	archAmd                   = "amd64"
 )
 
 type openShiftClusterProvider struct {
@@ -70,6 +71,16 @@ func (d *openShiftClusterProvider) IsKubernetes() bool {
 func (d *openShiftClusterProvider) IsOpenshift() bool {
 	return true
 }
+
+type dummyOfedImageProvider struct {
+	tagExists bool
+}
+
+func (d *dummyOfedImageProvider) TagExists(_ string) bool {
+	return d.tagExists
+}
+
+func (d *dummyOfedImageProvider) SetImageSpec(*v1alpha1.ImageSpec) {}
 
 var _ = Describe("MOFED state test", func() {
 	var stateOfed stateOFED
@@ -100,17 +111,17 @@ var _ = Describe("MOFED state test", func() {
 
 		It("generates new image format", func() {
 			cr.Spec.OFEDDriver.Version = "5.7-1.0.0.0"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.7-1.0.0.0-ubuntu20.04-amd64"))
 		})
 		It("generates new image format double digit minor", func() {
 			cr.Spec.OFEDDriver.Version = "5.10-0.0.0.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.10-0.0.0.1-ubuntu20.04-amd64"))
 		})
 		It("return new image format in case of a bad version", func() {
 			cr.Spec.OFEDDriver.Version = "1.1.1.1.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:1.1.1.1.1-ubuntu20.04-amd64"))
 		})
 	})
@@ -293,6 +304,7 @@ var _ = Describe("MOFED state test", func() {
 			catalog := NewInfoCatalog()
 			catalog.Add(InfoTypeClusterType, &dummyProvider{})
 			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
@@ -401,6 +413,7 @@ var _ = Describe("MOFED state test", func() {
 			catalog := NewInfoCatalog()
 			catalog.Add(InfoTypeClusterType, &openShiftClusterProvider{})
 			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			// Expect 6 object due to OpenShift: DaemonSet, Service Account, ClusterRole, ClusterRoleBinding
@@ -426,7 +439,127 @@ var _ = Describe("MOFED state test", func() {
 			}
 		})
 	})
+	Context("Force Precompiled", func() {
+		It("Should fail getManifestObjects, forcePrecompiled true and tag does not exists", func() {
+			ofedState := getOfedState()
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: true,
+			}
+			By("Creating NodeProvider with 1 Node, that form 1 Node pool")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+			_, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+		})
+		It("Should use image with sources format, forcePrecompiled false and tag does not exists", func() {
+			ofedState := getOfedState()
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: false,
+			}
+			By("Creating NodeProvider with 1 Node, that form 1 Node pool")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			By("Verify image is not precompiled format")
+			// Expect 4 objects: DS , Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
+			for _, obj := range objs {
+				if obj.GetKind() != "DaemonSet" {
+					continue
+				}
+				ds := appsv1.DaemonSet{}
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+				Expect(err).NotTo(HaveOccurred())
+				withSourceImage := fmt.Sprintf(mofedImageFormat,
+					cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image, cr.Spec.OFEDDriver.Version,
+					osName, osVer, archAmd)
+				Expect(ds.Spec.Template.Spec.Containers[0].Image).To(Equal(withSourceImage))
+			}
+		})
+		It("Should use image with sources format, forcePrecompiled false and tag exists", func() {
+			ofedState := getOfedState()
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: false,
+			}
+			By("Creating NodeProvider with 1 Node, that form 1 Node pool")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			By("Verify image is not precompiled format")
+			// Expect 4 objects: DS , Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
+			for _, obj := range objs {
+				if obj.GetKind() != "DaemonSet" {
+					continue
+				}
+				ds := appsv1.DaemonSet{}
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+				Expect(err).NotTo(HaveOccurred())
+				precompiledImage := fmt.Sprintf(precompiledImageFormat,
+					cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image, cr.Spec.OFEDDriver.Version,
+					kernelFull1, osName, osVer, archAmd)
+				Expect(ds.Spec.Template.Spec.Containers[0].Image).To(Equal(precompiledImage))
+			}
+		})
+	})
 })
+
+func getOfedState() *stateOFED {
+	client := mocks.ControllerRuntimeClient{}
+	manifestBaseDir := "../../manifests/state-ofed-driver"
+
+	files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+	Expect(err).NotTo(HaveOccurred())
+	renderer := render.NewRenderer(files)
+
+	ofedState := &stateOFED{
+		stateSkel: stateSkel{
+			name:        stateOFEDName,
+			description: stateOFEDDescription,
+			client:      &client,
+			renderer:    renderer,
+		},
+	}
+	return ofedState
+}
 
 func verifyPodAntiInfinity(affinity *v1.Affinity) {
 	By("Verify PodAntiInfinity")

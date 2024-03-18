@@ -78,6 +78,8 @@ COPY --from=builder /workspace/manager .
 COPY --from=builder /workspace/kubectl-${ARCH} /usr/local/bin/kubectl
 COPY --from=builder /workspace/crds /crds
 
+# Default Certificates are missing in micro-ubi. These are need to fetch DOCA drivers image tags
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 COPY /webhook-schemas /webhook-schemas
 COPY manifests/ manifests/
 USER 65532:65532

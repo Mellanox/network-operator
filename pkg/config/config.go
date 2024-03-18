@@ -39,6 +39,7 @@ type StateConfig struct {
 	NetworkOperatorResourceNamespace string `env:"POD_NAMESPACE" envDefault:"nvidia-network-operator"`
 	ManifestBaseDir                  string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
 	OFEDState                        OFEDStateConfig
+	DocaDriverImagePollTimeMinutes   uint `env:"DOCA_DRIVER_IMAGE_POLL_TIME_MINUTES" envDefault:"30"`
 }
 
 // ControllerConfig holds configuration for Operator controllers.

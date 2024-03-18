@@ -668,6 +668,13 @@ spec:
                       - name
                       type: object
                     type: array
+                  forcePrecompiled:
+                    default: false
+                    description: |-
+                      ForcePrecompiled specifies if only MOFED precompiled images are allowed
+                      If set to false and precompiled image does not exists, MOFED drivers will be compiled on Nodes
+                      If set to true and precompiled image does not exists, OFED state will be Error.
+                    type: boolean
                   image:
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string

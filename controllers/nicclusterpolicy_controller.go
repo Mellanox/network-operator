@@ -41,6 +41,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
@@ -49,10 +50,11 @@ import (
 // NicClusterPolicyReconciler reconciles a NicClusterPolicy object
 type NicClusterPolicyReconciler struct {
 	client.Client
-	Scheme               *runtime.Scheme
-	ClusterTypeProvider  clustertype.Provider
-	StaticConfigProvider staticconfig.Provider
-	MigrationCh          chan struct{}
+	Scheme                   *runtime.Scheme
+	ClusterTypeProvider      clustertype.Provider
+	StaticConfigProvider     staticconfig.Provider
+	MigrationCh              chan struct{}
+	DocaDriverImagesProvider docadriverimages.Provider
 
 	stateManager state.Manager
 }
@@ -129,6 +131,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	sc := state.NewInfoCatalog()
 	sc.Add(state.InfoTypeClusterType, r.ClusterTypeProvider)
 	sc.Add(state.InfoTypeStaticConfig, r.StaticConfigProvider)
+
 	if instance.Spec.OFEDDriver != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
@@ -148,6 +151,10 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		reqLogger.V(consts.LogLevelDebug).Info("Node info provider with", "Nodes:", nodeNames)
 		infoProvider := nodeinfo.NewProvider(nodePtrList)
 		sc.Add(state.InfoTypeNodeInfo, infoProvider)
+		r.DocaDriverImagesProvider.SetImageSpec(&instance.Spec.OFEDDriver.ImageSpec)
+		sc.Add(state.InfoTypeDocaDriverImage, r.DocaDriverImagesProvider)
+	} else {
+		r.DocaDriverImagesProvider.SetImageSpec(nil)
 	}
 	// Sync state and update status
 	managerStatus := r.stateManager.SyncState(ctx, instance, sc)

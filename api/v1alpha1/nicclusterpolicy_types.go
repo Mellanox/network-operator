@@ -106,6 +106,12 @@ type OFEDDriverSpec struct {
 	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Minimum:=0
 	TerminationGracePeriodSeconds int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// ForcePrecompiled specifies if only MOFED precompiled images are allowed
+	// If set to false and precompiled image does not exists, MOFED drivers will be compiled on Nodes
+	// If set to true and precompiled image does not exists, OFED state will be Error.
+	// +optional
+	// +kubebuilder:default:=false
+	ForcePrecompiled bool `json:"forcePrecompiled,omitempty"`
 }
 
 // DriverUpgradePolicySpec describes policy configuration for automatic upgrades
