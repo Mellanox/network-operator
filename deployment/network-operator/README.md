@@ -86,11 +86,11 @@ For additional information and methods for installing Helm, refer to the officia
 
 ```
 # Add Repo
-$ helm repo add mellanox https://mellanox.github.io/network-operator
+$ helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
 $ helm repo update
 
 # Install Operator
-$ helm install -n network-operator --create-namespace --wait network-operator mellanox/network-operator
+$ helm install -n network-operator --create-namespace --wait network-operator nvidia/network-operator
 
 # View deployed resources
 $ kubectl -n network-operator get pods
@@ -115,7 +115,7 @@ For additional information , refer to the official [NVD deployment with Helm](ht
 
 ##### Deploy Network Operator without Node Feature Discovery
 ```
-$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator mellanox/network-operator
+$ helm install --set nfd.enabled=false -n network-operator --create-namespace --wait network-operator nvidia/network-operator
 ```
 
 ##### Currently the following NFD labels are used:
@@ -217,7 +217,7 @@ no additional actions are required.
 ### Check available releases
 
 ```
-helm search repo mellanox/network-operator -l
+helm search repo nvidia/network-operator -l
 ```
 
 > __NOTE__: add `--devel` option if you want to list beta releases as well
@@ -234,7 +234,7 @@ It is possible to retrieve updated CRDs from the Helm chart or from the release 
 how to download and unpack Helm chart for specified release and then apply CRDs update from it.
 
 ```
-helm pull mellanox/network-operator --version <VERSION> --untar --untardir network-operator-chart
+helm pull nvidia/network-operator --version <VERSION> --untar --untardir network-operator-chart
 ```
 
 > __NOTE__: `--devel` option required if you want to use the beta release
@@ -249,7 +249,7 @@ kubectl apply -f network-operator-chart/network-operator/crds \
 Download Helm values for the specific release
 
 ```
-helm show values mellanox/network-operator --version=<VERSION> > values-<VERSION>.yaml
+helm show values nvidia/network-operator --version=<VERSION> > values-<VERSION>.yaml
 ```
 
 Edit `values-<VERSION>.yaml` file as required for your cluster. The network operator has some limitations about which
@@ -271,7 +271,7 @@ These limitations will be addressed in future releases.
 ### Apply Helm chart update
 
 ```
-helm upgrade -n network-operator  network-operator mellanox/network-operator --version=<VERSION> -f values-<VERSION>.yaml --force
+helm upgrade -n network-operator  network-operator nvidia/network-operator --version=<VERSION> -f values-<VERSION>.yaml --force
 ```
 
 > __NOTE__: `--devel` option required if you want to use the beta release
@@ -368,7 +368,7 @@ via CLI it would simply be cumbersome.
 Below are several deployment examples `values.yaml` provided to helm during installation of the network operator in the
 following manner:
 
-`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait network-operator mellanox/network-operator`
+`$ helm install -f ./values.yaml -n network-operator --create-namespace --wait network-operator nvidia/network-operator`
 
 #### Example 1
 
