@@ -107,5 +107,5 @@ annotation from the node object to unblock loading of the driver
 
 * Wait for the node to finish upgrading
 #### Updated MOFED pod failed to start / New version of MOFED can't install on the node
-* Manually delete the pod using by using `kubectl delete -n nvida-network-operator-resources <pod_name>`
+* Manually delete the pod using by using `kubectl delete -n nvidia-network-operator <pod_name>`
 * If after the restart the pod still fails, change the MOFED version in the NicClusterPolicy to the previous or other working version
