@@ -1,22 +1,22 @@
 NetworkOperator:
   image: network-operator
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
   version: v0.0.2
 SriovNetworkOperator:
   image: sriov-network-operator
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.1.1-beta.3
+  repository: nvcr.io/nvidia/cloud-native
+  version: network-operator-24.1.1
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.1.1-beta.3
+  repository: nvcr.io/nvidia/cloud-native
+  version: network-operator-24.1.1
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.1.1-beta.3
+  repository: nvcr.io/nvidia/cloud-native
+  version: network-operator-24.1.1
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
