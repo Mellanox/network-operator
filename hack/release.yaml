@@ -1,6 +1,6 @@
 NetworkOperator:
   image: network-operator
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
