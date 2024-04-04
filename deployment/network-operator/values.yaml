@@ -143,13 +143,13 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components
   images:
-    operator: nvcr.io/nvidia/cloud-native/sriov-network-operator:network-operator-24.1.1
-    sriovConfigDaemon: nvcr.io/nvidia/cloud-native/sriov-network-operator-config-daemon:network-operator-24.1.1
+    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-24.1.1
+    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-24.1.1
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:3e6368077716f6b8368b0e036a1290d1c64cf1fb
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:fc002af57a81855542759d0f77d16dacd7e1aa38
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:2cc723dcbc712290055b763dc9d3c090ba41e929
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
-    webhook: nvcr.io/nvidia/cloud-native/sriov-network-operator-webhook:network-operator-24.1.1
+    webhook: nvcr.io/nvidia/mellanox/sriov-network-operator-webhook:network-operator-24.1.1
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
 
@@ -219,8 +219,8 @@ deployCR: false
 ofedDriver:
   deploy: false
   image: doca-driver
-  repository: nvcr.io/nvstaging/mellanox
-  version: 24.01-0.3.3.1-9
+  repository: nvcr.io/nvidia/mellanox
+  version: 24.01-0.3.3.1-10
   initContainer:
     enable: true
     repository: ghcr.io/mellanox
