@@ -144,7 +144,7 @@ sriov-network-operator:
     sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-24.1.1-beta.2
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:3e6368077716f6b8368b0e036a1290d1c64cf1fb
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:fc002af57a81855542759d0f77d16dacd7e1aa38
-    ovsCni: quay.io/kubevirt/ovs-cni-plugin:v0.32.0
+    ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:61fd27c
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.6.2
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-24.1.1-beta.2

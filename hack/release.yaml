@@ -71,5 +71,5 @@ docaTelemetryService:
   version: 1.16.5-doca2.6.0-host
 ovsCni:
   image: ovs-cni-plugin
-  repository: quay.io/kubevirt
-  version: v0.32.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: 61fd27c
