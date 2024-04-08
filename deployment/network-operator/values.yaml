@@ -468,5 +468,3 @@ docaTelemetryService:
 # Can be set to nicclusterpolicy to add extra tolerations to ds
 #tolerations:
 
-test:
-  pf: ens2f0
