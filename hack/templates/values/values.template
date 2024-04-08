@@ -24,9 +24,6 @@ upgradeCRDs: true
 
 sriovNetworkOperator:
   enabled: false
-  # inject additional values to nodeSelector for config daemon
-  configDaemonNodeSelectorExtra:
-    node-role.kubernetes.io/worker: ""
 
 # Node Feature discovery chart related values
 node-feature-discovery:
@@ -147,11 +144,17 @@ sriov-network-operator:
     sriovConfigDaemon: {{ .SriovConfigDaemon.Repository }}/{{ .SriovConfigDaemon.Image }}:{{ .SriovConfigDaemon.Version }}
     sriovCni: {{ .SriovCni.Repository }}/{{ .SriovCni.Image }}:{{ .SriovCni.Version }}
     ibSriovCni: {{ .SriovIbCni.Repository }}/{{ .SriovIbCni.Image }}:{{ .SriovIbCni.Version }}
+    ovsCni: {{ .OVSCni.Repository }}/{{ .OVSCni.Image }}:{{ .OVSCni.Version }}
     sriovDevicePlugin: {{ .SriovDevicePlugin.Repository }}/{{ .SriovDevicePlugin.Image }}:{{ .SriovDevicePlugin.Version }}
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.4
     webhook: {{ .SriovNetworkOperatorWebhook.Repository }}/{{ .SriovNetworkOperatorWebhook.Image }}:{{ .SriovNetworkOperatorWebhook.Version }}
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
+  sriovOperatorConfig:
+    deploy: true
+    configDaemonNodeSelector:
+      beta.kubernetes.io/os: "linux"
+      network.nvidia.com/operator.mofed.wait: "false"
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location

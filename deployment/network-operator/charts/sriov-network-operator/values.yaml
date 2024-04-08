@@ -76,12 +76,26 @@ operator:
     #       ...
     #      -----END EC PRIVATE KEY-----
 
+sriovOperatorConfig:
+  # deploy sriovOperatorConfig CR with the below values
+  deploy: false
+  # node slectors for sriov-network-config-daemon
+  configDaemonNodeSelector: {}
+  # log level for both operator and sriov-network-config-daemon
+  logLevel: 2
+  # disable node draining when configuring SR-IOV, set to true in case of a single node
+  # cluster or any other justifiable reason
+  disableDrain: false
+  # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
+  configurationMode: daemon
+
 # Image URIs for sriov-network-operator components
 images:
   operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator
   sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon
   sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni
   ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni
+  ovsCni: quay.io/kubevirt/ovs-cni-plugin
   sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
