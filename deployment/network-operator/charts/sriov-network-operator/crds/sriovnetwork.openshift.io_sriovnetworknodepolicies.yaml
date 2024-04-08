@@ -36,7 +36,68 @@ spec:
           spec:
             description: SriovNetworkNodePolicySpec defines the desired state of SriovNetworkNodePolicy
             properties:
+              bridge:
+                description: contains bridge configuration for matching PF valid only
+                  for eSwitchMode==switchdev
+                properties:
+                  ovs:
+                    description: contains configuration for the OVS bridge,
+                    properties:
+                      bridge:
+                        description: contains bridge level settings
+                        properties:
+                          datapathType:
+                            description: configure datapath_type field in the Bridge
+                              table in OVSDB
+                            type: string
+                          externalIDs:
+                            additionalProperties:
+                              type: string
+                            description: IDs to inject to external_ids field in the
+                              Bridge table in OVSDB
+                            type: object
+                          otherConfig:
+                            additionalProperties:
+                              type: string
+                            description: additional options to inject to other_config
+                              field in the bridge table in OVSDB
+                            type: object
+                        type: object
+                      uplink:
+                        description: contains settings for uplink (PF)
+                        properties:
+                          interface:
+                            description: contains settings for PF interface in the
+                              OVS bridge
+                            properties:
+                              externalIDs:
+                                additionalProperties:
+                                  type: string
+                                description: external_ids field in the Interface table
+                                  in OVSDB
+                                type: object
+                              options:
+                                additionalProperties:
+                                  type: string
+                                description: type filed in the Interface table in
+                                  OVSDB
+                                type: object
+                              otherConfig:
+                                additionalProperties:
+                                  type: string
+                                description: other_config field in the Interface table
+                                  in OVSDB
+                                type: object
+                              type:
+                                description: type field in the Interface table in
+                                  OVSDB
+                                type: string
+                            type: object
+                        type: object
+                    type: object
+                type: object
               deviceType:
+                default: netdevice
                 description: The driver type for configured VFs. Allowed value "netdevice",
                   "vfio-pci". Defaults to netdevice.
                 enum:

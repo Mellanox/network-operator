@@ -1,7 +1,7 @@
 apiVersion: v2
 name: sriov-network-operator
 version: 0.1.0
-kubeVersion: '>= 1.16.0'
+kubeVersion: '>= 1.16.0-0'
 appVersion: 1.2.0
 description: SR-IOV network operator configures and manages SR-IOV networks in the kubernetes cluster
 type: application

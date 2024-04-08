@@ -51,6 +51,7 @@ type Release struct {
 	NvIPAM                       *mellanoxv1alpha1.ImageSpec
 	NicFeatureDiscovery          *mellanoxv1alpha1.ImageSpec
 	DOCATelemetryService         *mellanoxv1alpha1.ImageSpec
+	OVSCni                       *mellanoxv1alpha1.ImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -97,6 +98,7 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("NV_IPAM", release.NvIPAM)
 	initWithEnvVariale("NIC_FEATURE_DISCOVERY", release.NicFeatureDiscovery)
 	initWithEnvVariale("DOCA_TELEMETRY_SERVICE", release.DOCATelemetryService)
+	initWithEnvVariale("OVS_CNI", release.OVSCni)
 }
 
 func main() {
