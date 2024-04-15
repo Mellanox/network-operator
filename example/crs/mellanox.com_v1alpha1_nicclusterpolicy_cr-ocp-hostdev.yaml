@@ -31,7 +31,7 @@ spec:
   sriovDevicePlugin:
     image: sriov-network-device-plugin
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.6.2
+    version: e6ead1e8f76a407783430ee2666b403db2d76f64
     config: |
       {
         "resourceList": [
