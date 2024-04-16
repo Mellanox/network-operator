@@ -58,6 +58,8 @@ spec:
               value: {{ .Values.images.ibSriovCni }}
             - name: OVS_CNI_IMAGE
               value: {{ .Values.images.ovsCni }}
+            - name: RDMA_CNI_IMAGE
+              value: {{ .Values.images.rdmaCni }}
             - name: SRIOV_DEVICE_PLUGIN_IMAGE
               value: {{ .Values.images.sriovDevicePlugin }}
             - name: NETWORK_RESOURCES_INJECTOR_IMAGE

@@ -58,3 +58,6 @@ rules:
   - apiGroups: [ "config.openshift.io" ]
     resources: [ "infrastructures" ]
     verbs: [ "get", "list", "watch" ]
+  - apiGroups: [ "sriovnetwork.openshift.io" ]
+    resources: [ "sriovnetworkpoolconfigs" ]
+    verbs: [ "get", "list", "watch" ]

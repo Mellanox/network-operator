@@ -96,6 +96,7 @@ images:
   sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni
   ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni
   ovsCni: quay.io/kubevirt/ovs-cni-plugin
+  rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni
   sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
