@@ -49,7 +49,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go
 
-FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.8
+FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.9-15
 
 ARG ARCH
 ARG BUILD_DATE
