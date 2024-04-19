@@ -10,7 +10,7 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20231129213221-4fdaa32ee934
-	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.6.0
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.0
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
 	github.com/openshift/api v0.0.0-20231120222239-b86761094ee3
