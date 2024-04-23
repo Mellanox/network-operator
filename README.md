@@ -1,5 +1,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Mellanox/network-operator)](https://goreportcard.com/report/github.com/Mellanox/network-operator)
+[![Coverage Status](https://coveralls.io/repos/github/Mellanox/network-operator/badge.svg)](https://coveralls.io/github/Mellanox/network-operator)
 
 - [NVIDIA Network Operator](#nvidia-network-operator)
   - [Documentation](#documentation)
