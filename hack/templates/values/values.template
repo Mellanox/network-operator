@@ -61,34 +61,7 @@ node-feature-discovery:
 # SR-IOV Network Operator chart related values
 sriov-network-operator:
   operator:
-    tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Exists"
-        effect: "NoSchedule"
-    nodeSelector: {}
-    affinity:
-      nodeAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 1
-            preference:
-              matchExpressions:
-                - key: "node-role.kubernetes.io/master"
-                  operator: In
-                  values: [""]
-          - weight: 1
-            preference:
-              matchExpressions:
-                - key: "node-role.kubernetes.io/control-plane"
-                  operator: In
-                  values: [ "" ]
-    nameOverride: ""
-    fullnameOverride: ""
     resourcePrefix: "nvidia.com"
-    cniBinPath: "/opt/cni/bin"
-    clusterType: "kubernetes"
     admissionControllers:
       enabled: false
       certificates:
