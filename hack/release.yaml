@@ -72,4 +72,4 @@ docaTelemetryService:
 ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
-  version: 61fd27c
+  version: 8b231bb
