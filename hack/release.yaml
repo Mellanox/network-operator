@@ -73,3 +73,7 @@ ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
   version: 8b231bb
+rdmaCni:
+  image: rdma-cni
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: latest
