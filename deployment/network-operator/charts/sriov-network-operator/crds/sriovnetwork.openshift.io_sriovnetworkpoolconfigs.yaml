@@ -103,6 +103,12 @@ spec:
                       offload'
                     type: string
                 type: object
+              rdmaMode:
+                description: RDMA subsystem. Allowed value "shared", "exclusive".
+                enum:
+                - shared
+                - exclusive
+                type: string
             type: object
           status:
             description: SriovNetworkPoolConfigStatus defines the observed state of
