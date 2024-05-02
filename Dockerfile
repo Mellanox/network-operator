@@ -52,6 +52,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.8
 
 ARG ARCH
+
+WORKDIR /
+COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/kubectl-${ARCH} /usr/local/bin/kubectl
+COPY --from=builder /workspace/crds /crds
+
+# Default Certificates are missing in micro-ubi. These are need to fetch DOCA drivers image tags
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+COPY /webhook-schemas /webhook-schemas
+COPY manifests/ manifests/
+USER 65532:65532
+
 ARG BUILD_DATE
 ARG VERSION
 ARG VCS_REF
@@ -72,16 +84,5 @@ LABEL io.k8s.description="NVIDIA Network Operator"
 LABEL maintainer="NVIDIA nvidia-network-operator-support@nvidia.com"
 LABEL url="https://github.com/Mellanox/network-operator"
 LABEL org.label-schema.vcs-url="https://github.com/Mellanox/network-operator"
-
-WORKDIR /
-COPY --from=builder /workspace/manager .
-COPY --from=builder /workspace/kubectl-${ARCH} /usr/local/bin/kubectl
-COPY --from=builder /workspace/crds /crds
-
-# Default Certificates are missing in micro-ubi. These are need to fetch DOCA drivers image tags
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-COPY /webhook-schemas /webhook-schemas
-COPY manifests/ manifests/
-USER 65532:65532
 
 ENTRYPOINT ["/manager"]
