@@ -117,8 +117,7 @@ sriov-network-operator:
     sriovConfigDaemon: {{ .SriovConfigDaemon.Repository }}/{{ .SriovConfigDaemon.Image }}:{{ .SriovConfigDaemon.Version }}
     sriovCni: {{ .SriovCni.Repository }}/{{ .SriovCni.Image }}:{{ .SriovCni.Version }}
     ibSriovCni: {{ .SriovIbCni.Repository }}/{{ .SriovIbCni.Image }}:{{ .SriovIbCni.Version }}
-    ovsCni: "" # skip deployment by default
-    # ovsCni: {{ .OVSCni.Repository }}/{{ .OVSCni.Image }}:{{ .OVSCni.Version }}
+    ovsCni: {{ .OVSCni.Repository }}/{{ .OVSCni.Image }}:{{ .OVSCni.Version }}
     # rdmaCni: {{ .RDMACni.Repository }}/{{ .RDMACni.Image }}:{{ .RDMACni.Version }}
     sriovDevicePlugin: {{ .SriovDevicePlugin.Repository }}/{{ .SriovDevicePlugin.Image }}:{{ .SriovDevicePlugin.Version }}
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:8810e6a127366cc1eb829d3f7cb3f866d096946e

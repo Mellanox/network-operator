@@ -71,8 +71,8 @@ docaTelemetryService:
   version: 1.16.5-doca2.6.0-host
 ovsCni:
   image: ovs-cni-plugin
-  repository: nvcr.io/nvstaging/mellanox
-  version: 8b231bb
+  repository: ghcr.io/k8snetworkplumbingwg
+  version: 6f8174b1a47c47657fe9e59fe448f2a452bb6960
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
