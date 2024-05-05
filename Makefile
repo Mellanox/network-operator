@@ -340,8 +340,8 @@ image-push-multiarch: $(addprefix image-manifest-for-arch-,$(BUILD_ARCH))
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
 	@if [ -z "$(APP_VERSION)" ]; then \
 		echo "APP_VERSION is not set, skipping a part of the command."; \
-		$(HELM) package deployment/network-operator/ --version $(VERSION); \
-	else $(HELM) package deployment/network-operator/ --version $(VERSION) --app-version $(APP_VERSION); \
+		$(HELM) package --dependency-update deployment/network-operator/ --version $(VERSION); \
+	else $(HELM) package --dependency-update deployment/network-operator/ --version $(VERSION) --app-version $(APP_VERSION); \
 	fi
 
 .PHONY: chart-push
