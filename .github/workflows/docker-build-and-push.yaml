@@ -1,0 +1,37 @@
+name: Multi-architecture Docker Build
+
+on:
+  push:
+    branches:
+    - "master"
+    - "v[0-9]+.[0-9]+.x"
+
+env:
+  REGISTRY: nvcr.io/nvstaging/mellanox
+  IMAGE_NAME: network-operator
+  VALID_TAG_REGEX: 'v[0-9]+\.[0-9]+\.[0-9]+(-(beta|rc)\.[0-9]+)?'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+    - name: Determine docker tags
+      run: |
+        git_sha=$(git log -n 1 --format=%h)  # short git commit hash
+        git_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '${{ env.VALID_TAG_REGEX}}' || true)  # git tag, if it exists
+        latest=$(git branch --show-current | grep -q 'master' && echo 'latest' || true)  # 'latest', if branch is master
+        echo DOCKER_TAGS=""$git_sha $git_tag $latest"" >> $GITHUB_ENV
+    - uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.NVCR_USERNAME }}
+        password: ${{ secrets.NVCR_TOKEN }}
+    - name: Make build and push
+      run: |
+        echo "Docker tags will be: $DOCKER_TAGS"
+        for docker_tag in $DOCKER_TAGS; do
+          make VERSION=$docker_tag image-build-multiarch image-push-multiarch
+        done
