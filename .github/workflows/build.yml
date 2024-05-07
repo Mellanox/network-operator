@@ -92,3 +92,12 @@ jobs:
         uses: actions/checkout@v4
       - name: test
         run: make test-coverage
+      - name: Generate LCOV report
+        run: |
+          go install github.com/jandelgado/gcov2lcov@latest
+          gcov2lcov -infile=network-operator.cover -outfile=coverage.lcov
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2.2.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.lcov
