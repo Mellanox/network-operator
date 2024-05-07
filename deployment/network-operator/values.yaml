@@ -393,7 +393,7 @@ secondaryNetwork:
     deploy: true
     image: whereabouts
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.6.2
+    version: v0.7.0
     # imagePullSecrets: []
     # containerResources:
     #   - name: "whereabouts"
