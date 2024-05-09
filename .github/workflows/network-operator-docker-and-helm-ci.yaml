@@ -1,0 +1,82 @@
+name: Network Operator Docker and Helm CI
+
+on:
+  push:
+    branches:
+    - "master"
+    - "v[0-9]+.[0-9]+.x"
+
+env:
+  REGISTRY: nvcr.io/nvstaging/mellanox  # for docker
+  IMAGE_NAME: network-operator
+  VALID_TAG_REGEX: 'v[0-9]+\.[0-9]+\.[0-9]+(-(beta|rc)\.[0-9]+)?'
+  NGC_REPO: nvstaging/mellanox/network-operator  # for helm
+
+jobs:
+  docker-build-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+    - name: Determine docker tags
+      run: |
+        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
+        git_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '${{ env.VALID_TAG_REGEX}}' || true)  # git tag, if it exists
+        latest=$(git branch --show-current | grep -q 'master' && echo 'latest' || true)  # 'latest', if branch is master
+        echo DOCKER_TAGS=""$git_sha $git_tag $latest"" >> $GITHUB_ENV
+    - uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.NVCR_USERNAME }}
+        password: ${{ secrets.NVCR_TOKEN }}
+    - name: Make build and push
+      run: |
+        echo "Docker tags will be: $DOCKER_TAGS"
+        for docker_tag in $DOCKER_TAGS; do
+          make VERSION=$docker_tag image-build-multiarch image-push-multiarch
+        done
+
+  helm-package-publish:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+    - name: Determine versions
+      run: |
+        git_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '${{ env.VALID_TAG_REGEX}}' || true)  # git tag, if it exists
+        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
+        chart_current_version=$(yq '.version' deployment/network-operator/Chart.yaml)
+
+        if [ -n "$git_tag" ]; then
+          app_version=$git_tag
+          chart_version=${git_tag:1}  # without the 'v' prefix
+        elif [ $(git branch --show-current) == "master" ]; then
+          app_version=$git_sha
+          chart_version=$chart_current_version-$git_sha
+        fi
+
+        echo APP_VERSION=""$app_version"" >> $GITHUB_ENV
+        echo VERSION=""$chart_version""   >> $GITHUB_ENV
+    - name: NGC authentication
+      run: |
+        wget --no-verbose --content-disposition https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.41.4/files/ngccli_linux.zip -O ngccli_linux.zip
+        unzip -q ngccli_linux.zip
+        echo "./ngc-cli" >> $GITHUB_PATH
+
+        ngc-cli/ngc config set <<EOF
+          ${{ secrets.NVCR_TOKEN }}
+          json
+          nvstaging
+          mellanox
+          no-ace
+        EOF
+    - name: Make package and push
+      run: |
+        make chart-build chart-push
+    - name: NGC logout
+      run: |
+        ngc config clear-cache
+        ngc config clear
