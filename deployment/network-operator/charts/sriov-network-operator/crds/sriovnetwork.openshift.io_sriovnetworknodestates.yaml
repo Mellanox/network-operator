@@ -125,8 +125,6 @@ spec:
                       type: object
                     type: array
                 type: object
-              dpConfigVersion:
-                type: string
               interfaces:
                 items:
                   properties:
@@ -167,6 +165,8 @@ spec:
                   - pciAddress
                   type: object
                 type: array
+              rdmaMode:
+                type: string
             type: object
           status:
             description: SriovNetworkNodeStateStatus defines the observed state of
@@ -316,6 +316,8 @@ spec:
                   type: object
                 type: array
               lastSyncError:
+                type: string
+              rdmaMode:
                 type: string
               syncStatus:
                 type: string
