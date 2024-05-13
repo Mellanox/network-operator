@@ -110,12 +110,14 @@ const (
 var CertConfigPathMap = map[string]string{
 	"ubuntu": "/etc/ssl/certs",
 	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
+	"rhel":   "/etc/pki/ca-trust/extracted/pem",
 }
 
 // RepoConfigPathMap indicates standard OS specific paths for repository configuration files
 var RepoConfigPathMap = map[string]string{
 	"ubuntu": "/etc/apt/sources.list.d",
 	"rhcos":  "/etc/yum.repos.d",
+	"rhel":   "/etc/yum.repos.d",
 }
 
 // ConfigMapKeysOverride contains static key override rules for ConfigMaps
