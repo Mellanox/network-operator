@@ -33,7 +33,7 @@ import (
 
 var _ = Describe("IPoIB CNI State tests", func() {
 
-	Context("GetNodesAttributes with provide", func() {
+	Context("Creating NCP with IPoIBCNI", func() {
 		It("Should Apply", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ipoib-cni"

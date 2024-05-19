@@ -62,7 +62,7 @@ func checkRenderedDpDs(obj *unstructured.Unstructured, imageSpec *mellanoxv1alph
 
 var _ = Describe("SR-IOV Device Plugin State tests", func() {
 
-	Context("GetNodesAttributes with provide", func() {
+	Context("When creating NCP with SRIOV-device-plugin", func() {
 		It("Should Apply", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-sriov-device-plugin"

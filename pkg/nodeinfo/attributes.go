@@ -17,11 +17,7 @@ limitations under the License.
 package nodeinfo
 
 import (
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 var log = logf.Log.WithName("nodeinfo")
@@ -39,74 +35,3 @@ const (
 	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
 	NodeLabelOSTreeVersion    = "feature.node.kubernetes.io/system-os_release.OSTREE_VERSION"
 )
-
-// AttributeType categorizes Attributes of the host.
-type AttributeType int
-
-// Attribute type Enum, add new types before Last and update the mapping below
-const (
-	// required attrs
-	AttrTypeHostname = iota
-	AttrTypeCPUArch
-	AttrTypeOSName
-	AttrTypeOSVer
-	// optional attrs
-	AttrTypeCudaVersionMajor
-	AttrTypeOSTreeVersion
-
-	OptionalAttrsStart = AttrTypeCudaVersionMajor
-)
-
-var attrToLabel = []string{
-	// AttrTypeHostname
-	NodeLabelHostname,
-	// AttrTypeCPUArch
-	NodeLabelCPUArch,
-	// AttrTypeOSName
-	NodeLabelOSName,
-	// AttrTypeOSVer
-	NodeLabelOSVer,
-	// AttrTypeCudaVersionMajor
-	NodeLabelCudaVersionMajor,
-	// AttrTypeOSTreeVersion
-	NodeLabelOSTreeVersion,
-}
-
-// NodeAttributes provides attributes of a specific node
-type NodeAttributes struct {
-	// Node Name
-	Name string
-	// Node Attributes
-	Attributes map[AttributeType]string
-}
-
-// fromLabel adds a new attribute of type attrT to NodeAttributes by extracting value of selectedLabel
-func (a *NodeAttributes) fromLabel(attrT AttributeType, nodeLabels map[string]string, selectedLabel string) error {
-	attrVal, ok := nodeLabels[selectedLabel]
-	if !ok {
-		return errors.Errorf("cannot create node attribute, missing label: %s", selectedLabel)
-	}
-
-	// Note: attrVal may be empty, this could indicate a binary attribute which relies on key existence
-	a.Attributes[attrT] = attrVal
-	return nil
-}
-
-// newNodeAttributes creates a new NodeAttributes
-func newNodeAttributes(node *corev1.Node) NodeAttributes {
-	attr := NodeAttributes{
-		Name:       node.GetName(),
-		Attributes: make(map[AttributeType]string),
-	}
-	var err error
-
-	nLabels := node.GetLabels()
-	for attrType, label := range attrToLabel {
-		err = attr.fromLabel(AttributeType(attrType), nLabels, label)
-		if err != nil && attrType < OptionalAttrsStart {
-			log.V(consts.LogLevelWarning).Info("Cannot create NodeAttribute",
-				"attribute", attrType, "error:", err.Error())
-		}
-	}
-	return attr
-}
