@@ -116,6 +116,8 @@ spec:
               mountPath: /host/lib/modules
             - name: drivers-inventory
               mountPath: /mnt/drivers-inventory
+            - name: host-ib-core
+              mountPath: /etc/modprobe.d/ib_core.conf
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
             {{- range .AdditionalVolumeMounts.VolumeMounts }}
             - name: {{ .Name }}
@@ -235,6 +237,10 @@ spec:
           hostPath:
             path: /var/opt/mofed-container/inventory
             type: DirectoryOrCreate
+        - name: host-ib-core
+          hostPath:
+            path: /etc/modprobe.d/ib_core.conf
+            type: FileOrCreate
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
           {{- if and .ConfigMap .ConfigMap.Items }}
