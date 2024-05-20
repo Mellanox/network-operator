@@ -2,7 +2,9 @@ name: Conventional Commit PR message check
 
 on:
   pull_request:
-    branches: [master]
+    branches:
+    - "master"
+    - "v[0-9]+.[0-9]+.x"
     types: [opened, edited, synchronize]
 
 jobs:
