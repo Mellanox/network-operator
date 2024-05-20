@@ -22,6 +22,7 @@ package nodeinfo
 
 import (
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,12 +52,13 @@ type provider struct {
 
 // NodePool represent a set of Nodes grouped by common attributes
 type NodePool struct {
-	Name         string
-	OsName       string
-	OsVersion    string
-	RhcosVersion string
-	Kernel       string
-	Arch         string
+	Name             string
+	OsName           string
+	OsVersion        string
+	RhcosVersion     string
+	Kernel           string
+	Arch             string
+	ContainerRuntime string
 }
 
 // GetNodePools partitions nodes into one or more node pools. The list of nodes to partition
@@ -113,6 +115,8 @@ func (p *provider) GetNodePools(filters ...Filter) []NodePool {
 		}
 		nodePool.Kernel = kernel
 
+		nodePool.ContainerRuntime = getContainerRuntime(node)
+
 		nodePool.Name = fmt.Sprintf("%s%s-%s", nodePool.OsName, nodePool.OsVersion, nodePool.Kernel)
 
 		if _, exists := nodePoolMap[nodePool.Name]; !exists {
@@ -127,4 +131,21 @@ func (p *provider) GetNodePools(filters ...Filter) []NodePool {
 	}
 
 	return nodePools
+}
+
+func getContainerRuntime(node *corev1.Node) string {
+	// runtimeVer string will look like <runtime>://<x.y.z>
+	runtimeVer := node.Status.NodeInfo.ContainerRuntimeVersion
+	var runtime string
+	switch {
+	case strings.HasPrefix(runtimeVer, "docker"):
+		runtime = Docker
+	case strings.HasPrefix(runtimeVer, "containerd"):
+		runtime = Containerd
+	case strings.HasPrefix(runtimeVer, "cri-o"):
+		runtime = CRIO
+	default:
+		runtime = ""
+	}
+	return runtime
 }
