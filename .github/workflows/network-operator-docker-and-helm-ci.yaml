@@ -5,26 +5,31 @@ on:
     branches:
     - "master"
     - "v[0-9]+.[0-9]+.x"
+    tags:
+    - "v[0-9]+.[0-9]+.[0-9]+*"
 
 env:
-  REGISTRY: nvcr.io/nvstaging/mellanox  # for docker
-  IMAGE_NAME: network-operator
-  VALID_TAG_REGEX: 'v[0-9]+\.[0-9]+\.[0-9]+(-(beta|rc)\.[0-9]+)?'
-  NGC_REPO: nvstaging/mellanox/network-operator  # for helm
+  DEFAULT_BRANCH: master
 
 jobs:
   docker-build-push:
     runs-on: ubuntu-latest
+    env:
+      REGISTRY: nvcr.io/nvstaging/mellanox
+      IMAGE_NAME: network-operator  # used in makefile
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-tags: true
-    - name: Determine docker tags
+    - if: github.ref_type == 'branch'
+      name: Determine docker tags (when git branch)
       run: |
         git_sha=$(git rev-parse --short HEAD)  # short git commit hash
-        git_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '${{ env.VALID_TAG_REGEX}}' || true)  # git tag, if it exists
-        latest=$(git branch --show-current | grep -q 'master' && echo 'latest' || true)  # 'latest', if branch is master
-        echo DOCKER_TAGS=""$git_sha $git_tag $latest"" >> $GITHUB_ENV
+        latest=${{ github.ref_name == env.DEFAULT_BRANCH && 'latest' || '' }}  # 'latest', if branch is master
+        echo DOCKER_TAGS=""$git_sha $latest"" >> $GITHUB_ENV
+    - if: github.ref_type == 'tag'
+      name: Determine docker tags (when git tag)
+      run: |
+        git_tag=${{ github.ref_name }}
+        echo DOCKER_TAGS=""$git_tag"" >> $GITHUB_ENV
     - uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -40,29 +45,34 @@ jobs:
   helm-package-publish:
     needs: docker-build-push
     runs-on: ubuntu-latest
+    env:
+      NGC_REPO: nvstaging/mellanox/network-operator
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-tags: true
-    - name: Determine versions
+    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
+      uses: actions/checkout@v4
+    - if: github.ref_name == env.DEFAULT_BRANCH
+      name: Determine versions (when git branch)
       run: |
-        git_tag=$(git describe --tags --exact-match 2>/dev/null | grep -E '${{ env.VALID_TAG_REGEX}}' || true)  # git tag, if it exists
-        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
-        chart_current_version=$(yq '.version' deployment/network-operator/Chart.yaml)
-
-        if [ -n "$git_tag" ]; then
-          app_version=$git_tag
-          chart_version=${git_tag:1}  # without the 'v' prefix
-        elif [ $(git branch --show-current) == "master" ]; then
-          app_version=$git_sha
-          chart_version=$chart_current_version-$git_sha
-        fi
-
+        app_version=$(git rev-parse --short HEAD)  # short git commit hash
+        current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
+        echo APP_VERSION=""$app_version""                    >> $GITHUB_ENV
+        echo VERSION=""$current_chart_version-$app_version"" >> $GITHUB_ENV
+    - if: github.ref_type == 'tag'
+      name: Determine versions (when git tag)
+      run: |
+        git_tag=${{ github.ref_name }}
+        app_version=$git_tag
+        chart_version=${git_tag:1}  # without the 'v' prefix
         echo APP_VERSION=""$app_version"" >> $GITHUB_ENV
         echo VERSION=""$chart_version""   >> $GITHUB_ENV
-    - name: NGC authentication
+    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
+      name: NGC authentication
       run: |
-        wget --no-verbose --content-disposition https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.41.4/files/ngccli_linux.zip -O ngccli_linux.zip
+        wget \
+          --no-verbose \
+          --content-disposition \
+          -O ngccli_linux.zip \
+          https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.41.4/files/ngccli_linux.zip
         unzip -q ngccli_linux.zip
         echo "./ngc-cli" >> $GITHUB_PATH
 
@@ -73,10 +83,12 @@ jobs:
           mellanox
           no-ace
         EOF
-    - name: Make package and push
+    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
+      name: Make package and push
       run: |
         make chart-build chart-push
-    - name: NGC logout
+    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
+      name: NGC logout
       run: |
         ngc config clear-cache
         ngc config clear
