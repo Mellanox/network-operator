@@ -42,15 +42,6 @@ func (d *dummyProvider) GetStaticConfig() staticconfig.StaticConfig {
 	return staticconfig.StaticConfig{CniBinDirectory: ""}
 }
 
-func (d *dummyProvider) GetNodesAttributes(...nodeinfo.Filter) []nodeinfo.NodeAttributes {
-	nodeAttr := make(map[nodeinfo.AttributeType]string)
-	nodeAttr[nodeinfo.AttrTypeCPUArch] = "amd64"
-	nodeAttr[nodeinfo.AttrTypeOSName] = "ubuntu"
-	nodeAttr[nodeinfo.AttrTypeOSVer] = "20.04"
-
-	return []nodeinfo.NodeAttributes{{Attributes: nodeAttr}}
-}
-
 func (d *dummyProvider) GetNodePools(...nodeinfo.Filter) []nodeinfo.NodePool {
 	return []nodeinfo.NodePool{
 		{

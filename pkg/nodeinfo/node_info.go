@@ -35,8 +35,6 @@ var MellanoxNICListOptions = []client.ListOption{
 //
 //go:generate mockery --name Provider
 type Provider interface {
-	// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
-	GetNodesAttributes(filters ...Filter) []NodeAttributes
 	// GetNodePools partitions nodes into one or more node pools for nodes matching the filter criteria
 	GetNodePools(filters ...Filter) []NodePool
 }
@@ -49,18 +47,6 @@ func NewProvider(nodeList []*corev1.Node) Provider {
 // provider is an implementation of the Provider interface
 type provider struct {
 	nodes []*corev1.Node
-}
-
-// GetNodesAttributes retrieves node attributes for nodes matching the filter criteria
-func (p *provider) GetNodesAttributes(filters ...Filter) (attrs []NodeAttributes) {
-	filtered := p.nodes
-	for _, filter := range filters {
-		filtered = filter.Apply(filtered)
-	}
-	for _, node := range filtered {
-		attrs = append(attrs, newNodeAttributes(node))
-	}
-	return attrs
 }
 
 // NodePool represent a set of Nodes grouped by common attributes
