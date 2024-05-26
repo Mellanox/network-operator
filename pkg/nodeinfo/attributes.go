@@ -35,3 +35,10 @@ const (
 	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
 	NodeLabelOSTreeVersion    = "feature.node.kubernetes.io/system-os_release.OSTREE_VERSION"
 )
+
+// Constants for Container Runtime
+const (
+	Docker     string = "docker"
+	Containerd string = "containerd"
+	CRIO       string = "cri-o"
+)

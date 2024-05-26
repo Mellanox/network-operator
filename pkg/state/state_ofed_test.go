@@ -326,6 +326,59 @@ var _ = Describe("MOFED state test", func() {
 				verifyPodAntiInfinity(ds.Spec.Template.Spec.Affinity)
 			}
 		})
+		It("Should Render subscription mounts for RHEL + containerd", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+			}
+
+			By("Creating NodeProvider with 1 Nodes, RHEL with containerd")
+			node := getNode("node1", kernelFull1)
+			setContainerRuntime(node, "containerd://1.27.1")
+			node.Labels[nodeinfo.NodeLabelOSName] = "rhel"
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				node,
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
+			By("Verify Subscription mounts")
+			for _, obj := range objs {
+				if obj.GetKind() != "DaemonSet" {
+					continue
+				}
+				ds := appsv1.DaemonSet{}
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+				Expect(err).NotTo(HaveOccurred())
+				verifySubscriptionMounts(ds.Spec.Template.Spec.Containers[0].VolumeMounts)
+				verifySubscriptionVolumes(ds.Spec.Template.Spec.Volumes)
+			}
+		})
 	})
 	Context("Render Manifests DTK", func() {
 		It("Should Render DaemonSet with DTK and additional mounts", func() {
@@ -584,6 +637,88 @@ func verifyPodAntiInfinity(affinity *v1.Affinity) {
 	Expect(*affinity).To(BeEquivalentTo(expected))
 }
 
+func verifySubscriptionMounts(mounts []v1.VolumeMount) {
+	By("Verify Subscription Mounts")
+	sub0 := v1.VolumeMount{
+		Name:             "subscription-config-0",
+		ReadOnly:         true,
+		MountPath:        "/run/secrets/etc-pki-entitlement",
+		SubPath:          "",
+		MountPropagation: nil,
+		SubPathExpr:      "",
+	}
+	Expect(slices.Contains(mounts, sub0)).To(BeTrue())
+	sub1 := v1.VolumeMount{
+		Name:             "subscription-config-1",
+		ReadOnly:         true,
+		MountPath:        "/run/secrets/redhat.repo",
+		SubPath:          "",
+		MountPropagation: nil,
+		SubPathExpr:      "",
+	}
+	Expect(slices.Contains(mounts, sub1)).To(BeTrue())
+	sub2 := v1.VolumeMount{
+		Name:             "subscription-config-2",
+		ReadOnly:         true,
+		MountPath:        "/run/secrets/rhsm",
+		SubPath:          "",
+		MountPropagation: nil,
+		SubPathExpr:      "",
+	}
+	Expect(slices.Contains(mounts, sub2)).To(BeTrue())
+}
+
+func verifySubscriptionVolumes(volumes []v1.Volume) {
+	By("Verify Subscription Volumes")
+	sub0 := v1.Volume{
+		Name: "subscription-config-0",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/pki/entitlement",
+				Type: newHostPathType(v1.HostPathDirectory),
+			},
+		},
+	}
+	sub1 := v1.Volume{
+		Name: "subscription-config-1",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/yum.repos.d/redhat.repo",
+				Type: newHostPathType(v1.HostPathFile),
+			},
+		},
+	}
+	sub2 := v1.Volume{
+		Name: "subscription-config-2",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/rhsm",
+				Type: newHostPathType(v1.HostPathDirectory),
+			},
+		},
+	}
+	foundSub0 := false
+	foundSub1 := false
+	foundSub2 := false
+	for i := range volumes {
+		if volumes[i].Name == "subscription-config-0" {
+			Expect(volumes[i]).To(BeEquivalentTo(sub0))
+			foundSub0 = true
+		}
+		if volumes[i].Name == "subscription-config-1" {
+			Expect(volumes[i]).To(BeEquivalentTo(sub1))
+			foundSub1 = true
+		}
+		if volumes[i].Name == "subscription-config-2" {
+			Expect(volumes[i]).To(BeEquivalentTo(sub2))
+			foundSub2 = true
+		}
+	}
+	Expect(foundSub0).To(BeTrue())
+	Expect(foundSub1).To(BeTrue())
+	Expect(foundSub2).To(BeTrue())
+}
+
 func verifyAdditionalMounts(mounts []v1.VolumeMount) {
 	By("Verify Additional Mounts")
 	repo := v1.VolumeMount{
@@ -683,6 +818,14 @@ func getNode(name, kernelFull string) *v1.Node {
 				nodeinfo.NodeLabelKernelVerFull: kernelFull,
 				nodeinfo.NodeLabelCPUArch:       "amd64",
 			},
+		},
+	}
+}
+
+func setContainerRuntime(node *v1.Node, containerRuntime string) {
+	node.Status = v1.NodeStatus{
+		NodeInfo: v1.NodeSystemInfo{
+			ContainerRuntimeVersion: containerRuntime,
 		},
 	}
 }

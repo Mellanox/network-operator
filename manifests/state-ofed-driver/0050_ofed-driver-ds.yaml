@@ -237,12 +237,18 @@ spec:
             type: DirectoryOrCreate
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
+          {{- if and .ConfigMap .ConfigMap.Items }}
           configMap:
             name: {{ .Name }}
             items:
             {{- range .ConfigMap.Items }}
             {{ . | yaml | nindentPrefix 14 "- " }}
             {{- end }}
+          {{- else if .HostPath }}
+          hostPath:
+            path: {{ .HostPath.Path }}
+            type: {{ .HostPath.Type }}
+          {{- end }}
         {{- end }}
         {{- if .RuntimeSpec.UseDtk }}
         - name: shared-doca-driver-toolkit

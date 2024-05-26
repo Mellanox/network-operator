@@ -120,6 +120,42 @@ var RepoConfigPathMap = map[string]string{
 	"rhel":   "/etc/yum.repos.d",
 }
 
+// MountPathToVolumeSource maps a container mount path to a VolumeSource
+type MountPathToVolumeSource map[string]v1.VolumeSource
+
+// SubscriptionPathMap contains information on OS-specific paths
+// that provide entitlements/subscription details on the host.
+// These are used to enable Driver Container's access to packages controlled by
+// the distro through their subscription and support program.
+var SubscriptionPathMap = map[string]MountPathToVolumeSource{
+	"rhel": {
+		"/run/secrets/etc-pki-entitlement": v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/pki/entitlement",
+				Type: newHostPathType(v1.HostPathDirectory),
+			},
+		},
+		"/run/secrets/redhat.repo": v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/yum.repos.d/redhat.repo",
+				Type: newHostPathType(v1.HostPathFile),
+			},
+		},
+		"/run/secrets/rhsm": v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: "/etc/rhsm",
+				Type: newHostPathType(v1.HostPathDirectory),
+			},
+		},
+	},
+}
+
+func newHostPathType(pathType v1.HostPathType) *v1.HostPathType {
+	hostPathType := new(v1.HostPathType)
+	*hostPathType = pathType
+	return hostPathType
+}
+
 // ConfigMapKeysOverride contains static key override rules for ConfigMaps
 // now the only use-case is to override key name in the ConfigMap which automatically
 // populated by Openshift
@@ -492,6 +528,12 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 		return nil, err
 	}
 
+	// set subscription volumes if needed
+	err = s.handleSubscriptionVolumes(ctx, osname, nodePool.ContainerRuntime, &additionalVolMounts)
+	if err != nil {
+		return nil, err
+	}
+
 	renderData := &ofedManifestRenderData{
 		CrSpec: cr.Spec.OFEDDriver,
 		RuntimeSpec: &ofedRuntimeSpec{
@@ -778,6 +820,40 @@ func (s *stateOFED) handleCertConfig(
 		err = s.handleAdditionalMounts(ctx, mounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
 		if err != nil {
 			return fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
+		}
+	}
+	return nil
+}
+
+// handleSubscriptionVolumes handles additional mounts required for subscriptions
+func (s *stateOFED) handleSubscriptionVolumes(
+	ctx context.Context, osname string, runtime string, mounts *additionalVolumeMounts) error {
+	reqLogger := log.FromContext(ctx)
+	if osname == "rhel" && runtime != nodeinfo.CRIO {
+		reqLogger.V(consts.LogLevelDebug).Info("Setting subscription mounts for RHEL with non CRIO container runtime")
+		pathToVolumeSource, ok := SubscriptionPathMap[osname]
+		if !ok {
+			return fmt.Errorf("failed to find subscription volumes definition for os: %v", osname)
+		}
+		// sort host path volumes to ensure ordering is preserved when adding to pod spec
+		mountPaths := make([]string, 0, len(pathToVolumeSource))
+		for k := range pathToVolumeSource {
+			mountPaths = append(mountPaths, k)
+		}
+		sort.Strings(mountPaths)
+
+		for num, mountPath := range mountPaths {
+			volMountSubscriptionName := fmt.Sprintf("subscription-config-%d", num)
+
+			volMountSubscription := v1.VolumeMount{
+				Name:      volMountSubscriptionName,
+				MountPath: mountPath,
+				ReadOnly:  true,
+			}
+			mounts.VolumeMounts = append(mounts.VolumeMounts, volMountSubscription)
+
+			subscriptionVol := v1.Volume{Name: volMountSubscriptionName, VolumeSource: pathToVolumeSource[mountPath]}
+			mounts.Volumes = append(mounts.Volumes, subscriptionVol)
 		}
 	}
 	return nil
