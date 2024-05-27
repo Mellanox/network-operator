@@ -20,5 +20,5 @@ rules:
     resources: ["pods"]
     verbs: ["get", "list", "patch", "watch"]
   - apiGroups: ["k8s.cni.cncf.io"]
-    resources: ["*"]
+    resources: ["network-attachment-definitions"]
     verbs: ["get"]
