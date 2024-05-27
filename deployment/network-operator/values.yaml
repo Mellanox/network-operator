@@ -118,7 +118,7 @@ sriov-network-operator:
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:3e6368077716f6b8368b0e036a1290d1c64cf1fb
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:fc002af57a81855542759d0f77d16dacd7e1aa38
     ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:6f8174b1a47c47657fe9e59fe448f2a452bb6960
-    # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:latest
+    rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.1.0
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:e6ead1e8f76a407783430ee2666b403db2d76f64
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:8810e6a127366cc1eb829d3f7cb3f866d096946e
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-24.4.0-rc.3
