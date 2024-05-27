@@ -89,6 +89,9 @@ sriovOperatorConfig:
   # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
   configurationMode: daemon
 
+# Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
+supportedExtraNICs: []
+
 # Image URIs for sriov-network-operator components
 images:
   operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator
