@@ -76,4 +76,4 @@ ovsCni:
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: latest
+  version: v1.1.0
