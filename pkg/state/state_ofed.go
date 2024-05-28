@@ -336,7 +336,7 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, log.FromContext(ctx))
 
 	if err != nil {
-		return SyncStateNotReady, errors.Wrap(err, "failed to create k8s objects from manifest")
+		return SyncStateError, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
 	if len(objs) == 0 {
 		// GetManifestObjects returned no objects, this means that no objects need to be applied to the cluster
@@ -493,7 +493,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 	precompiledExists := docaProvider.TagExists(precompiledTag)
 	reqLogger.V(consts.LogLevelDebug).Info("Precompiled tag", "tag:", precompiledTag, "found:", precompiledExists)
 	if !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
-		return nil, fmt.Errorf("ForcePrecompiled is enabled and precompiled image was not found")
+		return nil, fmt.Errorf("ForcePrecompiled is enabled and precompiled tag was not found: %s", precompiledTag)
 	}
 
 	if precompiledExists {

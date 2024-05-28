@@ -291,6 +291,9 @@ type AppliedState struct {
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum={"ready", "notReady", "ignore", "error"}
 	State State `json:"state"`
+	// Message is a human readable message indicating details about why
+	// the state is in this condition
+	Message string `json:"message,omitempty"`
 }
 
 // NicClusterPolicyStatus defines the observed state of NicClusterPolicy

@@ -298,6 +298,11 @@ NextResult:
 		for i := range cr.Status.AppliedStates {
 			if cr.Status.AppliedStates[i].Name == stateStatus.StateName {
 				cr.Status.AppliedStates[i].State = mellanoxv1alpha1.State(stateStatus.Status)
+				if stateStatus.ErrInfo != nil {
+					cr.Status.AppliedStates[i].Message = stateStatus.ErrInfo.Error()
+				} else {
+					cr.Status.AppliedStates[i].Message = ""
+				}
 				continue NextResult
 			}
 		}
