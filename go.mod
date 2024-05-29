@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20240214071211-ea58a3ada15c
 	github.com/caarlos0/env/v6 v6.10.1
-	github.com/containers/image/v5 v5.30.1
+	github.com/containers/image/v5 v5.31.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20231129213221-4fdaa32ee934
@@ -32,11 +32,11 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
-	github.com/containers/storage v1.53.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/cli v25.0.3+incompatible // indirect
+	github.com/containers/storage v1.54.0 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/docker/cli v26.1.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v25.0.5+incompatible // indirect
+	github.com/docker/docker v26.1.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
@@ -45,9 +45,9 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
-	github.com/go-openapi/jsonpointer v0.20.0 // indirect
-	github.com/go-openapi/jsonreference v0.20.2 // indirect
-	github.com/go-openapi/swag v0.22.10 // indirect
+	github.com/go-openapi/jsonpointer v0.21.0 // indirect
+	github.com/go-openapi/jsonreference v0.21.0 // indirect
+	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -65,10 +65,9 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
@@ -81,10 +80,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.18.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
-	github.com/prometheus/common v0.45.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/prometheus/client_golang v1.19.0 // indirect
+	github.com/prometheus/client_model v0.6.0 // indirect
+	github.com/prometheus/common v0.51.1 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -98,9 +97,9 @@ require (
 	go.starlark.net v0.0.0-20231101134539-556fd59b42f6 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/oauth2 v0.18.0 // indirect
+	golang.org/x/oauth2 v0.20.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
@@ -108,7 +107,6 @@ require (
 	golang.org/x/time v0.4.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/evanphx/json-patch.v5 v5.7.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
