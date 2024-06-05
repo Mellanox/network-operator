@@ -193,6 +193,7 @@ rules:
   - events
   verbs:
   - create
+  - get
   - patch
   - update
 - apiGroups:

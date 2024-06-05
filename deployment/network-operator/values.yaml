@@ -115,11 +115,11 @@ sriov-network-operator:
   images:
     operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-24.4.0-beta.5
     sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-24.4.0-beta.5
-    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:3e6368077716f6b8368b0e036a1290d1c64cf1fb
-    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:fc002af57a81855542759d0f77d16dacd7e1aa38
-    ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:6f8174b1a47c47657fe9e59fe448f2a452bb6960
-    # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:latest
-    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:e6ead1e8f76a407783430ee2666b403db2d76f64
+    sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.8.0
+    ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.1.1
+    ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.34.0
+    # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.2.0
+    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.7.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:8810e6a127366cc1eb829d3f7cb3f866d096946e
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-24.4.0-beta.5
   # imagePullSecrest for SR-IOV Network Operator related images
@@ -263,7 +263,7 @@ rdmaSharedDevicePlugin:
   deploy: true
   image: k8s-rdma-shared-dev-plugin
   repository: ghcr.io/mellanox
-  version: 1.4.0
+  version: v1.5.1
   useCdi: false
   # imagePullSecrets: []
   # containerResources:
@@ -287,7 +287,7 @@ sriovDevicePlugin:
   deploy: false
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: e6ead1e8f76a407783430ee2666b403db2d76f64
+  version: v3.7.0
   useCdi: false
   # imagePullSecrets: []
   # containerResources:
@@ -350,7 +350,7 @@ secondaryNetwork:
     deploy: true
     image: plugins
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v1.3.0
+    version: v1.5.0
     # imagePullSecrets: []
     # containerResources:
     #   - name: "cni-plugins"
@@ -379,7 +379,7 @@ secondaryNetwork:
     deploy: false
     image: ipoib-cni
     repository: ghcr.io/mellanox
-    version: 428715a57c0b633e48ec7620f6e3af6863149ccf
+    version: v1.2.0
     # imagePullSecrets: []
     # containerResources:
     #   - name: "ipoib-cni"
@@ -393,7 +393,7 @@ secondaryNetwork:
     deploy: true
     image: whereabouts
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v0.6.2
+    version: v0.7.0
     # imagePullSecrets: []
     # containerResources:
     #   - name: "whereabouts"
