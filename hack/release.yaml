@@ -20,11 +20,11 @@ SriovConfigDaemon:
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: 3e6368077716f6b8368b0e036a1290d1c64cf1fb
+  version: v2.8.0
 SriovIbCni:
   image: ib-sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: fc002af57a81855542759d0f77d16dacd7e1aa38
+  version: v1.1.1
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
@@ -32,11 +32,11 @@ Mofed:
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: ghcr.io/mellanox
-  version: 1.4.0
+  version: v1.5.1
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: e6ead1e8f76a407783430ee2666b403db2d76f64
+  version: v3.7.0
 IbKubernetes:
   image: ib-kubernetes
   repository: ghcr.io/mellanox
@@ -44,7 +44,7 @@ IbKubernetes:
 CniPlugins:
   image: plugins
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v1.3.0
+  version: v1.5.0
 Multus:
   image: multus-cni
   repository: ghcr.io/k8snetworkplumbingwg
@@ -52,11 +52,11 @@ Multus:
 Ipoib:
   image: ipoib-cni
   repository: ghcr.io/mellanox
-  version: 428715a57c0b633e48ec7620f6e3af6863149ccf
+  version: v1.2.0
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.6.2
+  version: v0.7.0
 nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
@@ -72,8 +72,8 @@ docaTelemetryService:
 ovsCni:
   image: ovs-cni-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: 6f8174b1a47c47657fe9e59fe448f2a452bb6960
+  version: v0.34.0
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: latest
+  version: v1.2.0

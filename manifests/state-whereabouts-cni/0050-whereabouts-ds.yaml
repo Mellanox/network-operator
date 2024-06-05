@@ -55,7 +55,18 @@ spec:
       containers:
       - name: whereabouts
         image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+        command: [ "/bin/sh" ]
+        args:
+        - -c
+        - >
+          SLEEP=false /install-cni.sh &&
+          /ip-control-loop
         env:
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
         - name: WHEREABOUTS_NAMESPACE
           valueFrom:
             fieldRef:
@@ -88,6 +99,8 @@ spec:
           mountPath: /host/opt/cni/bin
         - name: cni-net-dir
           mountPath: /host/etc/cni/net.d
+        - name: cron-scheduler-configmap
+          mountPath: /cron-schedule
       volumes:
         - name: cnibin
           hostPath:
@@ -95,3 +108,10 @@ spec:
         - name: cni-net-dir
           hostPath:
             path: /etc/cni/net.d
+        - name: cron-scheduler-configmap
+          configMap:
+            name: "whereabouts-config"
+            defaultMode: 0744
+            items:
+            - key: "cron-expression"
+              path: "config"
