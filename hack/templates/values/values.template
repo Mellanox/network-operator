@@ -322,7 +322,7 @@ ibKubernetes:
   ufmSecret: '' # specify the secret name here
 
 nvIpam:
-  deploy: false
+  deploy: true
   image: {{ .NvIPAM.Image }}
   repository: {{ .NvIPAM.Repository }}
   version: {{ .NvIPAM.Version }}
@@ -390,7 +390,7 @@ secondaryNetwork:
     #       cpu: "100m"
     #       memory: "50Mi"
   ipamPlugin:
-    deploy: true
+    deploy: false
     image: {{ .IpamPlugin.Image }}
     repository: {{ .IpamPlugin.Repository }}
     version: {{ .IpamPlugin.Version }}
