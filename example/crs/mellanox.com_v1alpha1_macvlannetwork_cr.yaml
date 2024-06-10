@@ -22,17 +22,6 @@ spec:
   mtu: 1500
   ipam: |
     {
-      "type": "whereabouts",
-      "datastore": "kubernetes",
-      "kubernetes": {
-        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-      },
-      "range": "192.168.2.225/28",
-      "exclude": [
-       "192.168.2.229/30",
-       "192.168.2.236/32"
-      ],
-      "log_file" : "/var/log/whereabouts.log",
-      "log_level" : "info",
-      "gateway": "192.168.2.1"
+      "type": "nv-ipam",
+      "poolName": "my-pool"
     }
