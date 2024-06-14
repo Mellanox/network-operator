@@ -43,4 +43,24 @@ webhooks:
         resources:
           - ippools
     sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: nv-ipam-webhook-service
+        namespace: {{ .RuntimeSpec.Namespace }}
+        path: /validate-nv-ipam-nvidia-com-v1alpha1-cidrpool
+    failurePolicy: Fail
+    name: validate-cidrpool.nv-ipam.nvidia.com
+    rules:
+      - apiGroups:
+          - nv-ipam.nvidia.com
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - cidrpools
+    sideEffects: None
 {{ end }}

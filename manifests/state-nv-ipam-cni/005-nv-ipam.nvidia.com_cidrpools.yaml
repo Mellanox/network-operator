@@ -1,4 +1,4 @@
-# 2023 NVIDIA CORPORATION & AFFILIATES
+# 2024 NVIDIA CORPORATION & AFFILIATES
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,30 +17,30 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: ippools.nv-ipam.nvidia.com
+  name: cidrpools.nv-ipam.nvidia.com
 spec:
   group: nv-ipam.nvidia.com
   names:
-    kind: IPPool
-    listKind: IPPoolList
-    plural: ippools
-    singular: ippool
+    kind: CIDRPool
+    listKind: CIDRPoolList
+    plural: cidrpools
+    singular: cidrpool
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.subnet
-      name: Subnet
+    - jsonPath: .spec.cidr
+      name: CIDR
       type: string
-    - jsonPath: .spec.gateway
-      name: Gateway
+    - jsonPath: .spec.gatewayIndex
+      name: Gateway index
       type: string
-    - jsonPath: .spec.perNodeBlockSize
-      name: Block Size
+    - jsonPath: .spec.perNodeNetworkPrefix
+      name: Per Node Network Prefix
       type: integer
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IPPool contains configuration for IPAM controller
+        description: CIDRPool contains configuration for CIDR pool
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -55,8 +55,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: IPPoolSpec contains configuration for IP pool
+            description: CIDRPoolSpec contains configuration for CIDR pool
             properties:
+              cidr:
+                description: pool CIDR block which will be split to smaller prefixes(size
+                  is define in perNodeNetworkPrefix) and distributed between matching
+                  nodes
+                type: string
               exclusions:
                 description: contains reserved IP addresses that should not be allocated
                   by nv-ipam
@@ -73,9 +78,10 @@ spec:
                   - startIP
                   type: object
                 type: array
-              gateway:
-                description: gateway for the pool
-                type: string
+              gatewayIndex:
+                description: use IP with this index from the host prefix as a gateway,
+                  skip gateway configuration if the value not set
+                type: integer
               nodeSelector:
                 description: selector for nodes, if empty match all nodes
                 properties:
@@ -160,35 +166,57 @@ spec:
                 - nodeSelectorTerms
                 type: object
                 x-kubernetes-map-type: atomic
-              perNodeBlockSize:
-                description: amount of IPs to allocate for each node, must be less
-                  than amount of available IPs in the subnet
+              perNodeNetworkPrefix:
+                description: size of the network prefix for each host, the network
+                  defined in "cidr" field will be split to multiple networks with
+                  this size.
                 type: integer
-              subnet:
-                description: subnet of the pool
-                type: string
-            required:
-            - perNodeBlockSize
-            - subnet
-            type: object
-          status:
-            description: IPPoolStatus contains the IP ranges allocated to nodes
-            properties:
-              allocations:
-                description: IP allocations for Nodes
+              staticAllocations:
+                description: static allocations for the pool
                 items:
-                  description: Allocation contains IP Allocation for a specific Node
+                  description: CIDRPoolStaticAllocation contains static allocation
+                    for a CIDR pool
                   properties:
-                    endIP:
+                    gateway:
+                      description: gateway for the node
                       type: string
                     nodeName:
+                      description: name of the node for static allocation, can be
+                        empty in case if the prefix should be preallocated without
+                        assigning it for a specific node
                       type: string
-                    startIP:
+                    prefix:
+                      description: statically allocated prefix
                       type: string
                   required:
-                  - endIP
+                  - prefix
+                  type: object
+                type: array
+            required:
+            - cidr
+            - perNodeNetworkPrefix
+            type: object
+          status:
+            description: CIDRPoolStatus contains the IP prefixes allocated to nodes
+            properties:
+              allocations:
+                description: prefixes allocations for Nodes
+                items:
+                  description: CIDRPoolAllocation contains prefix allocated for a
+                    specific Node
+                  properties:
+                    gateway:
+                      description: gateway for the node
+                      type: string
+                    nodeName:
+                      description: name of the node which owns this allocation
+                      type: string
+                    prefix:
+                      description: allocated prefix
+                      type: string
+                  required:
                   - nodeName
-                  - startIP
+                  - prefix
                   type: object
                 type: array
             required:

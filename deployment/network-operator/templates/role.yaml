@@ -325,6 +325,7 @@ rules:
   - nv-ipam.nvidia.com
   resources:
   - ippools
+  - cidrpools
   verbs:
   - create
   - get
@@ -334,6 +335,7 @@ rules:
   - nv-ipam.nvidia.com
   resources:
   - ippools/status
+  - cidrpools/status
   verbs:
   - get
   - patch
