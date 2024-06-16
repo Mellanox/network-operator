@@ -309,6 +309,23 @@ rules:
 - apiGroups:
   - nv-ipam.nvidia.com
   resources:
+  - cidrpools
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - nv-ipam.nvidia.com
+  resources:
+  - cidrpools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - nv-ipam.nvidia.com
+  resources:
   - ippools
   verbs:
   - create
