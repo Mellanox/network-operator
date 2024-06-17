@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA
+# Copyright 2020 NVIDIA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 apiVersion: mellanox.com/v1alpha1
-kind: HostDeviceNetwork
+kind: MacvlanNetwork
 metadata:
-  name: example-hostdevice-network
+  name: example-macvlannetwork
 spec:
   networkNamespace: "default"
-  resourceName: "hostdev"
+  master: "ens2f0"
+  mode: "bridge"
+  mtu: 9000
   ipam: |
     {
-      "type": "nv-ipam",
-      "poolName": "my-pool"
+      "type": "static"
     }

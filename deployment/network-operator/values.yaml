@@ -322,7 +322,7 @@ ibKubernetes:
   ufmSecret: '' # specify the secret name here
 
 nvIpam:
-  deploy: false
+  deploy: true
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
   version: v0.2.0
@@ -390,7 +390,7 @@ secondaryNetwork:
     #       cpu: "100m"
     #       memory: "50Mi"
   ipamPlugin:
-    deploy: true
+    deploy: false
     image: whereabouts
     repository: ghcr.io/k8snetworkplumbingwg
     version: v0.6.2

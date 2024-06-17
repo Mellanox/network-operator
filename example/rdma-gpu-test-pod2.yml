@@ -6,7 +6,7 @@ metadata:
     k8s.v1.cni.cncf.io/networks: rdma-net-ipam
     # If a network with static IPAM is used replace network annotation with the below.
     #k8s.v1.cni.cncf.io/networks: '[
-    #  { "name": "rdma-net",
+    #  { "name": "example-macvlannetwork",
     #    "ips": ["192.168.111.102/24"],
     #    "gateway": ["192.168.111.1"]
     #  }
