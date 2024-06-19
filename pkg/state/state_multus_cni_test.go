@@ -265,14 +265,14 @@ var _ = Describe("Multus CNI state", func() {
 
 			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
 				corev1.VolumeMount{
-					Name:      "multus-cfg",
+					Name:      "multus-cni-config",
 					MountPath: "/tmp/multus-conf",
 				},
 			))
 
 			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
 				corev1.Volume{
-					Name: "multus-cfg",
+					Name: "multus-cni-config",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
