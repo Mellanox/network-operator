@@ -40,7 +40,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: ghcr.io/mellanox
-    version: 1.4.0
+    version: v1.5.1
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -60,7 +60,7 @@ spec:
     cniPlugins:
       image: plugins
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v1.3.0
+      version: v1.5.0
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
@@ -69,4 +69,4 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.6.2
+      version: v0.7.0
