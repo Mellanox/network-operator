@@ -18,6 +18,7 @@ package state
 
 import (
 	"context"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -256,7 +257,26 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
-	It("should render resources correctly when config is specified in CR", func() {
+	It("should render config map with expected key", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "ConfigMap", func(obj *unstructured.Unstructured) {
+			var configMap corev1.ConfigMap
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &configMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(configMap.Namespace).To(Equal(networkOperatorResourceNamespace))
+			defaultConfig := make(map[string]interface{})
+			Expect(configMap.Data).To(HaveKey("daemon-config.json"))
+			// just make sure data is valid json
+			Expect(json.Unmarshal([]byte(configMap.Data["daemon-config.json"]), &defaultConfig)).ToNot(HaveOccurred())
+			Expect(defaultConfig).ToNot(BeEmpty())
+		})).To(BeTrue())
+	})
+
+	It("should render config map with config as specified in CR", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
 		configString := "myconfig"
@@ -271,53 +291,10 @@ var _ = Describe("Multus CNI state", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(configMap.Namespace).To(Equal(networkOperatorResourceNamespace))
-			Expect(configMap.Data["cni-conf.json"]).To(Equal(configString))
-		})).To(BeTrue())
-
-		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
-			var daemonSet appsv1.DaemonSet
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
-				corev1.VolumeMount{
-					Name:      "multus-cfg",
-					MountPath: "/tmp/multus-conf",
-				},
-			))
-
-			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
-				corev1.Volume{
-					Name: "multus-cfg",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "multus-cni-config",
-							},
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "cni-conf.json",
-									Path: "00-multus.conf",
-								},
-							},
-						},
-					},
-				},
-			))
-
+			Expect(configMap.Data).To(HaveKey("daemon-config.json"))
+			Expect(configMap.Data["daemon-config.json"]).To(Equal(configString))
 		})).To(BeTrue())
 	})
-
-	It("should not render ConfigMap if config is not specified in CR", func() {
-		cr := getMinimalNicClusterPolicyWithMultus()
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-		Expect(err).NotTo(HaveOccurred())
-
-		for _, obj := range objs {
-			Expect(obj.GetKind()).ToNot(Equal("ConfigMap"))
-		}
-	})
-
 })
 
 func getMinimalNicClusterPolicyWithMultus() *mellanoxv1alpha1.NicClusterPolicy {
