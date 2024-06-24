@@ -27,7 +27,7 @@ SriovIbCni:
   version: v1.1.1
 Mofed:
   image: doca-driver
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/mellanox
   version: 24.04-0.6.6.0-0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
