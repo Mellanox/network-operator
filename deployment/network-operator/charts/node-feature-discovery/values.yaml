@@ -10,27 +10,57 @@ nameOverride: ""
 fullnameOverride: ""
 namespaceOverride: ""
 
-enableNodeFeatureApi: false
+enableNodeFeatureApi: true
 
 master:
+  enable: true
   config: ### <NFD-MASTER-CONF-START-DO-NOT-REMOVE>
     # noPublish: false
+    # autoDefaultNs: true
     # extraLabelNs: ["added.ns.io","added.kubernets.io"]
     # denyLabelNs: ["denied.ns.io","denied.kubernetes.io"]
     # resourceLabels: ["vendor-1.com/feature-1","vendor-2.io/feature-2"]
     # enableTaints: false
     # labelWhiteList: "foo"
+    # resyncPeriod: "2h"
+    # klog:
+    #    addDirHeader: false
+    #    alsologtostderr: false
+    #    logBacktraceAt:
+    #    logtostderr: true
+    #    skipHeaders: false
+    #    stderrthreshold: 2
+    #    v: 0
+    #    vmodule:
+    ##   NOTE: the following options are not dynamically run-time configurable
+    ##         and require a nfd-master restart to take effect after being changed
+    #    logDir:
+    #    logFile:
+    #    logFileMaxSize: 1800
+    #    skipLogHeaders: false
+    # leaderElection:
+    #   leaseDuration: 15s
+    #   # this value has to be lower than leaseDuration and greater than retryPeriod*1.2
+    #   renewDeadline: 10s
+    #   # this value has to be greater than 0
+    #   retryPeriod: 2s
+    # nfdApiParallelism: 10
   ### <NFD-MASTER-CONF-END-DO-NOT-REMOVE>
   # The TCP port that nfd-master listens for incoming requests. Default: 8080
+  # Deprecated this parameter is related to the deprecated gRPC API and will
+  # be removed with it in a future release  
   port: 8080
+  metricsPort: 8081
   instance:
   featureApi:
+  resyncPeriod:
   denyLabelNs: []
   extraLabelNs: []
   resourceLabels: []
   enableTaints: false
   crdController: null
   featureRulesController: null
+  nfdApiParallelism: null
   deploymentAnnotations: {}
   replicaCount: 1
 
@@ -104,6 +134,7 @@ master:
                 values: [""]
 
 worker:
+  enable: true
   config: ### <NFD-WORKER-CONF-START-DO-NOT-REMOVE>
     #core:
     #  labelWhiteList:
@@ -154,6 +185,7 @@ worker:
     #        - "SSE4"
     #        - "SSE42"
     #        - "SSSE3"
+    #        - "TDX_GUEST"
     #      attributeWhitelist:
     #  kernel:
     #    kconfigFile: "/path/to/kconfig"
@@ -183,12 +215,12 @@ worker:
     #      - "vendor"
     #      - "device"
     #  local:
-    #    hooksEnabled: true
+    #    hooksEnabled: false
     #  custom:
     #    # The following feature demonstrates the capabilities of the matchFeatures
     #    - name: "my custom rule"
     #      labels:
-    #        my-ng-feature: "true"
+    #        "vendor.io/my-ng-feature": "true"
     #      # matchFeatures implements a logical AND over all matcher terms in the
     #      # list (i.e. all of the terms, or per-feature matchers, must match)
     #      matchFeatures:
@@ -259,7 +291,7 @@ worker:
     #    # The following feature demonstrates the capabilities of the matchAny
     #    - name: "my matchAny rule"
     #      labels:
-    #        my-ng-feature-2: "my-value"
+    #        "vendor.io/my-ng-feature-2": "my-value"
     #      # matchAny implements a logical IF over all elements (sub-matchers) in
     #      # the list (i.e. at least one feature matcher must match)
     #      matchAny:
@@ -280,10 +312,17 @@ worker:
     #                vendor: {op: In, value: ["8086"]}
     #                class: {op: In, value: ["02"]}
     #
+    #    - name: "avx wildcard rule"
+    #      labels:
+    #        "my-avx-feature": "true"
+    #      matchFeatures:
+    #        - feature: cpu.cpuid
+    #          matchName: {op: InRegexp, value: ["^AVX512"]}
+    #
     #    # The following features demonstreate label templating capabilities
     #    - name: "my template rule"
     #      labelsTemplate: |
-    #        {{ range .system.osrelease }}my-system-feature.{{ .Name }}={{ .Value }}
+    #        {{ range .system.osrelease }}vendor.io/my-system-feature.{{ .Name }}={{ .Value }}
     #        {{ end }}
     #      matchFeatures:
     #        - feature: system.osrelease
@@ -293,7 +332,7 @@ worker:
     #
     #    - name: "my template rule 2"
     #      labelsTemplate: |
-    #        {{ range .pci.device }}my-pci-device.{{ .class }}-{{ .device }}=with-cpuid
+    #        {{ range .pci.device }}vendor.io/my-pci-device.{{ .class }}-{{ .device }}=with-cpuid
     #        {{ end }}
     #      matchFeatures:
     #        - feature: pci.device
@@ -308,7 +347,7 @@ worker:
     #    # previous labels and vars
     #    - name: "my dummy kernel rule"
     #      labels:
-    #        "my.kernel.feature": "true"
+    #        "vendor.io/my.kernel.feature": "true"
     #      matchFeatures:
     #        - feature: kernel.version
     #          matchExpressions:
@@ -323,15 +362,23 @@ worker:
     #
     #    - name: "my rule using backrefs"
     #      labels:
-    #        "my.backref.feature": "true"
+    #        "vendor.io/my.backref.feature": "true"
     #      matchFeatures:
     #        - feature: rule.matched
     #          matchExpressions:
-    #            my.kernel.feature: {op: IsTrue}
+    #            vendor.io/my.kernel.feature: {op: IsTrue}
     #            my.dummy.var: {op: Gt, value: ["0"]}
     #
+    #    - name: "kconfig template rule"
+    #      labelsTemplate: |
+    #        {{ range .kernel.config }}kconfig-{{ .Name }}={{ .Value }}
+    #        {{ end }}
+    #      matchFeatures:
+    #        - feature: kernel.config
+    #          matchName: {op: In, value: ["SWAP", "X86", "ARM"]}
 ### <NFD-WORKER-CONF-END-DO-NOT-REMOVE>
 
+  metricsPort: 8081
   daemonsetAnnotations: {}
   podSecurityContext: {}
     # fsGroup: 2000
@@ -404,6 +451,7 @@ topologyUpdater:
   rbac:
     create: true
 
+  metricsPort: 8081
   kubeletConfigPath:
   kubeletPodResourcesSockPath:
   updateInterval: 60s
@@ -433,10 +481,11 @@ topologyUpdater:
   nodeSelector: {}
   tolerations: []
   annotations: {}
+  daemonsetAnnotations: {}
   affinity: {}
   podSetFingerprint: true
 
-topologyGC:
+gc:
   enable: true
   replicaCount: 1
 
@@ -450,12 +499,6 @@ topologyGC:
   interval: 1h
 
   podSecurityContext: {}
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: [ "ALL" ]
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
 
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -469,9 +512,12 @@ topologyGC:
     #   cpu: 100m
     #   memory: 128Mi
 
+  metricsPort: 8081
+
   nodeSelector: {}
   tolerations: []
   annotations: {}
+  deploymentAnnotations: {}
   affinity: {}
 
 # Optionally use encryption for worker <--> master comms
@@ -482,3 +528,7 @@ topologyGC:
 tls:
   enable: false
   certManager: false
+
+prometheus:
+  enable: false
+  labels: {}
