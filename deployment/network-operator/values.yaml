@@ -27,11 +27,28 @@ sriovNetworkOperator:
 
 # Node Feature discovery chart related values
 node-feature-discovery:
+  # set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable
   enableNodeFeatureApi: true
-  worker:
+  featureGates:
+    NodeFeatureAPI: true
+
+  master:
     serviceAccount:
       name: node-feature-discovery
-      # disable creation to avoid duplicate serviceaccount creation by master spec below
+      create: true
+    config:
+      extraLabelNs: ["nvidia.com"]
+  gc:
+    enable: true
+    replicaCount: 1
+    serviceAccount:
+      # disable creation to avoid duplicate serviceaccount creation by master spec above
+      name: node-feature-discovery
+      create: false
+  worker:
+    serviceAccount:
+      # disable creation to avoid duplicate serviceaccount creation by master spec above
+      name: node-feature-discovery
       create: false
     tolerations:
     - key: "node-role.kubernetes.io/master"
@@ -51,12 +68,6 @@ node-feature-discovery:
           - "0302"
           deviceLabelFields:
           - vendor
-  master:
-    serviceAccount:
-      name: node-feature-discovery
-      create: true
-    config: 
-      extraLabelNs: ["nvidia.com"]
 
 # SR-IOV Network Operator chart related values
 sriov-network-operator:
