@@ -362,9 +362,9 @@ secondaryNetwork:
     #       memory: "50Mi"
   multus:
     deploy: true
-    image: multus-cni
+    image: multus-cni@sha256
     repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.9.3
+    version: ce1f91d6b49cb27bd0b92ac1c092727f0e5eca515728d994bfeda11e8b814cb8
     # imagePullSecrets: []
     # config: ''
     # containerResources:

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-{{ if .CrSpec.Config -}}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -21,5 +20,18 @@ metadata:
     tier: node
     app: multus
 data:
-  cni-conf.json: '{{ .CrSpec.Config }}'
-{{ end -}}
+{{- if .CrSpec.Config }}
+  daemon-config.json: '{{ .CrSpec.Config }}'
+{{- else }}
+  daemon-config.json: |
+    {
+        "chrootDir": "/hostroot",
+        "cniVersion": "0.3.1",
+        "logLevel": "verbose",
+        "logToStderr": true,
+        "cniConfigDir": "/host/etc/cni/net.d",
+        "multusAutoconfigDir": "/host/etc/cni/net.d",
+        "multusConfigFile": "auto",
+        "socketDir": "/host/run/multus/"
+    }
+{{- end }}

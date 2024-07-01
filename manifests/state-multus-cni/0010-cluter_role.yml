@@ -34,6 +34,8 @@ rules:
       - pods/status
     verbs:
       - get
+      - list
+      - watch
       - update
   - apiGroups:
       - ""
