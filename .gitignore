@@ -18,6 +18,7 @@
 *.swp
 *.swo
 *~
+.vscode
 
 # Helm charts
 deployment/network-operator/Chart.lock

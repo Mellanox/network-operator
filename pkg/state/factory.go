@@ -79,8 +79,8 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 		return nil, errors.Wrapf(err, "failed to create OFED driver State")
 	}
 
-	sharedDpState, _, err := NewStateSharedDp(
-		k8sAPIClient, filepath.Join(manifestBaseDir, "state-rdma-device-plugin"))
+	sharedDpState, _, err := NewStateRDMASharedDevicePlugin(
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-rdma-shared-device-plugin"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Shared Device plugin State")
 	}
