@@ -197,7 +197,7 @@ ofedDriver:
   deploy: false
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
-  version: 24.07-0.1.6.0-0
+  version: 24.07-0.3.1.0-0
   initContainer:
     enable: true
     repository: ghcr.io/mellanox
