@@ -65,7 +65,7 @@ spec:
   - networking
   links:
   - name: Network Operator Documentation
-    url: https://docs.nvidia.com/networking/display/kubernetes2410
+    url: https://docs.nvidia.com/networking/software/cloud-orchestration/index.html
   - name: GitHub repository
     url: https://github.com/Mellanox/network-operator/
   maintainers:

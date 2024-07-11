@@ -1,5 +1,5 @@
 resources:
-- manager.yaml
+  - manager.yaml
 
 commonLabels:
   control-plane: nvidia-network-operator-controller
@@ -8,15 +8,15 @@ generatorOptions:
   disableNameSuffixHash: true
 
 patches:
-- path: init_container_image_name_patch.yaml
-  target:
-    group: apps
-    kind: Deployment
-    name: controller-manager
-    namespace: system
-    version: v1
+  - path: init_container_image_name_patch.yaml
+    target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
 
 kind: Kustomization
 images:
-- name: controller
-  newName: mellanox/network-operator
+  - name: controller
+    newName: mellanox/network-operator
