@@ -9,8 +9,21 @@ The template for the CSV is located [here](config/manifests/bases/nvidia-network
 
 Build the bundle:
 
+**Note**:
+- `VERSION` should be a valid semantic version
+- `DEFAULT_CHANNEL` should be in the following format: `vMAJOR.MINOR`, without the patch version
+- `CHANNELS` should include the `DEFAULT_CHANNEL` value and `stable` seperated by a comma
+- `TAG` should use SHA256
+
+Here how to obtain the digest:
+
 ```bash
-DEFAULT_CHANNEL=v1.1.0 CHANNELS=v1.1.0 VERSION=1.1.0 TAG=nvcr.io/nvidia/cloud-native/network-operator@sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251 make bundle
+skopeo inspect docker://nvcr.io/nvidia/cloud-native/network-operator:v1.1.0 | jq .Digest
+"sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251"
+```
+
+```bash
+DEFAULT_CHANNEL=v1.1 CHANNELS=v1.1,stable VERSION=1.1.0 TAG=nvcr.io/nvidia/cloud-native/network-operator@sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251 make bundle
 ```
 
 Build the bundle image:
@@ -23,16 +36,6 @@ Push the bundle image:
 
 ```bash
 BUNDLE_IMG=mellanox/network-operator-bundle-1.1.0 make bundle-push
-```
-
-**NOTE**
-
-It is recommended to use sha256 instead of tag.
-Here how to obtain the digest:
-
-```bash
-skopeo inspect docker://nvcr.io/nvidia/cloud-native/network-operator:v1.1.0 | jq .Digest
-"sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251"
 ```
 
 ## Deploying the operator

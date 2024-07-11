@@ -1,0 +1,21 @@
+  relatedImages:
+    - name: nvidia-network-operator-init-container
+      image: {{ (imageAsSha .NetworkOperatorInitContainer) }}
+    - name: rdma-Shared-device-plugin
+      image: {{ (imageAsSha .RdmaSharedDevicePlugin) }}
+    - name: sriov-network-device-plugin
+      image: {{ (imageAsSha .SriovDevicePlugin) }}
+    - name: ib-kubernetes
+      image: {{ (imageAsSha .IbKubernetes) }}
+    - name: ipoib-cni
+      image: {{ (imageAsSha .Ipoib) }}
+    - name: nv-ipam
+      image: {{ (imageAsSha .NvIPAM) }}
+    - name: nic-feature-discovery
+      image: {{ (imageAsSha .NicFeatureDiscovery) }}
+    - name: docs-telemetry-service
+      image: {{ (imageAsSha .DOCATelemetryService) }}
+    {{- range .Mofed.Shas }}
+    - name: {{ .Name }}
+      image: {{ .ImageRef }}
+    {{- end }}
