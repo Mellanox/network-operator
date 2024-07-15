@@ -1,6 +1,7 @@
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
+  version: v24.7.0-beta.2
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
@@ -77,3 +78,5 @@ rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
   version: v1.2.0
+Nfd:
+  version: v0.15.6

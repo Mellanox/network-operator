@@ -1,0 +1,21 @@
+.. |network-operator-version| replace:: {{ .NetworkOperator.Version }}
+.. |helm-chart-version| replace:: {{ .HelmChartVersion }}
+.. |ocp-channel| replace::  {{ .OcpDefaulChannel }}
+.. |mofed-version| replace:: {{ .Mofed.Version }}
+.. |mofed-init-container-version| replace:: {{ .NetworkOperatorInitContainer.Version }}
+.. |sriov-device-plugin-version| replace:: {{ .SriovDevicePlugin.Version }}
+.. |k8s-rdma-shared-dev-plugin-version| replace:: {{ .RdmaSharedDevicePlugin.Version }}
+.. |ib-kubernetes-version| replace:: {{ .IbKubernetes.Version }}
+.. |cni-plugins-version| replace:: {{ .CniPlugins.Version }}
+.. |multus-version| replace:: {{ .Multus.Version }}
+.. |ipoib-cni-version| replace:: {{ .Ipoib.Version }}
+.. |whereabouts-version| replace:: {{ .IpamPlugin.Version }}
+.. |nvidia-ipam-version| replace:: {{ .NvIPAM.Version }}
+.. |nic-feature-discovery-version| replace:: {{ .NicFeatureDiscovery.Version }}
+.. |sriovnetop-version| replace:: {{ .SriovNetworkOperator.Version }}
+.. |sriovnetop-sriov-cni-version| replace:: {{ .SriovCni.Version }}
+.. |sriovnetop-ib-sriov-cni-version| replace:: {{ .SriovIbCni.Version }}
+.. |sriovnetop-sriov-device-plugin-version| replace:: {{ .SriovDevicePlugin.Version }}
+.. |doca-telemetry-version| replace:: {{ .DOCATelemetryService.Version }}
+.. |node-feature-discovery-version| replace:: {{ .Nfd.Version }}
+

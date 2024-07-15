@@ -413,6 +413,11 @@ release-build:
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
 	cd hack && $(GO) run release.go --templateDir ./templates/config/manager --outputDir ../config/manager/
 
+.PHONY: generate-docs-versions-var
+generate-docs-versions-var:
+	cd hack && $(GO) run release.go --templateDir ./templates/docs-versions-var/ --outputDir .
+	mv hack/vars.yaml hack/vars.rst
+
 # dev environment
 
 MINIKUBE_CLUSTER_NAME = net-op-dev
