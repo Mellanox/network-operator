@@ -201,7 +201,7 @@ $(SKAFFOLD): | $(TOOLSDIR)
 
 # mockery is used to generate mocks for unit tests.
 MOCKERY_PKG := github.com/vektra/mockery/v2
-MOCKERY_VER := v2.32.2
+MOCKERY_VER := v2.43.2
 MOCKERY_BIN := mockery
 MOCKERY_PATH = $(abspath $(TOOLSDIR)/$(MOCKERY_BIN))
 MOCKERY = $(abspath $(TOOLSDIR)/$(MOCKERY_BIN))-$(MOCKERY_VER)
