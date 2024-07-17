@@ -38,6 +38,10 @@ import (
 const resourceNamePrefix = "nvidia.com/"
 
 var _ = Describe("HostDevice Network State rendering tests", func() {
+	const (
+		testNamespace = "namespace"
+		testType      = "host-device"
+	)
 
 	var hostDeviceNetState state.State
 	var catalog state.InfoCatalog
@@ -59,7 +63,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			testName := "host-device"
 			testResourceName := "test"
-			cr := getHostDeviceNetwork(testName, testResourceName)
+			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
@@ -85,7 +89,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition with resource with prefix", func() {
 			testName := "host-device"
 			testResourceName := resourceNamePrefix + "test"
-			cr := getHostDeviceNetwork(testName, testResourceName)
+			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
@@ -113,7 +117,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 				"\"exclude\":[\"192.168.2.229/30\",\"192.168.2.236/32\"]}"
 			testName := "host-device"
 			testResourceName := "test"
-			cr := getHostDeviceNetwork(testName, testResourceName)
+			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			cr.Spec.IPAM = ipam
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -146,7 +150,7 @@ func getExpectedHostDeviceNetNAD(testName, ipam string) *netattdefv1.NetworkAtta
 	return nad
 }
 
-func getHostDeviceNetwork(testName, resourceName string) *mellanoxv1alpha1.HostDeviceNetwork {
+func getHostDeviceNetwork(testName, testNamespace, resourceName string) *mellanoxv1alpha1.HostDeviceNetwork {
 	cr := &mellanoxv1alpha1.HostDeviceNetwork{
 		Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
 			NetworkNamespace: testNamespace,

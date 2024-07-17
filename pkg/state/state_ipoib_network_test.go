@@ -36,6 +36,9 @@ import (
 )
 
 var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
+	const (
+		testNamespace = "namespace"
+	)
 
 	var ipoibState state.State
 	var catalog state.InfoCatalog
@@ -56,7 +59,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 	Context("IPoIBNetwork Network state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			name := "ipoib"
-			cr := getIPoIBNetwork()
+			cr := getIPoIBNetwork(testNamespace)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := ipoibState.Sync(context.Background(), cr, catalog)
@@ -70,16 +73,15 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			cfg, err := getNADConfig(nad.Spec.Config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cfg.Type).To(Equal("ipoib"))
-			expectedNad := getExpectedIPoIBNAD(name, "{}")
+			expectedNad := getExpectedIPoIBNAD(name, cr.Spec.Master, "{}")
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 			Expect(nad.Name).To(Equal(name))
 			Expect(nad.Namespace).To(Equal(testNamespace))
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
-			ipam := "{\"type\":\"whereabouts\",\"range\":\"192.168.2.225/28\"," +
-				"\"exclude\":[\"192.168.2.229/30\",\"192.168.2.236/32\"]}"
+			ipam := `{"type":"whereabouts","range":"192.168.2.225/28","exclude":["192.168.2.229/30","192.168.2.236/32"]}`
 			name := "ipoib"
-			cr := getIPoIBNetwork()
+			cr := getIPoIBNetwork(testNamespace)
 			cr.Spec.IPAM = ipam
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,13 +98,12 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			Expect(cfg.Type).To(Equal("ipoib"))
 			Expect(nad.Name).To(Equal(name))
 			Expect(nad.Namespace).To(Equal(testNamespace))
-			expectedNad := getExpectedIPoIBNAD(name, ipam)
+			expectedNad := getExpectedIPoIBNAD(name, cr.Spec.Master, ipam)
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 		})
 		It("Should Render NetworkAttachmentDefinition with default namespace", func() {
 			name := "ipoib"
-			cr := getIPoIBNetwork()
-			cr.Spec.NetworkNamespace = ""
+			cr := getIPoIBNetwork("")
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := ipoibState.Sync(context.Background(), cr, catalog)
@@ -120,8 +121,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 	Context("Verify Sync flows", func() {
 		It("Should recreate NetworkAttachmentDefinition with different namespace", func() {
 			name := "ipoib"
-			cr := getIPoIBNetwork()
-			cr.Spec.NetworkNamespace = ""
+			cr := getIPoIBNetwork("")
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := ipoibState.Sync(context.Background(), cr, catalog)
@@ -150,7 +150,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: name}, nad)
 			Expect(err).NotTo(HaveOccurred())
-			expectedNad := getExpectedIPoIBNAD(name, "{}")
+			expectedNad := getExpectedIPoIBNAD(name, cr.Spec.Master, "{}")
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 			Expect(nad.Name).To(Equal(name))
 			Expect(nad.Namespace).To(Equal(testNamespace))
@@ -158,20 +158,19 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 	})
 })
 
-func getExpectedIPoIBNAD(testName, ipam string) *netattdefv1.NetworkAttachmentDefinition {
+func getExpectedIPoIBNAD(testName, testMaster, ipam string) *netattdefv1.NetworkAttachmentDefinition {
 	nad := &netattdefv1.NetworkAttachmentDefinition{}
-	cfg := fmt.Sprintf("{ \"cniVersion\":\"0.3.1\", \"name\":%q, \"type\":\"ipoib\", "+
-		"\"master\": %q, \"ipam\":%s }",
+	cfg := fmt.Sprintf(`{ "cniVersion":"0.3.1", "name":%q, "type":"ipoib", "master": %q, "ipam":%s }`,
 		testName, testMaster, ipam)
 	nad.Spec.Config = cfg
 	return nad
 }
 
-func getIPoIBNetwork() *mellanoxv1alpha1.IPoIBNetwork {
+func getIPoIBNetwork(testNamespace string) *mellanoxv1alpha1.IPoIBNetwork {
 	cr := &mellanoxv1alpha1.IPoIBNetwork{
 		Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
 			NetworkNamespace: testNamespace,
-			Master:           testMaster,
+			Master:           "eth0",
 		},
 	}
 	cr.Name = "ipoib"
