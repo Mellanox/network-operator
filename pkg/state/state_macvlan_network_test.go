@@ -36,15 +36,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const (
-	testNamespace  = "namespace"
-	testName       = "mac-vlan"
-	testMaster     = "eth0"
-	testBridgeMode = "bridge"
-	testMtu        = 150
-)
-
 var _ = Describe("MacVlan Network State rendering tests", func() {
+	const (
+		testNamespace  = "namespace"
+		testName       = "mac-vlan"
+		testType       = "macvlan"
+		testMaster     = "eth0"
+		testBridgeMode = "bridge"
+		testMtu        = 150
+	)
 
 	var macvlanState state.State
 	var catalog state.InfoCatalog
@@ -64,7 +64,7 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 
 	Context("MacVlan Network State", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
-			cr := getMacvlanNetwork()
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := macvlanState.Sync(context.Background(), cr, catalog)
@@ -75,15 +75,15 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 			nad := &netattdefv1.NetworkAttachmentDefinition{}
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: testName}, nad)
 			Expect(err).NotTo(HaveOccurred())
-			expectedNad := getExpectedNAD("{}")
+			expectedNad := getExpectedNAD(testName, testMaster, testBridgeMode, "{}", testMtu)
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 			Expect(nad.Name).To(Equal(testName))
 			Expect(nad.Namespace).To(Equal(testNamespace))
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
-			ipam := "{\"type\":\"whereabouts\",\"range\":\"192.168.2.225/28\"," +
-				"\"exclude\":[\"192.168.2.229/30\",\"192.168.2.236/32\"]}"
-			cr := getMacvlanNetwork()
+			ipam := `{"type":"whereabouts","range":"192.168.2.225/28",` +
+				`"exclude":["192.168.2.229/30","192.168.2.236/32"]}`
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
 			cr.Spec.IPAM = ipam
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -98,11 +98,11 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 			Expect(nad.Name).To(Equal(testName))
 			Expect(nad.Namespace).To(Equal(testNamespace))
 
-			expectedNad := getExpectedNAD(ipam)
+			expectedNad := getExpectedNAD(testName, testMaster, testBridgeMode, ipam, testMtu)
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 		})
 		It("Should Render NetworkAttachmentDefinition with default namespace", func() {
-			cr := getMacvlanNetwork()
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
 			cr.Spec.NetworkNamespace = ""
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -121,7 +121,7 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 
 	Context("Verify Sync flows", func() {
 		It("Should recreate NetworkAttachmentDefinition with different namespace", func() {
-			cr := getMacvlanNetwork()
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
 			cr.Spec.NetworkNamespace = ""
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -151,7 +151,7 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: testName}, nad)
 			Expect(err).NotTo(HaveOccurred())
-			expectedNad := getExpectedNAD("{}")
+			expectedNad := getExpectedNAD(testName, testMaster, testBridgeMode, "{}", testMtu)
 			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
 			Expect(nad.Name).To(Equal(testName))
 			Expect(nad.Namespace).To(Equal(testNamespace))
@@ -159,16 +159,19 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 	})
 })
 
-func getExpectedNAD(ipam string) *netattdefv1.NetworkAttachmentDefinition {
+func getExpectedNAD(testName, testMaster, testBridgeMode, ipam string, testMtu int,
+) *netattdefv1.NetworkAttachmentDefinition {
 	nad := &netattdefv1.NetworkAttachmentDefinition{}
-	cfg := fmt.Sprintf("{ \"cniVersion\":\"0.3.1\", \"name\":%q, \"type\":\"macvlan\","+
-		"\"master\": %q,\"mode\" : %q,\"mtu\" : %d,\"ipam\":%s }",
+	cfg := fmt.Sprintf(`{ "cniVersion":"0.3.1", "name":%q, "type":"macvlan","master": %q,`+
+		`"mode" : %q,"mtu" : %d,"ipam":%s }`,
 		testName, testMaster, testBridgeMode, testMtu, ipam)
 	nad.Spec.Config = cfg
 	return nad
 }
 
-func getMacvlanNetwork() *mellanoxv1alpha1.MacvlanNetwork {
+// nolint:unparam
+func getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode string, testMtu int,
+) *mellanoxv1alpha1.MacvlanNetwork {
 	cr := &mellanoxv1alpha1.MacvlanNetwork{
 		Spec: mellanoxv1alpha1.MacvlanNetworkSpec{
 			NetworkNamespace: testNamespace,
