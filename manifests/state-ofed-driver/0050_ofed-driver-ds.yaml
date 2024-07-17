@@ -150,6 +150,7 @@ spec:
             initialDelaySeconds: {{ .CrSpec.StartupProbe.InitialDelaySeconds }}
             failureThreshold: 60
             successThreshold: 1
+            timeoutSeconds: 10
             periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
           livenessProbe:
             exec:
@@ -158,6 +159,7 @@ spec:
             initialDelaySeconds: {{ .CrSpec.LivenessProbe.InitialDelaySeconds }}
             failureThreshold: 1
             successThreshold: 1
+            timeoutSeconds: 10
             periodSeconds: {{ .CrSpec.LivenessProbe.PeriodSeconds }}
           readinessProbe:
             exec:
@@ -165,6 +167,8 @@ spec:
                 [sh, -c, 'lsmod | grep mlx5_core']
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: 1
+            successThreshold: 1
+            timeoutSeconds: 10
             periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
         {{- if .RuntimeSpec.UseDtk }}
         - image: {{ .RuntimeSpec.DtkImageName }}
