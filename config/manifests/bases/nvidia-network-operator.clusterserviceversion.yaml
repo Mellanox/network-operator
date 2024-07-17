@@ -5,6 +5,13 @@ metadata:
     alm-examples: ""
     capabilities: Basic Install
     description: Deploy and manage NVIDIA networking resources in Kubernetes
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: nvidia-network-operator
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
@@ -65,7 +72,7 @@ spec:
   - networking
   links:
   - name: Network Operator Documentation
-    url: https://docs.nvidia.com/networking/display/kubernetes2410
+    url: https://docs.nvidia.com/networking/software/cloud-orchestration/index.html
   - name: GitHub repository
     url: https://github.com/Mellanox/network-operator/
   maintainers:
@@ -75,11 +82,4 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  relatedImages:
-  - image: nvcr.io/nvidia/mellanox/mofed-5.6-1.0.3.3@sha256:0a5108443c64fc013984be500e7db3d89c04418446f0bbc3241ed6e1c449b773
-    name: mofed
-  - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:16a53286fecdb1e587d3c4c042078974674c3e86c9e98d7dae282f6eb4ee2d8c
-    name: sriov-network-device-plugin
-  - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
-    name: rdma-shared-device-plugin
   version: 0.0.0

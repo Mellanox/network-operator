@@ -23,36 +23,58 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"text/template"
 
 	"sigs.k8s.io/yaml"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	containerregistryname "github.com/google/go-containerregistry/pkg/name"
+	containerregistryv1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
+
+// ReleaseImageSpec contains ImageSpec in addition with Image SHA256.
+type ReleaseImageSpec struct {
+	// Shas is a list of SHA2256. A list is needed for DOCA drivers that have multiple images.
+	Shas []SHA256ImageRef
+	mellanoxv1alpha1.ImageSpec
+}
+
+// SHA256ImageRef contains container image in sha256 format and a description.
+type SHA256ImageRef struct {
+	// ImageRef is the image reference in "sha format" e.g repo/project/image-repo@sha256:abcdef
+	ImageRef string
+	// Name is a description of the image reference
+	Name string
+}
 
 // Release contains versions for operator release templates.
 type Release struct {
-	NetworkOperator              *mellanoxv1alpha1.ImageSpec
-	NetworkOperatorInitContainer *mellanoxv1alpha1.ImageSpec
-	SriovNetworkOperator         *mellanoxv1alpha1.ImageSpec
-	SriovNetworkOperatorWebhook  *mellanoxv1alpha1.ImageSpec
-	SriovConfigDaemon            *mellanoxv1alpha1.ImageSpec
-	SriovCni                     *mellanoxv1alpha1.ImageSpec
-	SriovIbCni                   *mellanoxv1alpha1.ImageSpec
-	Mofed                        *mellanoxv1alpha1.ImageSpec
-	RdmaSharedDevicePlugin       *mellanoxv1alpha1.ImageSpec
-	SriovDevicePlugin            *mellanoxv1alpha1.ImageSpec
-	IbKubernetes                 *mellanoxv1alpha1.ImageSpec
-	CniPlugins                   *mellanoxv1alpha1.ImageSpec
-	Multus                       *mellanoxv1alpha1.ImageSpec
-	Ipoib                        *mellanoxv1alpha1.ImageSpec
-	IpamPlugin                   *mellanoxv1alpha1.ImageSpec
-	NvIPAM                       *mellanoxv1alpha1.ImageSpec
-	NicFeatureDiscovery          *mellanoxv1alpha1.ImageSpec
-	DOCATelemetryService         *mellanoxv1alpha1.ImageSpec
-	OVSCni                       *mellanoxv1alpha1.ImageSpec
-	RDMACni                      *mellanoxv1alpha1.ImageSpec
+	NetworkOperator              *ReleaseImageSpec
+	NetworkOperatorInitContainer *ReleaseImageSpec
+	SriovNetworkOperator         *ReleaseImageSpec
+	SriovNetworkOperatorWebhook  *ReleaseImageSpec
+	SriovConfigDaemon            *ReleaseImageSpec
+	SriovCni                     *ReleaseImageSpec
+	SriovIbCni                   *ReleaseImageSpec
+	Mofed                        *ReleaseImageSpec
+	RdmaSharedDevicePlugin       *ReleaseImageSpec
+	SriovDevicePlugin            *ReleaseImageSpec
+	IbKubernetes                 *ReleaseImageSpec
+	CniPlugins                   *ReleaseImageSpec
+	Multus                       *ReleaseImageSpec
+	Ipoib                        *ReleaseImageSpec
+	IpamPlugin                   *ReleaseImageSpec
+	NvIPAM                       *ReleaseImageSpec
+	NicFeatureDiscovery          *ReleaseImageSpec
+	DOCATelemetryService         *ReleaseImageSpec
+	OVSCni                       *ReleaseImageSpec
+	RDMACni                      *ReleaseImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -76,7 +98,7 @@ func getEnviromnentVariableOrDefault(defaultValue, varName string) string {
 	return defaultValue
 }
 
-func initWithEnvVariale(name string, image *mellanoxv1alpha1.ImageSpec) {
+func initWithEnvVariale(name string, image *ReleaseImageSpec) {
 	envName := name + "_IMAGE"
 	image.Image = getEnviromnentVariableOrDefault(image.Image, envName)
 	envName = name + "_REPO"
@@ -107,9 +129,13 @@ func main() {
 	templateDir := flag.String("templateDir", ".", "Directory with templates to render")
 	outputDir := flag.String("outputDir", ".", "Destination directory to render templates to")
 	releaseDefaults := flag.String("releaseDefaults", "release.yaml", "Destination of the release defaults definition")
+	retrieveSha := flag.Bool("with-sha256", false, "retrieve SHA256 for container images references")
 	flag.Parse()
 	release := readDefaults(*releaseDefaults)
 	readEnvironmentVariables(&release)
+	if *retrieveSha {
+		resolveImagesSha(&release)
+	}
 	var files []string
 	err := filepath.Walk(*templateDir, func(path string, info os.FileInfo, err error) error {
 		// Error during traversal
@@ -135,11 +161,17 @@ func main() {
 	}
 
 	for _, file := range files {
-		tmpl, err := template.ParseFiles(file)
+		tmpl, err := template.New(filepath.Base(file)).Funcs(template.FuncMap{
+			"imageAsSha": func(obj interface{}) string {
+				imageSpec := obj.(*ReleaseImageSpec)
+				return imageSpec.Shas[0].ImageRef
+			},
+		}).ParseFiles(file)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			return
 		}
+
 		// Generate new file full path
 		outputFile := filepath.Join(*outputDir, strings.Replace(filepath.Base(file), ".template", ".yaml", 1))
 		f, err := os.Create(filepath.Clean(outputFile))
@@ -153,4 +185,108 @@ func main() {
 			return
 		}
 	}
+}
+
+func resolveImagesSha(release *Release) {
+	nvcrToken := os.Getenv("NGC_CLI_API_KEY")
+	if nvcrToken == "" {
+		fmt.Printf("Error: NGC_CLI_API_KEY is unset")
+		return
+	}
+	auth := &authn.Basic{
+		Username: "$oauthtoken",
+		Password: nvcrToken,
+	}
+	v := reflect.ValueOf(*release)
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.IsNil() {
+			releaseImageSpec := field.Interface().(*ReleaseImageSpec)
+			if strings.Contains(releaseImageSpec.Image, "doca-driver") {
+				digests, err := resolveDocaDriversShas(releaseImageSpec.Repository, releaseImageSpec.Image,
+					releaseImageSpec.Version, auth)
+				if err != nil {
+					fmt.Printf("Error: %v\n", err)
+					return
+				}
+				releaseImageSpec.Shas = make([]SHA256ImageRef, len(digests))
+				for i, digest := range digests {
+					sha := fmt.Sprintf("%s/%s@%s", releaseImageSpec.Repository, releaseImageSpec.Image, digest)
+					releaseImageSpec.Shas[i] = SHA256ImageRef{ImageRef: sha, Name: fmt.Sprintf("doca-driver-%d", i)}
+				}
+			} else {
+				digest, err := resolveImageSha(releaseImageSpec.Repository, releaseImageSpec.Image,
+					releaseImageSpec.Version, auth)
+				if err != nil {
+					fmt.Printf("Error: %v\n", err)
+					return
+				}
+				releaseImageSpec.Shas = make([]SHA256ImageRef, 1)
+				sha := fmt.Sprintf("%s/%s@%s", releaseImageSpec.Repository, releaseImageSpec.Image, digest)
+				releaseImageSpec.Shas[0] = SHA256ImageRef{ImageRef: sha}
+			}
+		}
+	}
+}
+
+func resolveImageSha(repo, image, tag string, auth *authn.Basic) (string, error) {
+	ref, err := containerregistryname.ParseReference(fmt.Sprintf("%s/%s:%s", repo, image, tag))
+	if err != nil {
+		return "", err
+	}
+	var desc *remote.Descriptor
+	if strings.Contains(repo, "nvstaging") {
+		desc, err = remote.Get(ref, remote.WithAuth(auth))
+		if err != nil {
+			return "", err
+		}
+	} else {
+		// Container registry might fail if providing unneeded auth
+		desc, err = remote.Get(ref)
+		if err != nil {
+			return "", err
+		}
+	}
+	digest, err := containerregistryv1.NewHash(desc.Descriptor.Digest.String())
+	if err != nil {
+		return "", err
+	}
+	return digest.String(), nil
+}
+
+func resolveDocaDriversShas(repoName, imageName, ver string, auth *authn.Basic) ([]string, error) {
+	shaArray := make([]string, 0)
+	image := fmt.Sprintf("%s/%s", repoName, imageName)
+	repo, err := containerregistryname.NewRepository(image)
+	if err != nil {
+		return shaArray, err
+	}
+	var tags []string
+	if strings.Contains(repoName, "nvstaging") {
+		tags, err = remote.List(repo, remote.WithAuth(auth))
+		if err != nil {
+			return shaArray, err
+		}
+	} else {
+		// Container registry might fail if providing unneeded auth
+		tags, err = remote.List(repo)
+		if err != nil {
+			return shaArray, err
+		}
+	}
+	sort.Strings(tags)
+	shaSet := make(map[string]interface{})
+	for _, tag := range tags {
+		if strings.Contains(tag, ver) && (strings.Contains(tag, "rhcos") || strings.Contains(tag, "rhel")) {
+			digest, err := resolveImageSha(repoName, imageName, tag, auth)
+			if err != nil {
+				return shaArray, err
+			}
+			if _, ok := shaSet[digest]; !ok {
+				shaArray = append(shaArray, digest)
+				shaSet[digest] = struct{}{}
+			}
+		}
+	}
+	return shaArray, nil
 }
