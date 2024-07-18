@@ -38,9 +38,17 @@ import (
 )
 
 func getTestCatalog() state.InfoCatalog {
+	return getTestCatalogForOpenshift(false)
+}
+
+func getOpenshiftTestCatalog() state.InfoCatalog {
+	return getTestCatalogForOpenshift(true)
+}
+
+func getTestCatalogForOpenshift(isOpenshift bool) state.InfoCatalog {
 	catalog := state.NewInfoCatalog()
 	clusterTypeProvider := clustertype_mocks.Provider{}
-	clusterTypeProvider.On("IsOpenshift").Return(false)
+	clusterTypeProvider.On("IsOpenshift").Return(isOpenshift)
 	staticConfigProvider := staticconfig_mocks.Provider{}
 	staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
 	catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)

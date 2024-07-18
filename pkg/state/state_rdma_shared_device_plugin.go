@@ -35,8 +35,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-// NewStateSharedDp creates a new shared device plugin state
-func NewStateSharedDp(
+// NewStateRDMASharedDevicePlugin creates a new shared device plugin state
+func NewStateRDMASharedDevicePlugin(
 	k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
@@ -44,7 +44,7 @@ func NewStateSharedDp(
 	}
 
 	renderer := render.NewRenderer(files)
-	state := &stateSharedDp{
+	state := &stateRDMASharedDevicePlugin{
 		stateSkel: stateSkel{
 			name:        "state-RDMA-device-plugin",
 			description: "RDMA shared device plugin deployed in the cluster",
@@ -54,29 +54,29 @@ func NewStateSharedDp(
 	return state, state, nil
 }
 
-type stateSharedDp struct {
+type stateRDMASharedDevicePlugin struct {
 	stateSkel
 }
 
-type sharedDpRuntimeSpec struct {
+type stateRDMASharedDevicePluginSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
 }
-type sharedDpManifestRenderData struct {
+type stateRDMASharedDevicePluginManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
 	Tolerations         []v1.Toleration
 	NodeAffinity        *v1.NodeAffinity
 	DeployInitContainer bool
-	RuntimeSpec         *sharedDpRuntimeSpec
+	RuntimeSpec         *stateRDMASharedDevicePluginSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateSharedDp) Sync(
+func (s *stateRDMASharedDevicePlugin) Sync(
 	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
@@ -128,7 +128,7 @@ func (s *stateSharedDp) Sync(
 }
 
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateSharedDp) GetWatchSources() map[string]client.Object {
+func (s *stateRDMASharedDevicePlugin) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
 	wr["DaemonSet"] = &appsv1.DaemonSet{}
 	wr["ConfigMap"] = &v1.ConfigMap{}
@@ -136,7 +136,7 @@ func (s *stateSharedDp) GetWatchSources() map[string]client.Object {
 }
 
 //nolint:dupl
-func (s *stateSharedDp) GetManifestObjects(
+func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	if cr == nil || cr.Spec.RdmaSharedDevicePlugin == nil {
@@ -147,12 +147,12 @@ func (s *stateSharedDp) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-	renderData := &sharedDpManifestRenderData{
+	renderData := &stateRDMASharedDevicePluginManifestRenderData{
 		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
 		Tolerations:         cr.Spec.Tolerations,
 		NodeAffinity:        cr.Spec.NodeAffinity,
 		DeployInitContainer: cr.Spec.OFEDDriver != nil,
-		RuntimeSpec: &sharedDpRuntimeSpec{
+		RuntimeSpec: &stateRDMASharedDevicePluginSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
 			ContainerResources: createContainerResourcesMap(cr.Spec.RdmaSharedDevicePlugin.ContainerResources),

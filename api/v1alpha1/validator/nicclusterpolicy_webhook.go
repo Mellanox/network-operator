@@ -546,8 +546,8 @@ func (w *nicClusterPolicyValidator) validateContainerResources(
 	}
 	if policy.Spec.RdmaSharedDevicePlugin != nil {
 		states["rdmaSharedDevicePlugin"] = stateRenderData{
-			policy.Spec.RdmaSharedDevicePlugin, state.NewStateSharedDp,
-			filepath.Join(manifestBaseDir, "state-rdma-device-plugin"),
+			policy.Spec.RdmaSharedDevicePlugin, state.NewStateRDMASharedDevicePlugin,
+			filepath.Join(manifestBaseDir, "state-rdma-shared-device-plugin"),
 		}
 	}
 	if policy.Spec.SriovDevicePlugin != nil {
