@@ -18,13 +18,11 @@ package state_test
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
@@ -35,17 +33,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const resourceNamePrefix = "nvidia.com/"
-
 var _ = Describe("HostDevice Network State rendering tests", func() {
 	const (
-		testNamespace = "namespace"
+		testName      = "host-device"
+		testNamespace = "hostdevice"
 		testType      = "host-device"
 	)
 
 	var hostDeviceNetState state.State
 	var catalog state.InfoCatalog
 	var client client.Client
+	var expectedNadConfig nadConfig
 
 	BeforeEach(func() {
 		scheme := runtime.NewScheme()
@@ -57,11 +55,15 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		hostDeviceNetState = s
 		catalog = getTestCatalog()
+		expectedNadConfig = defaultNADConfig(&nadConfig{
+			Name: testName,
+			Type: testType,
+			IPAM: nadConfigIPAM{},
+		})
 	})
 
 	Context("HostDevice Network State", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
-			testName := "host-device"
 			testResourceName := "test"
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			err := client.Create(context.Background(), cr)
@@ -70,25 +72,14 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
-			By("Verify NetworkAttachmentDefinition")
-			nad := &netattdefv1.NetworkAttachmentDefinition{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: testName}, nad)
-			Expect(err).NotTo(HaveOccurred())
-			nadConfig, err := getNADConfig(nad.Spec.Config)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nadConfig.Type).To(Equal("host-device"))
-			expectedNad := getExpectedHostDeviceNetNAD(testName, "{}")
-			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
-			Expect(nad.Name).To(Equal(testName))
-			Expect(nad.Namespace).To(Equal(testNamespace))
-			Expect(err).NotTo(HaveOccurred())
-			resourceName, ok := nad.Annotations["k8s.v1.cni.cncf.io/resourceName"]
-			Expect(ok).To(BeTrue())
-			Expect(resourceName).To(Equal(resourceNamePrefix + testResourceName))
+			expectedNadConfig.IPAM = nadConfigIPAM{}
+			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testResourceName)
 		})
+		// We should be able to create the HostDeviceNetwork with a prefixed resource name,
+		// but the CR should be mutated to NOT have the prefix.
+		// The annotations resource name MUST have to prefix anyway.
 		It("Should Render NetworkAttachmentDefinition with resource with prefix", func() {
-			testName := "host-device"
-			testResourceName := resourceNamePrefix + "test"
+			testResourceName := hostDeviceNetworkResourceNamePrefix + testName
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,59 +87,29 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
-			By("Verify NetworkAttachmentDefinition")
-			nad := &netattdefv1.NetworkAttachmentDefinition{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: testName}, nad)
-			Expect(err).NotTo(HaveOccurred())
-			nadConfig, err := getNADConfig(nad.Spec.Config)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nadConfig.Type).To(Equal("host-device"))
-			expectedNad := getExpectedHostDeviceNetNAD(testName, "{}")
-			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
-			Expect(nad.Name).To(Equal(testName))
-			Expect(nad.Namespace).To(Equal(testNamespace))
-			Expect(err).NotTo(HaveOccurred())
-			resourceName, ok := nad.Annotations["k8s.v1.cni.cncf.io/resourceName"]
-			Expect(ok).To(BeTrue())
-			Expect(resourceName).To(Equal(testResourceName))
+			expectedNadConfig.IPAM = nadConfigIPAM{}
+			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testName)
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
-			ipam := "{\"type\":\"whereabouts\",\"range\":\"192.168.2.225/28\"," +
-				"\"exclude\":[\"192.168.2.229/30\",\"192.168.2.236/32\"]}"
-			testName := "host-device"
+			ipam := nadConfigIPAM{
+				Type:    "whereabouts",
+				Range:   "192.168.2.225/28",
+				Exclude: []string{"192.168.2.229/30", "192.168.2.236/32"},
+			}
 			testResourceName := "test"
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
-			cr.Spec.IPAM = ipam
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
 			err := client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
-			By("Verify NetworkAttachmentDefinition")
-			nad := &netattdefv1.NetworkAttachmentDefinition{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: testName}, nad)
-			Expect(err).NotTo(HaveOccurred())
-			nadConfig, err := getNADConfig(nad.Spec.Config)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nadConfig.Type).To(Equal("host-device"))
-			Expect(nad.Name).To(Equal(testName))
-			Expect(nad.Namespace).To(Equal(testNamespace))
-
-			expectedNad := getExpectedHostDeviceNetNAD(testName, ipam)
-			Expect(nad.Spec).To(BeEquivalentTo(expectedNad.Spec))
+			expectedNadConfig.IPAM = ipam
+			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testResourceName)
 		})
 	})
 })
-
-func getExpectedHostDeviceNetNAD(testName, ipam string) *netattdefv1.NetworkAttachmentDefinition {
-	nad := &netattdefv1.NetworkAttachmentDefinition{}
-	cfg := fmt.Sprintf("{ \"cniVersion\":\"0.3.1\", \"name\":%q, \"type\":\"host-device\", "+
-		"\"ipam\":%s }",
-		testName, ipam)
-	nad.Spec.Config = cfg
-	return nad
-}
 
 func getHostDeviceNetwork(testName, testNamespace, resourceName string) *mellanoxv1alpha1.HostDeviceNetwork {
 	cr := &mellanoxv1alpha1.HostDeviceNetwork{

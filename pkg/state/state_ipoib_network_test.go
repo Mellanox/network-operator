@@ -70,7 +70,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			nad := &netattdefv1.NetworkAttachmentDefinition{}
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: name}, nad)
 			Expect(err).NotTo(HaveOccurred())
-			cfg, err := getNADConfig(nad.Spec.Config)
+			cfg := getNADConfig(nad.Spec.Config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cfg.Type).To(Equal("ipoib"))
 			expectedNad := getExpectedIPoIBNAD(name, cr.Spec.Master, "{}")
@@ -93,7 +93,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			nad := &netattdefv1.NetworkAttachmentDefinition{}
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: testNamespace, Name: name}, nad)
 			Expect(err).NotTo(HaveOccurred())
-			cfg, err := getNADConfig(nad.Spec.Config)
+			cfg := getNADConfig(nad.Spec.Config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cfg.Type).To(Equal("ipoib"))
 			Expect(nad.Name).To(Equal(name))
