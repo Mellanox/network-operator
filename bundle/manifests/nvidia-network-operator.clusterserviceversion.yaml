@@ -2,6 +2,13 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     alm-examples: |-
       [
         {
@@ -59,7 +66,7 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 30
               },
-              "repository": "nvcr.io/nvstaging/mellanox",
+              "repository": "nvcr.io/nvidia/mellanox",
               "startupProbe": {
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
@@ -76,19 +83,19 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "24.01-0.1.7.0"
+              "version": "24.04-0.6.6.0-0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "ghcr.io/mellanox",
-              "version": "sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775"
+              "version": "1.4.0"
             }
           }
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-01-17T13:39:15Z"
+    createdAt: "2024-07-11T13:09:26Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     operatorframework.io/suggested-namespace: nvidia-network-operator
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
@@ -96,7 +103,7 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v23.10.0-1
+  name: nvidia-network-operator.v24.4.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -555,7 +562,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container:v0.0.2
-                image: network-operator@sha256:e9cf9a438be8cfb7472998abef55f1ace964dae7f9043a697fabcae751eb96e3
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:92970dd180c2c81c9e557218f5e0bb5722cf11a5cced55f8daba57ba3f9606f0
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -652,17 +659,17 @@ spec:
   - networking
   links:
   - name: Network Operator Documentation
-    url: https://docs.nvidia.com/networking/display/kubernetes2410
+    url: https://docs.nvidia.com/networking/software/cloud-orchestration/index.html
   - name: GitHub repository
     url: https://github.com/Mellanox/network-operator/
   maintainers:
   - email: nvidia-network-operator-support@nvidia.com
     name: NVIDIA
-  maturity: alpha
+  maturity: stable
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 23.10.0-1
+  version: 24.4.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -705,13 +712,23 @@ spec:
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
-    - image: nvcr.io/nvidia/mellanox/mofed@sha256:ada9d1c4bf8eda0d6b76f2d3c0f67c9cd6862284f1312c6a6f142d5c217543b4
-      name: mofed
-    - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:f717f9778f48665b7c592f2225df51b755a1fe048125e034a286c564ee10fd37
+    - image: nvcr.io/nvidia/mellanox/doca-driver@sha256:3a42d15ff3ad5c8c7fe5b50cf78b2197cd9bb356c2df0db31ebc84b525d5e08b
+      name: doca-driver
+    - image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:482e18bc74834c44f6c5c4864ec87757b786e556015803b53b5aff74c908c4c9
       name: sriov-network-device-plugin
-    - image: nvcr.io/nvidia/cloud-native/k8s-rdma-shared-dev-plugin@sha256:941ad9ff5013e9e7ad5abeb0ea9f79d45379cfae88a628d923f87d2259bdd132
+    - image: ghcr.io/mellanox/k8s-rdma-shared-dev-plugin@sha256:7d5052f98269ffd1914949ad82324fafad2f7b57e1a07bc001623df9c82d121b
       name: rdma-shared-device-plugin
-    - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:db06cc4c084dd0253134f156dddaaf53ef1c3fb3cc809e5d81711baa4029ea4c
-      name: kube-rbac-proxy
-    - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:e9cf9a438be8cfb7472998abef55f1ace964dae7f9043a697fabcae751eb96e3
+    - image: nvcr.io/nvidia/cloud-native/network-operator@sha256:92970dd180c2c81c9e557218f5e0bb5722cf11a5cced55f8daba57ba3f9606f0
       name: network-operator
+    - image: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
+      name: network-operator-init-container
+    - image: ghcr.io/mellanox/ib-kubernetes@sha256:b56bb88963dadaa2290a17cf0b57b86c55c09e7c075b7271c184959532555c91
+      name: ib-kubernetes
+    - image: ghcr.io/mellanox/nvidia-k8s-ipam@sha256:0aae208999f38e1f410cd5312d2dd0ae5bf3a9c86e2ab0b575a6d430690e12fd
+      name: nvidia-k8s-ipam
+    - image: ghcr.io/mellanox/ipoib-cni@sha256:fba6ddf8267d3b2235f71f63c283539a3bf1903f4181cd24b64ea12e4496cf51
+      name: ipoib-cni
+    - image: ghcr.io/mellanox/nic-feature-discovery@sha256:92dda9434519de39be0f94c80787766e3399e8b238d14839360aff4d6232a09b
+      name: nic-feature-discovery
+    - image: nvcr.io/nvidia/doca/doca_telemetry@sha256:866971717cb2683f2742d265c9793f93242f55b6e8bd9a0a88a558869f9b9cd7
+      name: doca_telemetry
