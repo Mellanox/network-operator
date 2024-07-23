@@ -14,75 +14,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state
+package state_test
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 
-	v1 "k8s.io/api/core/v1"
-
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/testing/mocks"
-	"github.com/Mellanox/network-operator/pkg/utils"
+	"github.com/Mellanox/network-operator/pkg/state"
 )
 
 var _ = Describe("IPoIB CNI State tests", func() {
+	var ctx context.Context
+	var catalog state.InfoCatalog
+	var client client.Client
+	var renderer state.ManifestRenderer
 
-	Context("Creating NCP with IPoIBCNI", func() {
-		It("Should Apply", func() {
-			client := mocks.ControllerRuntimeClient{}
-			manifestBaseDir := "../../manifests/state-ipoib-cni"
-
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			stateName := "state-ipoib-cni"
-			sriovDpState := stateIPoIBCNI{
-				stateSkel: stateSkel{
-					name:        stateName,
-					description: "IPoIB CNI deployed in the cluster",
-					client:      &client,
-					renderer:    renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(sriovDpState.Name()).To(Equal(stateName))
-
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-
-			imageSpec := &mellanoxv1alpha1.ImageSpec{
-				Image:      "image",
-				Repository: "Repository",
-				Version:    "v0.0",
-			}
-			netSpec := &mellanoxv1alpha1.SecondaryNetworkSpec{}
-			netSpec.IPoIB = imageSpec
-			cr.Spec.SecondaryNetwork = netSpec
-
-			nodeAffinitySpec := "{\"requiredDuringSchedulingIgnoredDuringExecution\":{\"nodeSelectorTerms\":" +
-				"[{\"matchExpressions\":[{\"key\":\"node-role.kubernetes.io/master\"," +
-				"\"operator\":\"DoesNotExist\"}]}]}}"
-
-			nodeAffinity := &v1.NodeAffinity{}
-			_ = json.Unmarshal([]byte(nodeAffinitySpec), &nodeAffinity)
-
-			cr.Spec.NodeAffinity = nodeAffinity
-
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeNodeInfo, &dummyProvider{})
-			catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-			objs, err := sriovDpState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme := runtime.NewScheme()
+		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		manifestDir := "../../manifests/state-ipoib-cni"
+		_, r, err := state.NewStateIPoIBCNI(client, manifestDir)
+		Expect(err).NotTo(HaveOccurred())
+		renderer = r
+		catalog = getTestCatalog()
+		catalog.Add(state.InfoTypeStaticConfig,
+			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
+	})
+	Context("should render", func() {
+		It("manifests with IPoIB CNI", func() {
+			cr := getNICForIPoIBCNI()
+			objs, err := renderer.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
+			GetManifestObjectsTest(ctx, cr, catalog, cr.Spec.SecondaryNetwork.IPoIB, renderer)
 		})
 	})
 })
+
+func getNICForIPoIBCNI() *mellanoxv1alpha1.NicClusterPolicy {
+	cr := getTestClusterPolicyWithBaseFields()
+	imageSpec := addContainerResources(getTestImageSpec(), "ipoib-cni", "1", "9")
+	cr.Name = "ipoib-cni-nic-cluster-policy"
+	cr.Spec.SecondaryNetwork = &mellanoxv1alpha1.SecondaryNetworkSpec{
+		IPoIB: imageSpec,
+	}
+	return cr
+}

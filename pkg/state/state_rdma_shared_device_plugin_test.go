@@ -23,12 +23,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/go-logr/logr"
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -56,7 +54,6 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 		rdmaDPState = s
 		rdmaDPRenderer = r
 		catalog = getTestCatalog()
-		testLogger = log.Log.WithName("testLog")
 	})
 
 	Context("should render", func() {

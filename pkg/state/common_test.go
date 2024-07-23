@@ -45,6 +45,8 @@ const (
 	hostDeviceNetworkResourceNamePrefix = "nvidia.com/"
 )
 
+var testLogger = log.Log.WithName("testLog")
+
 func getTestCatalog() state.InfoCatalog {
 	return getTestCatalogForOpenshift(false)
 }
