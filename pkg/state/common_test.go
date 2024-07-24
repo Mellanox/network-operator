@@ -23,6 +23,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -34,7 +36,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	hostDeviceNetworkResourceNamePrefix = "nvidia.com/"
 )
 
 func getTestCatalog() state.InfoCatalog {
@@ -56,29 +64,45 @@ func getTestCatalogForOpenshift(isOpenshift bool) state.InfoCatalog {
 	return catalog
 }
 
-type ipam struct {
+type nadConfigIPAM struct {
 	Type    string   `json:"type"`
 	Range   string   `json:"range"`
 	Exclude []string `json:"exclude"`
 }
 
 type nadConfig struct {
-	CNIVersion string `json:"cniVersion"`
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Master     string `json:"master"`
-	Mode       string `json:"mode"`
-	MTU        int    `json:"mtu"`
-	IPAM       ipam   `json:"ipam"`
+	CNIVersion string        `json:"cniVersion"`
+	Name       string        `json:"name"`
+	Type       string        `json:"type"`
+	Master     string        `json:"master"`
+	Mode       string        `json:"mode"`
+	MTU        int           `json:"mtu"`
+	IPAM       nadConfigIPAM `json:"ipam"`
 }
 
-func getNADConfig(jsonData string) (*nadConfig, error) {
+func defaultNADConfig(cfg *nadConfig) nadConfig {
+	return nadConfig{
+		CNIVersion: "0.3.1",
+		Name:       cfg.Name,
+		Type:       cfg.Type,
+		Master:     cfg.Master,
+		Mode:       cfg.Mode,
+		IPAM:       cfg.IPAM,
+		MTU:        cfg.MTU,
+	}
+}
+
+func getNADConfig(jsonData string) nadConfig {
 	config := &nadConfig{}
 	err := json.Unmarshal([]byte(jsonData), &config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
+	Expect(err).To(BeNil())
+	return *config
+}
+
+func getNADConfigIPAMJSON(ipam nadConfigIPAM) string {
+	ipamJSON, err := json.Marshal(ipam)
+	Expect(err).To(BeNil())
+	return string(ipamJSON)
 }
 
 func assertCommonPodTemplateFields(template *corev1.PodTemplateSpec, image *mellanoxv1alpha1.ImageSpec) {
@@ -166,6 +190,25 @@ func assertCNIBinDirForDS(u *unstructured.Unstructured) {
 			Expect(vol.HostPath).NotTo(BeNil())
 			Expect(vol.HostPath.Path).To(Equal("custom-cni-bin-directory"))
 		}
+	}
+}
+
+func assertNetworkAttachmentDefinition(c client.Client, expectedNadConfig *nadConfig,
+	name, namespace, resourceName string) {
+	nad := &netattdefv1.NetworkAttachmentDefinition{}
+	err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: name}, nad)
+	Expect(err).NotTo(HaveOccurred())
+
+	convertedNadConfig := getNADConfig(nad.Spec.Config)
+	Expect(convertedNadConfig).To(BeEquivalentTo(*expectedNadConfig))
+
+	Expect(nad.Name).To(Equal(name))
+	Expect(nad.Namespace).To(Equal(namespace))
+
+	if resourceName != "" {
+		resourceNameAnnotation, ok := nad.Annotations["k8s.v1.cni.cncf.io/resourceName"]
+		Expect(ok).To(BeTrue())
+		Expect(resourceNameAnnotation).To(Equal(hostDeviceNetworkResourceNamePrefix + resourceName))
 	}
 }
 

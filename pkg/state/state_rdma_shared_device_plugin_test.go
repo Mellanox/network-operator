@@ -23,8 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -96,24 +94,11 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 
 func getRDMASharedDevicePlugin() *mellanoxv1alpha1.NicClusterPolicy {
 	cr := getTestClusterPolicyWithBaseFields()
-	imageSpec := getTestImageSpec()
+	imageSpec := addContainerResources(getTestImageSpec(), "rdma-shared-dp", "1", "9")
 	cr.Name = "nic-cluster-policy"
 	cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
 		ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
 			ImageSpec: *imageSpec,
-		},
-	}
-	cr.Spec.RdmaSharedDevicePlugin.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{
-		{
-			Name: "rdma-shared-dp",
-			Requests: v1.ResourceList{
-				"cpu":    resource.MustParse("150m"),
-				"memory": resource.MustParse("150Mi"),
-			},
-			Limits: v1.ResourceList{
-				"cpu":    resource.MustParse("150m"),
-				"memory": resource.MustParse("200Mi"),
-			},
 		},
 	}
 	return cr
