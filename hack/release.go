@@ -134,7 +134,11 @@ func main() {
 	release := readDefaults(*releaseDefaults)
 	readEnvironmentVariables(&release)
 	if *retrieveSha {
-		resolveImagesSha(&release)
+		err := resolveImagesSha(&release)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	var files []string
 	err := filepath.Walk(*templateDir, func(path string, info os.FileInfo, err error) error {
@@ -157,7 +161,7 @@ func main() {
 	})
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return
+		os.Exit(1)
 	}
 
 	for _, file := range files {
@@ -169,7 +173,7 @@ func main() {
 		}).ParseFiles(file)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return
+			os.Exit(1)
 		}
 
 		// Generate new file full path
@@ -177,21 +181,20 @@ func main() {
 		f, err := os.Create(filepath.Clean(outputFile))
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return
+			os.Exit(1)
 		}
 		err = tmpl.Execute(f, release)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return
+			os.Exit(1)
 		}
 	}
 }
 
-func resolveImagesSha(release *Release) {
+func resolveImagesSha(release *Release) error {
 	nvcrToken := os.Getenv("NGC_CLI_API_KEY")
 	if nvcrToken == "" {
-		fmt.Printf("Error: NGC_CLI_API_KEY is unset")
-		return
+		return fmt.Errorf("NGC_CLI_API_KEY is unset")
 	}
 	auth := &authn.Basic{
 		Username: "$oauthtoken",
@@ -206,8 +209,7 @@ func resolveImagesSha(release *Release) {
 				digests, err := resolveDocaDriversShas(releaseImageSpec.Repository, releaseImageSpec.Image,
 					releaseImageSpec.Version, auth)
 				if err != nil {
-					fmt.Printf("Error: %v\n", err)
-					return
+					return err
 				}
 				releaseImageSpec.Shas = make([]SHA256ImageRef, len(digests))
 				for i, digest := range digests {
@@ -218,8 +220,7 @@ func resolveImagesSha(release *Release) {
 				digest, err := resolveImageSha(releaseImageSpec.Repository, releaseImageSpec.Image,
 					releaseImageSpec.Version, auth)
 				if err != nil {
-					fmt.Printf("Error: %v\n", err)
-					return
+					return err
 				}
 				releaseImageSpec.Shas = make([]SHA256ImageRef, 1)
 				sha := fmt.Sprintf("%s/%s@%s", releaseImageSpec.Repository, releaseImageSpec.Image, digest)
@@ -227,6 +228,7 @@ func resolveImagesSha(release *Release) {
 			}
 		}
 	}
+	return nil
 }
 
 func resolveImageSha(repo, image, tag string, auth *authn.Basic) (string, error) {
