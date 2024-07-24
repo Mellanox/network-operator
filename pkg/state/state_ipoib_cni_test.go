@@ -18,7 +18,6 @@ package state_test
 
 import (
 	"context"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	. "github.com/onsi/ginkgo/v2"
@@ -29,13 +28,15 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("IPoIB CNI State tests", func() {
 	var ctx context.Context
 	var catalog state.InfoCatalog
 	var client client.Client
-	var renderer state.ManifestRenderer
+	var cniState state.State
+	var cniRenderer state.ManifestRenderer
 
 	BeforeEach(func() {
 		ctx = context.Background()
@@ -44,20 +45,43 @@ var _ = Describe("IPoIB CNI State tests", func() {
 		Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 		manifestDir := "../../manifests/state-ipoib-cni"
-		_, r, err := state.NewStateIPoIBCNI(client, manifestDir)
+		s, r, err := state.NewStateIPoIBCNI(client, manifestDir)
 		Expect(err).NotTo(HaveOccurred())
-		renderer = r
+		cniState = s
+		cniRenderer = r
 		catalog = getTestCatalog()
 		catalog.Add(state.InfoTypeStaticConfig,
 			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
 	})
+
 	Context("should render", func() {
 		It("manifests with IPoIB CNI", func() {
 			cr := getNICForIPoIBCNI()
-			objs, err := renderer.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			objs, err := cniRenderer.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
-			GetManifestObjectsTest(ctx, cr, catalog, cr.Spec.SecondaryNetwork.IPoIB, renderer)
+			GetManifestObjectsTest(ctx, cr, catalog, cr.Spec.SecondaryNetwork.IPoIB, cniRenderer)
+		})
+		It("manifests with IPoIB CNI for Openshift", func() {
+			cr := getNICForIPoIBCNI()
+			openshiftCatalog := getOpenshiftTestCatalog()
+			objs, err := cniRenderer.GetManifestObjects(context.TODO(), cr, openshiftCatalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			GetManifestObjectsTest(ctx, cr, catalog, cr.Spec.SecondaryNetwork.IPoIB, cniRenderer)
+		})
+	})
+
+	Context("should sync", func() {
+		It("without any errors", func() {
+			cr := getNICForIPoIBCNI()
+			err := client.Create(ctx, cr)
+			Expect(err).NotTo(HaveOccurred())
+			status, err := cniState.Sync(ctx, cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			// We do not expect that the sync state (i.e. the DaemonSet) will be ready.
+			// There is no real Kubernetes cluster in the unit tests and thus the Pods cannot be scheduled.
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})
 	})
 })
