@@ -17,70 +17,45 @@ limitations under the License.
 package state_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/go-logr/logr"
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
 var _ = Describe("RDMA Shared Device Plugin", func() {
-
-	var ctx context.Context
-	var rdmaDPState state.State
-	var rdmaDPRenderer state.ManifestRenderer
-	var testLogger logr.Logger
-	var catalog state.InfoCatalog
-	var client client.Client
-	var manifestDir string
+	var ts testScope
 
 	BeforeEach(func() {
-		ctx = context.Background()
-		scheme := runtime.NewScheme()
-		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		manifestDir = "../../manifests/state-rdma-shared-device-plugin"
-		s, r, err := state.NewStateRDMASharedDevicePlugin(client, manifestDir)
-		Expect(err).NotTo(HaveOccurred())
-		rdmaDPState = s
-		rdmaDPRenderer = r
-		catalog = getTestCatalog()
+		ts = ts.New(state.NewStateRDMASharedDevicePlugin, "../../manifests/state-rdma-shared-device-plugin")
+		Expect(ts).NotTo(BeNil())
 	})
 
 	Context("should render", func() {
 		It("Kubernetes manifests", func() {
 			cr := getRDMASharedDevicePlugin()
-			objs, err := rdmaDPRenderer.GetManifestObjects(ctx, cr, catalog, testLogger)
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			// We only expect a single manifest here, which should be the DaemonSet.
 			// The other manifests are only if RuntimeSpec.IsOpenshift == true.
 			Expect(len(objs)).To(Equal(1))
-			GetManifestObjectsTest(ctx, cr, catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, rdmaDPRenderer)
+			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
 		})
 		It("Openshift manifests", func() {
 			cr := getRDMASharedDevicePlugin()
-			openshiftCatalog := getOpenshiftTestCatalog()
-			objs, err := rdmaDPRenderer.GetManifestObjects(ctx, cr, openshiftCatalog, testLogger)
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.openshiftCatalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(4))
-			GetManifestObjectsTest(ctx, cr, catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, rdmaDPRenderer)
+			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
 		})
 	})
 	Context("should sync", func() {
-		It("wihtout any errors", func() {
+		It("without any errors", func() {
 			cr := getRDMASharedDevicePlugin()
-			err := client.Create(ctx, cr)
+			err := ts.client.Create(ts.context, cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := rdmaDPState.Sync(ctx, cr, catalog)
+			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			// We do not expect that the sync state (i.e. the DaemonSet) will be ready.
 			// There is no real Kubernetes cluster in the unit tests and thus the Pods cannot be scheduled.
