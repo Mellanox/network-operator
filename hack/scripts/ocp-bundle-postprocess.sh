@@ -23,7 +23,12 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 # Generate relatedImages
-cd hack && $GO run release.go --with-sha256 --templateDir ./templates/related-images/ --outputDir . && cd ..
+cd hack
+if ! $GO run release.go --with-sha256 --templateDir ./templates/related-images/ --outputDir .; then
+    echo "release.go code execution failed"
+    exit 1
+fi
+cd ..
 cat hack/related_images.yaml >> bundle/manifests/nvidia-network-operator.clusterserviceversion.yaml
 rm hack/related_images.yaml
 # Add containerImage annotation
