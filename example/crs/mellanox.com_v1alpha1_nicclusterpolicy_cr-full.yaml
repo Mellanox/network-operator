@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA
+# 2024 NVIDIA CORPORATION & AFFILIATES
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# ##### Note #####
+# This example contains all the components supported as a reference.
+# User should edit the example and keep only the required components.
+#
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
@@ -20,25 +25,23 @@ spec:
     image: doca-driver
     repository: nvcr.io/nvstaging/mellanox
     version: 24.07-0.3.2.0-0
-    livenessProbe:
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readinessProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 30
-    startupProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 20
-    terminationGracePeriodSeconds: 300
     upgradePolicy:
       autoUpgrade: true
       drain:
         deleteEmptyDir: true
         enable: true
         force: true
-        podSelector: ""
         timeoutSeconds: 300
       maxParallelUpgrades: 1
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: ghcr.io/mellanox
@@ -52,7 +55,8 @@ spec:
             "resourceName": "rdma_shared_device_a",
             "rdmaHcaMax": 63,
             "selectors": {
-              "vendors": ["15b3"]
+              "vendors": ["15b3"],
+              "deviceIDs": ["101b"]
             }
           }
         ]
@@ -74,6 +78,24 @@ spec:
           }
         ]
       }
+  secondaryNetwork:
+    cniPlugins:
+      image: plugins
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v1.5.0
+    ipoib:
+      image: ipoib-cni
+      repository: ghcr.io/mellanox
+      version: v1.2.0
+    multus:
+      image: multus-cni
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v3.9.3
+      config: ''
+    ipamPlugin:
+      image: whereabouts
+      repository: ghcr.io/k8snetworkplumbingwg
+      version: v0.7.0
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
@@ -94,8 +116,3 @@ spec:
     image: doca_telemetry
     repository: nvcr.io/nvidia/doca
     version: 1.16.5-doca2.6.0-host
-  secondaryNetwork:
-    ipoib:
-      image: ipoib-cni
-      repository: ghcr.io/mellanox
-      version: v1.2.0

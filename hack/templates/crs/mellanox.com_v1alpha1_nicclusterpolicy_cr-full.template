@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA
+# 2024 NVIDIA CORPORATION & AFFILIATES
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# ##### Note #####
+# This example contains all the components supported as a reference.
+# User should edit the example and keep only the required components.
+#
 apiVersion: mellanox.com/v1alpha1
 kind: NicClusterPolicy
 metadata:
@@ -20,25 +25,23 @@ spec:
     image: {{ .Mofed.Image }}
     repository: {{ .Mofed.Repository }}
     version: {{ .Mofed.Version }}
-    livenessProbe:
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readinessProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 30
-    startupProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 20
-    terminationGracePeriodSeconds: 300
     upgradePolicy:
       autoUpgrade: true
       drain:
         deleteEmptyDir: true
         enable: true
         force: true
-        podSelector: ""
         timeoutSeconds: 300
       maxParallelUpgrades: 1
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: {{ .RdmaSharedDevicePlugin.Image }}
     repository: {{ .RdmaSharedDevicePlugin.Repository }}
@@ -52,7 +55,8 @@ spec:
             "resourceName": "rdma_shared_device_a",
             "rdmaHcaMax": 63,
             "selectors": {
-              "vendors": ["15b3"]
+              "vendors": ["15b3"],
+              "deviceIDs": ["101b"]
             }
           }
         ]
@@ -74,6 +78,24 @@ spec:
           }
         ]
       }
+  secondaryNetwork:
+    cniPlugins:
+      image: {{ .CniPlugins.Image }}
+      repository: {{ .CniPlugins.Repository }}
+      version: {{ .CniPlugins.Version }}
+    ipoib:
+      image: {{ .Ipoib.Image }}
+      repository: {{ .Ipoib.Repository }}
+      version: {{ .Ipoib.Version }}
+    multus:
+      image: {{ .Multus.Image }}
+      repository: {{ .Multus.Repository }}
+      version: {{ .Multus.Version }}
+      config: ''
+    ipamPlugin:
+      image: {{ .IpamPlugin.Image }}
+      repository: {{ .IpamPlugin.Repository }}
+      version: {{ .IpamPlugin.Version }}
   nvIpam:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
@@ -94,8 +116,3 @@ spec:
     image: {{ .DOCATelemetryService.Image }}
     repository: {{ .DOCATelemetryService.Repository }}
     version: {{ .DOCATelemetryService.Version }}
-  secondaryNetwork:
-    ipoib:
-      image: {{ .Ipoib.Image }}
-      repository: {{ .Ipoib.Repository }}
-      version: {{ .Ipoib.Version }}
