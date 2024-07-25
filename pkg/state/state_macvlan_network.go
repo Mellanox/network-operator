@@ -43,10 +43,10 @@ const (
 )
 
 // NewStateMacvlanNetwork creates a new state for MacvlanNetwork CR
-func NewStateMacvlanNetwork(k8sAPIClient client.Client, manifestDir string) (State, error) {
+func NewStateMacvlanNetwork(k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
@@ -56,7 +56,7 @@ func NewStateMacvlanNetwork(k8sAPIClient client.Client, manifestDir string) (Sta
 			description: stateMacvlanNetworkDescription,
 			client:      k8sAPIClient,
 			renderer:    renderer,
-		}}, nil
+		}}, nil, nil
 }
 
 type stateMacvlanNetwork struct {

@@ -139,7 +139,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 func newMacvlanNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
-	macvlanNetworkState, err := NewStateMacvlanNetwork(
+	macvlanNetworkState, _, err := NewStateMacvlanNetwork(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-macvlan-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create MacvlanNetwork CRD State")
