@@ -26,9 +26,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-
-	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
-	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
@@ -36,41 +33,27 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("CNI plugins state", func() {
-	var cniPluginsState state.State
-	var catalog state.InfoCatalog
-	var client client.Client
-	var namespace string
+	var ts testScope
 
 	BeforeEach(func() {
-		scheme := runtime.NewScheme()
-		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		manifestDir := "../../manifests/state-container-networking-plugins"
-		s, _, err := state.NewStateCNIPlugins(client, manifestDir)
-		Expect(err).NotTo(HaveOccurred())
-		cniPluginsState = s
-		catalog = getTestCatalog()
-		namespace = config.FromEnv().State.NetworkOperatorResourceNamespace
+		ts = ts.New(state.NewStateCNIPlugins, "../../manifests/state-container-networking-plugins")
+		Expect(ts).NotTo(BeNil())
 	})
 
 	Context("Verify objects rendering", func() {
 		It("should create Daemonset - minimal spec", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
@@ -80,11 +63,11 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			cr.Spec.SecondaryNetwork.CniPlugins.ImagePullSecrets = []string{"myimagepullsecret"}
-			_, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			_, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			By("Verify ImagePullSecret")
@@ -100,20 +83,15 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			testCniBinDir := "/opt/mydir/cni"
-			catalog := state.NewInfoCatalog()
-			clusterTypeProvider := clustertype_mocks.Provider{}
-			clusterTypeProvider.On("IsOpenshift").Return(false)
 			staticConfigProvider := staticconfig_mocks.Provider{}
 			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: testCniBinDir})
-			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
-			catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
-
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			ts.catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = testCniBinDir
@@ -124,19 +102,15 @@ var _ = Describe("CNI plugins state", func() {
 		It("should create Daemonset with Openshift CNI bin dir", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			catalog = state.NewInfoCatalog()
-			clusterTypeProvider := clustertype_mocks.Provider{}
-			clusterTypeProvider.On("IsOpenshift").Return(true)
 			staticConfigProvider := staticconfig_mocks.Provider{}
 			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
-			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
-			catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			ts.openshiftCatalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			status, err := ts.state.Sync(context.Background(), cr, ts.openshiftCatalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = "/var/lib/cni/bin"
@@ -162,11 +136,11 @@ var _ = Describe("CNI plugins state", func() {
 					},
 				},
 			}
-			_, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			_, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			rq := v1.ResourceRequirements{
 				Requests: v1.ResourceList{
@@ -202,11 +176,11 @@ var _ = Describe("CNI plugins state", func() {
 				},
 			}
 			cr.Spec.NodeAffinity = nodeAffinity
-			_, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			_, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Affinity = &v1.Affinity{NodeAffinity: nodeAffinity}
@@ -219,12 +193,12 @@ var _ = Describe("CNI plugins state", func() {
 		It("should create Daemonset, update state to Ready", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
@@ -234,9 +208,9 @@ var _ = Describe("CNI plugins state", func() {
 				UpdatedNumberScheduled: 1,
 			}
 			By("Update DaemonSet Status, and re-run Sync")
-			err = client.Status().Update(context.Background(), ds)
+			err = ts.client.Status().Update(context.Background(), ds)
 			Expect(err).NotTo(HaveOccurred())
-			status, err = cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify State is ready")
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
@@ -245,31 +219,31 @@ var _ = Describe("CNI plugins state", func() {
 		It("should create Daemonset and delete if Spec is nil", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 			By("Set spec to nil and Sync")
 			cr.Spec.SecondaryNetwork.CniPlugins = nil
-			status, err = cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet is deleted")
 			ds = &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "cni-plugins-ds"}, ds)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 		})
 
 		It("should fail if static config provider not set in catalog", func() {
 			By("Sync")
-			catalog := state.NewInfoCatalog()
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			noCatalog := state.NewInfoCatalog()
+			status, err := ts.state.Sync(context.Background(), cr, noCatalog)
 			Expect(err).To(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateError))
 		})
@@ -281,7 +255,7 @@ var _ = Describe("CNI plugins state", func() {
 			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
 			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			status, err := cniPluginsState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, catalog)
 			Expect(err).To(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})

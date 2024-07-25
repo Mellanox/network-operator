@@ -25,6 +25,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
@@ -61,6 +62,7 @@ type testScope struct {
 	renderer         state.ManifestRenderer
 	catalog          state.InfoCatalog
 	openshiftCatalog state.InfoCatalog
+	namespace        string
 }
 
 type clientBuilderFunc func(client.Client, string) (state.State, state.ManifestRenderer, error)
@@ -69,15 +71,16 @@ func (t *testScope) New(fn clientBuilderFunc, dir string) testScope {
 	ctx := context.Background()
 	scheme := runtime.NewScheme()
 
-	Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(corev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
 	sstate, renderer, err := fn(c, dir)
 	Expect(err).NotTo(HaveOccurred())
+
 	catalog := getTestCatalog()
 	Expect(catalog).NotTo(BeNil())
 	osCatalog := getOpenshiftTestCatalog()
@@ -90,6 +93,7 @@ func (t *testScope) New(fn clientBuilderFunc, dir string) testScope {
 		renderer:         renderer,
 		catalog:          catalog,
 		openshiftCatalog: osCatalog,
+		namespace:        config.FromEnv().State.NetworkOperatorResourceNamespace,
 	}
 }
 
@@ -141,10 +145,10 @@ func defaultNADConfig(cfg *nadConfig) nadConfig {
 }
 
 func getNADConfig(jsonData string) nadConfig {
-	config := &nadConfig{}
-	err := json.Unmarshal([]byte(jsonData), &config)
+	c := &nadConfig{}
+	err := json.Unmarshal([]byte(jsonData), &c)
 	Expect(err).To(BeNil())
-	return *config
+	return *c
 }
 
 func getNADConfigIPAMJSON(ipam nadConfigIPAM) string {
