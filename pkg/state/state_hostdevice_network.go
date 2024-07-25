@@ -42,10 +42,10 @@ const (
 )
 
 // NewStateHostDeviceNetwork creates a new state for HostDeviceNetwork CR
-func NewStateHostDeviceNetwork(k8sAPIClient client.Client, manifestDir string) (State, error) {
+func NewStateHostDeviceNetwork(k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
@@ -55,7 +55,7 @@ func NewStateHostDeviceNetwork(k8sAPIClient client.Client, manifestDir string) (
 			description: stateHostDeviceNetworkDescription,
 			client:      k8sAPIClient,
 			renderer:    renderer,
-		}}, nil
+		}}, nil, nil
 }
 
 type stateHostDeviceNetwork struct {
