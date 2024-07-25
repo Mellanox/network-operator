@@ -27,11 +27,7 @@ import (
 	"github.com/Mellanox/network-operator/pkg/state"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
@@ -42,21 +38,14 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 		testMaster    = "eth0"
 	)
 
-	var ipoibState state.State
-	var catalog state.InfoCatalog
-	var client client.Client
-	var expectedNadConfig nadConfig
+	var (
+		ts                testScope
+		expectedNadConfig nadConfig
+	)
 
 	BeforeEach(func() {
-		scheme := runtime.NewScheme()
-		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		manifestDir := "../../manifests/state-ipoib-network"
-		s, err := state.NewStateIPoIBNetwork(client, manifestDir)
-		Expect(err).NotTo(HaveOccurred())
-		ipoibState = s
-		catalog = getTestCatalog()
+		ts = ts.New(state.NewStateIPoIBNetwork, "../../manifests/state-ipoib-network")
+		Expect(ts).NotTo(BeNil())
 		expectedNadConfig = defaultNADConfig(&nadConfig{
 			Name:   testName,
 			Type:   testType,
@@ -68,14 +57,14 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 	Context("IPoIBNetwork Network state", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			cr := getIPoIBNetwork(testName, testNamespace, testMaster)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := ipoibState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = nadConfigIPAM{}
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, "")
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
 			ipam := nadConfigIPAM{
@@ -85,55 +74,55 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			}
 			cr := getIPoIBNetwork(testName, testNamespace, testMaster)
 			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := ipoibState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = ipam
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, "")
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
 		It("Should Render NetworkAttachmentDefinition with default namespace", func() {
 			cr := getIPoIBNetwork(testName, "", testMaster)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := ipoibState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = nadConfigIPAM{}
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, "default", "")
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, "default", "")
 		})
 	})
 	Context("Verify Sync flows", func() {
 		It("Should recreate NetworkAttachmentDefinition with different namespace", func() {
 			cr := getIPoIBNetwork(testName, "", testMaster)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := ipoibState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = nadConfigIPAM{}
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, "default", "")
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, "default", "")
 
 			By("Update network namespace")
 			cr = &mellanoxv1alpha1.IPoIBNetwork{}
-			err = client.Get(context.Background(), types.NamespacedName{Name: testName}, cr)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Name: testName}, cr)
 			Expect(err).NotTo(HaveOccurred())
 			cr.Spec.NetworkNamespace = testNamespace
-			err = client.Update(context.Background(), cr)
+			err = ts.client.Update(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Sync")
-			_, err = ipoibState.Sync(context.Background(), cr, catalog)
+			_, err = ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			nad := &netattdefv1.NetworkAttachmentDefinition{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: testName}, nad)
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: testName}, nad)
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, "")
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
 	})
 })

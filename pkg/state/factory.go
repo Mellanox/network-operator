@@ -163,7 +163,7 @@ func newHostDeviceNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 func newIPoIBNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
-	ipoibNetworkState, err := NewStateIPoIBNetwork(
+	ipoibNetworkState, _, err := NewStateIPoIBNetwork(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ipoib-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
