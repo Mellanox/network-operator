@@ -23,8 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -32,6 +30,9 @@ import (
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+
+	apiimagev1 "github.com/openshift/api/image/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -51,6 +53,45 @@ const (
 )
 
 var testLogger = log.Log.WithName("testLog")
+
+type testScope struct {
+	context          context.Context
+	client           client.Client
+	state            state.State
+	renderer         state.ManifestRenderer
+	catalog          state.InfoCatalog
+	openshiftCatalog state.InfoCatalog
+}
+
+type clientBuilderFunc func(client.Client, string) (state.State, state.ManifestRenderer, error)
+
+func (t *testScope) New(fn clientBuilderFunc, dir string) testScope {
+	ctx := context.Background()
+	scheme := runtime.NewScheme()
+
+	Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(corev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+	sstate, renderer, err := fn(c, dir)
+	Expect(err).NotTo(HaveOccurred())
+	catalog := getTestCatalog()
+	Expect(catalog).NotTo(BeNil())
+	osCatalog := getOpenshiftTestCatalog()
+	Expect(catalog).NotTo(BeNil())
+
+	return testScope{
+		context:          ctx,
+		client:           c,
+		state:            sstate,
+		renderer:         renderer,
+		catalog:          catalog,
+		openshiftCatalog: osCatalog,
+	}
+}
 
 func getTestCatalog() state.InfoCatalog {
 	return getTestCatalogForOpenshift(false)
