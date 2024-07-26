@@ -271,14 +271,14 @@ setup-envtest: $(SETUP_ENVTEST)  ## Install envtest binaries
 clean-envtest: setup-envtest ;## Clean up assets installed by setup-envtest
 	$Q $(SETUP_ENVTEST) cleanup
 
-check test tests: setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+check test tests: tidy generate fmt vet manifests setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
 	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
 COVERAGE_MODE = count
 .PHONY: test-coverage
 
 test-coverage: COVERAGE_DIR := $(CURDIR)/test
-test-coverage: setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
+test-coverage: tidy generate fmt vet manifests setup-envtest; $(info  running coverage tests...) @ ## Run coverage tests
 	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -covermode=$(COVERAGE_MODE) -coverpkg=./... -coverprofile=network-operator.cover $(TESTPKGS)
 
 .PHONY: generate-mocks
@@ -350,6 +350,18 @@ chart-push: $(HELM) ; $(info Pushing Helm image...)  @ ## Push Helm Chart
 	ngc registry chart push $(NGC_REPO):$(VERSION)
 
 # Misc
+
+# Run go mod tidy
+tidy:
+	rm -f go.sum; go mod tidy -compat=1.21
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
 
 .PHONY: clean
 clean: ; $(info  Cleaning...)	 @ ## Cleanup everything
