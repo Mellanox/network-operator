@@ -27,12 +27,14 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	clustertype_mocks "github.com/Mellanox/network-operator/pkg/clustertype/mocks"
+	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,6 +45,9 @@ import (
 
 const (
 	hostDeviceNetworkResourceNamePrefix = "nvidia.com/"
+	defaultTestRepository               = "myRepo"
+	defaultTestImage                    = "myImage"
+	defaultTestVersion                  = "myVersion"
 )
 
 func getTestCatalog() state.InfoCatalog {
@@ -120,24 +125,8 @@ func assertCommonPodTemplateFields(template *corev1.PodTemplateSpec, image *mell
 	// Container Resources
 	Expect(template.Spec.Containers[0].Resources.Limits).To(Equal(image.ContainerResources[0].Limits))
 	Expect(template.Spec.Containers[0].Resources.Requests).To(Equal(image.ContainerResources[0].Requests))
-}
 
-func assertCommonDeploymentFields(u *unstructured.Unstructured, image *mellanoxv1alpha1.ImageSpec) {
-	d := &appsv1.Deployment{}
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), d)
-	Expect(err).ToNot(HaveOccurred())
-	assertCommonPodTemplateFields(&d.Spec.Template, image)
-}
-
-func assertCommonDaemonSetFields(u *unstructured.Unstructured,
-	image *mellanoxv1alpha1.ImageSpec, policy *mellanoxv1alpha1.NicClusterPolicy) {
-	ds := &appsv1.DaemonSet{}
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), ds)
-	Expect(err).ToNot(HaveOccurred())
-	assertCommonPodTemplateFields(&ds.Spec.Template, image)
-	// Tolerations
-	Expect(ds.Spec.Template.Spec.Tolerations).To(ContainElements(
-		corev1.Toleration{Key: "first-taint"},
+	Expect(template.Spec.Tolerations).To(ContainElements(
 		corev1.Toleration{
 			Key:               "nvidia.com/gpu",
 			Operator:          "Exists",
@@ -146,16 +135,42 @@ func assertCommonDaemonSetFields(u *unstructured.Unstructured,
 			TolerationSeconds: nil,
 		},
 	))
+}
 
-	// NodeAffinity
+func assertCommonDeploymentFieldsFromUnstructured(u *unstructured.Unstructured, image *mellanoxv1alpha1.ImageSpec) {
+	d := &appsv1.Deployment{}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), d)
+	Expect(err).ToNot(HaveOccurred())
+	assertCommonDeploymentFields(d, image)
+}
+
+func assertCommonDeploymentFields(d *appsv1.Deployment, image *mellanoxv1alpha1.ImageSpec) {
+	assertCommonPodTemplateFields(&d.Spec.Template, image)
+}
+
+func assertCommonDaemonSetFieldsFromUnstructured(u *unstructured.Unstructured,
+	image *mellanoxv1alpha1.ImageSpec, policy *mellanoxv1alpha1.NicClusterPolicy) {
+	ds := &appsv1.DaemonSet{}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), ds)
+	Expect(err).ToNot(HaveOccurred())
+	assertCommonDaemonSetFields(ds, image, policy)
+}
+
+func assertCommonDaemonSetFields(ds *appsv1.DaemonSet, image *mellanoxv1alpha1.ImageSpec,
+	policy *mellanoxv1alpha1.NicClusterPolicy) {
+	assertCommonPodTemplateFields(&ds.Spec.Template, image)
+
+	Expect(ds.Spec.Template.Spec.Tolerations).To(ContainElements(
+		corev1.Toleration{Key: "first-taint"},
+	))
 	Expect(ds.Spec.Template.Spec.Affinity.NodeAffinity).To(Equal(policy.Spec.NodeAffinity))
 }
 
 func getTestImageSpec() *mellanoxv1alpha1.ImageSpec {
 	return &mellanoxv1alpha1.ImageSpec{
-		Image:            "image-one",
-		Repository:       "repository",
-		Version:          "five",
+		Image:            defaultTestImage,
+		Repository:       defaultTestRepository,
+		Version:          defaultTestVersion,
 		ImagePullSecrets: []string{"secret-one", "secret-two"},
 	}
 }
@@ -180,10 +195,14 @@ func isNamespaced(obj *unstructured.Unstructured) bool {
 		obj.GetKind() != "ValidatingWebhookConfiguration"
 }
 
-func assertCNIBinDirForDS(u *unstructured.Unstructured) {
+func assertCNIBinDirForDSFromUnstructured(u *unstructured.Unstructured) {
 	ds := &appsv1.DaemonSet{}
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), ds)
 	Expect(err).ToNot(HaveOccurred())
+	assertCNIBinDirForDS(ds)
+}
+
+func assertCNIBinDirForDS(ds *appsv1.DaemonSet) {
 	for i := range ds.Spec.Template.Spec.Volumes {
 		vol := ds.Spec.Template.Spec.Volumes[i]
 		if vol.Name == "cnibin" {
@@ -222,10 +241,10 @@ func GetManifestObjectsTest(ctx context.Context, cr *mellanoxv1alpha1.NicCluster
 		}
 		switch got[i].GetKind() {
 		case "DaemonSet":
-			assertCommonDaemonSetFields(got[i], imageSpec, cr)
-			assertCNIBinDirForDS(got[i])
+			assertCommonDaemonSetFieldsFromUnstructured(got[i], imageSpec, cr)
+			assertCNIBinDirForDSFromUnstructured(got[i])
 		case "Deployment":
-			assertCommonDeploymentFields(got[i], imageSpec)
+			assertCommonDeploymentFieldsFromUnstructured(got[i], imageSpec)
 		}
 	}
 }
@@ -251,4 +270,56 @@ func getTestClusterPolicyWithBaseFields() *mellanoxv1alpha1.NicClusterPolicy {
 			Tolerations: []corev1.Toleration{{Key: "first-taint"}},
 		},
 	}
+}
+
+func getKindState(ctx context.Context, c client.Client, objs []*unstructured.Unstructured,
+	targetKind string) (state.SyncState, error) {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Checking related object states")
+	for _, obj := range objs {
+		if obj.GetKind() != targetKind {
+			continue
+		}
+		found := obj.DeepCopy()
+		err := c.Get(
+			ctx, types.NamespacedName{Name: found.GetName(), Namespace: found.GetNamespace()}, found)
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				return state.SyncStateNotReady, nil
+			}
+			return state.SyncStateNotReady, fmt.Errorf("failed to get object: %w", err)
+		}
+
+		buf, err := found.MarshalJSON()
+		if err != nil {
+			return state.SyncStateNotReady, fmt.Errorf("failed to marshall unstructured daemonset object: %w", err)
+		}
+
+		switch obj.GetKind() {
+		case "DaemonSet":
+			ds := &appsv1.DaemonSet{}
+			if err = json.Unmarshal(buf, ds); err != nil {
+				return state.SyncStateNotReady, fmt.Errorf("failed to unmarshall to daemonset object: %w", err)
+			}
+			if ds.Status.DesiredNumberScheduled != 0 && ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable &&
+				ds.Status.UpdatedNumberScheduled == ds.Status.NumberAvailable {
+				return state.SyncStateReady, nil
+			}
+			return state.SyncStateNotReady, nil
+		case "Deployment":
+			d := &appsv1.Deployment{}
+			if err = json.Unmarshal(buf, d); err != nil {
+				return state.SyncStateNotReady, fmt.Errorf("failed to unmarshall to deployment object: %w", err)
+			}
+
+			if d.Status.ObservedGeneration > 0 && d.Status.Replicas == d.Status.ReadyReplicas &&
+				d.Status.UpdatedReplicas == d.Status.AvailableReplicas {
+				return state.SyncStateReady, nil
+			}
+			return state.SyncStateNotReady, nil
+		default:
+			return state.SyncStateNotReady, fmt.Errorf("unsupported target kind")
+		}
+	}
+	return state.SyncStateNotReady, fmt.Errorf("objects list does not contain the specified target kind")
 }
