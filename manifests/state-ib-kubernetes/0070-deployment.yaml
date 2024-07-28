@@ -63,9 +63,8 @@ spec:
           operator: "Exists"
           effect: "NoSchedule"
         - key: "nvidia.com/gpu"
-          operator: "Equal"
-          value: "present"
-          effect: "NoSchedule"
+          operator: "Exists"
+          effect: NoSchedule
       containers:
         - name: ib-kubernetes
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}

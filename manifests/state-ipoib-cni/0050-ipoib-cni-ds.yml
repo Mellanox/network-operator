@@ -53,9 +53,8 @@ spec:
         {{- .Tolerations | yaml | nindent 8 }}
         {{- end }}
         - key: "nvidia.com/gpu"
-          operator: "Equal"
-          value: "present"
-          effect: "NoSchedule"
+          operator: "Exists"
+          effect: NoSchedule
       containers:
         - name: ipoib-cni
           image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
