@@ -123,3 +123,8 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.15.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
+
+replace (
+	github.com/docker/cli v26.1.3+incompatible => github.com/docker/cli v26.1.5+incompatible
+	github.com/docker/docker v26.1.3+incompatible => github.com/docker/docker v26.1.5+incompatible
+)
