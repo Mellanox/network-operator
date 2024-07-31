@@ -370,3 +370,18 @@ func getKindState(ctx context.Context, c client.Client, objs []*unstructured.Uns
 	}
 	return state.SyncStateNotReady, fmt.Errorf("objects list does not contain the specified target kind")
 }
+
+type checkFunc func(object *unstructured.Unstructured)
+
+func runFuncForObjectInSlice(objects []*unstructured.Unstructured, objectKind string, f checkFunc) bool {
+	var found bool
+	for _, obj := range objects {
+		if obj.GetKind() != objectKind {
+			continue
+		}
+		found = true
+
+		f(obj)
+	}
+	return found
+}
