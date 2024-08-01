@@ -31,8 +31,8 @@ sriovNetworkOperator:
 
 # Set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable.
 node-feature-discovery:
-  # -- The Node Feature API is used to expose node-specific hardware and 
-  # software features to the Kubernetes scheduler.
+  # -- The Node Feature API enable communication between nfd master and worker
+  # through NodeFeature CRs. Otherwise communication is through gRPC.
   enableNodeFeatureApi: true
   featureGates:
     NodeFeatureAPI: true
@@ -143,16 +143,10 @@ sriov-network-operator:
   images:
     operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-24.7.0-beta.3
     sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-24.7.0-beta.3
-    # -- For ARM-based deployments, it is recommended to use the
-    # ``ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.8.0-arm64`` image.
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.8.0
-    # -- For ARM-based deployments, it is recommended to use the
-    # ``ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:1.1.0-arm64`` image.
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.1.1
     ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.34.0
     # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.2.0
-    # -- For ARM-based deployments, it is recommended to use the
-    # ``ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.6.2-arm64`` image.
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.7.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:8810e6a127366cc1eb829d3f7cb3f866d096946e
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-24.7.0-beta.3
@@ -279,6 +273,7 @@ ofedDriver:
   #     limits:
   #       cpu: "300m"
   #       memory: "300Mi"
+  # -- The grace period before the driver containeris forcibly removed.
   terminationGracePeriodSeconds: 300
   # -- Private mirror repository configuration.
   repoConfig:
@@ -377,8 +372,6 @@ sriovDevicePlugin:
   # -- SR-IOV Network device plugin image repository.
   repository: ghcr.io/k8snetworkplumbingwg
   # -- SR-IOV Network device plugin version
-  # For ARM-based deployments, it is recommended to use the
-  # ``ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.6.2-amd64`` image.
   version: v3.7.0
   # -- Enable Container Device Interface (CDI) mode.
   # **NOTE**: NVIDIA Network Operator does not configure container runtime to
@@ -393,8 +386,8 @@ sriovDevicePlugin:
   #     limits:
   #       cpu: "150m"
   #       memory: "100Mi"
-  # -- Optional `resource requests and limits <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/>`_
-  # for the ``kube-sriovdp`` container.
+  # Each entry in the resources elements will be an entry in a ``resourceList``
+  # created as part of the ``kube-sriovdp`` container configuration.
   resources:
     - name: hostdev
       vendors: [15b3]
