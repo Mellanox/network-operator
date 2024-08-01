@@ -62,9 +62,9 @@ spec:
       repository: ghcr.io/k8snetworkplumbingwg
       version: v1.5.0
     multus:
-      image: multus-cni
+      image: multus-cni@sha256
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v3.9.3
+      version: cc3303520e83f8c158511d64176c136aeab3b22e190029611d005e90a5e57775
       config: ''
     ipamPlugin:
       image: whereabouts
