@@ -43,10 +43,10 @@ const (
 )
 
 // NewStateIPoIBNetwork creates a new state for IPoIBNetwork CR
-func NewStateIPoIBNetwork(k8sAPIClient client.Client, manifestDir string) (State, error) {
+func NewStateIPoIBNetwork(k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get files from manifest dir")
+		return nil, nil, errors.Wrap(err, "failed to get files from manifest dir")
 	}
 
 	renderer := render.NewRenderer(files)
@@ -56,7 +56,7 @@ func NewStateIPoIBNetwork(k8sAPIClient client.Client, manifestDir string) (State
 			description: stateIPoIBNetworkDescription,
 			client:      k8sAPIClient,
 			renderer:    renderer,
-		}}, nil
+		}}, nil, nil
 }
 
 type stateIPoIBNetwork struct {

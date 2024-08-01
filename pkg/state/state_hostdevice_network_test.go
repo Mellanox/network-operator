@@ -22,15 +22,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
-	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("HostDevice Network State rendering tests", func() {
@@ -40,21 +33,14 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		testType      = "host-device"
 	)
 
-	var hostDeviceNetState state.State
-	var catalog state.InfoCatalog
-	var client client.Client
-	var expectedNadConfig nadConfig
+	var (
+		ts                testScope
+		expectedNadConfig nadConfig
+	)
 
 	BeforeEach(func() {
-		scheme := runtime.NewScheme()
-		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		manifestDir := "../../manifests/state-hostdevice-network"
-		s, err := state.NewStateHostDeviceNetwork(client, manifestDir)
-		Expect(err).NotTo(HaveOccurred())
-		hostDeviceNetState = s
-		catalog = getTestCatalog()
+		ts = ts.New(state.NewStateHostDeviceNetwork, "../../manifests/state-hostdevice-network")
+		Expect(ts).NotTo(BeNil())
 		expectedNadConfig = defaultNADConfig(&nadConfig{
 			Name: testName,
 			Type: testType,
@@ -66,14 +52,14 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			testResourceName := "test"
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = nadConfigIPAM{}
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testResourceName)
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
 		})
 		// We should be able to create the HostDeviceNetwork with a prefixed resource name,
 		// but the CR should be mutated to NOT have the prefix.
@@ -81,14 +67,14 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		It("Should Render NetworkAttachmentDefinition with resource with prefix", func() {
 			testResourceName := hostDeviceNetworkResourceNamePrefix + testName
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = nadConfigIPAM{}
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testName)
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testName)
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
 			ipam := nadConfigIPAM{
@@ -99,14 +85,14 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			testResourceName := "test"
 			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
 			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
-			err := client.Create(context.Background(), cr)
+			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := hostDeviceNetState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = ipam
-			assertNetworkAttachmentDefinition(client, &expectedNadConfig, testName, testNamespace, testResourceName)
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
 		})
 	})
 })

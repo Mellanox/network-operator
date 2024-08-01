@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state
+package state_test
 
 import (
 	"context"
@@ -29,52 +29,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/config"
-	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/testing/mocks"
-	"github.com/Mellanox/network-operator/pkg/utils"
+	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("Multus CNI state", func() {
-	var state stateMultusCNI
-	var catalog InfoCatalog
-	var networkOperatorResourceNamespace string
+	var ts testScope
 
 	BeforeEach(func() {
-		manifestBaseDir := "../../manifests/state-multus-cni"
-		files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-		Expect(err).NotTo(HaveOccurred())
+		ts = ts.New(state.NewStateMultusCNI, "../../manifests/state-multus-cni")
+		Expect(ts).NotTo(BeNil())
 
-		client := mocks.ControllerRuntimeClient{}
-		renderer := render.NewRenderer(files)
-		state = stateMultusCNI{
-			stateSkel: stateSkel{
-				name:        "state-multus-cni",
-				description: "multus CNI deployed in the cluster",
-				client:      &client,
-				renderer:    renderer,
-			}}
-		catalog = NewInfoCatalog()
-		catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
-		catalog.Add(InfoTypeClusterType, &dummyProvider{})
-		networkOperatorResourceNamespace = config.FromEnv().State.NetworkOperatorResourceNamespace
+		ts.catalog.Add(state.InfoTypeStaticConfig,
+			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
 	})
 
 	It("should render ServiceAccount", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "ServiceAccount", func(obj *unstructured.Unstructured) {
-			Expect(obj.GetNamespace()).To(Equal(networkOperatorResourceNamespace))
+			Expect(obj.GetNamespace()).To(Equal(ts.namespace))
 		})).To(BeTrue())
 	})
 
 	It("should render ClusterRoleBinding", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "ClusterRoleBinding", func(obj *unstructured.Unstructured) {
@@ -83,14 +67,14 @@ var _ = Describe("Multus CNI state", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(clusterRoleBinding.Subjects)).To(Equal(1))
-			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(networkOperatorResourceNamespace))
+			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(ts.namespace))
 		})).To(BeTrue())
 	})
 
 	It("should render Daemonset", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
@@ -98,7 +82,7 @@ var _ = Describe("Multus CNI state", func() {
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(daemonSet.Namespace).To(Equal(networkOperatorResourceNamespace))
+			Expect(daemonSet.Namespace).To(Equal(ts.namespace))
 			Expect(daemonSet.Spec.Template.Spec.Affinity).To(BeNil())
 			Expect(daemonSet.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
 			Expect(daemonSet.Spec.Template.Spec.Tolerations).To(Equal(
@@ -149,7 +133,7 @@ var _ = Describe("Multus CNI state", func() {
 		nodeAffinityCopy := nodeAffinity.DeepCopy()
 		cr.Spec.NodeAffinity = nodeAffinityCopy
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
@@ -166,7 +150,7 @@ var _ = Describe("Multus CNI state", func() {
 
 		cr.Spec.SecondaryNetwork.Multus.ImagePullSecrets = []string{"myimagepullsecret"}
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
@@ -193,7 +177,7 @@ var _ = Describe("Multus CNI state", func() {
 		}
 		cr.Spec.Tolerations = []corev1.Toleration{toleration}
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
@@ -233,7 +217,7 @@ var _ = Describe("Multus CNI state", func() {
 			},
 		}
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
@@ -262,7 +246,7 @@ var _ = Describe("Multus CNI state", func() {
 		configString := "myconfig"
 		cr.Spec.SecondaryNetwork.Multus.Config = &configString
 
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "ConfigMap", func(obj *unstructured.Unstructured) {
@@ -270,7 +254,7 @@ var _ = Describe("Multus CNI state", func() {
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &configMap)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(configMap.Namespace).To(Equal(networkOperatorResourceNamespace))
+			Expect(configMap.Namespace).To(Equal(ts.namespace))
 			Expect(configMap.Data["cni-conf.json"]).To(Equal(configString))
 		})).To(BeTrue())
 
@@ -310,7 +294,7 @@ var _ = Describe("Multus CNI state", func() {
 
 	It("should not render ConfigMap if config is not specified in CR", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
-		objs, err := state.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, obj := range objs {

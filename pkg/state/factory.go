@@ -139,7 +139,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 func newMacvlanNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
-	macvlanNetworkState, err := NewStateMacvlanNetwork(
+	macvlanNetworkState, _, err := NewStateMacvlanNetwork(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-macvlan-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create MacvlanNetwork CRD State")
@@ -151,7 +151,7 @@ func newMacvlanNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 func newHostDeviceNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
-	hostdeviceNetworkState, err := NewStateHostDeviceNetwork(
+	hostdeviceNetworkState, _, err := NewStateHostDeviceNetwork(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-hostdevice-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")
@@ -163,7 +163,7 @@ func newHostDeviceNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 func newIPoIBNetworkStates(k8sAPIClient client.Client) ([]State, error) {
 	manifestBaseDir := config.FromEnv().State.ManifestBaseDir
 
-	ipoibNetworkState, err := NewStateIPoIBNetwork(
+	ipoibNetworkState, _, err := NewStateIPoIBNetwork(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ipoib-network"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create HostDeviceNetwork CRD State")

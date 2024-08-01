@@ -21,56 +21,38 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
 var _ = Describe("SR-IOV Device Plugin State tests", func() {
 	var (
-		sriovDpState state.State
-		catalog      state.InfoCatalog
-		client       client.Client
-		namespace    string
-		renderer     state.ManifestRenderer
+		ts testScope
 	)
 
 	BeforeEach(func() {
-		scheme := runtime.NewScheme()
-		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(v1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		manifestDir := "../../manifests/state-sriov-device-plugin"
-		s, r, err := state.NewStateSriovDp(client, manifestDir)
-		Expect(err).NotTo(HaveOccurred())
-		sriovDpState = s
-		renderer = r
-		catalog = getTestCatalog()
-		namespace = config.FromEnv().State.NetworkOperatorResourceNamespace
+		ts = ts.New(state.NewStateSriovDp, "../../manifests/state-sriov-device-plugin")
+		Expect(ts).NotTo(BeNil())
 	})
 
 	Context("When creating NCP with SRIOV-device-plugin", func() {
 		It("should create Daemonset - minimal spec", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithSriovDp(false)
-			status, err := sriovDpState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace,
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "sriov-device-plugin"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			assertCommonDaemonSetFields(ds, &cr.Spec.SriovDevicePlugin.ImageSpec, cr)
@@ -82,12 +64,12 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 		It("should create Daemonset with CDI support when specified in CR", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithSriovDp(true)
-			status, err := sriovDpState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace,
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "sriov-device-plugin"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			assertCommonDaemonSetFields(ds, &cr.Spec.SriovDevicePlugin.ImageSpec, cr)
@@ -102,12 +84,12 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 		It("should create Daemonset, update state to Ready", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithSriovDp(false)
-			status, err := sriovDpState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace,
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "sriov-device-plugin"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			assertCommonDaemonSetFields(ds, &cr.Spec.SriovDevicePlugin.ImageSpec, cr)
@@ -119,13 +101,13 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 				NumberAvailable:        1,
 				UpdatedNumberScheduled: 1,
 			}
-			err = client.Status().Update(context.Background(), ds)
+			err = ts.client.Status().Update(context.Background(), ds)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify State is ready")
 			ctx := context.Background()
-			objs, err := renderer.GetManifestObjects(ctx, cr, catalog, log.FromContext(ctx))
+			objs, err := ts.renderer.GetManifestObjects(ctx, cr, ts.catalog, log.FromContext(ctx))
 			Expect(err).NotTo(HaveOccurred())
-			status, err = getKindState(ctx, client, objs, "DaemonSet")
+			status, err = getKindState(ctx, ts.client, objs, "DaemonSet")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 		})
@@ -133,12 +115,12 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 		It("should create Daemonset and delete if Spec is nil", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithSriovDp(false)
-			status, err := sriovDpState.Sync(context.Background(), cr, catalog)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet")
 			ds := &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace,
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "sriov-device-plugin"}, ds)
 			Expect(err).NotTo(HaveOccurred())
 			assertCommonDaemonSetFields(ds, &cr.Spec.SriovDevicePlugin.ImageSpec, cr)
@@ -146,12 +128,12 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			assertSriovDpPodTemplatesVolumeMountFields(&ds.Spec.Template, false)
 			By("Set spec to nil and Sync")
 			cr.Spec.SriovDevicePlugin = nil
-			status, err = sriovDpState.Sync(context.Background(), cr, catalog)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 			By("Verify DaemonSet is deleted")
 			ds = &appsv1.DaemonSet{}
-			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace,
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "sriov-device-plugin"}, ds)
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 		})
