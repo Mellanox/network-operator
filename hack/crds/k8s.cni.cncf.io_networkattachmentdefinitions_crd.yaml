@@ -23,7 +23,7 @@ spec:
     singular: network-attachment-definition
     kind: NetworkAttachmentDefinition
     shortNames:
-    - net-attach-def
+      - net-attach-def
   versions:
     - name: v1
       served: true
