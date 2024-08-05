@@ -62,6 +62,8 @@ spec:
                         type: string
                     type: object
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -99,17 +101,23 @@ spec:
                       type: object
                     type: array
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -122,6 +130,8 @@ spec:
                   ib-kubernetes
                 properties:
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -159,10 +169,14 @@ spec:
                       type: object
                     type: array
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
@@ -178,12 +192,14 @@ spec:
                     minimum: 0
                     type: integer
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   ufmSecret:
                     description: Secret containing credentials to UFM service
                     type: string
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -196,6 +212,8 @@ spec:
                   for nic-feature-discovery
                 properties:
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -233,17 +251,23 @@ spec:
                       type: object
                     type: array
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -252,8 +276,8 @@ spec:
                 - version
                 type: object
               nodeAffinity:
-                description: Node affinity is a group of node affinity scheduling
-                  rules.
+                description: Additional nodeAffinity rules to inject to the DaemonSets
+                  objects that are managed by the operator
                 properties:
                   preferredDuringSchedulingIgnoredDuringExecution:
                     description: |-
@@ -447,6 +471,8 @@ spec:
                   2. Configuration for nv-ipam
                 properties:
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -487,17 +513,23 @@ spec:
                     description: Enable deployment of the validation webhook
                     type: boolean
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -514,9 +546,12 @@ spec:
                       for driver container'
                     properties:
                       name:
+                        description: Name of the ConfigMap
                         type: string
                     type: object
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -676,10 +711,14 @@ spec:
                       If set to true and precompiled image does not exists, OFED state will be Error.
                     type: boolean
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
@@ -687,8 +726,11 @@ spec:
                     description: Pod liveness probe settings
                     properties:
                       initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
                         type: integer
                       periodSeconds:
+                        description: How often (in seconds) to perform the probe
                         type: integer
                     required:
                     - initialDelaySeconds
@@ -698,8 +740,11 @@ spec:
                     description: Pod readiness probe settings
                     properties:
                       initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
                         type: integer
                       periodSeconds:
+                        description: How often (in seconds) to perform the probe
                         type: integer
                     required:
                     - initialDelaySeconds
@@ -710,17 +755,22 @@ spec:
                       for OFED container'
                     properties:
                       name:
+                        description: Name of the ConfigMap
                         type: string
                     type: object
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   startupProbe:
                     description: Pod startup probe settings
                     properties:
                       initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
                         type: integer
                       periodSeconds:
+                        description: How often (in seconds) to perform the probe
                         type: integer
                     required:
                     - initialDelaySeconds
@@ -808,6 +858,7 @@ spec:
                         type: object
                     type: object
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -822,8 +873,11 @@ spec:
                   2. Device plugin configuration
                 properties:
                   config:
+                    description: Configuration for the component as a string
                     type: string
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -861,19 +915,26 @@ spec:
                       type: object
                     type: array
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   useCdi:
+                    description: Enables use of container device interface (CDI)
                     type: boolean
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -889,6 +950,8 @@ spec:
                     description: Image information for CNI plugins
                     properties:
                       containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
                         items:
                           description: ResourceRequirements describes the compute
                             resource requirements.
@@ -926,17 +989,23 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
                         default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
                         items:
                           type: string
                         type: array
                       repository:
+                        description: Address of the registry that stores the image
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
                       version:
+                        description: Version of the image to use
                         pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
@@ -948,6 +1017,8 @@ spec:
                     description: Image information for IPAM plugin
                     properties:
                       containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
                         items:
                           description: ResourceRequirements describes the compute
                             resource requirements.
@@ -985,17 +1056,23 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
                         default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
                         items:
                           type: string
                         type: array
                       repository:
+                        description: Address of the registry that stores the image
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
                       version:
+                        description: Version of the image to use
                         pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
@@ -1007,6 +1084,8 @@ spec:
                     description: Image information for IPoIB CNI
                     properties:
                       containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
                         items:
                           description: ResourceRequirements describes the compute
                             resource requirements.
@@ -1044,17 +1123,23 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
                         default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
                         items:
                           type: string
                         type: array
                       repository:
+                        description: Address of the registry that stores the image
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
                       version:
+                        description: Version of the image to use
                         pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
@@ -1066,8 +1151,11 @@ spec:
                     description: Image and configuration information for multus
                     properties:
                       config:
+                        description: Configuration for the component as a string
                         type: string
                       containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
                         items:
                           description: ResourceRequirements describes the compute
                             resource requirements.
@@ -1105,17 +1193,23 @@ spec:
                           type: object
                         type: array
                       image:
+                        description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
                         type: string
                       imagePullSecrets:
                         default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
                         items:
                           type: string
                         type: array
                       repository:
+                        description: Address of the registry that stores the image
                         pattern: '[a-zA-Z0-9\.\-\/]+'
                         type: string
                       version:
+                        description: Version of the image to use
                         pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
@@ -1131,8 +1225,11 @@ spec:
                   2. Device plugin configuration
                 properties:
                   config:
+                    description: Configuration for the component as a string
                     type: string
                   containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
                     items:
                       description: ResourceRequirements describes the compute resource
                         requirements.
@@ -1170,19 +1267,26 @@ spec:
                       type: object
                     type: array
                   image:
+                    description: Name of the image
                     pattern: '[a-zA-Z0-9\-]+'
                     type: string
                   imagePullSecrets:
                     default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
                     items:
                       type: string
                     type: array
                   repository:
+                    description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   useCdi:
+                    description: Enables use of container device interface (CDI)
                     type: boolean
                   version:
+                    description: Version of the image to use
                     pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
@@ -1191,6 +1295,8 @@ spec:
                 - version
                 type: object
               tolerations:
+                description: Additional tolerations to inject to the DaemonSets objects
+                  that are managed by the operator
                 items:
                   description: |-
                     The pod this Toleration is attached to tolerates any taint that matches
