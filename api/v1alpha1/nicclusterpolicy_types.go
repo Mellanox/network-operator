@@ -44,15 +44,21 @@ const (
 
 // ImageSpec Contains container image specifications
 type ImageSpec struct {
+	// Name of the image
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\-]+
 	Image string `json:"image"`
+	// Address of the registry that stores the image
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.\-\/]+
 	Repository string `json:"repository"`
+	// Version of the image to use
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.-]+
 	Version string `json:"version"`
+	// ImagePullSecrets is an optional list of references to secrets in the same
+	// namespace to use for pulling the image
 	// +optional
 	// +kubebuilder:default:={}
-	ImagePullSecrets   []string               `json:"imagePullSecrets"`
+	ImagePullSecrets []string `json:"imagePullSecrets"`
+	// ResourceRequirements describes the compute resource requirements
 	ContainerResources []ResourceRequirements `json:"containerResources,omitempty"`
 }
 
@@ -67,18 +73,22 @@ func (is *ImageSpec) GetContainerResources() []ResourceRequirements {
 // ImageSpecWithConfig Contains ImageSpec and optional configuration
 type ImageSpecWithConfig struct {
 	ImageSpec `json:""`
-	Config    *string `json:"config,omitempty"`
+	// Configuration for the component as a string
+	Config *string `json:"config,omitempty"`
 }
 
 // PodProbeSpec describes a pod probe.
 type PodProbeSpec struct {
+	// Number of seconds after the container has started before the probe is initiated
 	InitialDelaySeconds int `json:"initialDelaySeconds"`
-	PeriodSeconds       int `json:"periodSeconds"`
+	// How often (in seconds) to perform the probe
+	PeriodSeconds int `json:"periodSeconds"`
 }
 
 // ConfigMapNameReference references a config map in a specific namespace.
 // The namespace must be specified at the point of use.
 type ConfigMapNameReference struct {
+	// Name of the ConfigMap
 	Name string `json:"name,omitempty"`
 }
 
@@ -182,7 +192,8 @@ type DrainSpec struct {
 // 2. Device plugin configuration
 type DevicePluginSpec struct {
 	ImageSpecWithConfig `json:""`
-	UseCdi              bool `json:"useCdi,omitempty"`
+	// Enables use of container device interface (CDI)
+	UseCdi bool `json:"useCdi,omitempty"`
 }
 
 // MultusSpec describes configuration options for Multus CNI
@@ -274,7 +285,9 @@ type NicClusterPolicySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	NodeAffinity           *v1.NodeAffinity          `json:"nodeAffinity,omitempty"`
+	// Additional nodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
+	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
+	// Additional tolerations to inject to the DaemonSets objects that are managed by the operator
 	Tolerations            []v1.Toleration           `json:"tolerations,omitempty"`
 	OFEDDriver             *OFEDDriverSpec           `json:"ofedDriver,omitempty"`
 	RdmaSharedDevicePlugin *DevicePluginSpec         `json:"rdmaSharedDevicePlugin,omitempty"`
