@@ -30,5 +30,3 @@ testbin
 test
 build
 hack/manifests
-
-hack/vars.rst
