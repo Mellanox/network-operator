@@ -55,8 +55,6 @@ type SHA256ImageRef struct {
 
 // Release contains versions for operator release templates.
 type Release struct {
-	OcpDefaulChannel             string
-	HelmChartVersion             string
 	NetworkOperator              *ReleaseImageSpec
 	NetworkOperatorInitContainer *ReleaseImageSpec
 	SriovNetworkOperator         *ReleaseImageSpec
@@ -77,7 +75,6 @@ type Release struct {
 	DOCATelemetryService         *ReleaseImageSpec
 	OVSCni                       *ReleaseImageSpec
 	RDMACni                      *ReleaseImageSpec
-	Nfd                          *ReleaseImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -143,9 +140,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	parts := strings.Split(release.NetworkOperator.Version, ".")
-	release.OcpDefaulChannel = fmt.Sprintf("%s.%s", parts[0], parts[1])
-	release.HelmChartVersion = strings.TrimPrefix(release.NetworkOperator.Version, "v")
 
 	var files []string
 	err := filepath.Walk(*templateDir, func(path string, info os.FileInfo, err error) error {
