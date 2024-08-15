@@ -1,0 +1,14 @@
+{{ if .RuntimeSpec.IsOpenshift }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: doca-telemetry-service
+  namespace: {{ .RuntimeSpec.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: doca-telemetry-service
+subjects:
+- kind: ServiceAccount
+  name: doca-telemetry-service
+{{end}}
