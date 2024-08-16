@@ -46,7 +46,7 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
 		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap"}
-		assertUnstructuredListHasExactKinds(got, expectedKinds)
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 
 		for _, obj := range got {
 			// The configMap should be rendered with the default name.
@@ -76,7 +76,7 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
 		expectedKinds := []string{"ServiceAccount", "DaemonSet"}
-		assertUnstructuredListHasExactKinds(got, expectedKinds)
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 
 		for _, obj := range got {
 			// The configMap should not be rendered.
@@ -101,6 +101,6 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalogForOpenshift(true), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
 		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "Role", "RoleBinding"}
-		assertUnstructuredListHasExactKinds(got, expectedKinds)
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 	})
 })
