@@ -385,3 +385,15 @@ func runFuncForObjectInSlice(objects []*unstructured.Unstructured, objectKind st
 	}
 	return found
 }
+
+// assertUnstructuredListHasKinds will check that there is an object in the list for each Kind in `kinds`.
+// kinds may have duplicates and the length of kinds must exactly match the length of objects.
+// If multiple objects have the same kind it should be in the `kinds` list multiple times.
+func assertUnstructuredListHasExactKinds(objects []*unstructured.Unstructured, kinds ...string) {
+	Expect(len(objects)).To(Equal(len(kinds)))
+	actualKinds := []string{}
+	for _, obj := range objects {
+		actualKinds = append(actualKinds, obj.Object["kind"].(string))
+	}
+	Expect(actualKinds).To(ConsistOf(kinds))
+}

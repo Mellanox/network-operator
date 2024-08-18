@@ -42,6 +42,7 @@ type docaTelemetryServiceState struct {
 type dtsRuntimeSpec struct {
 	runtimeSpec
 	ContainerResources ContainerResourcesMap
+	IsOpenshift        bool
 }
 
 const (
@@ -113,7 +114,7 @@ func (d docaTelemetryServiceState) Sync(
 // GetManifestObjects returns the Unstructured objects to deploy for DOCA Telemetry Service.
 func (d docaTelemetryServiceState) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
-	_ InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
 	if cr == nil || cr.Spec.DOCATelemetryService == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
@@ -123,6 +124,10 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 	if dts.Config != nil {
 		configMapName = dts.Config.FromConfigMap
 	}
+	clusterInfo := catalog.GetClusterTypeProvider()
+	if clusterInfo == nil {
+		return nil, errors.New("clusterInfo provider required")
+	}
 	renderData := &DOCATelemetryServiceManifestRenderData{
 		CrSpec:          dts,
 		ConfigMapName:   configMapName,
@@ -130,8 +135,11 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 		Tolerations:     cr.Spec.Tolerations,
 		NodeAffinity:    cr.Spec.NodeAffinity,
 		RuntimeSpec: &dtsRuntimeSpec{
-			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			runtimeSpec: runtimeSpec{
+				Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
+			},
 			ContainerResources: createContainerResourcesMap(cr.Spec.DOCATelemetryService.ContainerResources),
+			IsOpenshift:        clusterInfo.IsOpenshift(),
 		},
 	}
 

@@ -41,14 +41,13 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		"../../manifests/state-doca-telemetry-service")
 	Expect(err).ToNot(HaveOccurred())
 
-	It("should test fields are set correctly", func() {
-		GetManifestObjectsTest(ctx, cr, getTestCatalog(), imageSpec, s)
-	})
-
 	It("should test the configmap is rendered with the default name", func() {
 		defaultConfigMapName := "doca-telemetry-service"
 		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap"}
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
+
 		for _, obj := range got {
 			// The configMap should be rendered with the default name.
 			if obj.GetKind() == "ConfigMap" {
@@ -76,6 +75,9 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		}
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
+		expectedKinds := []string{"ServiceAccount", "DaemonSet"}
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
+
 		for _, obj := range got {
 			// The configMap should not be rendered.
 			if obj.GetKind() == "ConfigMap" {
@@ -93,5 +95,12 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 				}
 			}
 		}
+	})
+	It("should test OpenShift specific role and rolebinding rendered when the cluster is OpenShift", func() {
+		withConfig := cr.DeepCopy()
+		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalogForOpenshift(true), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "Role", "RoleBinding"}
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 	})
 })

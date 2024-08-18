@@ -17,6 +17,7 @@ spec:
     spec:
       # Required by the sysfs collector only.
       hostNetwork: true
+      serviceAccount: doca-telemetry-service
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
