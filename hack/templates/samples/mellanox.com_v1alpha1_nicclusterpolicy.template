@@ -57,35 +57,11 @@ spec:
           }
         ]
       }
-  sriovDevicePlugin:
-    image: {{ .SriovDevicePlugin.Image }}
-    repository: {{ .SriovDevicePlugin.Repository }}
-    version: {{ .SriovDevicePlugin.Version }}
-    config: |
-      {
-        "resourceList": [
-          {
-            "resourcePrefix": "nvidia.com",
-            "resourceName": "hostdev",
-            "selectors": {
-              "vendors": ["15b3"],
-              "isRdma": true
-            }
-          }
-        ]
-      }
   nvIpam:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
     version: {{ .NvIPAM.Version }}
     enableWebhook: false
-  ibKubernetes:
-    image: {{ .IbKubernetes.Image }}
-    repository: {{ .IbKubernetes.Repository }}
-    version: {{ .IbKubernetes.Version }}
-    pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
-    pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
-    ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: {{ .NicFeatureDiscovery.Image }}
     repository: {{ .NicFeatureDiscovery.Repository }}
