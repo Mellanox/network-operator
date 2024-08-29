@@ -1,17 +1,13 @@
-name: documentation CI - call downstream workflow
+name: Documentation CI - call downstream workflow
 
 on:
   push:
     tags:
     - "v*"
 
-env:
-  DOWNSTREAM_WORKFLOW_REPO: Mellanox/network-operator-docs
-  DOWNSTREAM_WORKFLOW_PATH: .github/workflows/docs-ci.yaml
-  DOWNSTREAM_WORKFLOW_BRANCH: main
-
 jobs:
   trigger_downstream_workflow:
-    uses: ${{ env.DOWNSTREAM_WORKFLOW_REPO }}/${{ env.DOWNSTREAM_WORKFLOW_PATH }}@${{ env.DOWNSTREAM_WORKFLOW_BRANCH }}
+    uses: Mellanox/network-operator-docs/.github/workflows/docs-ci.yaml@main
     with:
       git_tag: ${{ github.ref_name }}
+    secrets: inherit
