@@ -250,7 +250,7 @@ ofedDriver:
   # -- NVIDIA DOCA Driver image repository.
   repository: nvcr.io/nvstaging/mellanox
   # -- NVIDIA DOCA Driver version.
-  version: 24.07-0.6.1.0-0
+  version: 24.10-0.3.2.0-0
   initContainer:
     # -- Deploy init container.
     enable: true
