@@ -18,7 +18,7 @@ metadata:
 spec:
   ofedDriver:
     image: doca-driver
-    repository: nvcr.io/nvstaging/mellanox
+    repository: nvcr.io/nvidia/mellanox
     version: 24.07-0.6.1.0-0
     upgradePolicy:
       autoUpgrade: true
