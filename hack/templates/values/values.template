@@ -201,7 +201,7 @@ operator:
                 operator: In
                 values: [ "" ]
   # -- Network Operator image repository.
-  repository: nvcr.io/nvstaging/mellanox
+  repository: {{ .NetworkOperator.Repository }}
   # -- Network Operator image name
   image: network-operator
   # imagePullSecrets: []
