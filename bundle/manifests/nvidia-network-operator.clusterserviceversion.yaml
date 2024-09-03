@@ -112,8 +112,11 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-08-21T11:11:45Z"
+    createdAt: "2024-09-04T06:40:51Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "true"
+    features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "true"
@@ -127,6 +130,9 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
   name: nvidia-network-operator.v24.7.0-rc.1
   namespace: placeholder
 spec:
@@ -754,9 +760,11 @@ spec:
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
+    - name: nvidia-network-operator
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:0503d0384a494869d3e1e86e2d4b18d729fff64fa97a885952b98d4421f0b5ae
     - name: nvidia-network-operator-init-container
       image: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
-    - name: rdma-Shared-device-plugin
+    - name: rdma-shared-device-plugin
       image: ghcr.io/mellanox/k8s-rdma-shared-dev-plugin@sha256:8324c009c3d694fe7702af36305ede78b903d839190b1e4506e82362f9aa5c02
     - name: sriov-network-device-plugin
       image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:93e856dde88abb0aeb8e0b991e5f6d9f41884d8beea792f4d70cda06f18e783f
@@ -768,7 +776,7 @@ spec:
       image: ghcr.io/mellanox/nvidia-k8s-ipam@sha256:47e1bb84ac97f9af49f97b49c2de44b4ba82b890b487880edc5c9adf86a176f7
     - name: nic-feature-discovery
       image: ghcr.io/mellanox/nic-feature-discovery@sha256:92dda9434519de39be0f94c80787766e3399e8b238d14839360aff4d6232a09b
-    - name: docs-telemetry-service
+    - name: doca-telemetry-service
       image: nvcr.io/nvidia/doca/doca_telemetry@sha256:866971717cb2683f2742d265c9793f93242f55b6e8bd9a0a88a558869f9b9cd7
     - name: doca-driver-0
       image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:7335e91995e4da8986cd04c87f1ad746a84597d2b06186ca1bdfa522eb2f71f2
