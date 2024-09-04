@@ -5,6 +5,9 @@ metadata:
     alm-examples: ""
     capabilities: Basic Install
     description: Deploy and manage NVIDIA networking resources in Kubernetes
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "true"
+    features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "true"
@@ -16,6 +19,9 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
   name: nvidia-network-operator.v0.0.0
   namespace: placeholder
 spec:
