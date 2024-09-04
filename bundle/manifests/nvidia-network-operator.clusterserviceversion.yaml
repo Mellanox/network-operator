@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:d1d3cc42b23b5d70a46e4b9089f3efc1097f92d2a3fd2eb6b03eb8ca3e9a5065
+    containerImage: nvcr.io/nvidia/cloud-native/network-operator@sha256:b8a07696d05fb8e5292991ba731758579313d6983ed3d75dd95e7356024d987c
     alm-examples: |-
       [
         {
@@ -76,7 +76,7 @@ metadata:
                 "initialDelaySeconds": 10,
                 "periodSeconds": 30
               },
-              "repository": "nvcr.io/nvstaging/mellanox",
+              "repository": "nvcr.io/nvidia/mellanox",
               "startupProbe": {
                 "initialDelaySeconds": 10,
                 "periodSeconds": 20
@@ -112,8 +112,11 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-08-21T11:11:45Z"
+    createdAt: "2024-09-04T06:38:33Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "true"
+    features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "true"
@@ -127,7 +130,10 @@ metadata:
     provider: NVIDIA
     repository: https://github.com/Mellanox/network-operator/
     support: NVIDIA
-  name: nvidia-network-operator.v24.7.0-rc.1
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+  name: nvidia-network-operator.v24.7.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -604,7 +610,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container:v0.0.2
-                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:d1d3cc42b23b5d70a46e4b9089f3efc1097f92d2a3fd2eb6b03eb8ca3e9a5065
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:b8a07696d05fb8e5292991ba731758579313d6983ed3d75dd95e7356024d987c
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -711,7 +717,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 24.7.0-rc.1
+  version: 24.7.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -754,9 +760,11 @@ spec:
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
+    - name: nvidia-network-operator
+      image: nvcr.io/nvidia/cloud-native/network-operator@sha256:b8a07696d05fb8e5292991ba731758579313d6983ed3d75dd95e7356024d987c
     - name: nvidia-network-operator-init-container
       image: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
-    - name: rdma-Shared-device-plugin
+    - name: rdma-shared-device-plugin
       image: ghcr.io/mellanox/k8s-rdma-shared-dev-plugin@sha256:8324c009c3d694fe7702af36305ede78b903d839190b1e4506e82362f9aa5c02
     - name: sriov-network-device-plugin
       image: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin@sha256:93e856dde88abb0aeb8e0b991e5f6d9f41884d8beea792f4d70cda06f18e783f
@@ -768,19 +776,23 @@ spec:
       image: ghcr.io/mellanox/nvidia-k8s-ipam@sha256:47e1bb84ac97f9af49f97b49c2de44b4ba82b890b487880edc5c9adf86a176f7
     - name: nic-feature-discovery
       image: ghcr.io/mellanox/nic-feature-discovery@sha256:92dda9434519de39be0f94c80787766e3399e8b238d14839360aff4d6232a09b
-    - name: docs-telemetry-service
+    - name: doca-telemetry-service
       image: nvcr.io/nvidia/doca/doca_telemetry@sha256:866971717cb2683f2742d265c9793f93242f55b6e8bd9a0a88a558869f9b9cd7
     - name: doca-driver-0
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:7335e91995e4da8986cd04c87f1ad746a84597d2b06186ca1bdfa522eb2f71f2
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:7f87324adb351513d87fa27dfd0c9d9371ae42529d76cce8ecd68ce41c4d263f
     - name: doca-driver-1
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:b3f503b1ac39ebc55840a436973f142eb7cf67e48a070284129fd1e30390c032
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:c41eaf76c06186e1dabb0d870225d946ad3ecda2a072fa4be197dd131b7695f2
     - name: doca-driver-2
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:676c74fcbe6d2c2341a092913b1afca65ba1a2f568ee6796b371542657e7a174
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:b3f503b1ac39ebc55840a436973f142eb7cf67e48a070284129fd1e30390c032
     - name: doca-driver-3
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:7facd05f60e2be29925ffce9d0a6b2c712c0670c8889b815425582c46c82efdc
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:676c74fcbe6d2c2341a092913b1afca65ba1a2f568ee6796b371542657e7a174
     - name: doca-driver-4
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:10684c0c36364b1d897a03a346abb2f691a18541ae1242b596d002f34f0d7390
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:7facd05f60e2be29925ffce9d0a6b2c712c0670c8889b815425582c46c82efdc
     - name: doca-driver-5
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:403be1bcf708984f90b3ccfdf24f58594554336d69f878d3843535f4fa61ceca
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:10684c0c36364b1d897a03a346abb2f691a18541ae1242b596d002f34f0d7390
     - name: doca-driver-6
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:22e6ff1e9245f0cdf67e7904235d1a6181ee2bd3f39cedf76b39d4aeaa4a6c1d
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:d5a163d36ce60630e14ae8620ab437510ff0821924e043b88f0d7b67cee3bd77
+    - name: doca-driver-7
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:403be1bcf708984f90b3ccfdf24f58594554336d69f878d3843535f4fa61ceca
+    - name: doca-driver-8
+      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:22e6ff1e9245f0cdf67e7904235d1a6181ee2bd3f39cedf76b39d4aeaa4a6c1d

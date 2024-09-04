@@ -1,7 +1,9 @@
   relatedImages:
+    - name: nvidia-network-operator
+      image: {{ (imageAsSha .NetworkOperator) }}
     - name: nvidia-network-operator-init-container
       image: {{ (imageAsSha .NetworkOperatorInitContainer) }}
-    - name: rdma-Shared-device-plugin
+    - name: rdma-shared-device-plugin
       image: {{ (imageAsSha .RdmaSharedDevicePlugin) }}
     - name: sriov-network-device-plugin
       image: {{ (imageAsSha .SriovDevicePlugin) }}
@@ -13,7 +15,7 @@
       image: {{ (imageAsSha .NvIPAM) }}
     - name: nic-feature-discovery
       image: {{ (imageAsSha .NicFeatureDiscovery) }}
-    - name: docs-telemetry-service
+    - name: doca-telemetry-service
       image: {{ (imageAsSha .DOCATelemetryService) }}
     {{- range .Mofed.Shas }}
     - name: {{ .Name }}
