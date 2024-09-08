@@ -38,6 +38,7 @@ node-feature-discovery:
     NodeFeatureAPI: true
 
   # -- NFD master deployment configuration.
+  # @notationType -- yaml
   master:
     serviceAccount:
       name: node-feature-discovery
@@ -58,6 +59,7 @@ node-feature-discovery:
       # spec above.
       create: false
   # -- NFD worker daemonset configuration.
+  # @notationType -- yaml
   worker:
     serviceAccount:
       # disable creation to avoid duplicate serviceaccount creation by master spec
@@ -89,6 +91,7 @@ sriov-network-operator:
     # -- Prefix to be used for resources names.
     resourcePrefix: "nvidia.com"
     # -- Enable admission controller.
+    # @notationType -- yaml
     admissionControllers:
       enabled: false
       certificates:
@@ -156,6 +159,7 @@ sriov-network-operator:
     # -- Deploy ``SriovOperatorConfig`` custom resource
     deploy: true
     # -- Selects the nodes to be configured
+    # @notationType -- yaml
     configDaemonNodeSelector:
       beta.kubernetes.io/os: "linux"
       network.nvidia.com/operator.mofed.wait: "false"
@@ -165,6 +169,7 @@ sriov-network-operator:
 operator:
   # -- Optional `resource requests and limits <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/>`_
   # for the operator.
+  # @notationType -- yaml
   resources:
     limits:
       cpu: 500m
@@ -173,6 +178,7 @@ operator:
       cpu: 5m
       memory: 64Mi
   # -- Set additional tolerations for various Daemonsets deployed by the operator.
+  # @notationType -- yaml
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Equal"
@@ -186,6 +192,7 @@ operator:
   nodeSelector: {}
   affinity:
     # -- Configure node affinity settings for the operator.
+    # @notationType -- yaml
     nodeAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
         - weight: 1
@@ -276,6 +283,7 @@ ofedDriver:
   # -- The grace period before the driver containeris forcibly removed.
   terminationGracePeriodSeconds: 300
   # -- Private mirror repository configuration.
+  # @notationType -- yaml
   repoConfig:
     name: ""
   # Custom ssl key/certificate configuration.
@@ -309,6 +317,7 @@ ofedDriver:
     # -- Options for node drain (`kubectl drain`) before the driver reload.
     # If auto upgrade is enabled but drain.enable is false, then driver POD will be
     # reloaded immediately without removing PODs from the node.
+    # @notationType -- yaml
     drain:
       # -- Options for node drain (``kubectl drain``) before driver reload, if
       # auto upgrade is enabled.
@@ -359,6 +368,7 @@ rdmaSharedDevicePlugin:
   # It must be provided by the user when deploying the chart.
   # Each entry in the resources element will create a resource with the provided
   # <name> and list of devices.
+  # @notationType -- yaml
   resources:
     - name: rdma_shared_device_a
       vendors: [15b3]
@@ -388,6 +398,7 @@ sriovDevicePlugin:
   #       memory: "100Mi"
   # Each entry in the resources elements will be an entry in a ``resourceList``
   # created as part of the ``kube-sriovdp`` container configuration.
+  # @notationType -- yaml
   resources:
     - name: hostdev
       vendors: [15b3]
