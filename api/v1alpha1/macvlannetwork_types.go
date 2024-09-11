@@ -64,7 +64,9 @@ type MacvlanNetwork struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MacvlanNetworkSpec   `json:"spec,omitempty"`
+	// Defines the desired state of MacvlanNetworkSpec
+	Spec MacvlanNetworkSpec `json:"spec,omitempty"`
+	// Defines the observed state of MacvlanNetwork
 	Status MacvlanNetworkStatus `json:"status,omitempty"`
 }
 

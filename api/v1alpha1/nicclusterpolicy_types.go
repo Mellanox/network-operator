@@ -72,6 +72,7 @@ func (is *ImageSpec) GetContainerResources() []ResourceRequirements {
 
 // ImageSpecWithConfig Contains ImageSpec and optional configuration
 type ImageSpecWithConfig struct {
+	// Image information for the component
 	ImageSpec `json:""`
 	// Configuration for the component as a string
 	Config *string `json:"config,omitempty"`
@@ -136,16 +137,18 @@ type DriverUpgradePolicySpec struct {
 	// +optional
 	// +kubebuilder:default:=1
 	// +kubebuilder:validation:Minimum:=0
-	MaxParallelUpgrades int                    `json:"maxParallelUpgrades,omitempty"`
-	WaitForCompletion   *WaitForCompletionSpec `json:"waitForCompletion,omitempty"`
-	DrainSpec           *DrainSpec             `json:"drain,omitempty"`
+	MaxParallelUpgrades int `json:"maxParallelUpgrades,omitempty"`
+	// The configuration for waiting on pods completions
+	WaitForCompletion *WaitForCompletionSpec `json:"waitForCompletion,omitempty"`
+	// The configuration for node drain during automatic upgrade
+	DrainSpec *DrainSpec `json:"drain,omitempty"`
 	// SafeLoad turn on safe driver loading (cordon and drain the node before loading the driver)
 	// +optional
 	// +kubebuilder:default:=false
 	SafeLoad bool `json:"safeLoad,omitempty"`
 }
 
-// WaitForCompletionSpec describes the configuration for waiting on job completions
+// WaitForCompletionSpec describes the configuration for waiting on pods completions
 type WaitForCompletionSpec struct {
 	// PodSelector specifies a label selector for the pods to wait for completion
 	// For more details on label selectors, see:
@@ -191,6 +194,7 @@ type DrainSpec struct {
 // 1. Image information for device plugin
 // 2. Device plugin configuration
 type DevicePluginSpec struct {
+	// Image information for the device plugin and optional configuration
 	ImageSpecWithConfig `json:""`
 	// Enables use of container device interface (CDI)
 	UseCdi bool `json:"useCdi,omitempty"`
@@ -201,6 +205,7 @@ type DevicePluginSpec struct {
 //  2. Multus CNI config if config is missing or empty then multus config will be automatically generated from the CNI
 //     configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
 type MultusSpec struct {
+	// Image information for Multus and optional configuration
 	ImageSpecWithConfig `json:""`
 }
 
@@ -255,11 +260,13 @@ type IBKubernetesSpec struct {
 type NVIPAMSpec struct {
 	// Enable deployment of the validation webhook
 	EnableWebhook bool `json:"enableWebhook,omitempty"`
-	ImageSpec     `json:""`
+	// Image information for nv-ipam
+	ImageSpec `json:""`
 }
 
 // NICFeatureDiscoverySpec describes configuration options for nic-feature-discovery
 type NICFeatureDiscoverySpec struct {
+	// Image information for nic-feature-discovery
 	ImageSpec `json:""`
 }
 
@@ -273,6 +280,7 @@ type DOCATelemetryServiceConfig struct {
 
 // DOCATelemetryServiceSpec is the configuration for DOCA Telemetry Service.
 type DOCATelemetryServiceSpec struct {
+	// Image information for DOCA Telemetry Service
 	ImageSpec `json:""`
 	// +optional
 	// Config contains custom config for the DOCATelemetryService.
@@ -288,20 +296,30 @@ type NicClusterPolicySpec struct {
 	// Additional nodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// Additional tolerations to inject to the DaemonSets objects that are managed by the operator
-	Tolerations            []v1.Toleration           `json:"tolerations,omitempty"`
-	OFEDDriver             *OFEDDriverSpec           `json:"ofedDriver,omitempty"`
-	RdmaSharedDevicePlugin *DevicePluginSpec         `json:"rdmaSharedDevicePlugin,omitempty"`
-	SriovDevicePlugin      *DevicePluginSpec         `json:"sriovDevicePlugin,omitempty"`
-	IBKubernetes           *IBKubernetesSpec         `json:"ibKubernetes,omitempty"`
-	SecondaryNetwork       *SecondaryNetworkSpec     `json:"secondaryNetwork,omitempty"`
-	NvIpam                 *NVIPAMSpec               `json:"nvIpam,omitempty"`
-	NicFeatureDiscovery    *NICFeatureDiscoverySpec  `json:"nicFeatureDiscovery,omitempty"`
-	DOCATelemetryService   *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// Configuration options for OFED driver
+	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`
+	// Configuration options for RDMA shared device plugin
+	RdmaSharedDevicePlugin *DevicePluginSpec `json:"rdmaSharedDevicePlugin,omitempty"`
+	// Configuration options for SRIOV device plugin
+	SriovDevicePlugin *DevicePluginSpec `json:"sriovDevicePlugin,omitempty"`
+	// Configuration options for ib-kubernetes
+	IBKubernetes *IBKubernetesSpec `json:"ibKubernetes,omitempty"`
+	// Configuration options for secondary network
+	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
+	// Configuration options nv-ipam
+	NvIpam *NVIPAMSpec `json:"nvIpam,omitempty"`
+	// Configuration options nic-feature-discovery
+	NicFeatureDiscovery *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
+	// Configuration options DOCA Telemetry Service
+	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy
 type AppliedState struct {
+	// Name of the deployed component this state refers to
 	Name string `json:"name"`
+	// The state of the deployed component. ("ready", "notReady", "ignore", "error")
 	// +kubebuilder:validation:Enum={"ready", "notReady", "ignore", "error"}
 	State State `json:"state"`
 	// Message is a human readable message indicating details about why
@@ -335,7 +353,9 @@ type NicClusterPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NicClusterPolicySpec   `json:"spec,omitempty"`
+	// Defines the desired state of NicClusterPolicy
+	Spec NicClusterPolicySpec `json:"spec,omitempty"`
+	// Defines the observed state of NicClusterPolicy
 	Status NicClusterPolicyStatus `json:"status,omitempty"`
 }
 
