@@ -44,11 +44,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: NicClusterPolicySpec defines the desired state of NicClusterPolicy
+            description: Defines the desired state of NicClusterPolicy
             properties:
               docaTelemetryService:
-                description: DOCATelemetryServiceSpec is the configuration for DOCA
-                  Telemetry Service.
+                description: Configuration options for DOCA Telemetry Service
                 properties:
                   config:
                     description: |-
@@ -126,8 +125,7 @@ spec:
                 - version
                 type: object
               ibKubernetes:
-                description: IBKubernetesSpec describes configuration options for
-                  ib-kubernetes
+                description: Configuration options for ib-kubernetes
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -208,8 +206,7 @@ spec:
                 - version
                 type: object
               nicFeatureDiscovery:
-                description: NICFeatureDiscoverySpec describes configuration options
-                  for nic-feature-discovery
+                description: Configuration options for nic-feature-discovery
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -465,10 +462,7 @@ spec:
                     x-kubernetes-map-type: atomic
                 type: object
               nvIpam:
-                description: |-
-                  NVIPAMSpec describes configuration options for nv-ipam
-                  1. Image information for nv-ipam
-                  2. Configuration for nv-ipam
+                description: Configuration options for nv-ipam
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -538,8 +532,7 @@ spec:
                 - version
                 type: object
               ofedDriver:
-                description: OFEDDriverSpec describes configuration options for OFED
-                  driver
+                description: Configuration options for OFED driver
                 properties:
                   certConfig:
                     description: 'Optional: Custom TLS certificates configuration
@@ -794,8 +787,8 @@ spec:
                           if set to false all other options are ignored
                         type: boolean
                       drain:
-                        description: DrainSpec describes configuration for node drain
-                          during automatic upgrade
+                        description: The configuration for node drain during automatic
+                          upgrade
                         properties:
                           deleteEmptyDir:
                             default: false
@@ -839,8 +832,7 @@ spec:
                           and drain the node before loading the driver)
                         type: boolean
                       waitForCompletion:
-                        description: WaitForCompletionSpec describes the configuration
-                          for waiting on job completions
+                        description: The configuration for waiting on pods completions
                         properties:
                           podSelector:
                             description: |-
@@ -867,10 +859,7 @@ spec:
                 - version
                 type: object
               rdmaSharedDevicePlugin:
-                description: |-
-                  DevicePluginSpec describes configuration options for device plugin
-                  1. Image information for device plugin
-                  2. Device plugin configuration
+                description: Configuration options for RDMA shared device plugin
                 properties:
                   config:
                     description: Configuration for the component as a string
@@ -943,8 +932,7 @@ spec:
                 - version
                 type: object
               secondaryNetwork:
-                description: SecondaryNetworkSpec describes configuration options
-                  for secondary network
+                description: Configuration options for secondary network
                 properties:
                   cniPlugins:
                     description: Image information for CNI plugins
@@ -1219,10 +1207,7 @@ spec:
                     type: object
                 type: object
               sriovDevicePlugin:
-                description: |-
-                  DevicePluginSpec describes configuration options for device plugin
-                  1. Image information for device plugin
-                  2. Device plugin configuration
+                description: Configuration options for SRIOV device plugin
                 properties:
                   config:
                     description: Configuration for the component as a string
@@ -1336,7 +1321,7 @@ spec:
                 type: array
             type: object
           status:
-            description: NicClusterPolicyStatus defines the observed state of NicClusterPolicy
+            description: Defines the observed state of NicClusterPolicy
             properties:
               appliedStates:
                 description: AppliedStates provide a finer view of the observed state
@@ -1350,9 +1335,12 @@ spec:
                         the state is in this condition
                       type: string
                     name:
+                      description: Name of the deployed component this state refers
+                        to
                       type: string
                     state:
-                      description: State represents reconcile state of the system.
+                      description: The state of the deployed component. ("ready",
+                        "notReady", "ignore", "error")
                       enum:
                       - ready
                       - notReady
