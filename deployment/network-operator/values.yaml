@@ -341,7 +341,7 @@ rdmaSharedDevicePlugin:
   # -- RDMA shared device plugin image repository.
   repository: ghcr.io/mellanox
   # -- RDMA shared device plugin version.
-  version: v1.5.1
+  version: sha-4f3eb2224b8b5f97be3f17441ddee8d41753b7d5
   # -- Enable Container Device Interface (CDI) mode.
   # **NOTE**: NVIDIA Network Operator does not configure container runtime to
   # enable CDI.
