@@ -257,7 +257,7 @@ ofedDriver:
   # -- NVIDIA DOCA Driver image repository.
   repository: nvcr.io/nvstaging/mellanox
   # -- NVIDIA DOCA Driver version.
-  version: 24.07-0.6.1.0-0
+  version: 24.10-0.3.2.0-0
   initContainer:
     # -- Deploy init container.
     enable: true
@@ -350,7 +350,7 @@ rdmaSharedDevicePlugin:
   # -- RDMA shared device plugin image repository.
   repository: ghcr.io/mellanox
   # -- RDMA shared device plugin version.
-  version: v1.5.1
+  version: sha-4f3eb2224b8b5f97be3f17441ddee8d41753b7d5
   # -- Enable Container Device Interface (CDI) mode.
   # **NOTE**: NVIDIA Network Operator does not configure container runtime to
   # enable CDI.
