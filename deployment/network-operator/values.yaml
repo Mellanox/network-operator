@@ -487,7 +487,7 @@ secondaryNetwork:
     # -- Multus image repository.
     repository: ghcr.io/k8snetworkplumbingwg
     # -- Multus image version.
-    version: v3.9.3
+    version: v4.1.0
     # imagePullSecrets: []
     # config: ''
     # containerResources:
