@@ -216,6 +216,11 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClu
 func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var sriovNetworkDevicePluginConfigJSON map[string]interface{}
+
+	if dp.Config == nil {
+		return allErrs
+	}
+
 	sriovNetworkDevicePluginConfig := *dp.Config
 
 	// Validate if the SRIOV Network Device Plugin Config is a valid json
@@ -270,35 +275,55 @@ func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePlugin(fldPath *fie
 		resourceList, _ := resourceListInterface.([]interface{})
 		for _, resourceInterface := range resourceList {
 			resource := resourceInterface.(map[string]interface{})
-			resourceJSONString, _ := json.Marshal(resource)
-			resourceJSONLoader := gojsonschema.NewStringLoader(string(resourceJSONString))
-			var selectorResult *gojsonschema.Result
-			var selectorErr error
-			var ok bool
-			ok, allErrs = validateResourceNamePrefix(resource, allErrs, fldPath, dp)
-			if !ok {
-				return allErrs
-			}
-			deviceType := resource["deviceType"]
-			switch deviceType {
-			case "accelerator":
-				selectorResult, selectorErr = acceleratorJSONSchema.Validate(resourceJSONLoader)
-			case "auxNetDevice":
-				selectorResult, selectorErr = auxNetDeviceJSONSchema.Validate(resourceJSONLoader)
-			default:
-				selectorResult, selectorErr = netDeviceJSONSchema.Validate(resourceJSONLoader)
-			}
-			if selectorErr != nil {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
-					selectorErr.Error()))
-			} else if !selectorResult.Valid() {
-				for _, selectorResultErr := range selectorResult.Errors() {
-					allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
-						selectorResultErr.Description()))
-				}
+			if errs := dp.validateSriovNetworkDevicePluginResource(resource,
+				acceleratorJSONSchema,
+				netDeviceJSONSchema,
+				auxNetDeviceJSONSchema,
+				fldPath,
+			); errs != nil {
+				allErrs = append(allErrs, errs...)
 			}
 		}
 	}
+	return allErrs
+}
+
+// validateSriovNetworkDevicePluginResource validates a SRIOV Network Device Plugin resource
+func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePluginResource(resource map[string]interface{},
+	acceleratorJSONSchema *gojsonschema.Schema,
+	netDeviceJSONSchema *gojsonschema.Schema,
+	auxNetDeviceJSONSchema *gojsonschema.Schema,
+	fldPath *field.Path,
+) field.ErrorList {
+	var allErrs field.ErrorList
+	resourceJSONString, _ := json.Marshal(resource)
+	resourceJSONLoader := gojsonschema.NewStringLoader(string(resourceJSONString))
+	var selectorResult *gojsonschema.Result
+	var selectorErr error
+	var ok bool
+	ok, allErrs = validateResourceNamePrefix(resource, allErrs, fldPath, dp)
+	if !ok {
+		return allErrs
+	}
+	deviceType := resource["deviceType"]
+	switch deviceType {
+	case "accelerator":
+		selectorResult, selectorErr = acceleratorJSONSchema.Validate(resourceJSONLoader)
+	case "auxNetDevice":
+		selectorResult, selectorErr = auxNetDeviceJSONSchema.Validate(resourceJSONLoader)
+	default:
+		selectorResult, selectorErr = netDeviceJSONSchema.Validate(resourceJSONLoader)
+	}
+	if selectorErr != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+			selectorErr.Error()))
+	} else if !selectorResult.Valid() {
+		for _, selectorResultErr := range selectorResult.Errors() {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+				selectorResultErr.Description()))
+		}
+	}
+
 	return allErrs
 }
 
@@ -327,6 +352,11 @@ func validateResourceNamePrefix(resource map[string]interface{},
 func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var rdmaSharedDevicePluginConfigJSON map[string]interface{}
+
+	if dp.Config == nil {
+		return allErrs
+	}
+
 	rdmaSharedDevicePluginConfig := *dp.Config
 
 	// Validate if the RDMA Shared Device Plugin Config is a valid json

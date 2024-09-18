@@ -215,15 +215,8 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err).To(BeNil())
 		})
-		It("Valid RDMA config JSON", func() {
-			rdmaConfig := `{
-				"configList": [{
-					"resourceName": "rdma_shared_device_a",
-					"rdmaHcaMax": 63,
-					"selectors": {
-						"vendors": ["15b3"],
-						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(rdmaConfig)
+		It("RDMA no config", func() {
+			nicClusterPolicy := rdmaDPNicClusterPolicy(nil)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
@@ -236,7 +229,20 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(rdmaConfig)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&rdmaConfig)
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid RDMA config JSON", func() {
+			rdmaConfig := `{
+				"configList": [{
+					"resourceName": "rdma_shared_device_a",
+					"rdmaHcaMax": 63,
+					"selectors": {
+						"vendors": ["15b3"],
+						"deviceIDs": ["101b"]}}]}`
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&rdmaConfig)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
@@ -249,7 +255,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -263,7 +269,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
@@ -276,7 +282,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("configList is required"))
@@ -287,7 +293,7 @@ var _ = Describe("Validate", func() {
 					"resourceName": "rdma_shared_device_a",
 					"rdmaHcaMax": 63,
 					"selectors": {}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("vendors is required"))
@@ -300,7 +306,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": [15],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -314,7 +320,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": [1010]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -329,11 +335,17 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"deviceIDs": ["101b"]}}]}`
-			nicClusterPolicy := rdmaDPNicClusterPolicy(invalidRdmaConfigJSON)
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
 				"Invalid Resource prefix, it must be a valid FQDN"))
+		})
+		It("SriovDevicePlugin no config", func() {
+			nicClusterPolicy := sriovDPNicClusterPolicy(nil)
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Valid SriovDevicePlugin config JSON", func() {
 			sriovConfig := `{
@@ -342,7 +354,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(sriovConfig)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&sriovConfig)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
@@ -354,7 +366,7 @@ var _ = Describe("Validate", func() {
 					"selectors": [{
 						"vendors": ["15b3"],
 						"devices": ["101b"]}]}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(sriovConfig)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&sriovConfig)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
@@ -366,7 +378,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -379,7 +391,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
@@ -391,7 +403,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("resourceList is required"))
@@ -401,7 +413,7 @@ var _ = Describe("Validate", func() {
 				"resourceList": [{
 					"resourceName": "sriov_network_device_plugin",
 					"selectors": {}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("vendors is required"))
@@ -413,7 +425,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": [15],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -426,7 +438,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": [1020]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -440,7 +452,7 @@ var _ = Describe("Validate", func() {
 					"selectors": {
 						"vendors": ["15b3"],
 						"devices": ["101b"]}}]}`
-			nicClusterPolicy := sriovDPNicClusterPolicy(invalidSriovConfigJSON)
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
@@ -906,13 +918,13 @@ var _ = Describe("Validate", func() {
 	})
 })
 
-func rdmaDPNicClusterPolicy(config string) v1alpha1.NicClusterPolicy {
+func rdmaDPNicClusterPolicy(config *string) v1alpha1.NicClusterPolicy {
 	return v1alpha1.NicClusterPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: v1alpha1.NicClusterPolicySpec{
 			RdmaSharedDevicePlugin: &v1alpha1.DevicePluginSpec{
 				ImageSpecWithConfig: v1alpha1.ImageSpecWithConfig{
-					Config: &config,
+					Config: config,
 					ImageSpec: v1alpha1.ImageSpec{
 						Image:            "k8s-rdma-shared-dev-plugin",
 						Repository:       "ghcr.io/mellanox",
@@ -925,13 +937,13 @@ func rdmaDPNicClusterPolicy(config string) v1alpha1.NicClusterPolicy {
 	}
 }
 
-func sriovDPNicClusterPolicy(config string) v1alpha1.NicClusterPolicy {
+func sriovDPNicClusterPolicy(config *string) v1alpha1.NicClusterPolicy {
 	return v1alpha1.NicClusterPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: v1alpha1.NicClusterPolicySpec{
 			SriovDevicePlugin: &v1alpha1.DevicePluginSpec{
 				ImageSpecWithConfig: v1alpha1.ImageSpecWithConfig{
-					Config: &config,
+					Config: config,
 					ImageSpec: v1alpha1.ImageSpec{
 						Image:            "sriov-network-device-plugin",
 						Repository:       "nvcr.io/nvstaging/mellanox",
