@@ -126,7 +126,7 @@ jobs:
         VERSION: ${{ env.VERSION_WITHOUT_PREFIX }}
         NGC_CLI_API_KEY: ${{ secrets.NVCR_TOKEN }}
       run: |
-        version_major_minor=$(echo $VERSION_WITH_PREFIX | sed -E 's/\.[0-9]+$$//')
+        version_major_minor=$(echo $VERSION_WITH_PREFIX | grep -Eo 'v[0-9]+\.[0-9]+')
         export CHANNELS=stable,$version_major_minor
         export DEFAULT_CHANNEL=$version_major_minor
         make bundle bundle-build bundle-push
@@ -140,7 +140,7 @@ jobs:
         git checkout -b $FEATURE_BRANCH
         git status
         git add bundle
-        git commit -m "task: update bundle to $VERSION_WITH_PREFIX"
+        git commit -sm "task: update bundle to $VERSION_WITH_PREFIX"
 
         git push -u origin $FEATURE_BRANCH
         gh pr create \
@@ -175,7 +175,7 @@ jobs:
         mkdir -p $NEW_BUNDLE_DIR
         cp -r ../bundle/* $NEW_BUNDLE_DIR
         git add $NEW_BUNDLE_DIR
-        git commit -m "operator nvidia-network-operator ($VERSION_WITHOUT_PREFIX)"
+        git commit -sm "operator nvidia-network-operator ($VERSION_WITHOUT_PREFIX)"
 
         git push -u origin $FEATURE_BRANCH
         gh pr create \
