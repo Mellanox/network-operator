@@ -44,7 +44,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: HostDeviceNetworkSpec defines the desired state of HostDeviceNetwork
+            description: Defines the desired state of HostDeviceNetwork
             properties:
               ipam:
                 description: IPAM configuration to be used for this network
@@ -57,7 +57,7 @@ spec:
                 type: string
             type: object
           status:
-            description: HostDeviceNetworkStatus defines the observed state of HostDeviceNetwork
+            description: Defines the observed state of HostDeviceNetwork
             properties:
               appliedStates:
                 description: AppliedStates provide a finer view of the observed state
@@ -71,9 +71,12 @@ spec:
                         the state is in this condition
                       type: string
                     name:
+                      description: Name of the deployed component this state refers
+                        to
                       type: string
                     state:
-                      description: State represents reconcile state of the system.
+                      description: The state of the deployed component. ("ready",
+                        "notReady", "ignore", "error")
                       enum:
                       - ready
                       - notReady

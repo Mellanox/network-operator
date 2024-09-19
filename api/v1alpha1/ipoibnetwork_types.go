@@ -58,7 +58,9 @@ type IPoIBNetwork struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IPoIBNetworkSpec   `json:"spec,omitempty"`
+	// Defines the desired state of IPoIBNetwork
+	Spec IPoIBNetworkSpec `json:"spec,omitempty"`
+	// Defines the observed state of IPoIBNetwork
 	Status IPoIBNetworkStatus `json:"status,omitempty"`
 }
 

@@ -60,7 +60,9 @@ type HostDeviceNetwork struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   HostDeviceNetworkSpec   `json:"spec,omitempty"`
+	// Defines the desired state of HostDeviceNetwork
+	Spec HostDeviceNetworkSpec `json:"spec,omitempty"`
+	// Defines the observed state of HostDeviceNetwork
 	Status HostDeviceNetworkStatus `json:"status,omitempty"`
 }
 
