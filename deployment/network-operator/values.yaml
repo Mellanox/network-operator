@@ -411,7 +411,7 @@ ibKubernetes:
   # -- IB Kubernetes image repository.
   repository: ghcr.io/mellanox
   # -- IB Kubernetes version.
-  version: v1.0.2
+  version: v1.1.0
   # imagePullSecrets: []
   # containerResources:
   #   - name: "ib-kubernetes"
