@@ -26,6 +26,7 @@ data:
   Nvidia_mlx5_ConnectX-6_Dx: "15b3 101d 101e"
   Nvidia_mlx5_ConnectX-6_Lx: "15b3 101f 101e"
   Nvidia_mlx5_ConnectX-7: "15b3 1021 101e"
+  Nvidia_mlx5_ConnectX-8: "15b3 1023 101e"
   Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx: "15b3 a2d6 101e"
   Nvidia_mlx5_MT43244_BlueField-3_integrated_ConnectX-7_Dx: "15b3 a2dc 101e"
   Broadcom_bnxt_BCM57414_2x25G: "14e4 16d7 16dc"
