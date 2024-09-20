@@ -44,7 +44,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: MacvlanNetworkSpec defines the desired state of MacvlanNetwork
+            description: Defines the desired state of MacvlanNetworkSpec
             properties:
               ipam:
                 description: IPAM configuration to be used for this network.
@@ -72,7 +72,7 @@ spec:
                 type: string
             type: object
           status:
-            description: MacvlanNetworkStatus defines the observed state of MacvlanNetwork
+            description: Defines the observed state of MacvlanNetwork
             properties:
               macvlanNetworkAttachmentDef:
                 description: Network attachment definition generated from MacvlanNetworkSpec
