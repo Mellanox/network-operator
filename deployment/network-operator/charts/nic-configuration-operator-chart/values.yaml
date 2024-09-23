@@ -1,0 +1,52 @@
+operator:
+  image:
+    repository: ghcr.io/mellanox
+    name: nic-configuration-operator
+    tag: latest
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: Exists
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: Exists
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  replicas: 1
+  serviceAccount:
+    annotations: {}
+
+configDaemon:
+  image:
+    repository: ghcr.io/mellanox
+    name: nic-configuration-operator-daemon
+    tag: latest
+  nodeSelector: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+imagePullSecrets: []

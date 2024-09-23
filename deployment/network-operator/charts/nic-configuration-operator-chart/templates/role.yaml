@@ -1,0 +1,99 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "nic-configuration-operator.fullname" . }}-role
+  labels:
+    {{- include "nic-configuration-operator.labels" . | nindent 4}}
+rules:
+- apiGroups:
+    - ""
+  resources:
+    - nodes
+  verbs:
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - pods
+  verbs:
+    - list
+- apiGroups:
+    - ""
+  resources:
+    - pods/eviction
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicconfigurationtemplates
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicconfigurationtemplates/finalizers
+  verbs:
+    - update
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicconfigurationtemplates/status
+  verbs:
+    - get
+    - patch
+    - update
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicdevices
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicdevices/finalizers
+  verbs:
+    - update
+- apiGroups:
+    - configuration.net.nvidia.com
+  resources:
+    - nicdevices/status
+  verbs:
+    - get
+    - patch
+    - update
+- apiGroups:
+    - maintenance.nvidia.com
+  resources:
+    - nodemaintenances
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch

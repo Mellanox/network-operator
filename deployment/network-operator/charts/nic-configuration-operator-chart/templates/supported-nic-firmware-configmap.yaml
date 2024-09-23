@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supported-nic-firmware
+data:
+  Nvidia_mlx5_ConnectX-4: "1013 24.07-0.6.1 12.28.2006"
+  Nvidia_mlx5_ConnectX-5: "1017 24.07-0.6.1 16.35.4030"
+  Nvidia_mlx5_ConnectX-5_Ex: "1019 24.07-0.6.1 16.35.4030"
+  Nvidia_mlx5_ConnectX-6: "101b 24.07-0.6.1 20.42.1000"
+  Nvidia_mlx5_ConnectX-6_Dx: "101d 24.07-0.6.1 22.42.1000"
+  Nvidia_mlx5_ConnectX-6_Lx: "101f 24.07-0.6.1 26.42.1000"
+  Nvidia_mlx5_ConnectX-7: "1021 24.07-0.6.1 28.42.1000"
+  Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx: "a2d6 24.07-0.6.1 24.42.1000"

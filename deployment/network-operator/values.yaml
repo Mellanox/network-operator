@@ -29,6 +29,10 @@ sriovNetworkOperator:
   # -- Deploy SR-IOV Network Operator.
   enabled: false
 
+nicConfigurationOperator:
+  # -- Deploy NIC Configuration Operator.
+  enabled: false
+
 # Set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable.
 node-feature-discovery:
   # -- The Node Feature API enable communication between nfd master and worker
@@ -163,6 +167,19 @@ sriov-network-operator:
     configDaemonNodeSelector:
       beta.kubernetes.io/os: "linux"
       network.nvidia.com/operator.mofed.wait: "false"
+
+# Nic Configuration Operator chart related values.
+nic-configuration-operator-chart:
+  operator:
+    image:
+      repository: ghcr.io/mellanox
+      name: nic-configuration-operator
+      tag: v0.1.1
+  configDaemon:
+    image:
+      repository: ghcr.io/mellanox
+      name: nic-configuration-operator-daemon
+      tag: v0.1.1
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location

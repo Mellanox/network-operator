@@ -20,3 +20,7 @@ dependencies:
   name: sriov-network-operator
   repository: ''
   version: 0.1.0
+- condition:  nicConfigurationOperator.enabled
+  name: nic-configuration-operator-chart
+  repository: ''
+  version: 0.0.1

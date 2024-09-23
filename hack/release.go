@@ -75,6 +75,8 @@ type Release struct {
 	DOCATelemetryService         *ReleaseImageSpec
 	OVSCni                       *ReleaseImageSpec
 	RDMACni                      *ReleaseImageSpec
+	NicConfigurationOperator     *ReleaseImageSpec
+	NicConfigurationConfigDaemon *ReleaseImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -123,6 +125,8 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("DOCA_TELEMETRY_SERVICE", release.DOCATelemetryService)
 	initWithEnvVariale("OVS_CNI", release.OVSCni)
 	initWithEnvVariale("RDMA_CNI", release.RDMACni)
+	initWithEnvVariale("NIC_CONFIGURATION_OPERATOR", release.NicConfigurationOperator)
+	initWithEnvVariale("NIC_CONFIGURATION_CONFIG_DAEMON", release.NicConfigurationConfigDaemon)
 }
 
 func main() {
