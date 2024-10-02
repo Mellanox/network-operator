@@ -78,3 +78,11 @@ rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
   version: v1.2.0
+nicConfigurationOperator:
+  image: nic-configuration-operator
+  repository: ghcr.io/mellanox
+  version: v0.1.1
+nicConfigurationConfigDaemon:
+  image: nic-configuration-operator-daemon
+  repository: ghcr.io/mellanox
+  version: v0.1.1

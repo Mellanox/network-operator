@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: nic-configuration-operator
+    app.kubernetes.io/part-of: nic-configuration-operator
+  name: {{ include "nic-configuration-operator.fullname" . }}-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "nic-configuration-operator.fullname" . }}-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "nic-configuration-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}

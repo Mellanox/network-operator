@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nic-configuration-operator-chart
+description: A Helm chart for NIC Configuration Operator
+type: application
+version: 0.0.1
+appVersion: "latest"
