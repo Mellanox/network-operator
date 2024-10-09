@@ -261,6 +261,14 @@ var _ = Describe("Validate", func() {
 			Expect(err.Error()).To(ContainSubstring(
 				"Invalid json of RdmaSharedDevicePluginConfig"))
 		})
+		It("Invalid RDMA config JSON schema, empty configList", func() {
+			invalidRdmaConfigJSON := `{
+						"configList": []}`
+			nicClusterPolicy := rdmaDPNicClusterPolicy(&invalidRdmaConfigJSON)
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("Array must have at least 1 items"))
+		})
 		It("Invalid RDMA config JSON schema, resourceName not valid", func() {
 			invalidRdmaConfigJSON := `{
 				"configList": [{
@@ -383,6 +391,14 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
 				"Invalid json of SriovNetworkDevicePluginConfig"))
+		})
+		It("Invalid SriovDevicePlugin config JSON schema, empty resourceList", func() {
+			invalidSriovConfigJSON := `{
+						"resourceList": []}`
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("Array must have at least 1 items"))
 		})
 		It("Invalid SriovDevicePlugin config JSON schema, resourceName not valid", func() {
 			invalidSriovConfigJSON := `{
