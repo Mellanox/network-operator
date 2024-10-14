@@ -218,6 +218,8 @@ func (dp *devicePluginSpecWrapper) validateSriovNetworkDevicePlugin(fldPath *fie
 	var sriovNetworkDevicePluginConfigJSON map[string]interface{}
 
 	if dp.Config == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+			"Invalid sriovDevicePlugin. Missing 'config' attribute"))
 		return allErrs
 	}
 
@@ -354,6 +356,8 @@ func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field
 	var rdmaSharedDevicePluginConfigJSON map[string]interface{}
 
 	if dp.Config == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("Config"), dp.Config,
+			"Invalid rdmaSharedDevicePlugin. Missing 'config' attribute"))
 		return allErrs
 	}
 
