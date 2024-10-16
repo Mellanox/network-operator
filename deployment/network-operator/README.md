@@ -1,7 +1,6 @@
 # Nvidia Network Operator Helm Chart
 
-Nvidia Network Operator Helm Chart provides an easy way to install, configure and manage the lifecycle of Nvidia
-Mellanox network operator.
+Nvidia Network Operator Helm Chart provides an easy way to install and manage the lifecycle of Nvidia network operator.
 
 ## Nvidia Network Operator
 
@@ -136,7 +135,7 @@ To install development version of Network Operator you need to clone repository 
 local directory:
 
 ```
-# Clone Network Operatro Repository
+# Clone Network Operator Repository
 $ git clone https://github.com/Mellanox/network-operator.git
 
 # Update chart dependencies
@@ -183,28 +182,6 @@ Replace `SVCNAME` with the SVC name follows this convention <Release_Name>-webho
 This command will generate a new RSA key pair with 2048 bits and create a self-signed certificate (`server.crt`) and
 private key (`server.key`) that are valid for 365 days.
 
-## Helm Tests
-
-Network Operator has Helm tests to verify deployment. To run tests it is required to set the following chart parameters
-on helm install/upgrade: `deployCR`, `rdmaSharedDevicePlugin`, `secondaryNetwork` as the test depends
-on `NicClusterPolicy` instance being deployed by Helm. Supported Tests:
-
-- Device Plugin Resource: This test creates a pod that requests the first resource in `rdmaSharedDevicePlugin.resources`
-- RDMA Traffic: This test creates a pod that test loopback RDMA traffic with `rping`
-
-Run the helm test with following command after deploying network operator with helm
-
-```
-$ helm test -n network-operator network-operator --timeout=5m
-```
-
-Notes:
-
-- Test will keeping running endlessly if pod creating failed so it is recommended to use `--timeout` which fails test
-  after exceeding given timeout
-- Default PF to run test is `ens2f0` to override it add `--set test.pf=<pf_name>` to `helm install/upgrade`
-- Tests should be executed after `NicClusterPolicy` custom resource state is `Ready`
-- In case of a test failed it is possible to collect the logs with `kubectl logs -n <namespace> <test-pod-name>`
 
 ## Upgrade
 
@@ -224,8 +201,7 @@ helm search repo nvidia/network-operator -l
 
 ### Upgrade CRDs to compatible version
 
-The network-operator helm chart contains a hook(pre-install, pre-upgrade)
-that will automatically upgrade required CRDs in the cluster.
+The network-operator helm chart contains a hook(pre-install, pre-upgrade) that will automatically upgrade required CRDs in the cluster.
 The hook is enabled by default. If you don't want to upgrade CRDs with helm automatically, 
 you can disable auto upgrade by setting `upgradeCRDs: false` in the helm chart values.
 Then you can follow the guide below to download and apply CRDs for the concrete version of the network-operator.
@@ -252,21 +228,7 @@ Download Helm values for the specific release
 helm show values nvidia/network-operator --version=<VERSION> > values-<VERSION>.yaml
 ```
 
-Edit `values-<VERSION>.yaml` file as required for your cluster. The network operator has some limitations about which
-updates in NicClusterPolicy it can handle automatically. If the configuration for the new release is different from the
-current configuration in the deployed release, then some additional manual actions may be required.
-
-Known limitations:
-
-- If component configuration was removed from the NicClusterPolicy, then manual clean up of the component's resources
-  (DaemonSets, ConfigMaps, etc.) may be required
-- If configuration for devicePlugin changed without image upgrade, then manual restart of the devicePlugin may be
-  required
-
-These limitations will be addressed in future releases.
-
-> __NOTE__: changes which were made directly in NicClusterPolicy CR (e.g. with `kubectl edit`)
-> will be overwritten by Helm upgrade due to the `force` flag.
+Edit `values-<VERSION>.yaml` file as required for your cluster.
 
 ### Apply Helm chart update
 
@@ -275,85 +237,6 @@ helm upgrade -n network-operator  network-operator nvidia/network-operator --ver
 ```
 
 > __NOTE__: `--devel` option required if you want to use the beta release
-
-### Enable automatic upgrade for containerized OFED driver (recommended)
-
-> __NOTE__: this operation is required only if **containerized OFED** is in use
-
-Check [Automatic OFED upgrade](../../docs/automatic-ofed-upgrade.md) document for more details.
-
-### OR manually restart PODs with containerized OFED driver
-
-> __NOTE__: this operation is required only if **containerized OFED** is in use
-
-When containerized OFED driver reloaded on the node, all PODs which use secondary network based on NVIDIA Mellanox NICs
-will lose network interface in their containers. To prevent outage you need to remove all PODs which use secondary
-network from the node before you reload the driver POD on it.
-
-Helm upgrade command will just upgrade DaemonSet spec of the OFED driver to point to the new driver version. The OFED
-driver's DaemonSet will not automatically restart PODs with the driver on the nodes because it uses "OnDelete"
-updateStrategy. The old OFED version will still run on the node until you explicitly remove the driver POD or reboot the
-node.
-
-It is possible to remove all PODs with secondary networks from all cluster nodes and then restart OFED PODs on all nodes
-at once.
-
-The alternative option is to do upgrade in a rolling manner to reduce the impact of the driver upgrade on the cluster.
-The driver POD restart can be done on each node individually. In this case, PODs with secondary networks should be
-removed from the single node only, no need to stop PODs on all nodes.
-
-Recommended sequence to reload the driver on the node:
-
-_For each node follow these steps_
-
-- [Remove PODs with secondary network from the node](#remove-pods-with-secondary-network-from-the-node)
-- [Restart OFED driver POD](#restart-ofed-driver-pod)
-- [Return PODs with secondary network to the node](#return-pods-with-secondary-network-to-the-node)
-
-_When the OFED driver becomes ready, proceed with the same steps for other nodes_
-
-#### Remove PODs with secondary network from the node
-
-This can be done with node drain command:
-
-```
-kubectl drain <NODE_NAME> --pod-selector=<SELECTOR_FOR_PODS>
-```
-
-> __NOTE__: replace <NODE_NAME> with `-l "network.nvidia.com/operator.mofed.wait=false"` if you
-> want to drain all nodes at once
-
-#### Restart OFED driver POD
-
-Find OFED driver POD name for the node
-
-```
-kubectl get pod -l app=mofed-<OS_NAME> -o wide -A
-```
-
-_example for Ubuntu 20.04: `kubectl get pod -l app=mofed-ubuntu20.04 -o wide -A`_
-
-Delete OFED driver POD from the node
-
-```
-kubectl delete pod -n <DRIVER_NAMESPACE> <OFED_POD_NAME>
-```
-
-> __NOTE__: replace <OFED_POD_NAME> with `-l app=mofed-ubuntu20.04` if you
-> want to remove OFED PODs on all nodes at once
-
-New version of the OFED POD will automatically start.
-
-#### Return PODs with secondary network to the node
-
-After OFED POD is ready on the node you can make node schedulable again.
-
-The command below will uncordon (remove `node.kubernetes.io/unschedulable:NoSchedule` taint)
-the node and return PODs to it.
-
-```
-kubectl uncordon -l "network.nvidia.com/operator.mofed.wait=false"
-```
 
 ## Chart parameters
 
