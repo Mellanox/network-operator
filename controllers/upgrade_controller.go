@@ -195,7 +195,7 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// we always add object with a same(static) key to the queue to reduce
 	// reconciliation count
-	qHandler := func(q workqueue.RateLimitingInterface) {
+	qHandler := func(q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 		q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
 			Namespace: "ofed-upgrade-reconcile-namespace",
 			Name:      "ofed-upgrade-reconcile-name",
@@ -203,22 +203,22 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	createUpdateDeleteEnqueue := handler.Funcs{
-		CreateFunc: func(_ context.Context, e event.CreateEvent, q workqueue.RateLimitingInterface) {
+		CreateFunc: func(_ context.Context, _ event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			qHandler(q)
 		},
-		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, _ event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			qHandler(q)
 		},
-		DeleteFunc: func(_ context.Context, e event.DeleteEvent, q workqueue.RateLimitingInterface) {
+		DeleteFunc: func(_ context.Context, _ event.DeleteEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			qHandler(q)
 		},
 	}
 
 	createUpdateEnqueue := handler.Funcs{
-		CreateFunc: func(_ context.Context, e event.CreateEvent, q workqueue.RateLimitingInterface) {
+		CreateFunc: func(_ context.Context, _ event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			qHandler(q)
 		},
-		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, _ event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			qHandler(q)
 		},
 	}

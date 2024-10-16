@@ -121,7 +121,7 @@ GO = go
 # golangci-lint is used to lint go code.
 GOLANGCI_LINT_PKG=github.com/golangci/golangci-lint/cmd/golangci-lint
 GOLANGCI_LINT_BIN= golangci-lint
-GOLANGCI_LINT_VER = v1.55.2
+GOLANGCI_LINT_VER = v1.61.0
 GOLANGCI_LINT = $(TOOLSDIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 $(GOLANGCI_LINT):
 	$(call go-install-tool,$(GOLANGCI_LINT_PKG),$(GOLANGCI_LINT_BIN),$(GOLANGCI_LINT_VER))
@@ -129,15 +129,15 @@ $(GOLANGCI_LINT):
 # controller gen is used to generate manifests and code for Kubernetes controllers.
 CONTROLLER_GEN_PKG = sigs.k8s.io/controller-tools/cmd/controller-gen
 CONTROLLER_GEN_BIN = controller-gen
-CONTROLLER_GEN_VER = v0.14.0
+CONTROLLER_GEN_VER = v0.16.4
 CONTROLLER_GEN = $(TOOLSDIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
 $(CONTROLLER_GEN):
 	$(call go-install-tool,$(CONTROLLER_GEN_PKG),$(CONTROLLER_GEN_BIN),$(CONTROLLER_GEN_VER))
 
 # kustomize is used to generate manifests for OpenShift bundles and developer deployments.
-KUSTOMIZE_PKG = sigs.k8s.io/kustomize/kustomize/v4
+KUSTOMIZE_PKG = sigs.k8s.io/kustomize/kustomize/v5
 KUSTOMIZE_BIN = kustomize
-KUSTOMIZE_VER = v4.5.5
+KUSTOMIZE_VER = v5.5.0
 KUSTOMIZE = $(TOOLSDIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER)
 $(KUSTOMIZE):
 	$(call go-install-tool,$(KUSTOMIZE_PKG),$(KUSTOMIZE_BIN),$(KUSTOMIZE_VER))

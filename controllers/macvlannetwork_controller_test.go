@@ -77,7 +77,7 @@ var _ = Describe("MacVlanNetwork Controller", func() {
 			verifyMacvlanStatus(testNetworkNamespace)
 
 			By("Update NetworkNamespace")
-			Eventually(func(g Gomega) error {
+			Eventually(func() error {
 				found = &mellanoxv1alpha1.MacvlanNetwork{}
 				err = k8sClient.Get(goctx.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
 				Expect(err).NotTo(HaveOccurred())
