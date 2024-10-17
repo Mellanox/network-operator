@@ -9,15 +9,14 @@ require (
 	github.com/containers/image/v5 v5.32.2
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-containerregistry v0.20.2
-	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20241001163006-808e3548ee86
-	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.4
+	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20231129213221-4fdaa32ee934
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.5
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/openshift/api v0.0.0-20241015143726-5afd6c371db4
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
@@ -113,6 +112,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.31.1 // indirect
 	k8s.io/cli-runtime v0.31.1 // indirect
 	k8s.io/component-base v0.31.1 // indirect
