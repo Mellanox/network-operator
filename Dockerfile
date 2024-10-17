@@ -22,8 +22,10 @@ WORKDIR /workspace
 # Add kubectl tool
 # Using the $ARCH in the name of the binary here ensures we don't get any cross-arch caching after this binary is downloaded.
 ARG ARCH
-RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH}
-RUN chmod +x ./kubectl-${ARCH}
+# kubectl latest version can be retrieved by curl -L -s https://dl.k8s.io/release/stable.txt
+ARG KUBECTL_VERSION=v1.31.1
+RUN curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH} && \
+    chmod +x ./kubectl-${ARCH}
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
