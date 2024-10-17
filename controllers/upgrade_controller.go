@@ -237,6 +237,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxv1alpha1.NicClusterPolicy{}).
+		Named("Upgrade").
 		// set MaxConcurrentReconciles to 1, by default it is already 1, but
 		// we set it explicitly here to indicate that we rely on this default behavior
 		// UpgradeReconciler contains logic which is not concurrent friendly
