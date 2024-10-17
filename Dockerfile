@@ -16,7 +16,7 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.23 as builder
+FROM golang:1.23@sha256:540d3442f4758da82e787d03930bf6468cf6f8613474135e8946259b9e531ea0 as builder
 
 WORKDIR /workspace
 # Add kubectl tool
@@ -49,7 +49,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go
 
-FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.8
+FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.10
 
 ARG ARCH
 
