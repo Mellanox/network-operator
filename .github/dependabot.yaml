@@ -1,5 +1,13 @@
 version: 2
 updates:
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore:"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
