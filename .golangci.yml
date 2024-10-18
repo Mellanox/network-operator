@@ -38,6 +38,9 @@ linters-settings:
       printf:
         funcs:
           - (github.com/rs/zerolog/zerolog.Event).Msgf
+  gosec:
+    excludes:
+      - G115
   lll:
     line-length: 120
   misspell:

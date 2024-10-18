@@ -16,14 +16,16 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.22 as builder
+FROM golang:1.23@sha256:540d3442f4758da82e787d03930bf6468cf6f8613474135e8946259b9e531ea0 AS builder
 
 WORKDIR /workspace
 # Add kubectl tool
 # Using the $ARCH in the name of the binary here ensures we don't get any cross-arch caching after this binary is downloaded.
 ARG ARCH
-RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH}
-RUN chmod +x ./kubectl-${ARCH}
+# kubectl latest version can be retrieved by curl -L -s https://dl.k8s.io/release/stable.txt
+ARG KUBECTL_VERSION=v1.31.1
+RUN curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH} && \
+    chmod +x ./kubectl-${ARCH}
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -49,7 +51,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go
 
-FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.8
+FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.10
 
 ARG ARCH
 

@@ -8,24 +8,14 @@ rules:
   - ""
   resources:
   - configmaps
-  - events
-  - persistentvolumeclaims
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - endpoints
+  - events
   - namespaces
+  - persistentvolumeclaims
   - pods
+  - pods/eviction
   - pods/status
+  - secrets
   - serviceaccounts
   - services
   - services/finalizers
@@ -42,24 +32,6 @@ rules:
   resources:
   - nodes
   verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - pods/eviction
-  verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -93,21 +65,6 @@ rules:
   - apps
   resources:
   - controllerrevisions
-  - daemonsets
-  - deployments
-  - replicasets
-  - statefulsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resources:
   - daemonsets
   - deployments
   - replicasets
@@ -205,83 +162,8 @@ rules:
   - mellanox.com
   resources:
   - hostdevicenetworks
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - mellanox.com
-  resources:
-  - hostdevicenetworks/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
-  - hostdevicenetworks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
   - ipoibnetworks
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - mellanox.com
-  resources:
-  - ipoibnetworks/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
-  - ipoibnetworks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
   - macvlannetworks
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - mellanox.com
-  resources:
-  - macvlannetworks/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
-  - macvlannetworks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - mellanox.com
-  resources:
   - nicclusterpolicies
   - nicclusterpolicies/status
   verbs:
@@ -295,8 +177,21 @@ rules:
 - apiGroups:
   - mellanox.com
   resources:
+  - hostdevicenetworks/finalizers
+  - ipoibnetworks/finalizers
+  - macvlannetworks/finalizers
   - nicclusterpolicies/finalizers
   verbs:
+  - update
+- apiGroups:
+  - mellanox.com
+  resources:
+  - hostdevicenetworks/status
+  - ipoibnetworks/status
+  - macvlannetworks/status
+  verbs:
+  - get
+  - patch
   - update
 - apiGroups:
   - monitoring.coreos.com
@@ -311,22 +206,6 @@ rules:
   - nv-ipam.nvidia.com
   resources:
   - cidrpools
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - nv-ipam.nvidia.com
-  resources:
-  - cidrpools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - nv-ipam.nvidia.com
-  resources:
   - ippools
   verbs:
   - create
@@ -336,6 +215,7 @@ rules:
 - apiGroups:
   - nv-ipam.nvidia.com
   resources:
+  - cidrpools/status
   - ippools/status
   verbs:
   - get
@@ -368,17 +248,6 @@ rules:
   - whereabouts.cni.cncf.io
   resources:
   - ippools
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - whereabouts.cni.cncf.io
-  resources:
   - overlappingrangeipreservations
   verbs:
   - create

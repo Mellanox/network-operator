@@ -366,7 +366,7 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 	// we always add object with a same(static) key to the queue to reduce
 	// reconciliation count
 	updateEnqueue := handler.Funcs{
-		UpdateFunc: func(_ context.Context, e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+		UpdateFunc: func(_ context.Context, _ event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
 				Name: consts.NicClusterPolicyResourceName,
 			}})
