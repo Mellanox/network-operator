@@ -40,6 +40,11 @@ spec:
             capabilities:
               drop:
                 - ALL
+          {{- if .Values.logLevel}}
+          env:
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel }}
+          {{- end}}
           livenessProbe:
             httpGet:
               path: /healthz

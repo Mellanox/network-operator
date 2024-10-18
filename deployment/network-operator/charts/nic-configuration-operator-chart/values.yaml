@@ -1,8 +1,11 @@
 operator:
   image:
+    # -- repository to use for the operator image
     repository: ghcr.io/mellanox
     name: nic-configuration-operator
+    # -- image tag to use for the operator image
     tag: latest
+  # -- tolerations for the operator
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Exists"
@@ -10,7 +13,9 @@ operator:
     - key: "node-role.kubernetes.io/control-plane"
       operator: "Exists"
       effect: "NoSchedule"
+  # -- node selector for the operator
   nodeSelector: {}
+  # -- node affinity for the operator
   affinity:
     nodeAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -24,6 +29,7 @@ operator:
             matchExpressions:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: Exists
+  # -- specify resource requests and limits for the operator
   resources:
     limits:
       cpu: 500m
@@ -31,16 +37,22 @@ operator:
     requests:
       cpu: 10m
       memory: 64Mi
+  # -- operator deployment number of replicas
   replicas: 1
   serviceAccount:
+    # -- set annotations for the operator service account
     annotations: {}
 
 configDaemon:
   image:
+    # -- repository to use for the config daemon image
     repository: ghcr.io/mellanox
     name: nic-configuration-operator-daemon
+    # -- image tag to use for the config daemon image
     tag: latest
+  # -- node selector for the config daemon
   nodeSelector: {}
+  # -- resources and limits for the config daemon
   resources:
     limits:
       cpu: 500m
@@ -49,4 +61,7 @@ configDaemon:
       cpu: 10m
       memory: 64Mi
 
+# -- log level configuration (debug|info)
+logLevel: info
+# -- image pull secrets for both the operator and the config daemon
 imagePullSecrets: []
