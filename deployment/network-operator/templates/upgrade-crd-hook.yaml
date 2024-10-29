@@ -81,15 +81,14 @@ spec:
           image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
           command:
-            - /bin/sh
-            - -c
-            - >
-              kubectl apply -f /crds/network-operator;
+            - /apply-crds
+          args:
+              - --crds-dir=/crds/network-operator
         {{- if .Values.sriovNetworkOperator.enabled }}
-              kubectl apply -f /crds/sriov-network-operator;
+              - --crds-dir=/crds/sriov-network-operator
         {{- end }}
         {{- if .Values.nfd.enabled }}
-              kubectl apply -f /crds/node-feature-discovery;
+              - --crds-dir=/crds/node-feature-discovery
         {{- end }}
       restartPolicy: OnFailure
 {{- end }}

@@ -16,16 +16,9 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.23@sha256:ad5c126b5cf501a8caef751a243bb717ec204ab1aa56dc41dc11be089fafcb4f AS builder
+FROM golang:1.23@sha256:ad5c126b5cf501a8caef751a243bb717ec204ab1aa56dc41dc11be089fafcb4f AS manager-builder
 
 WORKDIR /workspace
-# Add kubectl tool
-# Using the $ARCH in the name of the binary here ensures we don't get any cross-arch caching after this binary is downloaded.
-ARG ARCH
-# kubectl latest version can be retrieved by curl -L -s https://dl.k8s.io/release/stable.txt
-ARG KUBECTL_VERSION=v1.31.1
-RUN curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o kubectl-${ARCH} && \
-    chmod +x ./kubectl-${ARCH}
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -38,30 +31,54 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy the go source
 COPY ./ ./
 
-# copy CRDs from helm charts
-RUN mkdir crds && \
-    cp -r deployment/network-operator/crds /workspace/crds/network-operator/ && \
-    cp -r deployment/network-operator/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
-    cp -r deployment/network-operator/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
-
 # Build
+ARG ARCH
 ARG LDFLAGS
 ARG GCFLAGS
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go
 
+# Build the apply-crds binary
+FROM golang:1.23@sha256:ad5c126b5cf501a8caef751a243bb717ec204ab1aa56dc41dc11be089fafcb4f AS apply-crds-builder
+
+WORKDIR /workspace
+
+# Copy the Go Modules manifests
+COPY cmd/apply-crds/go.mod go.mod
+COPY cmd/apply-crds/go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download -x
+
+# Copy the go source
+COPY cmd/apply-crds/ ./
+COPY deployment/network-operator/ ./network-operator-chart/
+
+# copy CRDs from helm charts
+RUN mkdir crds && \
+    cp -r network-operator-chart/crds /workspace/crds/network-operator/ && \
+    cp -r network-operator-chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
+    cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
+
+# Build
+ARG ARCH
+ARG LDFLAGS
+ARG GCFLAGS
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds main.go
+
 FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.10
 
-ARG ARCH
-
 WORKDIR /
-COPY --from=builder /workspace/manager .
-COPY --from=builder /workspace/kubectl-${ARCH} /usr/local/bin/kubectl
-COPY --from=builder /workspace/crds /crds
+COPY --from=manager-builder /workspace/manager .
+COPY --from=apply-crds-builder /workspace/apply-crds .
+COPY --from=apply-crds-builder /workspace/crds /crds
 
 # Default Certificates are missing in micro-ubi. These are need to fetch DOCA drivers image tags
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+COPY --from=manager-builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 COPY /webhook-schemas /webhook-schemas
 COPY manifests/ manifests/
 USER 65532:65532
