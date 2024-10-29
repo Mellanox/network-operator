@@ -18,6 +18,10 @@ spec:
       # Required by the sysfs collector only.
       hostNetwork: true
       serviceAccount: doca-telemetry-service
+      nodeSelector:
+        # We need to run it after DOCA driver is started to be able successfully restart driver by a container.
+        feature.node.kubernetes.io/pci-15b3.present: "true"
+        network.nvidia.com/operator.mofed.wait: "false"
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
