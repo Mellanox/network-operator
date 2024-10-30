@@ -197,6 +197,7 @@ type DevicePluginSpec struct {
 	// Image information for the device plugin and optional configuration
 	ImageSpecWithConfig `json:""`
 	// Enables use of container device interface (CDI)
+	// NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
 	UseCdi bool `json:"useCdi,omitempty"`
 }
 
@@ -290,29 +291,47 @@ type DOCATelemetryServiceSpec struct {
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Additional nodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
+	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
+	// See https://network.nvidia.com/support/mlnx-ofed-matrix/
+	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`
+	// RdmaSharedDevicePlugin manages support IB and RoCE HCAs through the Kubernetes device plugin framework.
+	// The config field is a json representation of the RDMA shared device plugin configuration.
+	// See https://github.com/Mellanox/k8s-rdma-shared-dev-plugin
+	RdmaSharedDevicePlugin *DevicePluginSpec `json:"rdmaSharedDevicePlugin,omitempty"`
+	// SriovDevicePlugin manages SRIOV through the Kubernetes device plugin framework.
+	// The config field is a json representation of the RDMA shared device plugin configuration.
+	// See https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin
+	SriovDevicePlugin *DevicePluginSpec `json:"sriovDevicePlugin,omitempty"`
+	// IBKubernetes provides a daemon that works in conjunction with the SR-IOV Network Device Plugin.
+	// It acts on Kubernetes pod object changes and reads the pod's network annotation.
+	// From there it fetches the corresponding network CRD and reads the PKey.
+	// This is done in order to add the newly generated GUID or the predefined GUID in the GUID field of the CRD.
+	// This is then passed in cni-args to that PKey for pods with mellanox.infiniband.app annotation.
+	// See: https://github.com/Mellanox/ib-kubernetes
+	IBKubernetes *IBKubernetesSpec `json:"ibKubernetes,omitempty"`
+	// SecondaryNetwork Specifies components to deploy in order to facilitate a secondary network in Kubernetes.
+	// It consists of the following optionally deployed components:
+	// - Multus-CNI: Delegate CNI plugin to support secondary networks in Kubernetes
+	// - CNI plugins: Currently only containernetworking-plugins is supported
+	// - IPAM CNI: Currently only Whereabout IPAM CNI is supported as a part of the secondaryNetwork section.
+	// - IPoIB CNI: Allows the user to create IPoIB child link and move it to the pod
+	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
+	// NvIpam is an IPAM provider that dynamically assigns IP addresses with speed and performance in mind.
+	// Note: NvIPam requires certificate management e.g. cert-manager or OpenShift cert management.
+	// See https://github.com/Mellanox/nvidia-k8s-ipam
+	NvIpam *NVIPAMSpec `json:"nvIpam,omitempty"`
+	// NicFeatureDiscovery works with NodeFeatureDiscovery to expose information about NVIDIA NICs.
+	// https://github.com/Mellanox/nic-feature-discovery
+	NicFeatureDiscovery *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
+	// DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
+	// See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
+	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
+	// NodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
-	// Additional tolerations to inject to the DaemonSets objects that are managed by the operator
+	// Tolerations to inject to the DaemonSets objects that are managed by the operator
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// Configuration options for OFED driver
-	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`
-	// Configuration options for RDMA shared device plugin
-	RdmaSharedDevicePlugin *DevicePluginSpec `json:"rdmaSharedDevicePlugin,omitempty"`
-	// Configuration options for SRIOV device plugin
-	SriovDevicePlugin *DevicePluginSpec `json:"sriovDevicePlugin,omitempty"`
-	// Configuration options for ib-kubernetes
-	IBKubernetes *IBKubernetesSpec `json:"ibKubernetes,omitempty"`
-	// Configuration options for secondary network
-	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
-	// Configuration options for nv-ipam
-	NvIpam *NVIPAMSpec `json:"nvIpam,omitempty"`
-	// Configuration options for nic-feature-discovery
-	NicFeatureDiscovery *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
-	// Configuration options for DOCA Telemetry Service
-	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
+
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy
