@@ -27,6 +27,10 @@ operator:
   resourcePrefix: "openshift.io"
   cniBinPath: "/opt/cni/bin"
   clusterType: "kubernetes"
+  # minimal amount of time (in minutes) the operator will wait before removing
+  # stale SriovNetworkNodeState objects (objects that doesn't match node with the daemon)
+  # "0" means no extra delay, in this case the CR will be removed by the next reconcilation cycle (may take up to 5 minutes)
+  staleNodeStateCleanupDelayMinutes: "30"
   admissionControllers:
     enabled: false
     certificates:
