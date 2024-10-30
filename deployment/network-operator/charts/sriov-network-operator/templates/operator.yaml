@@ -92,6 +92,8 @@ spec:
               value: {{ .Values.operator.cniBinPath }}
             - name: CLUSTER_TYPE
               value: {{ .Values.operator.clusterType }}
+            - name: STALE_NODE_STATE_CLEANUP_DELAY_MINUTES
+              value: "{{ .Values.operator.staleNodeStateCleanupDelayMinutes }}"
         {{- if .Values.operator.admissionControllers.enabled }}
             - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_SECRET_NAME
               value: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
