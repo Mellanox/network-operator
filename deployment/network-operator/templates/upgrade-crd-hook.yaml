@@ -90,5 +90,8 @@ spec:
         {{- if .Values.nfd.enabled }}
               - --crds-dir=/crds/node-feature-discovery
         {{- end }}
+        {{- if .Values.nicConfigurationOperator.enabled }}
+              - --crds-dir=/crds/nic-configuration-operator
+        {{- end }}
       restartPolicy: OnFailure
 {{- end }}

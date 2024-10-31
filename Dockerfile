@@ -60,7 +60,8 @@ COPY deployment/network-operator/ ./network-operator-chart/
 RUN mkdir crds && \
     cp -r network-operator-chart/crds /workspace/crds/network-operator/ && \
     cp -r network-operator-chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
-    cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/
+    cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
+    cp -r network-operator-chart/charts/nic-configuration-operator-chart/crds /workspace/crds/nic-configuration-operator/
 
 # Build
 ARG ARCH
