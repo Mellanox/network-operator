@@ -47,7 +47,9 @@ spec:
             description: Defines the desired state of NicClusterPolicy
             properties:
               docaTelemetryService:
-                description: Configuration options for DOCA Telemetry Service
+                description: |-
+                  DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
+                  See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
                 properties:
                   config:
                     description: |-
@@ -125,7 +127,13 @@ spec:
                 - version
                 type: object
               ibKubernetes:
-                description: Configuration options for ib-kubernetes
+                description: |-
+                  IBKubernetes provides a daemon that works in conjunction with the SR-IOV Network Device Plugin.
+                  It acts on Kubernetes pod object changes and reads the pod's network annotation.
+                  From there it fetches the corresponding network CRD and reads the PKey.
+                  This is done in order to add the newly generated GUID or the predefined GUID in the GUID field of the CRD.
+                  This is then passed in cni-args to that PKey for pods with mellanox.infiniband.app annotation.
+                  See: https://github.com/Mellanox/ib-kubernetes
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -206,7 +214,9 @@ spec:
                 - version
                 type: object
               nicFeatureDiscovery:
-                description: Configuration options for nic-feature-discovery
+                description: |-
+                  NicFeatureDiscovery works with NodeFeatureDiscovery to expose information about NVIDIA NICs.
+                  https://github.com/Mellanox/nic-feature-discovery
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -273,8 +283,8 @@ spec:
                 - version
                 type: object
               nodeAffinity:
-                description: Additional nodeAffinity rules to inject to the DaemonSets
-                  objects that are managed by the operator
+                description: NodeAffinity rules to inject to the DaemonSets objects
+                  that are managed by the operator
                 properties:
                   preferredDuringSchedulingIgnoredDuringExecution:
                     description: |-
@@ -472,7 +482,10 @@ spec:
                     x-kubernetes-map-type: atomic
                 type: object
               nvIpam:
-                description: Configuration options for nv-ipam
+                description: |-
+                  NvIpam is an IPAM provider that dynamically assigns IP addresses with speed and performance in mind.
+                  Note: NvIPam requires certificate management e.g. cert-manager or OpenShift cert management.
+                  See https://github.com/Mellanox/nvidia-k8s-ipam
                 properties:
                   containerResources:
                     description: ResourceRequirements describes the compute resource
@@ -542,7 +555,9 @@ spec:
                 - version
                 type: object
               ofedDriver:
-                description: Configuration options for OFED driver
+                description: |-
+                  OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
+                  See https://network.nvidia.com/support/mlnx-ofed-matrix/
                 properties:
                   certConfig:
                     description: 'Optional: Custom TLS certificates configuration
@@ -875,7 +890,10 @@ spec:
                 - version
                 type: object
               rdmaSharedDevicePlugin:
-                description: Configuration options for RDMA shared device plugin
+                description: |-
+                  RdmaSharedDevicePlugin manages support IB and RoCE HCAs through the Kubernetes device plugin framework.
+                  The config field is a json representation of the RDMA shared device plugin configuration.
+                  See https://github.com/Mellanox/k8s-rdma-shared-dev-plugin
                 properties:
                   config:
                     description: Configuration for the component as a string
@@ -936,7 +954,9 @@ spec:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   useCdi:
-                    description: Enables use of container device interface (CDI)
+                    description: |-
+                      Enables use of container device interface (CDI)
+                      NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
                     type: boolean
                   version:
                     description: Version of the image to use
@@ -948,7 +968,13 @@ spec:
                 - version
                 type: object
               secondaryNetwork:
-                description: Configuration options for secondary network
+                description: |-
+                  SecondaryNetwork Specifies components to deploy in order to facilitate a secondary network in Kubernetes.
+                  It consists of the following optionally deployed components:
+                  - Multus-CNI: Delegate CNI plugin to support secondary networks in Kubernetes
+                  - CNI plugins: Currently only containernetworking-plugins is supported
+                  - IPAM CNI: Currently only Whereabout IPAM CNI is supported as a part of the secondaryNetwork section.
+                  - IPoIB CNI: Allows the user to create IPoIB child link and move it to the pod
                 properties:
                   cniPlugins:
                     description: Image information for CNI plugins
@@ -1223,7 +1249,10 @@ spec:
                     type: object
                 type: object
               sriovDevicePlugin:
-                description: Configuration options for SRIOV device plugin
+                description: |-
+                  SriovDevicePlugin manages SRIOV through the Kubernetes device plugin framework.
+                  The config field is a json representation of the RDMA shared device plugin configuration.
+                  See https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin
                 properties:
                   config:
                     description: Configuration for the component as a string
@@ -1284,7 +1313,9 @@ spec:
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
                   useCdi:
-                    description: Enables use of container device interface (CDI)
+                    description: |-
+                      Enables use of container device interface (CDI)
+                      NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
                     type: boolean
                   version:
                     description: Version of the image to use
@@ -1296,8 +1327,8 @@ spec:
                 - version
                 type: object
               tolerations:
-                description: Additional tolerations to inject to the DaemonSets objects
-                  that are managed by the operator
+                description: Tolerations to inject to the DaemonSets objects that
+                  are managed by the operator
                 items:
                   description: |-
                     The pod this Toleration is attached to tolerates any taint that matches
