@@ -248,11 +248,11 @@ type IBKubernetesSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	PeriodicUpdateSeconds int `json:"periodicUpdateSeconds,omitempty"`
 	// The first guid in the pool
-	PKeyGUIDPoolRangeStart string `json:"pKeyGUIDPoolRangeStart,omitempty"`
+	PKeyGUIDPoolRangeStart string `json:"pKeyGUIDPoolRangeStart"`
 	// The last guid in the pool
-	PKeyGUIDPoolRangeEnd string `json:"pKeyGUIDPoolRangeEnd,omitempty"`
+	PKeyGUIDPoolRangeEnd string `json:"pKeyGUIDPoolRangeEnd"`
 	// Secret containing credentials to UFM service
-	UfmSecret string `json:"ufmSecret,omitempty"`
+	UfmSecret string `json:"ufmSecret"`
 }
 
 // NVIPAMSpec describes configuration options for nv-ipam

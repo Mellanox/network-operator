@@ -210,7 +210,10 @@ spec:
                     type: string
                 required:
                 - image
+                - pKeyGUIDPoolRangeEnd
+                - pKeyGUIDPoolRangeStart
                 - repository
+                - ufmSecret
                 - version
                 type: object
               nicFeatureDiscovery:
