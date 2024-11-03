@@ -363,7 +363,7 @@ type NicClusterPolicyStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:object:generate=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Cluster,shortName="ncp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 
