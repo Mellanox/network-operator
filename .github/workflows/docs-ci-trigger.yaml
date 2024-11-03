@@ -2,12 +2,15 @@ name: Documentation CI - call downstream workflow
 
 on:
   push:
-    tags:
-    - "v*"
+    #tags:
+    #- "v*"
+    paths:
+    - manifests/**
 
 jobs:
   trigger_downstream_workflow:
+    #uses: heyvister1/network-operator-docs/.github/workflows/docs-ci.yaml@fix-failed-doc-ci
     uses: Mellanox/network-operator-docs/.github/workflows/docs-ci.yaml@main
     with:
-      git_tag: ${{ github.ref_name }}
+      git_tag: v24.10.0-beta.4 #${{ github.ref_name }}
     secrets: inherit
