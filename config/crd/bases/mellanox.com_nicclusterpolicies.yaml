@@ -11,6 +11,8 @@ spec:
     kind: NicClusterPolicy
     listKind: NicClusterPolicyList
     plural: nicclusterpolicies
+    shortNames:
+    - ncp
     singular: nicclusterpolicy
   scope: Cluster
   versions:
