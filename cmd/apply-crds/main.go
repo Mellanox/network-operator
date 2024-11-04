@@ -67,6 +67,10 @@ func initFlags() {
 }
 
 func main() {
+	Run()
+}
+
+func Run() {
 	ctx := context.Background()
 
 	initFlags()
