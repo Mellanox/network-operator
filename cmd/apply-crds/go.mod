@@ -1,6 +1,6 @@
 module github.com/mellanox/network-operator/cmd/apply-crds
 
-go 1.23.2
+go 1.22.8
 
 require (
 	github.com/onsi/ginkgo/v2 v2.19.0
