@@ -1,13 +1,3 @@
 Get Network Operator deployed resources by running the following commands:
 
 $ kubectl -n {{ .Release.Namespace }} get pods
-
-{{ if .Values.deployCR }}
-IMPORTANT:
-  * Deploying NicClusterPolicy Custom Resource through helm is deprecated,
-    support will be removed in Network Operator 24.10.
-    It is advised to keep deployCR=false in your helm values and create/update NicClusterPolicy
-    Custom Resource post helm install/update.
-    To get your current NicClusterPolicy object please run:
-      $ kubectl get nicclusterpolicies.mellanox.com nic-cluster-policy -o yaml
-{{- end}}
