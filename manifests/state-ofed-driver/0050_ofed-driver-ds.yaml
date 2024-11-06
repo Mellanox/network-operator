@@ -81,13 +81,6 @@ spec:
         - image: {{ .RuntimeSpec.MOFEDImageName }}
           imagePullPolicy: IfNotPresent
           name: mofed-container
-          lifecycle:
-            postStart:
-              exec:
-                command: [ "cp", "/opt/blacklist-ofed-modules.conf", "/host/etc/modprobe.d/" ]
-            preStop:
-              exec:
-                command: [ "rm", "/host/etc/modprobe.d/blacklist-ofed-modules.conf" ]
           securityContext:
             privileged: true
             seLinuxOptions:
@@ -125,9 +118,6 @@ spec:
               mountPath: /mnt/drivers-inventory
             - name: host-ib-core
               mountPath: /etc/modprobe.d/ib_core.conf
-            - name: modules-blacklist
-              mountPath: /opt/blacklist-ofed-modules.conf
-              subPath: blacklist-ofed-modules.conf
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
             {{- range .AdditionalVolumeMounts.VolumeMounts }}
             - name: {{ .Name }}
@@ -255,9 +245,6 @@ spec:
           hostPath:
             path: /etc/modprobe.d/ib_core.conf
             type: FileOrCreate
-        - name: modules-blacklist
-          configMap:
-            name: ofed-modules-blacklist
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
           {{- if and .ConfigMap .ConfigMap.Items }}
