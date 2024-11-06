@@ -11,6 +11,8 @@ spec:
     kind: NicClusterPolicy
     listKind: NicClusterPolicyList
     plural: nicclusterpolicies
+    shortNames:
+    - ncp
     singular: nicclusterpolicy
   scope: Cluster
   versions:
@@ -210,7 +212,10 @@ spec:
                     type: string
                 required:
                 - image
+                - pKeyGUIDPoolRangeEnd
+                - pKeyGUIDPoolRangeStart
                 - repository
+                - ufmSecret
                 - version
                 type: object
               nicFeatureDiscovery:
