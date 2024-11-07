@@ -16,7 +16,7 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.23@sha256:ad5c126b5cf501a8caef751a243bb717ec204ab1aa56dc41dc11be089fafcb4f AS manager-builder
+FROM golang:1.23@sha256:d56c3e08fe5b27729ee3834854ae8f7015af48fd651cd25d1e3bcf3c19830174 AS manager-builder
 
 WORKDIR /workspace
 
@@ -42,7 +42,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 
 # Build the apply-crds binary
-FROM golang:1.23@sha256:ad5c126b5cf501a8caef751a243bb717ec204ab1aa56dc41dc11be089fafcb4f AS apply-crds-builder
+FROM golang:1.23@sha256:d56c3e08fe5b27729ee3834854ae8f7015af48fd651cd25d1e3bcf3c19830174 AS apply-crds-builder
 
 WORKDIR /workspace
 
