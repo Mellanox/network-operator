@@ -57,21 +57,3 @@ spec:
           }
         ]
       }
-  nvIpam:
-    image: nvidia-k8s-ipam
-    repository: ghcr.io/mellanox
-    version: v0.2.0
-    enableWebhook: false
-  nicFeatureDiscovery:
-    image: nic-feature-discovery
-    repository: ghcr.io/mellanox
-    version: v0.0.1
-  docaTelemetryService:
-    image: doca_telemetry
-    repository: nvcr.io/nvidia/doca
-    version: 1.16.5-doca2.6.0-host
-  secondaryNetwork:
-    ipoib:
-      image: ipoib-cni
-      repository: ghcr.io/mellanox
-      version: v1.2.0
