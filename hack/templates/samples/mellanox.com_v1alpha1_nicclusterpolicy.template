@@ -57,21 +57,3 @@ spec:
           }
         ]
       }
-  nvIpam:
-    image: {{ .NvIPAM.Image }}
-    repository: {{ .NvIPAM.Repository }}
-    version: {{ .NvIPAM.Version }}
-    enableWebhook: false
-  nicFeatureDiscovery:
-    image: {{ .NicFeatureDiscovery.Image }}
-    repository: {{ .NicFeatureDiscovery.Repository }}
-    version: {{ .NicFeatureDiscovery.Version }}
-  docaTelemetryService:
-    image: {{ .DOCATelemetryService.Image }}
-    repository: {{ .DOCATelemetryService.Repository }}
-    version: {{ .DOCATelemetryService.Version }}
-  secondaryNetwork:
-    ipoib:
-      image: {{ .Ipoib.Image }}
-      repository: {{ .Ipoib.Repository }}
-      version: {{ .Ipoib.Version }}
