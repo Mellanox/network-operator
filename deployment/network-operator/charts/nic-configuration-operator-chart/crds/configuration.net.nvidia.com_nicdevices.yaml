@@ -143,7 +143,6 @@ spec:
                             type: object
                         required:
                         - enabled
-                        - qos
                         type: object
                     required:
                     - linkType
