@@ -307,8 +307,8 @@ var _ = Describe("MOFED state test", func() {
 			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding, ConfigMap
-			Expect(len(objs)).To(Equal(6))
+			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(5))
 			By("Verify DaemonSets NodeSelector")
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
@@ -365,8 +365,8 @@ var _ = Describe("MOFED state test", func() {
 			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding, ConfigMap
-			Expect(len(objs)).To(Equal(5))
+			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
 			By("Verify Subscription mounts")
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
@@ -470,8 +470,8 @@ var _ = Describe("MOFED state test", func() {
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			// Expect 6 object due to OpenShift: DaemonSet, Service Account, ClusterRole, ClusterRoleBinding
-			// Role, RoleBinding, ConfigMap
-			Expect(len(objs)).To(Equal(7))
+			// Role, RoleBinding
+			Expect(len(objs)).To(Equal(6))
 			By("Verify DaemonSet with DTK")
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
@@ -539,8 +539,8 @@ var _ = Describe("MOFED state test", func() {
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify image is not precompiled format")
-			// Expect 4 objects: DS , Service Account, Role, RoleBinding, ConfigMap
-			Expect(len(objs)).To(Equal(5))
+			// Expect 4 objects: DS , Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
 					continue
@@ -577,8 +577,8 @@ var _ = Describe("MOFED state test", func() {
 			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify image is not precompiled format")
-			// Expect 4 objects: DS , Service Account, Role, RoleBinding, ConfigMap
-			Expect(len(objs)).To(Equal(5))
+			// Expect 4 objects: DS , Service Account, Role, RoleBinding
+			Expect(len(objs)).To(Equal(4))
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
 					continue
