@@ -174,12 +174,12 @@ nic-configuration-operator-chart:
     image:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator
-      tag: v0.1.10
+      tag: v0.1.12
   configDaemon:
     image:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator-daemon
-      tag: v0.1.10
+      tag: v0.1.12
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
