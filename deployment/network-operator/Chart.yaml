@@ -17,9 +17,9 @@ dependencies:
   repository: http://kubernetes-sigs.github.io/node-feature-discovery/charts
   version: 0.15.6
 - condition: sriovNetworkOperator.enabled
-  name: sriov-network-operator
+  name: sriov-network-operator-chart
   repository: ''
-  version: 0.1.0
+  version: 0.0.0-dev
 - condition: nicConfigurationOperator.enabled
   name: nic-configuration-operator-chart
   repository: ''
