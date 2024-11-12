@@ -21,7 +21,7 @@ operator:
             matchExpressions:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: In
-                values: [ "" ]
+                values: [""]
   nameOverride: ""
   fullnameOverride: ""
   resourcePrefix: "openshift.io"
@@ -31,6 +31,15 @@ operator:
   # stale SriovNetworkNodeState objects (objects that doesn't match node with the daemon)
   # "0" means no extra delay, in this case the CR will be removed by the next reconcilation cycle (may take up to 5 minutes)
   staleNodeStateCleanupDelayMinutes: "30"
+  metricsExporter:
+    port: "9110"
+    certificates:
+      secretName: "metrics-exporter-cert"
+    prometheusOperator:
+      enabled: false
+      serviceAccount: "prometheus-k8s"
+      namespace: "monitoring"
+      deployRules: false
   admissionControllers:
     enabled: false
     certificates:
@@ -83,7 +92,7 @@ operator:
 sriovOperatorConfig:
   # deploy sriovOperatorConfig CR with the below values
   deploy: false
-  # node slectors for sriov-network-config-daemon
+  # node selectors for sriov-network-config-daemon
   configDaemonNodeSelector: {}
   # log level for both operator and sriov-network-config-daemon
   logLevel: 2
@@ -92,6 +101,8 @@ sriovOperatorConfig:
   disableDrain: false
   # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
   configurationMode: daemon
+  # feature gates to enable/disable
+  featureGates: {}
 
 # Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
 supportedExtraNICs: []
@@ -102,10 +113,13 @@ images:
   sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon
   sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni
   ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni
-  ovsCni: quay.io/kubevirt/ovs-cni-plugin
+  ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin
   rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni
   sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
+  metricsExporter: ghcr.io/k8snetworkplumbingwg/sriov-network-metrics-exporter
+  metricsExporterKubeRbacProxy: gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0
 
 imagePullSecrets: []
+extraDeploy: []

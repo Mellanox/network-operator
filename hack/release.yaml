@@ -1,23 +1,23 @@
 NetworkOperator:
   image: network-operator
-  repository: nvcr.io/nvstaging/mellanox
-  version: v24.10.0-rc.1
+  repository: nvcr.io/nvidia/cloud-native
+  version: v01.01.03
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
   version: v0.0.2
 SriovNetworkOperator:
   image: sriov-network-operator
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.10.0-rc.1
+  repository: nvcr.io/nvidia/mellanox
+  version: network-operator-01.01.03
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.10.0-rc.1
+  repository: nvcr.io/nvidia/mellanox
+  version: network-operator-01.01.03
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
-  repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-24.10.0-rc.1
+  repository: nvcr.io/nvidia/mellanox
+  version: network-operator-01.01.03
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
@@ -28,7 +28,7 @@ SriovIbCni:
   version: v1.1.1
 Mofed:
   image: doca-driver
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/mellanox
   version: 24.10-0.7.0.0-0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
