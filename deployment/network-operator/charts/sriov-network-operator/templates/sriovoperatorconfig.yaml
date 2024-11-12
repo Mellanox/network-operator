@@ -14,4 +14,8 @@ spec:
   logLevel: {{ .Values.sriovOperatorConfig.logLevel }}
   disableDrain: {{ .Values.sriovOperatorConfig.disableDrain }}
   configurationMode: {{ .Values.sriovOperatorConfig.configurationMode }}
+  {{- with .Values.sriovOperatorConfig.featureGates }}
+  featureGates:
+    {{- range $k, $v := .}}{{printf "%s: %t" $k $v | nindent 4 }}{{ end }}
+  {{- end }}
 {{ end }}

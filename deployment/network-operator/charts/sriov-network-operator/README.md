@@ -38,9 +38,20 @@ For additional information and methods for installing Helm, refer to the officia
 
 ### Deploy SR-IOV Network Operator
 
+#### Deploy from OCI repo
+
 ```
+$ helm install -n sriov-network-operator --create-namespace --version 1.3.0 --set sriovOperatorConfig.deploy=true sriov-network-operator oci://ghcr.io/k8snetworkplumbingwg/sriov-network-operator-chart
+```
+
+#### Deploy from project sources
+
+```
+# Clone project
+$ git clone https://github.com/k8snetworkplumbingwg/sriov-network-operator.git ; cd sriov-network-operator
+
 # Install Operator
-$ helm install -n sriov-network-operator --create-namespace --wait sriov-network-operator ./
+$ helm install -n sriov-network-operator --create-namespace --wait --set sriovOperatorConfig.deploy=true sriov-network-operator ./deployment/sriov-network-operator-chart
 
 # View deployed resources
 $ kubectl -n sriov-network-operator get pods
@@ -73,6 +84,12 @@ We have introduced the following Chart parameters.
 | `operator.resourcePrefix` | string | `openshift.io` | Device plugin resource prefix |
 | `operator.cniBinPath` | string | `/opt/cni/bin` | Path for CNI binary |
 | `operator.clustertype` | string | `kubernetes` | Cluster environment type |
+| `operator.metricsExporter.port` | string | `9110` | Port where the Network Metrics Exporter listen |
+| `operator.metricsExporter.certificates.secretName` | string | `metrics-exporter-cert` | Secret name to serve metrics via TLS. The secret must have the same fields as `operator.admissionControllers.certificates.secretNames` |
+| `operator.metricsExporter.prometheusOperator.enabled` | bool | false | Wheter the operator shoud configure Prometheus resources or not (e.g. `ServiceMonitors`). |
+| `operator.metricsExporter.prometheusOperator.serviceAccount` | string | `prometheus-k8s` | The service account used by the Prometheus Operator. This is used to give Prometheus the permission to list resource in the SR-IOV operator namespace |
+| `operator.metricsExporter.prometheusOperator.namespace` | string | `monitoring` | The namespace where the Prometheus Operator is installed. Setting this variable makes the operator deploy `monitoring.coreos.com` resources. |
+| `operator.metricsExporter.prometheusOperator.deployRules` | bool | false | Whether the operator should deploy `PrometheusRules` to scrape namespace version of metrics. |
 
 #### Admission Controllers parameters
 
@@ -112,10 +129,16 @@ This section contains general parameters that apply to both the operator and dae
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `sriovOperatorConfig.deploy` | bool | `false` | deploy SriovOperatorConfig custom resource |
-| `sriovOperatorConfig.configDaemonNodeSelector` | map[string]string | `{}` | node slectors for sriov-network-config-daemon |
+| `sriovOperatorConfig.configDaemonNodeSelector` | map[string]string | `{}` | node selectors for sriov-network-config-daemon |
 | `sriovOperatorConfig.logLevel` | int | `2` | log level for both operator and sriov-network-config-daemon |
 | `sriovOperatorConfig.disableDrain` | bool | `false` | disable node draining when configuring SR-IOV, set to true in case of a single node cluster or any other justifiable reason |
 | `sriovOperatorConfig.configurationMode` | string | `daemon` | sriov-network-config-daemon configuration mode. either `daemon` or `systemd` |
+| `sriovOperatorConfig.featureGates` | map[string]bool | `{}` | feature gates to enable/disable |
+
+**Note** 
+
+When `sriovOperatorConfig.configurationMode` is configured as `systemd`, configurations files and `systemd` service files are created on the node.
+Upon chart deletion, those files are not cleaned up. For cases where this is not acceptable, users should rather configured the `daemon` mode.
 
 ### Images parameters
 
@@ -126,7 +149,19 @@ This section contains general parameters that apply to both the operator and dae
 | `images.sriovCni` | SR-IOV CNI image |
 | `images.ibSriovCni` | InfiniBand SR-IOV CNI image |
 | `images.ovsCni` | OVS CNI image |
-| `images.rdmaCni` | RDMA CNI image |
+| `images.rdmaCni` | RDMA CNI image              |
 | `images.sriovDevicePlugin` | SR-IOV device plugin image |
 | `images.resourcesInjector` | Resources Injector image |
 | `images.webhook` | Operator Webhook image |
+| `images.metricsExporter` | Network Metrics Exporter image |
+| `images.metricsExporterKubeRbacProxy` | Kube RBAC Proxy image used for metrics exporter |
+
+### Extra objects parameters
+
+**Disclaimer**:
+
+Please note that any resources deployed using the `extraDeploy` in this Helm chart are the sole responsibility of the user. It is important to review and understand the implications of these deployed resources. The maintainers of this Helm chart take no responsibility for any issues or damages caused by the deployment or operation of these resources.
+
+| Name | description |
+| ---- | ------------|
+|`extraDeploy`| Array of extra objects to deploy with the release |
