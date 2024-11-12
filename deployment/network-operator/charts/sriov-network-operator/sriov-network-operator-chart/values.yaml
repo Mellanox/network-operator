@@ -1,0 +1,121 @@
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: In
+                values: [""]
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: In
+                values: [""]
+  nameOverride: ""
+  fullnameOverride: ""
+  resourcePrefix: "openshift.io"
+  cniBinPath: "/opt/cni/bin"
+  clusterType: "kubernetes"
+  metricsExporter:
+    port: "9110"
+    certificates:
+      secretName: "metrics-exporter-cert"
+    prometheusOperator:
+      enabled: false
+      serviceAccount: "prometheus-k8s"
+      namespace: "monitoring"
+      deployRules: false
+  admissionControllers:
+    enabled: false
+    certificates:
+      secretNames:
+        operator: "operator-webhook-cert"
+        injector: "network-resources-injector-cert"
+      certManager:
+        # When enabled, makes use of certificates managed by cert-manager.
+        enabled: false
+        # When enabled, certificates are generated via cert-manager and then name will match the name of the secrets
+        # defined above
+        generateSelfSigned: false
+      # If not specified, no secret is created and secrets with the names defined above are expected to exist in the
+      # cluster. In that case, the ca.crt must be base64 encoded twice since it ends up being an env variable.
+      custom:
+        enabled: false
+    #   operator:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
+    #   injector:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
+
+sriovOperatorConfig:
+  # deploy sriovOperatorConfig CR with the below values
+  deploy: false
+  # node selectors for sriov-network-config-daemon
+  configDaemonNodeSelector: {}
+  # log level for both operator and sriov-network-config-daemon
+  logLevel: 2
+  # disable node draining when configuring SR-IOV, set to true in case of a single node
+  # cluster or any other justifiable reason
+  disableDrain: false
+  # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
+  configurationMode: daemon
+  # feature gates to enable/disable
+  featureGates: {}
+
+# Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
+supportedExtraNICs: []
+
+# Image URIs for sriov-network-operator components
+images:
+  operator: ghcr.io/k8snetworkplumbingwg/sriov-network-operator
+  sriovConfigDaemon: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-config-daemon
+  sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni
+  ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni
+  ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin
+  rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni
+  sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
+  resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
+  webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
+  metricsExporter: ghcr.io/k8snetworkplumbingwg/sriov-network-metrics-exporter
+  metricsExporterKubeRbacProxy: gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0
+
+imagePullSecrets: []
+extraDeploy: []
