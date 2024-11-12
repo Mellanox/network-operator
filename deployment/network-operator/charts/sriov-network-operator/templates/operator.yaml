@@ -15,6 +15,8 @@ spec:
       maxUnavailable: 33%
   template:
     metadata:
+      annotations:
+        openshift.io/required-scc: restricted-v2
       labels:
         name: sriov-network-operator
     spec:
@@ -70,6 +72,24 @@ spec:
               value: {{ .Values.images.sriovConfigDaemon }}
             - name: SRIOV_NETWORK_WEBHOOK_IMAGE
               value: {{ .Values.images.webhook }}
+            - name: METRICS_EXPORTER_IMAGE
+              value: {{ .Values.images.metricsExporter }}
+            - name: METRICS_EXPORTER_PORT
+              value: "{{ .Values.operator.metricsExporter.port }}"
+            - name: METRICS_EXPORTER_SECRET_NAME
+              value: {{ .Values.operator.metricsExporter.certificates.secretName }}
+            - name: METRICS_EXPORTER_KUBE_RBAC_PROXY_IMAGE
+              value: {{ .Values.images.metricsExporterKubeRbacProxy }}
+            {{- if .Values.operator.metricsExporter.prometheusOperator.enabled }}
+            - name: METRICS_EXPORTER_PROMETHEUS_OPERATOR_ENABLED
+              value: {{ .Values.operator.metricsExporter.prometheusOperator.enabled | quote}}
+            - name: METRICS_EXPORTER_PROMETHEUS_DEPLOY_RULES
+              value: {{ .Values.operator.metricsExporter.prometheusOperator.deployRules | quote}}
+            - name: METRICS_EXPORTER_PROMETHEUS_OPERATOR_SERVICE_ACCOUNT
+              value: {{ .Values.operator.metricsExporter.prometheusOperator.serviceAccount }}
+            - name: METRICS_EXPORTER_PROMETHEUS_OPERATOR_NAMESPACE
+              value: {{ .Values.operator.metricsExporter.prometheusOperator.namespace }}
+            {{- end }}
             - name: RESOURCE_PREFIX
               value: {{ .Values.operator.resourcePrefix }}
             - name: IMAGE_PULL_SECRETS
