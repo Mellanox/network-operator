@@ -4,10 +4,20 @@ on:
   push:
     tags:
     - "v*"
+    paths:
+    - deployment/**/values.yaml
+    - api/**    
+
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - edited
+    paths:
+    - deployment/**/values.yaml
+    - api/**
 
 jobs:
   trigger_downstream_workflow:
     uses: Mellanox/network-operator-docs/.github/workflows/docs-ci.yaml@main
-    with:
-      git_tag: ${{ github.ref_name }}
     secrets: inherit
