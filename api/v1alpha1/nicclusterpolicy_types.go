@@ -291,7 +291,7 @@ type DOCATelemetryServiceSpec struct {
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
-	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
+	// OFEDDriver DOCA is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
 	// See https://network.nvidia.com/support/mlnx-ofed-matrix/
 	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`
 	// RdmaSharedDevicePlugin manages support IB and RoCE HCAs through the Kubernetes device plugin framework.

@@ -561,7 +561,7 @@ spec:
                 type: object
               ofedDriver:
                 description: |-
-                  OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
+                  OFEDDriver DOCA is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
                   See https://network.nvidia.com/support/mlnx-ofed-matrix/
                 properties:
                   certConfig:
