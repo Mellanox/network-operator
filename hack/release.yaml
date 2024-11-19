@@ -85,4 +85,4 @@ nicConfigurationOperator:
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: ghcr.io/mellanox
-  version: v0.1.13
+  version: v0.1.14

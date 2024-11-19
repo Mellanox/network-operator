@@ -45,7 +45,8 @@ spec:
                 properties:
                   resetToDefault:
                     description: |-
-                      ResetToDefault specifies whether node agent needs to perform a reset flow
+                      ResetToDefault specifies whether node agent needs to perform a reset flow.
+                      In NIC Configuration Operator template v0.1.14 BF2/BF3 DPUs (not SuperNics) FW reset flow isn't supported.
                       The following operations will be performed:
                       * Nvconfig reset of all non-volatile configurations
                         - Mstconfig -d <device> reset for each PF
@@ -105,21 +106,6 @@ spec:
                         required:
                         - enabled
                         type: object
-                      rawNvConfig:
-                        description: List of arbitrary nv config parameters
-                        items:
-                          properties:
-                            name:
-                              description: Name of the arbitrary nvconfig parameter
-                              type: string
-                            value:
-                              description: Value of the arbitrary nvconfig parameter
-                              type: string
-                          required:
-                          - name
-                          - value
-                          type: object
-                        type: array
                       roceOptimized:
                         description: RoCE optimization settings
                         properties:
