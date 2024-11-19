@@ -13,7 +13,7 @@ data:
   Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx-24.07: "a2d6 24.07-0.6.1 24.42.1000"
   Nvidia_mlx5_ConnectX-4-24.10: "1013 24.10-0.7.0 12.28.2006"
   Nvidia_mlx5_ConnectX-4_Lx-24.10: "1013 24.10-0.7.0 14.32.1010"
-  Nvidia_mlx5_ConnectX-5-24.10: "1017 24.10-0.7.0.35.4030"
+  Nvidia_mlx5_ConnectX-5-24.10: "1017 24.10-0.7.0 16.35.4030"
   Nvidia_mlx5_ConnectX-5_Ex-24.10: "1019 24.10-0.7.0 16.35.4030"
   Nvidia_mlx5_ConnectX-6-24.10: "101b 24.10-0.7.0 20.43.1014"
   Nvidia_mlx5_ConnectX-6_Dx-24.10: "101d 24.10-0.7.0 22.43.1014"
