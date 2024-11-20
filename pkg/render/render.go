@@ -124,6 +124,7 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		"indent":        indent,
 		"nindent":       nindent,
 		"nindentPrefix": nindentPrefix,
+		"hasPrefix":     strings.HasPrefix,
 	})
 
 	if data.Funcs != nil {
