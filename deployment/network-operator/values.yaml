@@ -18,12 +18,12 @@
 
 nfd:
   # -- Deploy Node Feature Discovery operator.
-  enabled: true
+  enabled: false
   # -- Deploy Node Feature Rules to label the nodes with the discovered features.
   deployNodeFeatureRules: true
 
 # -- Enable CRDs upgrade with helm pre-install and pre-upgrade hooks.
-upgradeCRDs: true
+upgradeCRDs: false
 
 sriovNetworkOperator:
   # -- Deploy SR-IOV Network Operator.
