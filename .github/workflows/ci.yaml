@@ -130,9 +130,35 @@ jobs:
         export CHANNELS=stable,$version_major_minor
         export DEFAULT_CHANNEL=$version_major_minor
         make bundle bundle-build bundle-push
+    - name: Determine Target Branch
+      shell: bash
+      run: |
+        set -e  # Fail on errors
+        set -x  # Enable trace mode for debugging
+        # Extract the tag name from GITHUB_REF
+        TAG_NAME="${GITHUB_REF##*/}"
+        echo "Extracted TAG_NAME: $TAG_NAME"
+        if [[ "$TAG_NAME" =~ beta ]]; then
+          echo "Detected 'beta' tag. Setting branch to 'master'."
+          echo "TARGET_BRANCH=master" >> $GITHUB_ENV
+        else
+          # Match version tags like v24.10.0 or v24.10.0-rc.3
+          if [[ "$TAG_NAME" =~ ^v([0-9]+\.[0-9]+)\. ]]; then
+            RELEASE_BRANCH="v${BASH_REMATCH[1]}.x"
+            echo "Parsed release branch: $RELEASE_BRANCH"
+            echo "TARGET_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+          else
+            echo "Failed to parse tag name: $TAG_NAME"
+            exit 1
+          fi
+        fi
+
+        # Confirm the TARGET_BRANCH value
+        echo "Determined target branch: $TARGET_BRANCH"
     - name: Create PR with bundle to Network Operator
       env:
         FEATURE_BRANCH: update-ocp-bundle-to-${{ env.VERSION_WITH_PREFIX }}
+        TARGET_BRANCH: ${{ env.TARGET_BRANCH }}
       run: |
         git config user.name  nvidia-ci-cd
         git config user.email svc-cloud-orch-gh@nvidia.com
@@ -145,7 +171,7 @@ jobs:
         git push -u origin $FEATURE_BRANCH
         gh pr create \
           --head $FEATURE_BRANCH \
-          --base $DEFAULT_BRANCH \
+          --base $TARGET_BRANCH \
           --title "task: update bundle to $VERSION_WITH_PREFIX" \
           --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
     - name: Determine if to send bundle to RedHat
