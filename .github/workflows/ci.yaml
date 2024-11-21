@@ -109,11 +109,18 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
-    - name: Determine version and tag
+    - name: Determine version, tag, and base branch
       run: |
         git_tag=${{ github.ref_name }}
         echo VERSION_WITH_PREFIX=$git_tag        >> $GITHUB_ENV
         echo VERSION_WITHOUT_PREFIX=${git_tag:1} >> $GITHUB_ENV  # without the 'v' prefix
+        if echo $git_tag | grep beta; then
+          base_branch=$DEFAULT_BRANCH
+        else
+          v_major_minor=$(echo $git_tag | grep -Eo '^v[0-9]+\.[0-9]+')
+          base_branch=$v_major_minor.x
+        fi
+        echo BASE_BRANCH=$base_branch >> $GITHUB_ENV
     - name: Lookup image digest
       run: |
         network_operator_digest=$(skopeo inspect docker://$REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX | jq -r .Digest)
@@ -145,7 +152,7 @@ jobs:
         git push -u origin $FEATURE_BRANCH
         gh pr create \
           --head $FEATURE_BRANCH \
-          --base $DEFAULT_BRANCH \
+          --base $BASE_BRANCH \
           --title "task: update bundle to $VERSION_WITH_PREFIX" \
           --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
     - name: Determine if to send bundle to RedHat
