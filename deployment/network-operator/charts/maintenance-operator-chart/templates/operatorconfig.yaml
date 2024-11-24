@@ -1,0 +1,21 @@
+apiVersion: maintenance.nvidia.com/v1alpha1
+kind: MaintenanceOperatorConfig
+metadata:
+  name: default
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: config
+    app.kubernetes.io/created-by: maintenance-operator
+    app.kubernetes.io/part-of: maintenance-operator
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+spec:
+  logLevel: {{ .Values.operatorConfig.logLevel }}
+{{- if .Values.operatorConfig.maxParallelOperations }}
+  maxParallelOperations: {{ .Values.operatorConfig.maxParallelOperations }}
+{{- end }}
+{{- if .Values.operatorConfig.maxUnavailable }}
+  maxUnavailable: {{ .Values.operatorConfig.maxUnavailable }}
+{{- end }}
+{{- if .Values.operatorConfig.maxNodeMaintenanceTimeSeconds }}
+  maxNodeMaintenanceTimeSeconds: {{ .Values.operatorConfig.maxNodeMaintenanceTimeSeconds }}
+{{- end }}

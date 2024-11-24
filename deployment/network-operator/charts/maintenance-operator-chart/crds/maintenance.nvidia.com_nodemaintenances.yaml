@@ -1,0 +1,285 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: nodemaintenances.maintenance.nvidia.com
+spec:
+  group: maintenance.nvidia.com
+  names:
+    kind: NodeMaintenance
+    listKind: NodeMaintenanceList
+    plural: nodemaintenances
+    singular: nodemaintenance
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeName
+      name: Node
+      type: string
+    - jsonPath: .spec.requestorID
+      name: Requestor
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].reason
+      name: Phase
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Failed')].reason
+      name: Failed
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: NodeMaintenance is the Schema for the nodemaintenances API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NodeMaintenanceSpec defines the desired state of NodeMaintenance
+            properties:
+              additionalRequestors:
+                description: |-
+                  AdditionalRequestors is a set of additional requestor IDs which are using the same NodeMaintenance
+                  request. addition or removal of requiestor IDs to this list MUST be made with update operation (and retry on failure)
+                  which will replace the entire list.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              cordon:
+                default: true
+                description: Cordon if set, marks node as unschedulable during maintenance
+                  operation
+                type: boolean
+              drainSpec:
+                description: DrainSpec specifies how a node will be drained. if not
+                  provided, no draining will be performed.
+                properties:
+                  deleteEmptyDir:
+                    default: false
+                    description: |-
+                      DeleteEmptyDir indicates if should continue even if there are pods using emptyDir
+                      (local data that will be deleted when the node is drained)
+                    type: boolean
+                  force:
+                    default: false
+                    description: Force draining even if there are pods that do not
+                      declare a controller
+                    type: boolean
+                  podEvictionFilters:
+                    description: |-
+                      PodEvictionFilters specifies filters for pods that need to undergo eviction during drain.
+                      if specified. only pods that match PodEvictionFilters will be evicted during drain operation.
+                      if unspecified. all non-daemonset pods will be evicted.
+                      logical OR is performed between filter entires. logical AND is performed within different filters
+                      in a filter entry.
+                    items:
+                      description: PodEvictionFiterEntry defines filters for Pod evictions
+                        during drain operation
+                      properties:
+                        byResourceNameRegex:
+                          description: ByResourceNameRegex filters pods by the name
+                            of the resources they consume using regex.
+                          type: string
+                      type: object
+                    type: array
+                  podSelector:
+                    description: |-
+                      PodSelector specifies a label selector to filter pods on the node that need to be drained
+                      For more details on label selectors, see:
+                      https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+                    type: string
+                  timeoutSeconds:
+                    default: 300
+                    description: TimeoutSecond specifies the length of time in seconds
+                      to wait before giving up drain, zero means infinite
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              nodeName:
+                description: |-
+                  NodeName is The name of the node that maintenance operation will be performed on
+                  creation fails if node obj does not exist (webhook)
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              requestorID:
+                description: |-
+                  RequestorID MUST follow domain name notation format (https://tools.ietf.org/html/rfc1035#section-2.3.1)
+                  It MUST be 63 characters or less, beginning and ending with an alphanumeric
+                  character ([a-z0-9A-Z]) with dashes (-), dots (.), and alphanumerics between.
+                  caller SHOULD NOT create multiple objects with same requestorID and nodeName.
+                  This field identifies the requestor of the operation.
+                maxLength: 63
+                minLength: 2
+                pattern: ^([a-z0-9A-Z]([-a-z0-9A-Z]*[a-z0-9A-Z])?(\.[a-z0-9A-Z]([-a-z0-9A-Z]*[a-z0-9A-Z])?)*)$
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              waitForPodCompletion:
+                description: |-
+                  WaitForPodCompletion specifies pods via selector to wait for completion before performing drain operation
+                  if not provided, will not wait for pods to complete
+                properties:
+                  podSelector:
+                    description: |-
+                      PodSelector specifies a label selector for the pods to wait for completion
+                      For more details on label selectors, see:
+                      https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+                    example: app=my-workloads
+                    type: string
+                  timeoutSeconds:
+                    default: 0
+                    description: |-
+                      TimeoutSecond specifies the length of time in seconds
+                      to wait before giving up on pod termination, zero means infinite
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+            required:
+            - nodeName
+            - requestorID
+            type: object
+          status:
+            description: NodeMaintenanceStatus defines the observed state of NodeMaintenance
+            properties:
+              conditions:
+                description: Conditions represents observations of NodeMaintenance
+                  current state
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              drain:
+                description: Drain represents the drain status of the node
+                properties:
+                  drainProgress:
+                    description: DrainProgress represents the draining progress as
+                      percentage
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  evictionPods:
+                    description: EvictionPods is the total number of pods that need
+                      to be evicted at the time NodeMaintenance started draining
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  totalPods:
+                    description: TotalPods is the number of pods on the node at the
+                      time NodeMaintenance started draining
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  waitForEviction:
+                    description: WaitForEviction is the list of namespaced named pods
+                      that need to be evicted
+                    items:
+                      type: string
+                    type: array
+                required:
+                - drainProgress
+                - evictionPods
+                - totalPods
+                type: object
+              waitForCompletion:
+                description: WaitForCompletion is the list of namespaced named pods
+                  that we wait to complete
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

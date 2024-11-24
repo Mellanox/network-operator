@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "maintenance-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/created-by: maintenance-operator
+    app.kubernetes.io/part-of: maintenance-operator
+    control-plane: {{ .Release.Name }}-controller-manager
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.operator.replicas }}
+  selector:
+    matchLabels:
+      control-plane: {{ .Release.Name }}-controller-manager
+    {{- include "maintenance-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        control-plane: {{ .Release.Name }}-controller-manager
+      {{- include "maintenance-operator.selectorLabels" . | nindent 8 }}
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+    spec:
+      tolerations: {{- toYaml .Values.operator.tolerations | nindent 8 }}
+      nodeSelector: {{- toYaml .Values.operator.nodeSelector | nindent 8 }}
+      affinity: {{- toYaml .Values.operator.affinity | nindent 8 }}
+      imagePullSecrets: {{ .Values.imagePullSecrets | default list | toJson }}
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: {{ include "maintenance-operator.fullname" . }}-controller-manager
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: manager
+        command:
+        - /manager
+        args:
+        - --leader-elect
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ENABLE_WEBHOOKS
+          value: {{ quote .Values.operator.admissionController.enable }}
+        image: {{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}
+      {{- if .Values.operator.image.imagePullPolicy }}
+        imagePullPolicy: {{ .Values.operator.image.imagePullPolicy }}
+      {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      {{- if .Values.operator.admissionController.enable }}
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+      {{- end }}
+        resources: {{- toYaml .Values.operator.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+      {{- if .Values.operator.admissionController.enable }}
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      {{- end }}
+      volumes:
+    {{- if .Values.operator.admissionController.enable }}
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: {{ .Values.operator.admissionController.certificates.secretNames.operator }}
+    {{- end }}

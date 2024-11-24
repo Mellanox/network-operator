@@ -1,0 +1,43 @@
+{{- if and .Values.operator.admissionController.enable }}
+{{- if and .Values.operator.admissionController.certificates.certManager.enable
+  .Values.operator.admissionController.certificates.certManager.generateSelfSigned }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "maintenance-operator.fullname" . }}-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "maintenance-operator.fullname" . }}-serving-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+  - '{{ include "maintenance-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc'
+  - '{{ include "maintenance-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
+    }}.svc.{{ .Values.kubernetesClusterDomain }}'
+  issuerRef:
+    kind: Issuer
+    name: '{{ include "maintenance-operator.fullname" . }}-selfsigned-issuer'
+  secretName: {{ .Values.operator.admissionController.certificates.secretNames.operator }}
+{{- else if and (not .Values.operator.admissionController.certManager.enable) .Values.operator.admissionController.custom.enable }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.operator.admissionController.certificates.secretNames.operator }}
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  ca.crt: {{ .Values.operator.admissionController.certificates.custom.operator.caCrt | b64enc | b64enc | quote }}
+  tls.crt: {{ .Values.operator.admissionController.certificates.custom.operator.tlsCrt | b64enc | quote }}
+  tls.key: {{ .Values.operator.admissionController.certificates.custom.operator.tlsKey | b64enc | quote }}
+{{- end }}
+{{- end }}

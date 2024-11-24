@@ -93,5 +93,8 @@ spec:
         {{- if .Values.nicConfigurationOperator.enabled }}
               - --crds-dir=/crds/nic-configuration-operator
         {{- end }}
+        {{- if .Values.maintenanceOperator.enabled }}
+              - --crds-dir=/crds/maintenance-operator
+        {{- end }}
       restartPolicy: OnFailure
 {{- end }}

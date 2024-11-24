@@ -33,6 +33,10 @@ nicConfigurationOperator:
   # -- Deploy NIC Configuration Operator.
   enabled: false
 
+maintenanceOperator:
+  # -- Deploy Maintenance Operator.
+  enabled: false  
+
 # Set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable.
 node-feature-discovery:
   # -- The Node Feature API enable communication between nfd master and worker
@@ -180,6 +184,29 @@ nic-configuration-operator-chart:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator-daemon
       tag: v0.1.14
+
+# Maintenance Operator chart related values.
+maintenance-operator-chart:
+  operator:
+    image:
+      repository: ghcr.io/mellanox
+      name: maintenance-operator
+      tag: v0.1.1
+    admissionController:
+      # -- enable admission controller of the operator
+      enable: false
+      certificates:
+        secretNames:
+          # -- secret name containing certificates for the operator admission controller
+          operator: "maintenance-webhook-cert"
+        certManager:
+          # -- use cert-manager for certificates
+          enable: false
+          # -- generate self-signed certificates with cert-manager
+          generateSelfSigned: false
+        custom:
+          # -- enable custom certificates using secrets
+          enable: false         
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
