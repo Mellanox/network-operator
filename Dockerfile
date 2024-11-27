@@ -16,7 +16,7 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.23@sha256:8956c08c8129598db36e92680d6afda0079b6b32b93c2c08260bf6fa75524e07 AS manager-builder
+FROM golang:1.23@sha256:8956c08c8129598db36e92680d6afda0079b6b32b93c2c08260bf6fa75524e07 AS builder
 
 WORKDIR /workspace
 
@@ -38,51 +38,27 @@ ARG GCFLAGS
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go  && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o keep-ncp cmd/keep-ncp/main.go
-
-
-# Build the apply-crds binary
-FROM golang:1.23@sha256:8956c08c8129598db36e92680d6afda0079b6b32b93c2c08260bf6fa75524e07 AS apply-crds-builder
-
-WORKDIR /workspace
-
-# Copy the Go Modules manifests
-COPY cmd/apply-crds/go.mod go.mod
-COPY cmd/apply-crds/go.sum go.sum
-# cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download -x
-
-# Copy the go source
-COPY cmd/apply-crds/ ./
-COPY deployment/network-operator/ ./network-operator-chart/
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o keep-ncp cmd/keep-ncp/main.go && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds cmd/apply-crds/main.go
 
 # copy CRDs from helm charts
+COPY deployment/network-operator/ ./network-operator-chart/
 RUN mkdir crds && \
     cp -r network-operator-chart/crds /workspace/crds/network-operator/ && \
     cp -r network-operator-chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
     cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
     cp -r network-operator-chart/charts/nic-configuration-operator-chart/crds /workspace/crds/nic-configuration-operator/
 
-# Build
-ARG ARCH
-ARG LDFLAGS
-ARG GCFLAGS
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds main.go
-
 FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.10
 
 WORKDIR /
-COPY --from=manager-builder /workspace/manager .
-COPY --from=manager-builder /workspace/keep-ncp .
-COPY --from=apply-crds-builder /workspace/apply-crds .
-COPY --from=apply-crds-builder /workspace/crds /crds
+COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/keep-ncp .
+COPY --from=builder /workspace/apply-crds .
+COPY --from=builder /workspace/crds /crds
 
 # Default Certificates are missing in micro-ubi. These are need to fetch DOCA drivers image tags
-COPY --from=manager-builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 COPY /webhook-schemas /webhook-schemas
 COPY manifests/ manifests/
 USER 65532:65532
