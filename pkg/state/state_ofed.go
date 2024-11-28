@@ -58,18 +58,18 @@ const (
 	stateOFEDName        = "state-OFED"
 	stateOFEDDescription = "OFED driver deployed in the cluster"
 
-	// mofedImageFormat is the mofed driver container image name format
-	// format: <repo>/<image-name>:<driver-version>-<os-name><os-ver>-<cpu-arch>
-	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-ubuntu20.04-amd64
+	// mofedImageFormat is the DOCA driver container image name format
+	// format: <repo>/<image-name>:<driver-container-version>-<os-name><os-ver>-<cpu-arch>
+	// e.x: nvcr.io/nvidia/mellanox/doca-driver:5.7-0.1.2.0-0-ubuntu20.04-amd64
 	mofedImageFormat = "%s/%s:%s-%s%s-%s"
 
 	// precompiledTagFormat is the tag format for precompiled drivers.
-	// format: <driver-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
+	// format: <container-driver-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
 	precompiledTagFormat = "%s-%s-%s%s-%s"
 
-	// precompiledImageFormat is the precompiled mofed driver container image name format
-	// format: <repo>/<image-name>:<driver-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
-	// e.x: nvcr.io/nvidia/mellanox/mofed:5.7-0.1.2.0-5.15.0-91-generic-ubuntu22.04-amd64
+	// precompiledImageFormat is the precompiled DOCA driver container image name format
+	// format: <repo>/<image-name>:<driver-container-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
+	// e.x: nvcr.io/nvidia/mellanox/doca-driver:5.7-0.1.2.0-0-5.15.0-91-generic-ubuntu22.04-amd64
 	precompiledImageFormat = "%s/%s:%s-%s-%s%s-%s"
 )
 
