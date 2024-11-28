@@ -43,26 +43,6 @@ var _ = Describe("Migrate", func() {
 		_ = k8sClient.DeleteAllOf(goctx.Background(), &corev1.Node{})
 		_ = k8sClient.DeleteAllOf(goctx.Background(), &corev1.Pod{})
 	})
-	It("should remove annotation on NVIPAM CM", func() {
-		createConfigMap(true)
-		err := Migrate(goctx.Background(), testLog, k8sClient)
-		Expect(err).NotTo(HaveOccurred())
-		cm := &corev1.ConfigMap{}
-		err = k8sClient.Get(goctx.Background(),
-			types.NamespacedName{Namespace: namespaceName, Name: nvIPAMcmName}, cm)
-		Expect(err).NotTo(HaveOccurred())
-		_, ok := cm.Labels[consts.StateLabel]
-		Expect(ok).To(BeFalse())
-	})
-	It("should not fail if state label does not exists", func() {
-		createConfigMap(false)
-		err := Migrate(goctx.Background(), testLog, k8sClient)
-		Expect(err).NotTo(HaveOccurred())
-	})
-	It("should not fail if NVIPAM CM does not exists", func() {
-		err := Migrate(goctx.Background(), testLog, k8sClient)
-		Expect(err).NotTo(HaveOccurred())
-	})
 	It("should delete MOFED DS", func() {
 		upgrade.SetDriverName("ofed")
 		createNCP()
@@ -90,16 +70,6 @@ var _ = Describe("Migrate", func() {
 		})
 	})
 })
-
-func createConfigMap(addLabel bool) {
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName, Name: nvIPAMcmName}}
-	if addLabel {
-		cm.Labels = make(map[string]string)
-		cm.Labels[consts.StateLabel] = "state-nv-ipam-cni"
-	}
-	err := k8sClient.Create(goctx.Background(), cm)
-	Expect(err).NotTo(HaveOccurred())
-}
 
 func createMofedDS() {
 	ds := &appsv1.DaemonSet{
