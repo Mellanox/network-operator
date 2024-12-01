@@ -126,21 +126,6 @@ spec:
                     required:
                     - enabled
                     type: object
-                  rawNvConfig:
-                    description: List of arbitrary nv config parameters
-                    items:
-                      properties:
-                        name:
-                          description: Name of the arbitrary nvconfig parameter
-                          type: string
-                        value:
-                          description: Value of the arbitrary nvconfig parameter
-                          type: string
-                      required:
-                      - name
-                      - value
-                      type: object
-                    type: array
                   roceOptimized:
                     description: RoCE optimization settings
                     properties:
