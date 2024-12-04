@@ -25,11 +25,6 @@ bases:
 #- ../prometheus
 
 patchesStrategicMerge:
-# Protect the /metrics endpoint by putting it behind auth.
-# If you want your controller-manager to expose the /metrics
-# endpoint w/o any authn/z, please comment the following line.
-- manager_auth_proxy_patch.yaml
-
 # Add default program arguments and resource requests and limits to the manager container.
 - manager_args_and_resource_limits.yaml
 
