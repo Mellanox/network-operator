@@ -1,0 +1,107 @@
+operator:
+  image:
+    # -- repository to use for the operator image
+    repository: ghcr.io/mellanox/maintenance-operator
+    # -- image tag to use for the operator image
+    tag: null
+    # -- image pull policy for the operator image
+    imagePullPolicy: null
+  # -- toleration for the operator
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+  # -- node selector for the operator
+  nodeSelector: {}
+  # -- node affinity for the operator
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: Exists
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: Exists
+  # -- specify resource requests and limits for the operator
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  # -- operator deployment number of repplicas
+  replicas: 1
+  serviceAccount:
+    # -- set annotations for the operator service account
+    annotations: {}
+  admissionController:
+    # -- enable admission controller of the operator
+    enable: true
+    certificates:
+      secretNames:
+        # -- secret name containing certificates for the operator admission controller
+        operator: "operator-webhook-cert"
+      certManager:
+        # -- use cert-manager for certificates
+        enable: true
+        # -- generate self-signed certificates with cert-manager
+        generateSelfSigned: true
+      custom:
+        # -- enable custom certificates using secrets
+        enable: false
+        #   operator:
+        #     caCrt: |
+        #       -----BEGIN CERTIFICATE-----
+        #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+        #       ...
+        #       -----END CERTIFICATE-----
+        #     tlsCrt: |
+        #       -----BEGIN CERTIFICATE-----
+        #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+        #       ...
+        #       -----END CERTIFICATE-----
+        #     tlsKey: |
+        #       -----BEGIN EC PRIVATE KEY-----
+        #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+        #       ...
+        #      -----END EC PRIVATE KEY-----
+
+# -- operator configuration values. fields here correspond to fields in MaintenanceOperatorConfig CR
+operatorConfig:
+  # -- log level configuration
+  logLevel: info
+  # operatorConfig.maxParallelOperations -- max number of parallel operations
+  maxParallelOperations: null
+  # -- max number of unavailable nodes
+  maxUnavailable: null
+  # -- max time for node maintenance
+  maxNodeMaintenanceTimeSeconds: null
+
+# -- image pull secrets for the operator
+imagePullSecrets: []
+
+# -- metrics service configurations
+metricsService:
+  ports:
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: https
+  type: ClusterIP
+
+# -- webhook service configurations
+webhookService:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+  type: ClusterIP

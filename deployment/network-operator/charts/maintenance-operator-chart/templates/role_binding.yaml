@@ -1,0 +1,36 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "maintenance-operator.fullname" . }}-manager-rolebinding
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: maintenance-operator
+    app.kubernetes.io/part-of: maintenance-operator
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: '{{ include "maintenance-operator.fullname" . }}-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "maintenance-operator.fullname" . }}-controller-manager'
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "maintenance-operator.fullname" . }}-manager-rolebinding
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: maintenance-operator
+    app.kubernetes.io/part-of: maintenance-operator
+  {{- include "maintenance-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: '{{ include "maintenance-operator.fullname" . }}-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "maintenance-operator.fullname" . }}-controller-manager'
+  namespace: {{ .Release.Namespace }}

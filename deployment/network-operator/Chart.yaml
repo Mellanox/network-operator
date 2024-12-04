@@ -24,3 +24,7 @@ dependencies:
   name: nic-configuration-operator-chart
   repository: ''
   version: 0.0.1
+- condition: maintenanceOperator.enabled
+  name: maintenance-operator-chart
+  repository: ''
+  version: 0.0.1

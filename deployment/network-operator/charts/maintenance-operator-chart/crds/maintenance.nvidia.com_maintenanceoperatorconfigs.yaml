@@ -1,0 +1,89 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: maintenanceoperatorconfigs.maintenance.nvidia.com
+spec:
+  group: maintenance.nvidia.com
+  names:
+    kind: MaintenanceOperatorConfig
+    listKind: MaintenanceOperatorConfigList
+    plural: maintenanceoperatorconfigs
+    singular: maintenanceoperatorconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MaintenanceOperatorConfig is the Schema for the maintenanceoperatorconfigs
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MaintenanceOperatorConfigSpec defines the desired state of
+              MaintenanceOperatorConfig
+            properties:
+              logLevel:
+                default: info
+                description: LogLevel is the operator logging level
+                enum:
+                - debug
+                - info
+                - error
+                type: string
+              maxNodeMaintenanceTimeSeconds:
+                default: 1600
+                description: |-
+                  MaxNodeMaintenanceTimeSeconds is the time from when a NodeMaintenance is marked as ready (phase: Ready)
+                  until the NodeMaintenance is considered stale and removed by the operator.
+                  should be less than idle time for any autoscaler that is running.
+                  default to 30m (1600 seconds)
+                format: int32
+                minimum: 0
+                type: integer
+              maxParallelOperations:
+                anyOf:
+                - type: integer
+                - type: string
+                default: 1
+                description: |-
+                  MaxParallelOperations indicates the maximal number nodes that can undergo maintenance
+                  at a given time. 0 means no limit
+                  value can be an absolute number (ex: 5) or a percentage of total nodes in the cluster (ex: 10%).
+                  absolute number is calculated from percentage by rounding up.
+                  defaults to 1. The actual number of nodes that can undergo maintenance may be lower depending
+                  on the value of MaintenanceOperatorConfigSpec.MaxUnavailable.
+                x-kubernetes-int-or-string: true
+              maxUnavailable:
+                anyOf:
+                - type: integer
+                - type: string
+                description: |-
+                  MaxUnavailable is the maximum number of nodes that can become unavailable in the cluster.
+                  value can be an absolute number (ex: 5) or a percentage of total nodes in the cluster (ex: 10%).
+                  absolute number is calculated from percentage by rounding up.
+                  by default, unset.
+                  new nodes will not be processed if the number of unavailable node will exceed this value
+                x-kubernetes-int-or-string: true
+            type: object
+        type: object
+    served: true
+    storage: true

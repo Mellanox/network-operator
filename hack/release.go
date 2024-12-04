@@ -77,6 +77,7 @@ type Release struct {
 	RDMACni                      *ReleaseImageSpec
 	NicConfigurationOperator     *ReleaseImageSpec
 	NicConfigurationConfigDaemon *ReleaseImageSpec
+	MaintenanceOperator          *ReleaseImageSpec
 }
 
 func readDefaults(releaseDefaults string) Release {
@@ -127,6 +128,7 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("RDMA_CNI", release.RDMACni)
 	initWithEnvVariale("NIC_CONFIGURATION_OPERATOR", release.NicConfigurationOperator)
 	initWithEnvVariale("NIC_CONFIGURATION_CONFIG_DAEMON", release.NicConfigurationConfigDaemon)
+	initWithEnvVariale("MAINTENANCE_OPERATOR", release.MaintenanceOperator)
 }
 
 func main() {
