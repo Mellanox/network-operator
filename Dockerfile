@@ -16,7 +16,7 @@
 ARG ARCH
 
 # Build the manager binary
-FROM golang:1.23@sha256:2b01164887cecfa796f6bff6787c8c597d0e0e09e0694428fdde4a343303eb60 AS builder
+FROM golang:1.23@sha256:574185e5c6b9d09873f455a7c205ea0514bfd99738c5dc7750196403a44ed4b7 AS builder
 
 WORKDIR /workspace
 
