@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-11-26T09:58:46Z"
+    createdAt: "2024-12-08T10:51:09Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -110,7 +110,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v24.10.0
+  name: nvidia-network-operator.v24.10.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -563,7 +563,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 24.10.0
+  version: 24.10.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -631,6 +631,4 @@ spec:
     - name: doca-driver-2
       image: nvcr.io/nvidia/mellanox/doca-driver@sha256:ecb2cfdc510b7ed09a59daed4817ee353e83a94d2d8581c3c052f4fa4b990574
     - name: doca-driver-3
-      image: nvcr.io/nvidia/mellanox/doca-driver@sha256:4bb13a8b850c91011013509334d5ae4f4b7aa1d1b0c12958625e161cd50309d6
-    - name: doca-driver-4
       image: nvcr.io/nvidia/mellanox/doca-driver@sha256:db5797121735eeb935d8f11e305b50c80ba07aa83c291d76d05dea7e303bc740
