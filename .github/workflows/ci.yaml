@@ -147,6 +147,7 @@ jobs:
         git checkout -b $FEATURE_BRANCH
         git status
         git add bundle
+        git add bundle.Dockerfile
         git commit -sm "task: update bundle to $VERSION_WITH_PREFIX"
 
         git push -u origin $FEATURE_BRANCH
