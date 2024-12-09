@@ -1,0 +1,25 @@
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  update_network_operator_values:
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          repository: ${{ github.repository_owner }}/sriov-network-operator
+      - name: Save release name
+        run: echo "RELEASE_NAME=$(echo $ISSUE_TITLE | awk '/Release v/{print $2}')" >> $GITHUB_ENV
+
+      - name: Tag SRIOV-Network Operator
+        if: ${{ env.RELEASE_NAME != '' }
+        run: |
+          git config user.name  nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+          git tag network-operator-$RELEASE_NAME
+          git push origin --tags
