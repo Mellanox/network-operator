@@ -1,6 +1,6 @@
 NetworkOperator:
   image: network-operator
-  repository: nvcr.io/nvstaging/mellanox/
+  repository: nvcr.io/nvstaging/mellanox
   version: v24.10.0
 NetworkOperatorInitContainer:
   image: network-operator-init-container
