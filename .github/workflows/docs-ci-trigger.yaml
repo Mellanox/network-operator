@@ -20,3 +20,4 @@ on:
 jobs:
   trigger_downstream_workflow:
     uses: Mellanox/network-operator-docs/.github/workflows/docs-ci.yaml@main
+    token: ${{ secrets.GH_DOCS_TOKEN }}
