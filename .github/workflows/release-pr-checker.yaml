@@ -5,8 +5,8 @@ on:
       - "v*.x"
 
 jobs:
-  wait_for_ci:
-    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') && github.actor == 'nvidia-ci-cd'}}
+  wait-for-ci:
+    if: startsWith(github.event.pull_request.title, 'cicd:') && github.actor == 'nvidia-ci-cd'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
@@ -20,7 +20,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CURRENT_JOB_NAME: wait_for_ci
+          CURRENT_JOB_NAME: wait-for-ci
           REQUIRED_CHECKS: |
             nic_operator_helm CI
             nic_operator_kind CI
@@ -65,10 +65,10 @@ jobs:
               sleep $WAIT_INTERVAL
             fi
           done
-  update_network_operator_version:
+  update-network-operator-version:
     needs:
-      - wait_for_ci
-    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') }}
+      - wait-for-ci
+    if: startsWith(github.event.pull_request.title, 'cicd:')
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
