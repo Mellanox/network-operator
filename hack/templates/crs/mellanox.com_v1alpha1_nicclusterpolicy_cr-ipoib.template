@@ -69,7 +69,6 @@ spec:
       image: {{ .Multus.Image }}
       repository: {{ .Multus.Repository }}
       version: {{ .Multus.Version }}
-      config: ''
     ipamPlugin:
       image: {{ .IpamPlugin.Image }}
       repository: {{ .IpamPlugin.Repository }}

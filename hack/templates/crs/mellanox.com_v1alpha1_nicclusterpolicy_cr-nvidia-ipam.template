@@ -65,7 +65,6 @@ spec:
       image: {{ .Multus.Image }}
       repository: {{ .Multus.Repository }}
       version: {{ .Multus.Version }}
-      config: ''
   nvIpam:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
