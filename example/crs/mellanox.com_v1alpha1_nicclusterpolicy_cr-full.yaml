@@ -91,7 +91,6 @@ spec:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
       version: v4.1.0
-      config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg

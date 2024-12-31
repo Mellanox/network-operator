@@ -65,7 +65,6 @@ spec:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
       version: v4.1.0
-      config: ''
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox

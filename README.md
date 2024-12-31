@@ -157,7 +157,7 @@ spec:
       repository: ghcr.io/k8snetworkplumbingwg
       version: v3.9.3
       # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
-      config: ''
+      # config: ''
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
@@ -215,7 +215,6 @@ spec:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
       version: v3.9.3
-      config: ''
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
