@@ -11,6 +11,8 @@ rules:
     - configmaps
   verbs:
     - get
+    - list
+    - watch
 - apiGroups:
     - ""
   resources:
@@ -95,6 +97,18 @@ rules:
     - maintenance.nvidia.com
   resources:
     - nodemaintenances
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - apps
+  resources:
+    - daemonsets
   verbs:
     - create
     - delete
