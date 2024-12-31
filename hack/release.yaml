@@ -73,7 +73,7 @@ docaTelemetryService:
 ovsCni:
   image: ovs-cni-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v0.34.0
+  version: v0.37.0
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
