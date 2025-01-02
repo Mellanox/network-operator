@@ -14,7 +14,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: sriov-device-plugin
+  name: network-operator-sriov-device-plugin
   namespace: {{ .RuntimeSpec.Namespace }}
   labels:
     tier: node
@@ -22,11 +22,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: sriov-device-plugin
+      name: network-operator-sriov-device-plugin
   template:
     metadata:
       labels:
-        name: sriov-device-plugin
+        name: network-operator-sriov-device-plugin
         tier: node
         app: sriovdp
     spec:
@@ -47,7 +47,7 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-      serviceAccountName: sriov-device-plugin
+      serviceAccountName: network-operator-sriov-device-plugin
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
       {{- range .CrSpec.ImagePullSecrets }}
@@ -122,7 +122,7 @@ spec:
             type: DirectoryOrCreate
         - name: config-volume
           configMap:
-            name: sriovdp-config
+            name: network-operator-sriovdp-config
             items:
               - key: config.json
                 path: config.json
