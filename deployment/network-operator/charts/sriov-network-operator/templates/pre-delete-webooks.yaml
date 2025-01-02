@@ -19,7 +19,7 @@ spec:
       {{- range .Values.imagePullSecrets }}
       - name: {{ . }}
       {{- end }}
-      {{- end }}
+      {{- end }}      
       containers:
         - name: cleanup
           image: {{ .Values.images.operator }}
