@@ -82,13 +82,10 @@ rules:
     resources:
       - pods
     verbs:
-      - '*'
-  - apiGroups:
-      - apps
-    resources:
-      - daemonsets
-    verbs:
-      - '*'
+      - "get"
+      - "list"
+      - "watch"
+      - "delete"
   - apiGroups:
       - sriovnetwork.openshift.io
     resources:

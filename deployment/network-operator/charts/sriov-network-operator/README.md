@@ -135,6 +135,11 @@ This section contains general parameters that apply to both the operator and dae
 | `sriovOperatorConfig.configurationMode` | string | `daemon` | sriov-network-config-daemon configuration mode. either `daemon` or `systemd` |
 | `sriovOperatorConfig.featureGates` | map[string]bool | `{}` | feature gates to enable/disable |
 
+**Note** 
+
+When `sriovOperatorConfig.configurationMode` is configured as `systemd`, configurations files and `systemd` service files are created on the node.
+Upon chart deletion, those files are not cleaned up. For cases where this is not acceptable, users should rather configured the `daemon` mode.
+
 ### Images parameters
 
 | Name | description |
