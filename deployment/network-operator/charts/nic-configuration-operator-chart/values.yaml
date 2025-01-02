@@ -4,7 +4,7 @@ operator:
     repository: ghcr.io/mellanox
     name: nic-configuration-operator
     # -- image tag to use for the operator image
-    tag: v0.1.14
+    tag: latest
   # -- tolerations for the operator
   tolerations:
     - key: "node-role.kubernetes.io/master"
@@ -42,13 +42,14 @@ operator:
   serviceAccount:
     # -- set annotations for the operator service account
     annotations: {}
+
 configDaemon:
   image:
     # -- repository to use for the config daemon image
     repository: ghcr.io/mellanox
     name: nic-configuration-operator-daemon
     # -- image tag to use for the config daemon image
-    tag: v0.1.14
+    tag: latest
   # -- node selector for the config daemon
   nodeSelector: {}
   # -- resources and limits for the config daemon
@@ -59,6 +60,7 @@ configDaemon:
     requests:
       cpu: 10m
       memory: 64Mi
+
 # -- log level configuration (debug|info)
 logLevel: info
 # -- image pull secrets for both the operator and the config daemon
