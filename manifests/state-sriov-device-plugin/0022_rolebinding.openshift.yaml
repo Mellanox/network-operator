@@ -2,13 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: sriov-device-plugin
+  name: network-operator-sriov-device-plugin
   namespace: {{ .RuntimeSpec.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: sriov-device-plugin
+  name: network-operator-sriov-device-plugin
 subjects:
 - kind: ServiceAccount
-  name: sriov-device-plugin
+  name: network-operator-sriov-device-plugin
 {{end}}
