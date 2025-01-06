@@ -92,7 +92,6 @@ jobs:
         make chart-build chart-push
 
   ocp-bundle:
-    if: github.ref_type == 'tag'
     needs:
     - docker-build-push
     runs-on: ubuntu-latest
@@ -104,23 +103,38 @@ jobs:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}  # token must be explicitly set here for push to work in following step
+    - name: Set is_push flag
+      id: set-is-push
+      run: |
+        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+          echo "is_push=false" >> $GITHUB_ENV
+        else
+          echo "is_push=true" >> $GITHUB_ENV
+        fi
+    - name: Determine version, tag, and base branch - Process based on is_push flag
+      run: |
+        if [[ "$is_push" == "true" ]]; then
+          echo "Setting VERSION_WITH_PREFIX to git commit hash."
+          VERSION_WITH_PREFIX=$(git rev-parse --short HEAD)
+          echo VERSION_WITH_PREFIX=$VERSION_WITH_PREFIX >> $GITHUB_ENV
+        else
+          git_tag=${{ github.ref_name }}
+          echo VERSION_WITH_PREFIX=$git_tag >> $GITHUB_ENV
+          echo VERSION_WITHOUT_PREFIX=${git_tag:1} >> $GITHUB_ENV  # without the 'v' prefix
+          if echo $git_tag | grep beta; then
+            base_branch=$DEFAULT_BRANCH
+          else
+            v_major_minor=$(echo $git_tag | grep -Eo '^v[0-9]+\.[0-9]+')
+            base_branch=$v_major_minor.x
+          fi
+          echo BASE_BRANCH=$base_branch >> $GITHUB_ENV
+        fi
     - uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
-    - name: Determine version, tag, and base branch
-      run: |
-        git_tag=${{ github.ref_name }}
-        echo VERSION_WITH_PREFIX=$git_tag        >> $GITHUB_ENV
-        echo VERSION_WITHOUT_PREFIX=${git_tag:1} >> $GITHUB_ENV  # without the 'v' prefix
-        if echo $git_tag | grep beta; then
-          base_branch=$DEFAULT_BRANCH
-        else
-          v_major_minor=$(echo $git_tag | grep -Eo '^v[0-9]+\.[0-9]+')
-          base_branch=$v_major_minor.x
-        fi
-        echo BASE_BRANCH=$base_branch >> $GITHUB_ENV
+
     - name: Lookup image digest
       run: |
         network_operator_digest=$(skopeo inspect docker://$REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX | jq -r .Digest)
@@ -130,14 +144,26 @@ jobs:
       env:
         TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.NETWORK_OPERATOR_DIGEST }}
         BUNDLE_IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:${{ env.VERSION_WITH_PREFIX }}
-        VERSION: ${{ env.VERSION_WITHOUT_PREFIX }}
         NGC_CLI_API_KEY: ${{ secrets.NVCR_TOKEN }}
       run: |
-        version_major_minor=$(echo $VERSION_WITH_PREFIX | grep -Eo 'v[0-9]+\.[0-9]+')
-        export CHANNELS=stable,$version_major_minor
-        export DEFAULT_CHANNEL=$version_major_minor
+        if [[ "$is_push" == "false" ]]; then
+          export VERSION=${{ env.VERSION_WITHOUT_PREFIX }}
+          version_major_minor=$(echo $VERSION_WITH_PREFIX | grep -Eo 'v[0-9]+\.[0-9]+')
+          export CHANNELS=stable,$version_major_minor
+          export DEFAULT_CHANNEL=$version_major_minor
+        else
+          export DEFAULT_CHANNEL=v1.1 # hard coded
+          export CHANNELS=stable,v1.1 # hard coded
+          export VERSION=1.1.0-${{ env.VERSION_WITH_PREFIX }}  # using the commit hash
+        fi
         make bundle bundle-build bundle-push
+        if [[ "$is_push" == "true" ]]; then
+          export BUNDLE_IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:latest  # hard coded
+          make bundle-build bundle-push
+        fi
+
     - name: Create PR with bundle to Network Operator
+      if: github.ref_type == 'tag'
       env:
         FEATURE_BRANCH: update-ocp-bundle-to-${{ env.VERSION_WITH_PREFIX }}
       run: |
@@ -157,15 +183,16 @@ jobs:
           --title "task: update bundle to $VERSION_WITH_PREFIX" \
           --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
     - name: Determine if to send bundle to RedHat
+      if: github.ref_type == 'tag'
       run: |
         echo SEND_BUNDLE_TO_REDHAT=$(echo ${{ github.ref_name}} | grep -qE "v[0-9]+.[0-9]+.[0-9]+$" && echo true || echo false) >> $GITHUB_ENV
-    - if: ${{ env.SEND_BUNDLE_TO_REDHAT == 'true' }}
+    - if: ${{ github.ref_type == 'tag' && env.SEND_BUNDLE_TO_REDHAT == 'true' }}
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}  # token must be explicitly set here for push to work in following step
         repository: ${{ env.UPSTREAM_REPO_OWNER }}/certified-operators
         path: certified-operators
-    - if: ${{ env.SEND_BUNDLE_TO_REDHAT == 'true' }}
+    - if: ${{ github.ref_type == 'tag' && env.SEND_BUNDLE_TO_REDHAT == 'true' }}
       name: Create PR with bundle to RedHat
       env:
         UPSTREAM_DEFAULT_BRANCH: main
