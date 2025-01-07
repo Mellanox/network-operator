@@ -178,7 +178,7 @@ nic-configuration-operator-chart:
     image:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator
-      tag: v0.1.14
+      tag: v0.1.15
   configDaemon:
     image:
       repository: ghcr.io/mellanox
