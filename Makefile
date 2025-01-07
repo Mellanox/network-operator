@@ -391,6 +391,7 @@ generate: $(CONTROLLER_GEN) ## Generate code
 
 .PHONY: bundle
 bundle: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate bundle manifests and metadata, then validate generated files.
+	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/config/manager --outputDir ../config/manager/
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
@@ -412,7 +413,6 @@ release-build:
 	cd hack && $(GO) run release.go --templateDir ./templates/samples/ --outputDir ../config/samples/
 	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
-	cd hack && $(GO) run release.go --templateDir ./templates/config/manager --outputDir ../config/manager/
 
 # dev environment
 
