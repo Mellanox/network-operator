@@ -51,7 +51,6 @@ type ImageSpec struct {
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.\-\/]+
 	Repository string `json:"repository"`
 	// Version of the image to use
-	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.-]+
 	Version string `json:"version"`
 	// ImagePullSecrets is an optional list of references to secrets in the same
 	// namespace to use for pulling the image

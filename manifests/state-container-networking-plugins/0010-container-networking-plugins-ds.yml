@@ -51,7 +51,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: cni-plugins
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true

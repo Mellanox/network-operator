@@ -45,7 +45,7 @@ spec:
       terminationGracePeriodSeconds: 10        
       initContainers:
         - name: install-multus-binary
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           command: ["/install_multus"]
           args:
             - "--type"
@@ -64,7 +64,7 @@ spec:
       {{- end }}
       containers:
         - name: kube-multus
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           {{- if hasPrefix .CrSpec.Version "v4" }}
           command: ["/thin_entrypoint"]
           args:

@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/gomega"
 
@@ -51,6 +52,7 @@ const (
 	defaultTestRepository               = "myRepo"
 	defaultTestImage                    = "myImage"
 	defaultTestVersion                  = "myVersion"
+	defaultTestVersionSha256            = "sha256:1699d23027ea30c9fa"
 )
 
 var testLogger = log.Log.WithName("testLog")
@@ -95,6 +97,10 @@ func (t *testScope) New(fn clientBuilderFunc, dir string) testScope {
 		openshiftCatalog: osCatalog,
 		namespace:        config.FromEnv().State.NetworkOperatorResourceNamespace,
 	}
+}
+
+func getImagePathWithSha256() string {
+	return defaultTestRepository + "/" + defaultTestImage + "@" + defaultTestVersionSha256
 }
 
 func getTestCatalog() state.InfoCatalog {
@@ -159,9 +165,13 @@ func getNADConfigIPAMJSON(ipam nadConfigIPAM) string {
 
 func assertCommonPodTemplateFields(template *corev1.PodTemplateSpec, image *mellanoxv1alpha1.ImageSpec) {
 	// Image name
-	Expect(template.Spec.Containers[0].Image).To(Equal(
-		fmt.Sprintf("%v/%v:%v", image.Repository, image.Image, image.Version)),
-	)
+	if strings.HasPrefix(image.Version, "sha256:") {
+		Expect(template.Spec.Containers[0].Image).To(Equal(getImagePathWithSha256()))
+	} else {
+		Expect(template.Spec.Containers[0].Image).To(Equal(
+			fmt.Sprintf("%v/%v:%v", image.Repository, image.Image, image.Version)),
+		)
+	}
 
 	// ImagePullSecrets
 	Expect(template.Spec.ImagePullSecrets).To(ConsistOf(
