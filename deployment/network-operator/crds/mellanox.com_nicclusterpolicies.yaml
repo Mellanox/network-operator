@@ -121,7 +121,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -208,7 +207,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -280,7 +278,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -552,7 +549,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -887,7 +883,6 @@ spec:
                     type: object
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -965,7 +960,6 @@ spec:
                     type: boolean
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -1041,7 +1035,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1108,7 +1101,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1175,7 +1167,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1245,7 +1236,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1324,7 +1314,6 @@ spec:
                     type: boolean
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image

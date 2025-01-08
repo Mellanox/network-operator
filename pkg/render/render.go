@@ -103,6 +103,14 @@ func nindentPrefix(spaces int, prefix, v string) string {
 	return strings.Replace(nindent(spaces, prefix+v), " ", "", len(prefix))
 }
 
+// imagePath returns container image path, supporting sha256 format
+func imagePath(repository, image, version string) string {
+	if strings.HasPrefix(version, "sha256:") {
+		return repository + "/" + image + "@" + version
+	}
+	return repository + "/" + image + ":" + version
+}
+
 // renderFile renders a single file to a list of k8s unstructured objects
 func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData) ([]*unstructured.Unstructured, error) {
 	// Read file
@@ -125,6 +133,7 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		"nindent":       nindent,
 		"nindentPrefix": nindentPrefix,
 		"hasPrefix":     strings.HasPrefix,
+		"imagePath":     imagePath,
 	})
 
 	if data.Funcs != nil {

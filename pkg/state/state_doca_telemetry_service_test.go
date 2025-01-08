@@ -103,4 +103,22 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "Role", "RoleBinding"}
 		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 	})
+	It("should use SHA256 format", func() {
+		withSha256 := cr.DeepCopy()
+		withSha256.Spec.DOCATelemetryService.Version = defaultTestVersionSha256
+		got, err := s.GetManifestObjects(ctx, withSha256, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap"}
+		assertUnstructuredListHasExactKinds(got, expectedKinds...)
+
+		for _, obj := range got {
+			// The image should be in SHA256 format
+			if obj.GetKind() == "DaemonSet" {
+				ds := &appsv1.DaemonSet{}
+				Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
+				Expect(ds.Spec.Template.Spec.Containers[0].Image).To(Equal(getImagePathWithSha256()))
+			}
+
+		}
+	})
 })
