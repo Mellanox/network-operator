@@ -19,17 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - if: github.ref_type == 'branch'
-      name: Determine docker tags (when git branch)
+    - name: Determine docker tags
       run: |
-        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
+        git_sha=$(git rev-parse --short HEAD)                                  # short git commit hash
+        git_tag=${{ github.ref_type == 'tag' && github.ref_name || '' }}       # git tag, if triggered by tag event
         latest=${{ github.ref_name == env.DEFAULT_BRANCH && 'latest' || '' }}  # 'latest', if branch is master
-        echo DOCKER_TAGS=""$git_sha $latest"" >> $GITHUB_ENV
-    - if: github.ref_type == 'tag'
-      name: Determine docker tags (when git tag)
-      run: |
-        git_tag=${{ github.ref_name }}
-        echo DOCKER_TAGS=""$git_tag"" >> $GITHUB_ENV
+        echo DOCKER_TAGS=""$git_sha $git_tag $latest"" | tee -a $GITHUB_ENV
     - uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
