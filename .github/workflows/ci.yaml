@@ -38,31 +38,19 @@ jobs:
         for docker_tag in $DOCKER_TAGS; do
           make VERSION=$docker_tag image-build-multiarch image-push-multiarch
         done
+    outputs:
+      default_branch: ${{ env.DEFAULT_BRANCH }}  # we output this here, to use in the following job's conditioning (due to github actions environment variable scope limitations).
 
   helm-package-publish:
+    if:  github.ref_type == 'tag' || github.ref_name == ${{ needs.docker-build-push.outputs.default_branch }}
     needs:
     - docker-build-push
     runs-on: ubuntu-latest
+    env:
+      NGC_REPO: nvstaging/mellanox/network-operator
     steps:
-    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
-      uses: actions/checkout@v4
-    - if: github.ref_name == env.DEFAULT_BRANCH
-      name: Determine versions (when git branch)
-      run: |
-        app_version=$(git rev-parse --short HEAD)  # short git commit hash
-        current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
-        echo APP_VERSION=""$app_version""                    >> $GITHUB_ENV
-        echo VERSION=""$current_chart_version-$app_version"" >> $GITHUB_ENV
-    - if: github.ref_type == 'tag'
-      name: Determine versions (when git tag)
-      run: |
-        git_tag=${{ github.ref_name }}
-        app_version=$git_tag
-        chart_version=${git_tag:1}  # without the 'v' prefix
-        echo APP_VERSION=""$app_version"" >> $GITHUB_ENV
-        echo VERSION=""$chart_version""   >> $GITHUB_ENV
-    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
-      name: NGC setup and authentication
+    - uses: actions/checkout@v4
+    - name: NGC setup and authentication
       run: |
         wget \
           --no-verbose \
@@ -79,12 +67,16 @@ jobs:
           mellanox
           no-ace
         EOF
-    - if: github.ref_name == env.DEFAULT_BRANCH || github.ref_type == 'tag'
-      name: Make package and push
-      env:
-        NGC_REPO: nvstaging/mellanox/network-operator
+    - name: Make package and push (`current_version+git_sha` as chart version)
       run: |
-        make chart-build chart-push
+        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
+        current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
+        APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha make chart-build chart-push
+    - name: Make package and push (`git_tag` as chart version)
+      if: github.ref_type == 'tag'
+      run: |
+        git_tag=${{ github.ref_name }}
+        APP_VERSION=$git_tag VERSION=${git_tag:1} make chart-build chart-push  # VERSION as 'v' prefix removed
 
   ocp-bundle:
     needs:
