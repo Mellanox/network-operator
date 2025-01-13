@@ -54,7 +54,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: whereabouts
-        image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+        image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
         command: [ "/bin/sh" ]
         args:
         - -c

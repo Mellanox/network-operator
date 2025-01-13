@@ -113,6 +113,22 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
+	It("should render Daemonset image with SHA256 format", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.Version = "sha256:1699d23027ea30c9fa"
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Image).To(Equal("myrepo/myimage@sha256:1699d23027ea30c9fa"))
+		})).To(BeTrue())
+	})
+
 	It("should render Daemonset with NodeAffinity when specified in CR", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 

@@ -87,7 +87,7 @@ spec:
       {{- end }}
       containers:
         - name: nv-ipam-controller
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           command: ["/ipam-controller"]
           args:

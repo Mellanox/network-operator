@@ -95,6 +95,34 @@ var _ = Describe("NVIPAM Controller", func() {
 			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
 		})
 
+		It("should create Daemonset - SHA256 image format", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-node")
+			cr.Spec.NvIpam.Version = defaultTestVersionSha256
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify DaemonSet")
+			ds := &appsv1.DaemonSet{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-node"}, ds)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDaemonSetFields(ds, &cr.Spec.NvIpam.ImageSpec, cr)
+		})
+
+		It("should create Deployment - SHA256 image format", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")
+			cr.Spec.NvIpam.Version = defaultTestVersionSha256
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-controller"}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
+		})
+
 		It("should create Deployment with Webhook when specified in CR", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")

@@ -59,6 +59,22 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 		})
 
+		It("should create Daemonset - SHA256 version", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithCNIPlugins()
+			cr.Spec.SecondaryNetwork.CniPlugins.Version = "sha256:1699d23027ea30c9fa"
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify DaemonSet")
+			ds := &appsv1.DaemonSet{}
+			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace, Name: "cni-plugins-ds"}, ds)
+			Expect(err).NotTo(HaveOccurred())
+			expectedDs := getExpectedMinimalCniPluginDS()
+			expectedDs.Spec.Template.Spec.Containers[0].Image = "myrepo/myimage@sha256:1699d23027ea30c9fa"
+			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
+		})
+
 		It("should create Daemonset with ImagePullSecrets when specified in CR", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()

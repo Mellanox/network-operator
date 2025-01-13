@@ -58,7 +58,7 @@ spec:
       {{- end }}
       containers:
         - name: nic-feature-discovery
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           command: [ "/nic-feature-discovery" ]
           args:
             - --v=0

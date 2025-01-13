@@ -305,7 +305,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 		imageRepo := "nvcr.io/nvidia/doca"
 		imageName := "doca-telemetry-service"
 		imageVersion := "1.15.5-doca2.5.0"
-		updatedVersion := "v9.9.9-doca2.5.0"
+		updatedVersion := "sha256:1699d23027ea30c9fa"
 		ctx := context.Background()
 		It("should create, update and delete doca-telemetry-service through NICClusterPolicy", func() {
 			By("Create doca-telemetry-service through NICClusterPolicy")
@@ -355,7 +355,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			}, timeout*3, interval).Should(BeTrue())
 
 			By("Update DOCATelemetryService through NICClusterPolicy")
-			expectedImageName := fmt.Sprintf("%v/%v:%v", imageRepo, imageName, updatedVersion)
+			expectedImageName := fmt.Sprintf("%v/%v@%v", imageRepo, imageName, updatedVersion)
 
 			// Patch the NICClusterPolicy with the updated DOCATelemetryService version number.
 			patch := []byte(fmt.Sprintf(`{"spec": {"docaTelemetryService":{"version": %q}}}`, updatedVersion))
