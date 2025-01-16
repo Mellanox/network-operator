@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - "master"
+      - "v*.x"
+
+jobs:
+  wait_for_ci:
+    if: ${{ startsWith(github.event.pull_request.title, 'cdcd:') }}
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+    steps:
+      - name: GitHub Checks
+        uses: poseidon/wait-for-status-checks@v0.6.0
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+  update_network_operator_version:
+    needs:
+      - wait_for_ci
+    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      PR_NUMBER: ${{ github.event.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
+      - run:
+          gh pr merge $PR_NUMBER

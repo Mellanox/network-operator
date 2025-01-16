@@ -1,0 +1,67 @@
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  update_network_operator_version:
+    if: ${{ startsWith(github.event.issue.title, 'Release v') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
+      - run:
+          echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk '{ print $2 }'`" >> $GITHUB_ENV
+      - name: Determine base branch
+        run: |
+          echo "BASE_BRANCH=${{ contains(env.RELEASE_VERSION, 'beta') && 'master' || env.RELEASE_VERSION }}" >> $GITHUB_ENV
+      - run: |
+          git config user.name  nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+          git checkout -b cidi/update-network-operator-to-$RELEASE_VERSION
+          yq -i e '.NetworkOperator.version |= "${{ env.RELEASE_VERSION }}"' hack/release.yaml
+          yq -i e '.version |= "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml 
+          yq -i e '.appVersion |= "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml 
+          make release-build
+          
+          if ! git diff --color --unified=0 --exit-code; then
+            git add deployment/network-operator/
+            git add hack/release.yaml
+            git commit -sam "cicd: update Network Operator to $RELEASE_VERSION in chart values"
+            git push -u origin cidi/update-network-operator-to-$RELEASE_VERSION
+            gh pr create \
+              --repo ${{ github.repository_owner }}/network-operator \
+              --base $BASE_BRANCH \
+              --head $(git branch --show-current) \
+              --title "cicd: update Network Operator to $RELEASE_VERSION in chart values" \
+              --body "Created by the *${{ github.job }}* job."
+          fi
+
+  update_sriov_operator_version:
+    if: ${{ startsWith(github.event.issue.title, 'Release v') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          repository: ${{ github.repository_owner }}/network-operator
+          path: sriov-network-operator-fork
+      - run:
+          echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }'`" >> $GITHUB_ENV
+      - name: Create PR to update image tags in network-operator values
+        run: |
+          cd sriov-network-operator-fork
+          git config user.name  nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+
+          git checkout -b $RELEASE_VERSION origin/network-operator-$RELEASE_VERSION
+          git tag $RELEASE_VERSION
+          git push origin --tags
+    
