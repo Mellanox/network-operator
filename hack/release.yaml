@@ -5,7 +5,7 @@ NetworkOperator:
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
-  version: v0.0.2
+  version: v0.0.3
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox

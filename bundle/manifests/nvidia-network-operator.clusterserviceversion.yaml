@@ -455,7 +455,7 @@ spec:
                 - name: USE_DTK
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
-                  value: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
+                  value: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
                 image: nvcr.io/nvstaging/mellanox/network-operator@sha256:f4b951703334efc7e45284ad4cb42e616684afada9ecd594219fd8419d50b5a5
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
@@ -609,7 +609,7 @@ spec:
     - name: nvidia-network-operator
       image: nvcr.io/nvstaging/mellanox/network-operator@sha256:f4b951703334efc7e45284ad4cb42e616684afada9ecd594219fd8419d50b5a5
     - name: nvidia-network-operator-init-container
-      image: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
+      image: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
     - name: rdma-shared-device-plugin
       image: ghcr.io/mellanox/k8s-rdma-shared-dev-plugin@sha256:9f468fdc4449e65e4772575f83aa85840a00f97165f9a00ba34695c91d610fbd
     - name: sriov-network-device-plugin
