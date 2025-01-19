@@ -6,7 +6,7 @@ on:
 
 jobs:
   wait_for_ci:
-    if: ${{ startsWith(github.event.pull_request.title, 'cdcd:') }}
+    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') }}
     runs-on: ubuntu-latest
     permissions:
       checks: read
