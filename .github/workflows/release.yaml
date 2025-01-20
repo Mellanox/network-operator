@@ -14,16 +14,23 @@ jobs:
       - uses: actions/checkout@v4
       - run:
           echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk '{ print $2 }'`" >> $GITHUB_ENV
+          echo "CHART_VERSION=`echo "${RELEASE_VERSION#v}"`" >> $GITHUB_ENV
       - name: Determine base branch
         run: |
-          echo "BASE_BRANCH=$(echo $RELEASE_VERSION | grep -q 'beta' && echo 'master' || echo ${RELEASE_VERSION%%.*}.${RELEASE_VERSION#*.}.x)" >> $GITHUB_ENV
+          if echo $RELEASE_VERSION | grep -q beta; then
+            base_branch=master
+          else
+            v_major_minor=$(echo $RELEASE_VERSION | grep -Eo '^v[0-9]+\.[0-9]+')
+            base_branch=$v_major_minor.x
+          fi
+          echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
       - run: |
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
           git checkout -b cidi/update-network-operator-to-$RELEASE_VERSION
-          yq -i e '.NetworkOperator.version |= "${{ env.RELEASE_VERSION }}"' hack/release.yaml
-          yq -i e '.version |= "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml 
-          yq -i e '.appVersion |= "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml 
+          yq -i e '.NetworkOperator.version = "${{ env.RELEASE_VERSION }}"' hack/release.yaml
+          yq -i e '.version = "$CHART_VERSION"' deployment/network-operator/Chart.yaml
+          yq -i e '.appVersion = "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml
           make release-build
           
           if ! git diff --color --unified=0 --exit-code; then
@@ -55,7 +62,8 @@ jobs:
           echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }'`" >> $GITHUB_ENV
       - name: Determine sriov-network-operator branch
         run: |
-          echo "BASE_BRANCH=$(echo network-operator-${RELEASE_VERSION%%.*}.${RELEASE_VERSION#*.}.x)" >> $GITHUB_ENV
+          major_minor=$(echo $RELEASE_VERSION | grep -Eo '[0-9]+\.[0-9]+')
+          echo BASE_BRANCH=network-operator-$major_minor.x | tee -a $GITHUB_ENV
       - name: Create tag to trigger PR that update image tags in network-operator values
         run: |
           cd sriov-network-operator-fork
