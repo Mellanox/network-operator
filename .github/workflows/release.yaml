@@ -12,8 +12,6 @@ jobs:
       ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .
       - run:
           echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk '{ print $2 }'`" >> $GITHUB_ENV
       - name: Determine base branch
