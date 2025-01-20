@@ -51,11 +51,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-          repository: ${{ github.repository_owner }}/network-operator
+          repository: ${{ github.repository_owner }}/sriov-network-operator
           path: sriov-network-operator-fork
       - run:
           echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }'`" >> $GITHUB_ENV
-      - name: Create PR to update image tags in network-operator values
+      - name: Create tag to trigger PR that update image tags in network-operator values
         run: |
           cd sriov-network-operator-fork
           git config user.name  nvidia-ci-cd
