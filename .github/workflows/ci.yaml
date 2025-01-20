@@ -121,15 +121,20 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
-
     - name: Lookup image digest
       run: |
-        network_operator_digest=$(skopeo inspect docker://$REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX | jq -r .Digest)
+        if echo $VERSION_WITH_PREFIX | grep '-'; then
+          IMAGE_REGISTRY=$REGISTRY
+        else
+          IMAGE_REGISTRY="nvcr.io/nvidia/cloud-native" # GA release
+        fi
+        network_operator_digest=$(skopeo inspect docker://$IMAGE_REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX | jq -r .Digest)
         echo $network_operator_digest | wc -w | grep 1  # verifies value not empty
         echo NETWORK_OPERATOR_DIGEST=$network_operator_digest >> $GITHUB_ENV
+        echo IMAGE_REGISTRY=$IMAGE_REGISTRY >>  $GITHUB_ENV
     - name: Make bundle
       env:
-        TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.NETWORK_OPERATOR_DIGEST }}
+        TAG: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.NETWORK_OPERATOR_DIGEST }}
         BUNDLE_IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:${{ env.VERSION_WITH_PREFIX }}
         NGC_CLI_API_KEY: ${{ secrets.NVCR_TOKEN }}
       run: |
