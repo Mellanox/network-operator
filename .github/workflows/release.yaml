@@ -12,9 +12,9 @@ jobs:
       ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
       - uses: actions/checkout@v4
-      - run:
-          echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk '{ print $2 }'`" >> $GITHUB_ENV
-          echo "CHART_VERSION=`echo "${RELEASE_VERSION#v}"`" >> $GITHUB_ENV
+      - run: |
+        echo "RELEASE_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')" >> $GITHUB_ENV
+        echo "CHART_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
       - name: Determine base branch
         run: |
           if echo $RELEASE_VERSION | grep -q beta; then
@@ -27,7 +27,7 @@ jobs:
       - run: |
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
-          git checkout -b cidi/update-network-operator-to-$RELEASE_VERSION
+          git checkout -b cicd/update-network-operator-to-$RELEASE_VERSION
           yq -i e '.NetworkOperator.version = "${{ env.RELEASE_VERSION }}"' hack/release.yaml
           yq -i e '.version = "$CHART_VERSION"' deployment/network-operator/Chart.yaml
           yq -i e '.appVersion = "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml
@@ -37,7 +37,7 @@ jobs:
             git add deployment/network-operator/
             git add hack/release.yaml
             git commit -sam "cicd: update Network Operator to $RELEASE_VERSION in chart values"
-            git push -u origin cidi/update-network-operator-to-$RELEASE_VERSION
+            git push -u origin cicd/update-network-operator-to-$RELEASE_VERSION
             gh pr create \
               --repo ${{ github.repository_owner }}/network-operator \
               --base $BASE_BRANCH \
@@ -58,8 +58,9 @@ jobs:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
           repository: ${{ github.repository_owner }}/sriov-network-operator
           path: sriov-network-operator-fork
-      - run:
-          echo "RELEASE_VERSION=`echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }'`" >> $GITHUB_ENV
+          fetch-depth: 0
+      - run: |
+          echo "RELEASE_VERSION=$(echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }')" >> $GITHUB_ENV
       - name: Determine sriov-network-operator branch
         run: |
           major_minor=$(echo $RELEASE_VERSION | grep -Eo '[0-9]+\.[0-9]+')
