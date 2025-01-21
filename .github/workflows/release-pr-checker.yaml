@@ -1,5 +1,5 @@
 on:
-  push:
+  pull_request:
     branches:
       - "master"
       - "v*.x"
@@ -15,6 +15,7 @@ jobs:
         uses: poseidon/wait-for-status-checks@v0.6.0
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          timeout: 4h
   update_network_operator_version:
     needs:
       - wait_for_ci
