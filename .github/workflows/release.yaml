@@ -14,7 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           echo "RELEASE_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')" >> $GITHUB_ENV
-          echo "CHART_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
+      - run: |
+          echo "CHART_VERSION=$(echo ${RELEASE_VERSION#v})" >> $GITHUB_ENV
       - name: Determine base branch
         run: |
           if echo $RELEASE_VERSION | grep -q beta; then
