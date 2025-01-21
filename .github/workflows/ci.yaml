@@ -123,10 +123,10 @@ jobs:
         password: ${{ secrets.NVCR_TOKEN }}
     - name: Lookup image digest
       run: |
-        if echo $VERSION_WITH_PREFIX | grep '-'; then
-          IMAGE_REGISTRY=$REGISTRY
-        else
+        if [[ "$is_push" == "false" && "$VERSION_WITH_PREFIX" != *-* ]]; then
           IMAGE_REGISTRY="nvcr.io/nvidia/cloud-native" # GA release
+        else
+          IMAGE_REGISTRY=$REGISTRY
         fi
         network_operator_digest=$(skopeo inspect docker://$IMAGE_REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX | jq -r .Digest)
         echo $network_operator_digest | wc -w | grep 1  # verifies value not empty
