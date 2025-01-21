@@ -42,7 +42,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: {{ .RdmaSharedDevicePlugin.Image }}
     repository: {{ .RdmaSharedDevicePlugin.Repository }}
-    version: {{ .RdmaSharedDevicePlugin.Version }}
+    version: {{ Sha256 .RdmaSharedDevicePlugin }}
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
