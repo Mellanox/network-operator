@@ -40,7 +40,7 @@ spec:
 {{if .DeployInitContainer}}
       initContainers:
         - name: ofed-driver-validation
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           command: [ 'sh', '-c' ]
           args: [ "until lsmod | grep mlx5_core; do echo waiting for OFED drivers to be loaded; sleep 30; done" ]
@@ -52,7 +52,7 @@ spec:
       {{- end }}
       {{- end }}
       containers:
-      - image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+      - image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
         name: rdma-shared-dp
         command: [ "/bin/k8s-rdma-shared-dp" ]
         {{- if .CrSpec.UseCdi }}

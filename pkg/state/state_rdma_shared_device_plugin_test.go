@@ -42,6 +42,14 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			Expect(len(objs)).To(Equal(1))
 			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
 		})
+		It("manifests with RdmaSharedDevicePlugin - image as SHA256", func() {
+			cr := getRDMASharedDevicePlugin()
+			cr.Spec.RdmaSharedDevicePlugin.Version = defaultTestVersionSha256
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(1))
+			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
+		})
 		It("Openshift manifests", func() {
 			cr := getRDMASharedDevicePlugin()
 			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.openshiftCatalog, testLogger)

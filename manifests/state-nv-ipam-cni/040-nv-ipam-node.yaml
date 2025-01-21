@@ -56,7 +56,7 @@ spec:
       {{- end }}
       containers:
       - name: nv-ipam-node
-        image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+        image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
         imagePullPolicy: IfNotPresent
         env:
         - name: NODE_NAME

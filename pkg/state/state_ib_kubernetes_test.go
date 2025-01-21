@@ -241,5 +241,42 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			limits := resources["limits"]
 			Expect(limits).To(BeNil())
 		})
+		It("Should have image in SHA256 format", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "myImage"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "sha256:1699d23027ea30c9fa"
+			ibKubernetesSpec.Repository = "myRepo"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			containers := templateSpec["containers"].([]interface{})
+			image := containers[0].(map[string]interface{})["image"]
+			Expect(image).To(Equal("myRepo/myImage@sha256:1699d23027ea30c9fa"))
+		})
 	})
 })
