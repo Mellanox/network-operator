@@ -42,7 +42,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: doca-telemetry-service
-        image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+        image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
         {{- with .RuntimeSpec.ContainerResources }}
         {{- with index . "doca-telemetry-service" }}
         resources:

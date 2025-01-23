@@ -67,7 +67,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: ib-kubernetes
-          image: {{ .CrSpec.Repository }}/{{ .CrSpec.Image }}:{{ .CrSpec.Version }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/ib-kubernetes"]
           {{- with .RuntimeSpec.ContainerResources }}

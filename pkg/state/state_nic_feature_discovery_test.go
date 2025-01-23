@@ -41,4 +41,11 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 	It("should test fields are set correctly", func() {
 		GetManifestObjectsTest(ctx, cr, getTestCatalog(), imageSpec, s)
 	})
+	It("should use SHA256 format", func() {
+		withSha256 := cr.DeepCopy()
+		withSha256.Spec.NicFeatureDiscovery.Version = defaultTestVersionSha256
+		imageSpecWithSha256 := imageSpec.DeepCopy()
+		imageSpecWithSha256.Version = defaultTestVersionSha256
+		GetManifestObjectsTest(ctx, withSha256, getTestCatalog(), imageSpecWithSha256, s)
+	})
 })
