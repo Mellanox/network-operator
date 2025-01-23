@@ -17,6 +17,6 @@ jobs:
           --repo ${{ github.repository_owner }}/network-operator-docs \
           --ref main \
           --field git_tag=$GIT_TAG
-        gh run list --repo ${{ github.repository_owner }}/network-operator-docs --branch feature/docs-ci-refactor --workflow docs-ci.yaml --json url -q '.[0].url'  # print downstream workflow's last run URL
-        run_id=$(gh run list --repo ${{ github.repository_owner }}/network-operator-docs --branch feature/docs-ci-refactor --workflow docs-ci.yaml --json databaseId -q '.[0].databaseId')
-        gh run watch $run_id --repo ${{ github.repository_owner }}/network-operator-docs --exit-status  # set exit code based on downstream workflow's result
+        gh run list --repo ${{ github.repository_owner }}/network-operator-docs --workflow docs-ci.yaml --json url -q '.[0].url'                          # print downstream workflow's last run URL
+        run_id=$(gh run list --repo ${{ github.repository_owner }}/network-operator-docs --workflow docs-ci.yaml --json databaseId -q '.[0].databaseId')  # lookup downstream workflow's last run ID
+        gh run watch $run_id --repo ${{ github.repository_owner }}/network-operator-docs --exit-status                                                    # set exit code based on downstream workflow's result
