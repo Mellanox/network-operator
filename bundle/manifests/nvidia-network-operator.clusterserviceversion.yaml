@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvidia/cloud-native/network-operator@sha256:f258e8665d094c09159654759bc9ae41fbe0f7fffe95139ec02964759c3d8a87
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:558046cf19a4d73abafa1ef3250470047100c357d400fe208d1d1d613883824d
     alm-examples: |-
       [
         {
@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-11-26T09:58:46Z"
+    createdAt: "2025-01-23T10:48:08Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -110,7 +110,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v24.10.0
+  name: nvidia-network-operator.v24.10.1-rc.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -456,7 +456,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container:v0.0.2
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:f258e8665d094c09159654759bc9ae41fbe0f7fffe95139ec02964759c3d8a87
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:558046cf19a4d73abafa1ef3250470047100c357d400fe208d1d1d613883824d
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -563,7 +563,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 24.10.0
+  version: 24.10.1-rc.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -607,7 +607,7 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvidia/cloud-native/network-operator@sha256:f258e8665d094c09159654759bc9ae41fbe0f7fffe95139ec02964759c3d8a87
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:558046cf19a4d73abafa1ef3250470047100c357d400fe208d1d1d613883824d
     - name: nvidia-network-operator-init-container
       image: ghcr.io/mellanox/network-operator-init-container@sha256:1699d23027ea30c9fa59575a914114bdfd5a87a359caf8c0a9b16d409ec0d068
     - name: rdma-shared-device-plugin
