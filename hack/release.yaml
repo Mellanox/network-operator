@@ -37,7 +37,7 @@ RdmaSharedDevicePlugin:
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v3.8.0
+  version: v3.9.0
 IbKubernetes:
   image: ib-kubernetes
   repository: ghcr.io/mellanox
