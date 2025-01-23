@@ -6,8 +6,17 @@ on:
     - "v*"
 
 jobs:
-  trigger_downstream_workflow:
-    uses: Mellanox/network-operator-docs/.github/workflows/docs-ci.yaml@main
-    with:
-      git_tag: ${{ github.ref_name }}
-    secrets: inherit
+  call_docs_ci_downstream_workflow:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      GIT_TAG: ${{ github.ref_name }}
+    steps:
+    - run: |
+        gh workflow run docs-ci.yaml \
+          --repo ${{ github.repository_owner }}/network-operator-docs \
+          --ref main \
+          --field git_tag=$GIT_TAG
+        gh run list --repo ${{ github.repository_owner }}/network-operator-docs --branch feature/docs-ci-refactor --workflow docs-ci.yaml --json url -q '.[0].url'  # print downstream workflow's last run URL
+        run_id=$(gh run list --repo ${{ github.repository_owner }}/network-operator-docs --branch feature/docs-ci-refactor --workflow docs-ci.yaml --json databaseId -q '.[0].databaseId')
+        gh run watch $run_id --repo ${{ github.repository_owner }}/network-operator-docs --exit-status  # set exit code based on downstream workflow's result
