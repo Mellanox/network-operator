@@ -158,7 +158,7 @@ sriov-network-operator:
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.1.1
     ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.37.0
     # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.2.0
-    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.8.0
+    sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.9.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-25.1.0-beta.3
   # imagePullSecrest for SR-IOV Network Operator related images
