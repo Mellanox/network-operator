@@ -1,4 +1,4 @@
-{{- if and .Values.gc.enable (or .Values.enableNodeFeatureApi .Values.topologyUpdater.enable) -}}
+{{- if and .Values.gc.enable -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +13,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.gc.replicaCount | default 1 }}
+  revisionHistoryLimit: {{ .Values.gc.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "node-feature-discovery.selectorLabels" . | nindent 6 }}
@@ -29,12 +30,16 @@ spec:
     spec:
       serviceAccountName: {{ include "node-feature-discovery.gc.serviceAccountName" . }}
       dnsPolicy: ClusterFirstWithHostNet
+    {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+    {{- end }}
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       securityContext:
         {{- toYaml .Values.gc.podSecurityContext | nindent 8 }}
+      hostNetwork: {{ .Values.gc.hostNetwork }}
       containers:
       - name: gc
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -44,11 +49,17 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+      {{- with .Values.gc.extraEnvs }}
+        {{- toYaml . | nindent 8 }}
+      {{- end}}
         command:
           - "nfd-gc"
         args:
           {{- if .Values.gc.interval | empty | not }}
           - "-gc-interval={{ .Values.gc.interval }}"
+          {{- end }}
+          {{- with .Values.gc.extraArgs }}
+          {{- toYaml . | nindent 10 }}
           {{- end }}
         resources:
       {{- toYaml .Values.gc.resources | nindent 12 }}
