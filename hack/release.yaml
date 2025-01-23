@@ -1,7 +1,7 @@
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: v25.1.0-beta.2
+  version: v25.1.0-beta.3
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: ghcr.io/mellanox
@@ -9,15 +9,15 @@ NetworkOperatorInitContainer:
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-25.1.0-beta.2
+  version: network-operator-25.1.0-beta.3
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-25.1.0-beta.2
+  version: network-operator-25.1.0-beta.3
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
-  version: network-operator-25.1.0-beta.2
+  version: network-operator-25.1.0-beta.3
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
@@ -37,7 +37,7 @@ RdmaSharedDevicePlugin:
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v3.8.0
+  version: v3.9.0
 IbKubernetes:
   image: ib-kubernetes
   repository: ghcr.io/mellanox

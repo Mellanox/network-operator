@@ -1,12 +1,12 @@
 on:
-  push:
+  pull_request:
     branches:
       - "master"
       - "v*.x"
 
 jobs:
   wait_for_ci:
-    if: ${{ startsWith(github.event.pull_request.title, 'cdcd:') }}
+    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') }}
     runs-on: ubuntu-latest
     permissions:
       checks: read
@@ -15,6 +15,7 @@ jobs:
         uses: poseidon/wait-for-status-checks@v0.6.0
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          timeout: 4h
   update_network_operator_version:
     needs:
       - wait_for_ci

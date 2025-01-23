@@ -46,6 +46,14 @@ var _ = Describe("IPoIB CNI State tests", func() {
 			Expect(len(objs)).To(Equal(1))
 			GetManifestObjectsTest(ts.context, cr, ts.catalog, cr.Spec.SecondaryNetwork.IPoIB, ts.renderer)
 		})
+		It("manifests with IPoIB CNI - image as SHA256", func() {
+			cr := getNICForIPoIBCNI()
+			cr.Spec.SecondaryNetwork.IPoIB.Version = defaultTestVersionSha256
+			objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(1))
+			GetManifestObjectsTest(ts.context, cr, ts.catalog, cr.Spec.SecondaryNetwork.IPoIB, ts.renderer)
+		})
 		It("manifests with IPoIB CNI for Openshift", func() {
 			cr := getNICForIPoIBCNI()
 			objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.openshiftCatalog, testLogger)

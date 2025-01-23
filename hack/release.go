@@ -49,6 +49,8 @@ type ReleaseImageSpec struct {
 type SHA256ImageRef struct {
 	// ImageRef is the image reference in "sha format" e.g repo/project/image-repo@sha256:abcdef
 	ImageRef string
+	// SHA256 is the SHA256 of the image reference e.g sha256:abcdef
+	SHA256 string
 	// Name is a description of the image reference
 	Name string
 }
@@ -177,6 +179,10 @@ func main() {
 				imageSpec := obj.(*ReleaseImageSpec)
 				return imageSpec.Shas[0].ImageRef
 			},
+			"Sha256": func(obj interface{}) string {
+				imageSpec := obj.(*ReleaseImageSpec)
+				return imageSpec.Shas[0].SHA256
+			},
 		}).ParseFiles(file)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -221,7 +227,7 @@ func resolveImagesSha(release *Release) error {
 				releaseImageSpec.Shas = make([]SHA256ImageRef, len(digests))
 				for i, digest := range digests {
 					sha := fmt.Sprintf("%s/%s@%s", releaseImageSpec.Repository, releaseImageSpec.Image, digest)
-					releaseImageSpec.Shas[i] = SHA256ImageRef{ImageRef: sha, Name: fmt.Sprintf("doca-driver-%d", i)}
+					releaseImageSpec.Shas[i] = SHA256ImageRef{ImageRef: sha, Name: fmt.Sprintf("doca-driver-%d", i), SHA256: digest}
 				}
 			} else {
 				digest, err := resolveImageSha(releaseImageSpec.Repository, releaseImageSpec.Image,
@@ -231,7 +237,7 @@ func resolveImagesSha(release *Release) error {
 				}
 				releaseImageSpec.Shas = make([]SHA256ImageRef, 1)
 				sha := fmt.Sprintf("%s/%s@%s", releaseImageSpec.Repository, releaseImageSpec.Image, digest)
-				releaseImageSpec.Shas[0] = SHA256ImageRef{ImageRef: sha}
+				releaseImageSpec.Shas[0] = SHA256ImageRef{ImageRef: sha, SHA256: digest}
 			}
 		}
 	}
