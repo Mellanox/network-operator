@@ -33,9 +33,6 @@ webhooks:
       name: '{{ include "maintenance-operator.fullname" . }}-webhook-service'
       namespace: {{ .Release.Namespace }}
       path: /validate-maintenance-nvidia-com-v1alpha1-nodemaintenance
-    {{- if not .Values.operator.admissionController.certificates.certManager.enable }}
-    caBundle: {{ .Values.operator.admissionController.certificates.custom.operator.tlsCrt | b64enc | quote }}
-    {{- end }}      
   failurePolicy: Fail
   name: vnodemaintenance.kb.io
   rules:

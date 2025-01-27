@@ -53,7 +53,7 @@ operator:
       certManager:
         # -- use cert-manager for certificates
         enable: true
-        # -- generate self-signed certificates with cert-manager
+        # -- generate self-signed certificiates with cert-manager
         generateSelfSigned: true
       custom:
         # -- enable custom certificates using secrets

@@ -4,7 +4,7 @@ metadata:
   name: {{ include "maintenance-operator.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/component: manager
+    app.kubernetes.io/component:  maintenance-operator-controller-manager
     app.kubernetes.io/created-by: maintenance-operator
     app.kubernetes.io/part-of: maintenance-operator
     control-plane: {{ .Release.Name }}-controller-manager
@@ -19,6 +19,7 @@ spec:
     metadata:
       labels:
         control-plane: {{ .Release.Name }}-controller-manager
+        app.kubernetes.io/component:  maintenance-operator-controller-manager
       {{- include "maintenance-operator.selectorLabels" . | nindent 8 }}
       annotations:
         kubectl.kubernetes.io/default-container: manager

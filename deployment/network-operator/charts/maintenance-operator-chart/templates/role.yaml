@@ -1,3 +1,4 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -5,22 +6,6 @@ metadata:
   labels:
   {{- include "maintenance-operator.labels" . | nindent 4 }}
 rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
 - apiGroups:
   - ""
   resources:
@@ -62,34 +47,43 @@ rules:
   - patch
   - update
 - apiGroups:
-  - maintenance.nvidia.com
+  - apps
   resources:
-  - maintenanceoperatorconfigs
+  - daemonsets
   verbs:
-  - create
-  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - infrastructures
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - machineconfiguration.openshift.io
+  resources:
+  - machineconfigpools
+  verbs:
   - get
   - list
   - patch
   - update
   - watch
 - apiGroups:
-  - maintenance.nvidia.com
+  - machineconfiguration.openshift.io
   resources:
-  - maintenanceoperatorconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - maintenance.nvidia.com
-  resources:
-  - maintenanceoperatorconfigs/status
+  - machineconfigs
   verbs:
   - get
-  - patch
-  - update
+  - list
+  - watch
 - apiGroups:
   - maintenance.nvidia.com
   resources:
+  - maintenanceoperatorconfigs
   - nodemaintenances
   verbs:
   - create
@@ -102,26 +96,19 @@ rules:
 - apiGroups:
   - maintenance.nvidia.com
   resources:
+  - maintenanceoperatorconfigs/finalizers
   - nodemaintenances/finalizers
   verbs:
   - update
 - apiGroups:
   - maintenance.nvidia.com
   resources:
+  - maintenanceoperatorconfigs/status
   - nodemaintenances/status
   verbs:
   - get
   - patch
   - update
-- apiGroups:
-  - apps
-  resources:
-  - daemonsets
-  verbs:
-  - get
-  - list
-  - watch
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
