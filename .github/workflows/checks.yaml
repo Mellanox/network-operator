@@ -97,7 +97,7 @@ jobs:
           go install github.com/jandelgado/gcov2lcov@latest
           gcov2lcov -infile=network-operator.cover -outfile=coverage.lcov
       - name: Upload coverage to Coveralls
-        uses: coverallsapp/github-action@v2.3.4
+        uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coverage.lcov
