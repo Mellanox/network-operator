@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
+	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade/requestor"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
@@ -192,7 +194,8 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
-func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager,
+	requestorPredicate requestor.ConditionChangedPredicate) error {
 	// we always add object with a same(static) key to the queue to reduce
 	// reconciliation count
 	qHandler := func(q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
@@ -228,7 +231,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		labels := object.GetLabels()
 		_, ok := labels[consts.OfedDriverLabel]
 		return ok
-	}))
+	}), requestorPredicate)
 
 	// react only on label and annotation changes
 	nodePredicates := builder.WithPredicates(
@@ -245,5 +248,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&mellanoxv1alpha1.NicClusterPolicy{}, createUpdateDeleteEnqueue).
 		Watches(&corev1.Node{}, createUpdateEnqueue, nodePredicates).
 		Watches(&appsv1.DaemonSet{}, createUpdateDeleteEnqueue, daemonSetPredicates).
+		Watches(&maintenancev1alpha1.NodeMaintenance{}, createUpdateDeleteEnqueue,
+			builder.WithPredicates(requestorPredicate)).
 		Complete(r)
 }
