@@ -206,6 +206,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - maintenance.nvidia.com
+  resources:
+  - nodemaintenances/status
+  verbs:
+  - get
+- apiGroups:
   - mellanox.com
   resources:
   - hostdevicenetworks

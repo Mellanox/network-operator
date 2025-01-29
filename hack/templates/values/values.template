@@ -270,6 +270,11 @@ operator:
   # parameter. Note that the CNI bin directory should be aligned with the CNI bin
   # directory in the container runtime.
   cniBinDirectory: /opt/cni/bin
+  # -- Enable the use of maintenance operator upgrade logic.
+  maintenanceOperator:
+    useRequestor: false
+    requestorID: "nvidia.network.operator"
+    nodeMaintenanceNamespace: default
   # -- Enable the use of Driver ToolKit to compile DOCA Drivers (OpenShift only).
   useDTK: true
   admissionController:
