@@ -40,6 +40,8 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
+
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/api/v1alpha1/validator"
 	"github.com/Mellanox/network-operator/controllers"
@@ -63,6 +65,7 @@ func init() {
 	utilruntime.Must(netattdefv1.AddToScheme(scheme))
 	utilruntime.Must(osconfigv1.AddToScheme(scheme))
 	utilruntime.Must(imagev1.AddToScheme(scheme))
+	utilruntime.Must(maintenancev1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -225,21 +228,27 @@ func setupUpgradeController(mgr ctrl.Manager, migrationChan chan struct{}) error
 	upgrade.SetDriverName("ofed")
 
 	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade")
-
+	MaintenanceOPEvictionRDMA := upgrade.MaintenanceOPEvictionRDMA
+	requestorOpts := upgrade.GetRequestorOptsFromEnvs()
+	requestorOpts.MaintenanceOPPodEvictionFilter = []maintenancev1alpha1.PodEvictionFiterEntry{
+		{ByResourceNameRegex: &MaintenanceOPEvictionRDMA}}
 	clusterUpdateStateManager, err := upgrade.NewClusterUpgradeStateManager(
-		upgradeLogger.WithName("clusterUpgradeManager"), config.GetConfigOrDie(), nil)
-
+		upgradeLogger.WithName("clusterUpgradeManager"),
+		config.GetConfigOrDie(),
+		nil,
+		upgrade.StateOptions{Requestor: requestorOpts})
 	if err != nil {
 		setupLog.Error(err, "unable to create new ClusterUpdateStateManager", "controller", "Upgrade")
 		return err
 	}
-
+	requestorPredicate := upgrade.NewConditionChangedPredicate(setupLog,
+		requestorOpts.MaintenanceOPRequestorID)
 	if err = (&controllers.UpgradeReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		StateManager: clusterUpdateStateManager,
 		MigrationCh:  migrationChan,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, requestorPredicate); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
 		return err
 	}

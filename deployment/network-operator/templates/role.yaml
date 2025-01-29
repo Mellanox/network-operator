@@ -332,19 +332,7 @@ rules:
     - patch
     - update
 - apiGroups:
-    - maintenance.nvidia.com
-  resources:
-    - nodemaintenances
-  verbs:
-    - create
-    - delete
-    - get
-    - list
-    - patch
-    - update
-    - watch
-- apiGroups:
-    - mellanox.com
+  - mellanox.com
   resources:
     - nicclusterpolicies
     - nicclusterpolicies/status
@@ -459,3 +447,21 @@ rules:
     - get
     - list
     - patch
+- apiGroups:
+  - maintenance.nvidia.com
+  resources:
+  - nodemaintenances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - maintenance.nvidia.com
+  resources:
+  - nodemaintenances/status
+  verbs:
+  - get
