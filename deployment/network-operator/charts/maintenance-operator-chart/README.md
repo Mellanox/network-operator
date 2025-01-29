@@ -17,7 +17,8 @@ Maintenance Operator Helm Chart
 | operator.admissionController.enable | bool | `true` | enable admission controller of the operator |
 | operator.affinity | object | `{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"preference":{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]},"weight":1},{"preference":{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]},"weight":1}]}}` | node affinity for the operator |
 | operator.image.imagePullPolicy | string | `nil` | image pull policy for the operator image |
-| operator.image.repository | string | `"ghcr.io/mellanox/maintenance-operator"` | repository to use for the operator image |
+| operator.image.repository | string | `"ghcr.io/mellanox"` | repository to use for the operator image |
+| operator.image.name | string | `"maintenance-operator"` | image name to use for the operator image |
 | operator.image.tag | string | `nil` | image tag to use for the operator image |
 | operator.nodeSelector | object | `{}` | node selector for the operator |
 | operator.replicas | int | `1` | operator deployment number of repplicas |
