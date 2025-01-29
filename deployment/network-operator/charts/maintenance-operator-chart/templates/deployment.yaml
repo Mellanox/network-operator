@@ -45,7 +45,7 @@ spec:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOKS
           value: {{ quote .Values.operator.admissionController.enable }}
-        image: {{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}
+        image: {{ .Values.operator.image.repository }}/{{ .Values.operator.image.name }}:{{ .Values.operator.image.tag | default .Chart.AppVersion }}
       {{- if .Values.operator.image.imagePullPolicy }}
         imagePullPolicy: {{ .Values.operator.image.imagePullPolicy }}
       {{- end }}

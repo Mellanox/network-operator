@@ -1,7 +1,9 @@
 operator:
   image:
     # -- repository to use for the operator image
-    repository: ghcr.io/mellanox/maintenance-operator
+    repository: ghcr.io/mellanox
+    # -- image name to use for the operator image
+    name: maintenance-operator
     # -- image tag to use for the operator image
     tag: null
     # -- image pull policy for the operator image
