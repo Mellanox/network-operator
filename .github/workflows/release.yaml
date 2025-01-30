@@ -25,6 +25,17 @@ jobs:
             base_branch=$v_major_minor.x
           fi
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
+      - name: Verify release branch exists if "rc" version
+        run: |
+          if echo $RELEASE_VERSION | grep -q 'rc'; then
+            git fetch origin
+            if ! git ls-remote --heads origin $BASE_BRANCH | grep -q "$BASE_BRANCH"; then
+              git config user.name  nvidia-ci-cd
+              git config user.email svc-cloud-orch-gh@nvidia.com
+              git checkout -b $BASE_BRANCH
+              git push -u origin $BASE_BRANCH
+            fi
+          fi
       - run: |
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
