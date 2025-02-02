@@ -15,7 +15,8 @@ jobs:
         uses: poseidon/wait-for-status-checks@v0.6.0
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-          timeout: 4h
+          timeout: 14400
+          interval: 60
   update_network_operator_version:
     needs:
       - wait_for_ci
@@ -29,4 +30,4 @@ jobs:
         with:
           sparse-checkout: .
       - run:
-          gh pr merge $PR_NUMBER
+          gh pr merge $PR_NUMBER --merge --delete-branch
