@@ -71,7 +71,8 @@ jobs:
       run: |
         git_sha=$(git rev-parse --short HEAD)  # short git commit hash
         current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
-        APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha make chart-build chart-push
+        APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha make chart-build chart-push \
+          2> >(tee error.log) || grep 'already exists in the repository' error.log  # catches any errors to `error.log`; if there is a specific error - passes (exit 0)
     - name: Make package and push (`git_tag` as chart version)
       if: github.ref_type == 'tag'
       run: |
