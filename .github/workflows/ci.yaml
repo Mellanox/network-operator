@@ -148,6 +148,7 @@ jobs:
           export DEFAULT_CHANNEL=v1.1 # hard coded
           export CHANNELS=stable,v1.1 # hard coded
           export VERSION=1.1.0-${{ env.VERSION_WITH_PREFIX }}  # using the commit hash
+          export NETWORK_OPERATOR_VERSION=${{ env.VERSION_WITH_PREFIX }} # for push use commit sha
         fi
         make bundle bundle-build bundle-push
         if [[ "$is_push" == "true" ]]; then
