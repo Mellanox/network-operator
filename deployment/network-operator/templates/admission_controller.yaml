@@ -76,7 +76,7 @@ webhooks:
       namespace: {{ .Release.Namespace }}
       path: /validate-mellanox-com-v1alpha1-hostdevicenetwork
     {{- if not .Values.operator.admissionController.useCertManager }}
-    caBundle: {{ .Values.operator.admissionController.certificate.tlsCrt | b64enc | quote }}
+    caBundle: {{ .Values.operator.admissionController.certificate.caCrt | b64enc | quote }}
     {{- end }}
   failurePolicy: Fail
   name: vhostdevicenetwork.kb.io
@@ -99,7 +99,7 @@ webhooks:
       namespace: {{ .Release.Namespace }}
       path: /validate-mellanox-com-v1alpha1-nicclusterpolicy
     {{- if not .Values.operator.admissionController.useCertManager }}
-    caBundle: {{ .Values.operator.admissionController.certificate.tlsCrt | b64enc | quote }}
+    caBundle: {{ .Values.operator.admissionController.certificate.caCrt | b64enc | quote }}
     {{- end }}
   failurePolicy: Fail
   name: vnicclusterpolicy.kb.io
