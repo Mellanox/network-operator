@@ -275,6 +275,11 @@ operator:
     # -- Use cert-manager for generating self-signed certificate.
     useCertManager: true
     # certificate:
+      # caCrt: |
+      #   -----BEGIN CERTIFICATE-----
+      #   MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+      #   ...
+      #   -----END CERTIFICATE-----    
       # tlsCrt: |
       #   -----BEGIN CERTIFICATE-----
       #   MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
