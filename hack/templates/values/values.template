@@ -267,7 +267,7 @@ operator:
   # parameter. Note that the CNI bin directory should be aligned with the CNI bin
   # directory in the container runtime.
   cniBinDirectory: /opt/cni/bin
-  # -- Enable the use of Driver ToolKit to compile OFED drivers (OpenShift only).
+  # -- Enable the use of Driver ToolKit to compile DOCA Drivers (OpenShift only).
   useDTK: true
   admissionController:
     # -- Deploy with admission controller.

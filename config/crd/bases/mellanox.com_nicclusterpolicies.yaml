@@ -562,7 +562,7 @@ spec:
                 properties:
                   certConfig:
                     description: 'Optional: Custom TLS certificates configuration
-                      for driver container'
+                      for DOCA driver container'
                     properties:
                       name:
                         description: Name of the ConfigMap
@@ -608,8 +608,8 @@ spec:
                       type: object
                     type: array
                   env:
-                    description: List of environment variables to set in the OFED
-                      container.
+                    description: List of environment variables to set in the DOCA
+                      driver container.
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.
@@ -731,8 +731,8 @@ spec:
                   forcePrecompiled:
                     default: false
                     description: |-
-                      ForcePrecompiled specifies if only MOFED precompiled images are allowed
-                      If set to false and precompiled image does not exists, MOFED drivers will be compiled on Nodes
+                      ForcePrecompiled specifies if only DOCA driver precompiled images are allowed
+                      If set to false and precompiled image does not exists, DOCA driver will be compiled on Nodes
                       If set to true and precompiled image does not exists, OFED state will be Error.
                     type: boolean
                   image:
@@ -777,7 +777,7 @@ spec:
                     type: object
                   repoConfig:
                     description: 'Optional: Custom package repository configuration
-                      for OFED container'
+                      for DOCA driver container'
                     properties:
                       name:
                         description: Name of the ConfigMap
@@ -805,12 +805,12 @@ spec:
                     default: 300
                     description: |-
                       TerminationGracePeriodSeconds specifies the length of time in seconds
-                      to wait before killing the OFED pod on termination
+                      to wait before killing the DOCA driver container pod on termination
                     format: int64
                     minimum: 0
                     type: integer
                   upgradePolicy:
-                    description: Ofed auto-upgrade settings
+                    description: DOCA driver auto-upgrade settings
                     properties:
                       autoUpgrade:
                         default: false
