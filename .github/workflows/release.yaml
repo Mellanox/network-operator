@@ -39,7 +39,8 @@ jobs:
       - run: |
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
-          git checkout -b cicd/update-network-operator-to-$RELEASE_VERSION
+          git fetch origin $BASE_BRANCH
+          git checkout -b cicd/update-network-operator-to-$RELEASE_VERSION origin/$BASE_BRANCH
           yq -i e '.NetworkOperator.version = "${{ env.RELEASE_VERSION }}"' hack/release.yaml
           yq -i e '.version = "${{ env.CHART_VERSION }}"' deployment/network-operator/Chart.yaml
           yq -i e '.appVersion = "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml
