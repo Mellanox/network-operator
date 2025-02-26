@@ -252,7 +252,7 @@ operator:
                 operator: In
                 values: [ "" ]
   # -- Network Operator image repository.
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
   # -- Network Operator image name
   image: network-operator
   # imagePullSecrets: []

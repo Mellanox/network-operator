@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2025-02-26T15:10:37Z"
+    createdAt: "2025-02-26T16:55:35Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -607,7 +607,7 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:12f0576f372f5adc17b60795952ae47388e50d8fad563b9595f3091eadd8eb29
+      image: nvcr.io/nvidia/cloud-native/network-operator@sha256:12f0576f372f5adc17b60795952ae47388e50d8fad563b9595f3091eadd8eb29
     - name: nvidia-network-operator-init-container
       image: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
     - name: rdma-shared-device-plugin
