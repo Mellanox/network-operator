@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: doca-driver
-    repository: nvcr.io/nvstaging/mellanox
-    version: 25.01-0.3.9.0-0
+    repository: nvcr.io/nvidia/mellanox
+    version: 25.01-0.6.0.0-0
     livenessProbe:
       initialDelaySeconds: 30
       periodSeconds: 30
