@@ -57,6 +57,10 @@ spec:
           spec:
             description: IPPoolSpec contains configuration for IP pool
             properties:
+              defaultGateway:
+                description: if true, add gateway as default gateway in the routes
+                  list
+                type: boolean
               exclusions:
                 description: contains reserved IP addresses that should not be allocated
                   by nv-ipam
@@ -164,6 +168,19 @@ spec:
                 description: amount of IPs to allocate for each node, must be less
                   than amount of available IPs in the subnet
                 type: integer
+              routes:
+                description: static routes list using the gateway specified in the
+                  spec.
+                items:
+                  description: Route contains static route parameters
+                  properties:
+                    dst:
+                      description: The destination of the route, in CIDR notation
+                      type: string
+                  required:
+                  - dst
+                  type: object
+                type: array
               subnet:
                 description: subnet of the pool
                 type: string

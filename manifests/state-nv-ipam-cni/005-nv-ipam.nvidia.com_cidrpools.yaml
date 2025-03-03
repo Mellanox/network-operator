@@ -62,6 +62,10 @@ spec:
                   is define in perNodeNetworkPrefix) and distributed between matching
                   nodes
                 type: string
+              defaultGateway:
+                description: if true, add gateway as default gateway in the routes
+                  list
+                type: boolean
               exclusions:
                 description: contains reserved IP addresses that should not be allocated
                   by nv-ipam
@@ -81,6 +85,7 @@ spec:
               gatewayIndex:
                 description: use IP with this index from the host prefix as a gateway,
                   skip gateway configuration if the value not set
+                format: int32
                 type: integer
               nodeSelector:
                 description: selector for nodes, if empty match all nodes
@@ -170,7 +175,21 @@ spec:
                 description: size of the network prefix for each host, the network
                   defined in "cidr" field will be split to multiple networks with
                   this size.
+                format: int32
                 type: integer
+              routes:
+                description: static routes list. The gateway used will according to
+                  the node allocation.
+                items:
+                  description: Route contains static route parameters
+                  properties:
+                    dst:
+                      description: The destination of the route, in CIDR notation
+                      type: string
+                  required:
+                  - dst
+                  type: object
+                type: array
               staticAllocations:
                 description: static allocations for the pool
                 items:
