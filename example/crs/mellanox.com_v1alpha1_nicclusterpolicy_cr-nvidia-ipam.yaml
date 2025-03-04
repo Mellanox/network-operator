@@ -68,5 +68,5 @@ spec:
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
-    version: v0.2.0
+    version: v0.3.5
     enableWebhook: false
