@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: spectrum-x-flowcontroller
+  namespace: {{ .RuntimeSpec.Namespace }}
+  labels:
+    control-plane: spectrum-x-flowcontroller
+    app.kubernetes.io/name: spectrum-x-operator
+spec:
+  selector:
+    matchLabels:
+      control-plane: flowcontroller
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: flowcontroller
+      labels:
+        control-plane: flowcontroller
+    spec:
+      securityContext:
+        runAsNonRoot: false
+      containers:
+        - command:
+            - /flowcontroller
+          args:
+            - --cm-namespace={{ .RuntimeSpec.Namespace }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
+          name: flowcontroller
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - "ALL"
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+            - name: sys
+              mountPath: /sys
+            - name: ovs
+              mountPath: /var/run/openvswitch/
+            - name: ovs-systemd-config
+              mountPath: /etc/default/openvswitch-switch
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: ovs
+          hostPath:
+            path: /var/run/openvswitch
+        - name: ovs-systemd-config
+          hostPath:
+            path: /etc/default/openvswitch-switch
+      serviceAccountName: spectrum-x-operator
+      terminationGracePeriodSeconds: 10
