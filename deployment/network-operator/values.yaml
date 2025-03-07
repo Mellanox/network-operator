@@ -44,6 +44,7 @@ node-feature-discovery:
   enableNodeFeatureApi: true
   featureGates:
     NodeFeatureAPI: true
+  cleanupLabels: false
 
   # -- NFD master deployment configuration.
   # @notationType -- yaml
