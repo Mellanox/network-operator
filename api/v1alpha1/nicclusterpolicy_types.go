@@ -288,6 +288,12 @@ type DOCATelemetryServiceSpec struct {
 	Config *DOCATelemetryServiceConfig `json:"config"`
 }
 
+// SpectrumXOperatorSpec describes configuration options for NVIDIA Spectrum-X Operator
+type SpectrumXOperatorSpec struct {
+	// Image information for NVIDIA Spectrum-X Operator
+	ImageSpec `json:""`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
@@ -325,6 +331,9 @@ type NicClusterPolicySpec struct {
 	// DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
 	// See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
 	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
+	// DSpectrumXOperator exposes NVIDIA Spectrum-X Operator.
+	// See: https://github.com/Mellanox/spectrum-x-operator/
+	SpectrumXOperator *SpectrumXOperatorSpec `json:"spectrumXOperator,omitempty"`
 	// NodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// Tolerations to inject to the DaemonSets objects that are managed by the operator
