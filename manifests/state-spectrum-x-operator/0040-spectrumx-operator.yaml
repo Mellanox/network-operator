@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spectrum-x-operator
+  namespace: {{ .RuntimeSpec.Namespace }}
+  labels:
+    control-plane: spectrum-x-operator
+    app.kubernetes.io/name: spectrum-x-operator
+spec:
+  selector:
+    matchLabels:
+      control-plane: spectrum-x-operator
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: spectrum-x-operator
+      labels:
+        control-plane: spectrum-x-operator
+    spec:
+      tolerations:
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - command:
+            - /manager
+          args:
+            - --leader-elect
+            - --health-probe-bind-address=:8081
+            - --cm-namespace={{ .RuntimeSpec.Namespace }}
+            - --cidrpools-namespace={{ .RuntimeSpec.Namespace }}
+            {{- if .CrSpec.SpectrumXConfig.Name }}
+            - --cm-name={{ .CrSpec.SpectrumXConfig.Name }}
+            {{- end }}
+            {{- if .CrSpec.SriovObjNamespace }}
+            - --sriov-obj-namespace={{ .CrSpec.SriovObjNamespace }}
+            {{- end }}
+            - --sriov-obj-namespace={{ .RuntimeSpec.Namespace }}
+          image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
+          name: spectrum-x-operator
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "spectrum-x-operator" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14 }}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14 }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+      {{- if .NodeAffinity }}
+      affinity:
+        nodeAffinity:
+          {{- .NodeAffinity | yaml | nindent 10 }}
+      {{- end }}
+      serviceAccountName: spectrum-x-operator
+      terminationGracePeriodSeconds: 10

@@ -1,5 +1,5 @@
 /*
-2023 NVIDIA CORPORATION & AFFILIATES
+2025 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
 
-// NewStateNICFeatureDiscovery creates a new state for NICFeatureDiscovery
-func NewStateNICFeatureDiscovery(
+// NewStateSpectrumXOperator creates a new state for Spectrum-X Operator
+func NewStateSpectrumXOperator(
 	k8sAPIClient client.Client, manifestDir string) (State, ManifestRenderer, error) {
 	files, err := utils.GetFilesWithSuffix(manifestDir, render.ManifestFileSuffix...)
 	if err != nil {
@@ -44,31 +44,30 @@ func NewStateNICFeatureDiscovery(
 	}
 
 	renderer := render.NewRenderer(files)
-	state := &stateNICFeatureDiscovery{
+	state := &stateSpectrumXOperator{
 		stateSkel: stateSkel{
-			name:        "state-nic-feature-discovery",
-			description: "nic-feature-discovery deployed in the cluster",
+			name:        "state-spectrum-x-operator",
+			description: "spectrum-x operator deployed in the cluster",
 			client:      k8sAPIClient,
 			renderer:    renderer,
 		}}
 	return state, state, nil
 }
 
-type stateNICFeatureDiscovery struct {
+type stateSpectrumXOperator struct {
 	stateSkel
 }
 
-// nfdManifestRenderData is NIC Feature Discovery manifest rendering data
-type nfdManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.NICFeatureDiscoverySpec
+// spectrumXOperatorRenderData is Spectrum-X Operator manifest rendering data
+type spectrumXOperatorRenderData struct {
+	CrSpec       *mellanoxv1alpha1.SpectrumXOperatorSpec
 	NodeAffinity *v1.NodeAffinity
 	Tolerations  []v1.Toleration
-	RuntimeSpec  *nfdRuntimeSpec
+	RuntimeSpec  *spectrumXRuntimeSpec
 }
 
-type nfdRuntimeSpec struct {
+type spectrumXRuntimeSpec struct {
 	runtimeSpec
-	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
 }
@@ -77,14 +76,14 @@ type nfdRuntimeSpec struct {
 // a sync operation must be relatively short and must not block the execution thread.
 //
 //nolint:dupl
-func (s *stateNICFeatureDiscovery) Sync(
+func (s *stateSpectrumXOperator) Sync(
 	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	reqLogger := log.FromContext(ctx)
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
 
-	if cr.Spec.NicFeatureDiscovery == nil {
+	if cr.Spec.SpectrumXOperator == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		return s.handleStateObjectsDeletion(ctx)
@@ -130,32 +129,33 @@ func (s *stateNICFeatureDiscovery) Sync(
 }
 
 // GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name
-func (s *stateNICFeatureDiscovery) GetWatchSources() map[string]client.Object {
+func (s *stateSpectrumXOperator) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
+	wr["Deployment"] = &appsv1.Deployment{}
 	wr["DaemonSet"] = &appsv1.DaemonSet{}
 	return wr
 }
 
 //nolint:dupl
-func (s *stateNICFeatureDiscovery) GetManifestObjects(
+func (s *stateSpectrumXOperator) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
-	if cr == nil || cr.Spec.NicFeatureDiscovery == nil {
+	if cr == nil || cr.Spec.SpectrumXOperator == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
-		return nil, errors.New("clusterType provider required")
+		return nil, errors.New("clusterInfo provider required")
 	}
-	renderData := &nfdManifestRenderData{
-		CrSpec:       cr.Spec.NicFeatureDiscovery,
+	renderData := &spectrumXOperatorRenderData{
+		CrSpec:       cr.Spec.SpectrumXOperator,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		Tolerations:  cr.Spec.Tolerations,
-		RuntimeSpec: &nfdRuntimeSpec{
+		RuntimeSpec: &spectrumXRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
-			ContainerResources: createContainerResourcesMap(cr.Spec.NicFeatureDiscovery.ContainerResources),
+			ContainerResources: createContainerResourcesMap(cr.Spec.SpectrumXOperator.ContainerResources),
 		},
 	}
 

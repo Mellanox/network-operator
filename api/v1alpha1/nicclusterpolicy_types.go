@@ -325,6 +325,16 @@ type NicConfigurationOperatorSpec struct {
 	LogLevel string `json:"logLevel,omitempty"`
 }
 
+// SpectrumXOperatorSpec describes configuration options for NVIDIA Spectrum-X Operator
+type SpectrumXOperatorSpec struct {
+	// Image information for NVIDIA Spectrum-X Operator
+	ImageSpec `json:""`
+	// Spectrum-X Operator ConfigMap name
+	SpectrumXConfig *ConfigMapNameReference `json:"spectrumXConfig,omitempty"`
+	// SR-IOV Network Operator and related CRDs namespace
+	SriovObjNamespace string `json:"sriovObjNamespace,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
@@ -366,6 +376,9 @@ type NicClusterPolicySpec struct {
 	// NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
 	// See: https://github.com/Mellanox/nic-configuration-operator
 	NicConfigurationOperator *NicConfigurationOperatorSpec `json:"nicConfigurationOperator,omitempty"`
+	// SpectrumXOperator exposes NVIDIA Spectrum-X Operator.
+	// See: https://github.com/Mellanox/spectrum-x-operator/
+	SpectrumXOperator *SpectrumXOperatorSpec `json:"spectrumXOperator,omitempty"`
 	// NodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// Tolerations to inject to the DaemonSets objects that are managed by the operator
