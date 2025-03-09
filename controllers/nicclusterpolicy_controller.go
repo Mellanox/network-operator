@@ -135,6 +135,11 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	sc.Add(state.InfoTypeClusterType, r.ClusterTypeProvider)
 	sc.Add(state.InfoTypeStaticConfig, r.StaticConfigProvider)
 
+	// testing if codecritic finds this issue
+	if instance.Spec.OFEDDriver == nil {
+		reqLogger.Info("OFED driver", "envs", instance.Spec.OFEDDriver.Env)
+	}
+
 	if instance.Spec.OFEDDriver != nil {
 		// Create node infoProvider and add to the service catalog
 		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
@@ -160,7 +165,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		r.DocaDriverImagesProvider.SetImageSpec(nil)
 	}
 	// Sync state and update status
-	managerStatus := r.stateManager.SyncState(ctx, instance, sc)
+	managerStatus := r.stateManager.SyncState(ctx, instance, nil)
 	r.updateCrStatus(ctx, instance, managerStatus)
 
 	shouldRequeue, err := r.handleMOFEDWaitLabels(ctx, instance)
