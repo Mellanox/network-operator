@@ -176,6 +176,41 @@ rules:
   - list
   - watch
 - apiGroups:
+  - configuration.net.nvidia.com
+  resources:
+  - nicconfigurationtemplates
+  - nicdevices
+  - nicfirmwaresources
+  - nicfirmwaretemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - configuration.net.nvidia.com
+  resources:
+  - nicconfigurationtemplates/finalizers
+  - nicdevices/finalizers
+  - nicfirmwaresources/finalizers
+  - nicfirmwaretemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - configuration.net.nvidia.com
+  resources:
+  - nicconfigurationtemplates/status
+  - nicdevices/status
+  - nicfirmwaresources/status
+  - nicfirmwaretemplates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -294,6 +329,18 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - maintenance.nvidia.com
+  resources:
+  - nodemaintenances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - mellanox.com
   resources:
