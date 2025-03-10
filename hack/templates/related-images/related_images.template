@@ -17,6 +17,10 @@
       image: {{ (imageAsSha .NicFeatureDiscovery) }}
     - name: doca-telemetry-service
       image: {{ (imageAsSha .DOCATelemetryService) }}
+    - name: nic-configuration-operator
+      image: {{ (imageAsSha .NicConfigurationOperator) }}
+    - name: nic-configuration-operator-daemon
+      image: {{ (imageAsSha .NicConfigurationConfigDaemon) }}
     {{- range .Mofed.Shas }}
     - name: {{ .Name }}
       image: {{ .ImageRef }}
