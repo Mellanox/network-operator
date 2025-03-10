@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nic-configuration-daemon
+  namespace: {{ .RuntimeSpec.Namespace }}
+  labels:
+    app.kubernetes.io/name: nic-configuration-daemon
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nic-configuration-daemon
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: nic-configuration-daemon
+      labels:
+        app.kubernetes.io/name: nic-configuration-daemon
+    spec:
+      serviceAccountName: nic-configuration-operator
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        {{- if .Tolerations }}
+        {{- .Tolerations | yaml | nindent 8 }}
+        {{- end }}
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      hostNetwork: true
+      hostPID: true
+      priorityClassName: system-node-critical
+      {{- if .NodeAffinity }}
+      affinity:
+        nodeAffinity:
+          {{- .NodeAffinity | yaml | nindent 10 }}
+      {{- end }}
+      {{- if .CrSpec.ConfigurationDaemon.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ConfigurationDaemon.ImagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - image: {{ imagePath .CrSpec.ConfigurationDaemon.Repository .CrSpec.ConfigurationDaemon.Image .CrSpec.ConfigurationDaemon.Version }}
+          name: nic-configuration-daemon
+          securityContext:
+            privileged: true
+          {{- with .RuntimeSpec.ContainerResources }}
+          {{- with index . "nic-configuration-daemon" }}
+          resources:
+            {{- if .Requests }}
+            requests:
+              {{ .Requests | yaml | nindent 14}}
+            {{- end }}
+            {{- if .Limits }}
+            limits:
+              {{ .Limits | yaml | nindent 14}}
+            {{- end }}
+          {{- end }}
+          {{- else }}
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: LOG_LEVEL
+              value: {{ .CrSpec.LogLevel }}
+          volumeMounts:
+            - name: sys
+              mountPath: /sys
+              readOnly: false
+            - name: proc
+              mountPath: /proc
+              readOnly: false
+            - name: host
+              mountPath: /host
+          {{- if .CrSpec.NicFirmwareStorage }}
+            - name: firmware-cache
+              mountPath: /nic-firmware
+              readOnly: true
+          {{- end }}
+      volumes:
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: host
+          hostPath:
+            path: /
+        {{- if .CrSpec.NicFirmwareStorage }}
+        - name: firmware-cache
+          persistentVolumeClaim:
+            claimName: {{ .CrSpec.NicFirmwareStorage.PVCName }}
+        {{- end }}

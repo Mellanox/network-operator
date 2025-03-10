@@ -1,0 +1,47 @@
+# 2025 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nic-configuration-operator-supported-nic-firmware
+  namespace: {{ .RuntimeSpec.Namespace }}
+data:
+  Nvidia_mlx5_ConnectX-4-24.07: "1013 24.07-0.6.1 12.28.2006"
+  Nvidia_mlx5_ConnectX-5-24.07: "1017 24.07-0.6.1 16.35.4030"
+  Nvidia_mlx5_ConnectX-5_Ex-24.07: "1019 24.07-0.6.1 16.35.4030"
+  Nvidia_mlx5_ConnectX-6-24.07: "101b 24.07-0.6.1 20.42.1000"
+  Nvidia_mlx5_ConnectX-6_Dx-24.07: "101d 24.07-0.6.1 22.42.1000"
+  Nvidia_mlx5_ConnectX-6_Lx-24.07: "101f 24.07-0.6.1 26.42.1000"
+  Nvidia_mlx5_ConnectX-7-24.07: "1021 24.07-0.6.1 28.42.1000"
+  Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx-24.07: "a2d6 24.07-0.6.1 24.42.1000"
+  Nvidia_mlx5_ConnectX-4-24.10: "1013 24.10-0.7.0 12.28.2006"
+  Nvidia_mlx5_ConnectX-4_Lx-24.10: "1013 24.10-0.7.0 14.32.1010"
+  Nvidia_mlx5_ConnectX-5-24.10: "1017 24.10-0.7.0 16.35.4030"
+  Nvidia_mlx5_ConnectX-5_Ex-24.10: "1019 24.10-0.7.0 16.35.4030"
+  Nvidia_mlx5_ConnectX-6-24.10: "101b 24.10-0.7.0 20.43.1014"
+  Nvidia_mlx5_ConnectX-6_Dx-24.10: "101d 24.10-0.7.0 22.43.1014"
+  Nvidia_mlx5_ConnectX-6_Lx-24.10: "101f 24.10-0.7.0 26.43.1014"
+  Nvidia_mlx5_ConnectX-7-24.10: "1021 24.10-0.7.0 28.43.1014"
+  Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx-24.10: "a2d6 24.10-0.7.0 24.43.2026"
+  Nvidia_mlx5_MT43244_BlueField-3_integrated_ConnectX-7_Dx-24.10: "a2dc 24.10-0.7.0 32.43.2026"
+  Nvidia_mlx5_ConnectX-4_Lx-25.01: "1013 25.01-0.6.0 14.32.1900"
+  Nvidia_mlx5_ConnectX-5-25.01: "1017 25.01-0.6.0 16.35.4030"
+  Nvidia_mlx5_ConnectX-5_Ex-25.01: "1019 25.01-0.6.0 16.35.4030"
+  Nvidia_mlx5_ConnectX-6-25.01: "101b 25.01-0.6.0 20.43.2026"
+  Nvidia_mlx5_ConnectX-6_Dx-25.01: "101d 25.01-0.6.0 22.44.1036"
+  Nvidia_mlx5_ConnectX-6_Lx-25.01: "101f 25.01-0.6.0 26.44.1036"
+  Nvidia_mlx5_ConnectX-7-25.01: "1021 25.01-0.6.0 28.44.1036"
+  Nvidia_mlx5_MT42822_BlueField-2_integrated_ConnectX-6_Dx-25.01: "a2d6 25.01-0.6.0 24.44.1036"
+  Nvidia_mlx5_MT43244_BlueField-3_integrated_ConnectX-7_Dx-25.01: "a2dc 25.01-0.6.0 32.44.1036"
