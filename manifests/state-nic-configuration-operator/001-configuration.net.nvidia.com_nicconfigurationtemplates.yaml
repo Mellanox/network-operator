@@ -1,0 +1,189 @@
+# 2025 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: nicconfigurationtemplates.configuration.net.nvidia.com
+spec:
+  group: configuration.net.nvidia.com
+  names:
+    kind: NicConfigurationTemplate
+    listKind: NicConfigurationTemplateList
+    plural: nicconfigurationtemplates
+    singular: nicconfigurationtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: NicConfigurationTemplate is the Schema for the nicconfigurationtemplates
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Defines the desired state of NICs
+            properties:
+              nicSelector:
+                description: NIC selector configuration
+                properties:
+                  nicType:
+                    description: Type of the NIC to be selected, e.g. 101d,1015,a2d6
+                      etc.
+                    type: string
+                  pciAddresses:
+                    description: Array of PCI addresses to be selected, e.g. "0000:03:00.0"
+                    items:
+                      type: string
+                    type: array
+                  serialNumbers:
+                    description: Serial numbers of the NICs to be selected, e.g. MT2116X09299
+                    items:
+                      type: string
+                    type: array
+                required:
+                - nicType
+                type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector contains labels required on the node. When
+                  empty, the template will be applied to matching devices on all nodes.
+                type: object
+              resetToDefault:
+                default: false
+                description: |-
+                  ResetToDefault specifies whether node agent needs to perform a reset flow
+                  The following operations will be performed:
+                  * Nvconfig reset of all non-volatile configurations
+                    - Mstconfig -d <device> reset for each PF
+                    - Mstconfig -d <device> set ADVANCED_PCI_SETTINGS=1
+                  * Node reboot
+                    - Applies new NIC NV config
+                    - Will undo any runtime configuration previously performed for the device/driver
+                type: boolean
+              template:
+                description: Configuration template to be applied to matching devices
+                properties:
+                  gpuDirectOptimized:
+                    description: GPU Direct optimization settings
+                    properties:
+                      enabled:
+                        description: Optimize GPU Direct
+                        type: boolean
+                      env:
+                        description: GPU direct environment, e.g. Baremetal
+                        type: string
+                    required:
+                    - enabled
+                    - env
+                    type: object
+                  linkType:
+                    description: LinkType to be configured, Ethernet|Infiniband
+                    enum:
+                    - Ethernet
+                    - Infiniband
+                    type: string
+                  numVfs:
+                    description: Number of VFs to be configured
+                    type: integer
+                  pciPerformanceOptimized:
+                    description: PCI performance optimization settings
+                    properties:
+                      enabled:
+                        description: Specifies whether to enable PCI performance optimization
+                        type: boolean
+                      maxAccOutRead:
+                        description: Specifies the PCIe Max Accumulative Outstanding
+                          read bytes
+                        type: integer
+                      maxReadRequest:
+                        description: Specifies the size of a single PCI read request
+                          in bytes
+                        enum:
+                        - 128
+                        - 256
+                        - 512
+                        - 1024
+                        - 2048
+                        - 4096
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
+                  roceOptimized:
+                    description: RoCE optimization settings
+                    properties:
+                      enabled:
+                        description: Optimize RoCE
+                        type: boolean
+                      qos:
+                        description: Quality of Service settings
+                        properties:
+                          pfc:
+                            description: Priority-based Flow Control configuration,
+                              e.g. "0,0,0,1,0,0,0,0"
+                            pattern: ^([01],){7}[01]$
+                            type: string
+                          trust:
+                            description: Trust mode for QoS settings, e.g. trust-dscp
+                            type: string
+                        required:
+                        - pfc
+                        - trust
+                        type: object
+                    required:
+                    - enabled
+                    type: object
+                required:
+                - linkType
+                - numVfs
+                type: object
+            required:
+            - nicSelector
+            - template
+            type: object
+          status:
+            description: Defines the observed state of NicConfigurationTemplate
+            properties:
+              nicDevices:
+                description: NicDevice CRs matching this configuration / firmware
+                  template
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

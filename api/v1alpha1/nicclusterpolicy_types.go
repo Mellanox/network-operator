@@ -288,6 +288,43 @@ type DOCATelemetryServiceSpec struct {
 	Config *DOCATelemetryServiceConfig `json:"config"`
 }
 
+// NicFirmwareStorageSpec contains configuration for the NIC firmware storage
+type NicFirmwareStorageSpec struct {
+	// Create specifies whether to create a new PVC or use an existing one
+	// +kubebuilder:default:=true
+	Create bool `json:"create,omitempty"`
+	// PVCName is the name of the PVC to mount as NIC Firmware storage. Default value: "nic-fw-storage-pvc"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	// +kubebuilder:default:="nic-fw-storage-pvc"
+	PVCName string `json:"pvcName,omitempty"`
+	// StorageClassName is the name of a storage class to be used to store NIC FW binaries during NIC FW upgrade.
+	// If not provided, the cluster-default storage class will be used
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
+	StorageClassName string `json:"storageClassName,omitempty"`
+	// storage size for the NIC Configuration Operator to request. Default value: 1Gi
+	// +kubebuilder:validation:Pattern=`^(\d+)(Ei|Pi|Ti|Gi|Mi|Ki)$`
+	// +kubebuilder:default:="1Gi"
+	AvailableStorageSize string `json:"availableStorageSize,omitempty"`
+}
+
+// NicConfigurationOperatorSpec is the configuration for NIC Configuration Operator
+type NicConfigurationOperatorSpec struct {
+	// Image information for nic-configuration-operator
+	Operator *ImageSpec `json:"operator"`
+	// Image information for nic-configuration-daemon
+	ConfigurationDaemon *ImageSpec `json:"configurationDaemon"`
+	// NicFirmwareStorage contains configuration for the NIC firmware storage
+	NicFirmwareStorage *NicFirmwareStorageSpec `json:"nicFirmwareStorage,omitempty"`
+	// LogLevel sets the verbosity level of the logs. info|debug
+	// +kubebuilder:validation:Enum={"info", "debug"}
+	// +kubebuilder:default:="info"
+	LogLevel string `json:"logLevel,omitempty"`
+}
+
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
 	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
@@ -325,6 +362,10 @@ type NicClusterPolicySpec struct {
 	// DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
 	// See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
 	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
+	//nolint:lll
+	// NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
+	// See: https://github.com/Mellanox/nic-configuration-operator
+	NicConfigurationOperator *NicConfigurationOperatorSpec `json:"nicConfigurationOperator,omitempty"`
 	// NodeAffinity rules to inject to the DaemonSets objects that are managed by the operator
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// Tolerations to inject to the DaemonSets objects that are managed by the operator
