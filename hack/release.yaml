@@ -81,11 +81,11 @@ rdmaCni:
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
-  version: v0.1.17
+  version: v0.1.18
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: ghcr.io/mellanox
-  version: v0.1.17
+  version: v0.1.18
 maintenanceOperator:
   image: maintenance-operator
   repository: ghcr.io/mellanox
