@@ -1,3 +1,7 @@
 Get Network Operator deployed resources by running the following commands:
 
+{{- if .Values.nicConfigurationOperator.enabled }}
+Warning: NIC Configuration Operator helm chart is deprecated and will be deleted in future releases. Use NIC Cluster Policy to deploy the NIC Configuration Operator instead.
+{{- end }}
+
 $ kubectl -n {{ .Release.Namespace }} get pods
