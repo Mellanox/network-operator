@@ -103,3 +103,18 @@ spec:
     image: {{ .NicFeatureDiscovery.Image }}
     repository: {{ .NicFeatureDiscovery.Repository }}
     version: {{ .NicFeatureDiscovery.Version }}
+  nicConfigurationOperator:
+    operator:
+      image: {{ .NicConfigurationOperator.Image }}
+      repository: {{ .NicConfigurationOperator.Repository }}
+      version: {{ .NicConfigurationOperator.Version }}
+    configurationDaemon:
+      image: {{ .NicConfigurationConfigDaemon.Image }}
+      repository: {{ .NicConfigurationConfigDaemon.Repository }}
+      version: {{ .NicConfigurationConfigDaemon.Version }}
+    nicFirmwareStorage:
+      create: true
+      pvcName: nic-fw-storage-pvc
+      storageClassName: nic-fw-storage-class
+      availableStorageSize: 1Gi
+    logLevel: info

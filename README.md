@@ -99,6 +99,7 @@ and related configurations.
     - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow users to create an IPoIB child link and move it to the pod.
     - IPAM CNI: [Whereabouts IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) and related configurations
 - `nvIpam`: [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam) and related configurations.
+- `nicConfigurationOperator`: [NVIDIA NIC Configuration Operator](https://github.com/Mellanox/nic-configuration-operator) and related configuration.
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
