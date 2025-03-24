@@ -8,15 +8,63 @@ jobs:
   wait_for_ci:
     if: ${{ startsWith(github.event.pull_request.title, 'cicd:') && github.actor == 'nvidia-ci-cd'}}
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     permissions:
+      pull-requests: read
       checks: read
+      statuses: read
     steps:
-      - name: GitHub Checks
-        uses: poseidon/wait-for-status-checks@v0.6.0
-        with:
-          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-          timeout: 14400
-          interval: 60
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Wait for CI checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CURRENT_JOB_NAME: wait_for_ci
+          REQUIRED_CHECKS: |
+            nic_operator_helm CI
+            nic_operator_kind CI
+            image_scan CI
+            blackduck_scan CI
+            Copy Right Validation
+          WAIT_INTERVAL: 60
+        run: |
+          echo "Waiting $WAIT_INTERVAL seconds for checks to start..."
+          sleep $WAIT_INTERVAL
+
+          mapfile -t REQUIRED_CHECKS_ARRAY < <(echo "$REQUIRED_CHECKS" | grep -v '^\s*$')
+
+          while true; do
+            echo "Fetching checks for PR #$PR_NUMBER..."
+            CHECKS_OUTPUT=$(gh pr checks "$PR_NUMBER" --json name,state)
+
+            for CHECK in "${REQUIRED_CHECKS_ARRAY[@]}"; do
+              if ! echo "$CHECKS_OUTPUT" | jq -e ".[] | select(.name == \"$CHECK\")" >/dev/null; then
+                echo "Required check '$CHECK' not found. Waiting $WAIT_INTERVAL seconds..."
+                sleep $WAIT_INTERVAL
+              fi
+            done
+
+            # Exit immediately if any check fails
+            FAILED_CHECKS=$(echo "$CHECKS_OUTPUT" | jq -r '.[] | select(.state == "FAILURE") | .name')
+            if [[ -n "$FAILED_CHECKS" ]]; then
+              echo "The following checks have failed:"
+              echo "$FAILED_CHECKS"
+              exit 1
+            fi
+
+            # Verify all checks are either SUCCESS or SKIPPED
+            INCOMPLETE_CHECKS=$(echo "$CHECKS_OUTPUT" | jq -r '.[] | select(.name != env.CURRENT_JOB_NAME) | select(.state != "SUCCESS" and .state != "SKIPPED") | .name')
+
+            if [[ -z "$INCOMPLETE_CHECKS" ]]; then
+              echo "All checks have succeeded or are skipped."
+              break
+            else
+              echo "Waiting $WAIT_INTERVAL seconds for the following checks to complete successfully:"
+              echo "$INCOMPLETE_CHECKS"
+              sleep $WAIT_INTERVAL
+            fi
+          done
   update_network_operator_version:
     needs:
       - wait_for_ci
