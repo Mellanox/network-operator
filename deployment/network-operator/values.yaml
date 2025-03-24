@@ -45,6 +45,8 @@ node-feature-discovery:
   enableNodeFeatureApi: true
   featureGates:
     NodeFeatureAPI: true
+  # -- Enable labels cleanup when uninstalling NFD
+  cleanupLabels: false
 
   # -- NFD master deployment configuration.
   # @notationType -- yaml
