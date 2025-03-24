@@ -6,7 +6,7 @@ on:
 
 jobs:
   wait_for_ci:
-    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') }}
+    if: ${{ startsWith(github.event.pull_request.title, 'cicd:') && github.actor == 'nvidia-ci-cd'}}
     runs-on: ubuntu-latest
     permissions:
       checks: read
@@ -30,4 +30,5 @@ jobs:
         with:
           sparse-checkout: .
       - run:
-          gh pr merge $PR_NUMBER --merge --delete-branch
+          # There are branch protection rules in place, to override them, we need to pass --admin option
+          gh pr merge $PR_NUMBER --merge --delete-branch --admin
