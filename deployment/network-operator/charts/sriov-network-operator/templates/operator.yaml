@@ -10,9 +10,7 @@ spec:
     matchLabels:
       name: sriov-network-operator
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 33%
+    type: Recreate
   template:
     metadata:
       annotations:
