@@ -121,7 +121,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -208,7 +207,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -217,6 +215,186 @@ spec:
                 - repository
                 - ufmSecret
                 - version
+                type: object
+              nicConfigurationOperator:
+                description: |-
+                  NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
+                  See: https://github.com/Mellanox/nic-configuration-operator
+                properties:
+                  configurationDaemon:
+                    description: Image information for nic-configuration-daemon
+                    properties:
+                      containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
+                        items:
+                          description: ResourceRequirements describes the compute
+                            resource requirements.
+                          properties:
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                            name:
+                              description: Name of the container the requirements
+                                are set for
+                              type: string
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      image:
+                        description: Name of the image
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      imagePullSecrets:
+                        default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
+                        items:
+                          type: string
+                        type: array
+                      repository:
+                        description: Address of the registry that stores the image
+                        pattern: '[a-zA-Z0-9\.\-\/]+'
+                        type: string
+                      version:
+                        description: Version of the image to use
+                        type: string
+                    required:
+                    - image
+                    - repository
+                    - version
+                    type: object
+                  logLevel:
+                    default: info
+                    description: LogLevel sets the verbosity level of the logs. info|debug
+                    enum:
+                    - info
+                    - debug
+                    type: string
+                  nicFirmwareStorage:
+                    description: NicFirmwareStorage contains configuration for the
+                      NIC firmware storage
+                    properties:
+                      availableStorageSize:
+                        default: 1Gi
+                        description: 'storage size for the NIC Configuration Operator
+                          to request. Default value: 1Gi'
+                        pattern: ^(\d+)(Ei|Pi|Ti|Gi|Mi|Ki)$
+                        type: string
+                      create:
+                        default: true
+                        description: Create specifies whether to create a new PVC
+                          or use an existing one
+                        type: boolean
+                      pvcName:
+                        default: nic-fw-storage-pvc
+                        description: 'PVCName is the name of the PVC to mount as NIC
+                          Firmware storage. Default value: "nic-fw-storage-pvc"'
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                      storageClassName:
+                        description: |-
+                          StorageClassName is the name of a storage class to be used to store NIC FW binaries during NIC FW upgrade.
+                          If not provided, the cluster-default storage class will be used
+                        maxLength: 63
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                    type: object
+                  operator:
+                    description: Image information for nic-configuration-operator
+                    properties:
+                      containerResources:
+                        description: ResourceRequirements describes the compute resource
+                          requirements
+                        items:
+                          description: ResourceRequirements describes the compute
+                            resource requirements.
+                          properties:
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Limits describes the maximum amount of compute resources allowed.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                            name:
+                              description: Name of the container the requirements
+                                are set for
+                              type: string
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                Requests describes the minimum amount of compute resources required.
+                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      image:
+                        description: Name of the image
+                        pattern: '[a-zA-Z0-9\-]+'
+                        type: string
+                      imagePullSecrets:
+                        default: []
+                        description: |-
+                          ImagePullSecrets is an optional list of references to secrets in the same
+                          namespace to use for pulling the image
+                        items:
+                          type: string
+                        type: array
+                      repository:
+                        description: Address of the registry that stores the image
+                        pattern: '[a-zA-Z0-9\.\-\/]+'
+                        type: string
+                      version:
+                        description: Version of the image to use
+                        type: string
+                    required:
+                    - image
+                    - repository
+                    - version
+                    type: object
+                required:
+                - configurationDaemon
+                - operator
                 type: object
               nicFeatureDiscovery:
                 description: |-
@@ -280,7 +458,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -552,7 +729,6 @@ spec:
                     type: string
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -566,7 +742,7 @@ spec:
                 properties:
                   certConfig:
                     description: 'Optional: Custom TLS certificates configuration
-                      for driver container'
+                      for DOCA driver container'
                     properties:
                       name:
                         description: Name of the ConfigMap
@@ -612,8 +788,8 @@ spec:
                       type: object
                     type: array
                   env:
-                    description: List of environment variables to set in the OFED
-                      container.
+                    description: List of environment variables to set in the DOCA
+                      driver container.
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.
@@ -735,8 +911,8 @@ spec:
                   forcePrecompiled:
                     default: false
                     description: |-
-                      ForcePrecompiled specifies if only MOFED precompiled images are allowed
-                      If set to false and precompiled image does not exists, MOFED drivers will be compiled on Nodes
+                      ForcePrecompiled specifies if only DOCA driver precompiled images are allowed
+                      If set to false and precompiled image does not exists, DOCA driver will be compiled on Nodes
                       If set to true and precompiled image does not exists, OFED state will be Error.
                     type: boolean
                   image:
@@ -781,7 +957,7 @@ spec:
                     type: object
                   repoConfig:
                     description: 'Optional: Custom package repository configuration
-                      for OFED container'
+                      for DOCA driver container'
                     properties:
                       name:
                         description: Name of the ConfigMap
@@ -809,12 +985,12 @@ spec:
                     default: 300
                     description: |-
                       TerminationGracePeriodSeconds specifies the length of time in seconds
-                      to wait before killing the OFED pod on termination
+                      to wait before killing the DOCA driver container pod on termination
                     format: int64
                     minimum: 0
                     type: integer
                   upgradePolicy:
-                    description: Ofed auto-upgrade settings
+                    description: DOCA driver auto-upgrade settings
                     properties:
                       autoUpgrade:
                         default: false
@@ -887,7 +1063,6 @@ spec:
                     type: object
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -965,7 +1140,6 @@ spec:
                     type: boolean
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
@@ -1041,7 +1215,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1108,7 +1281,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1175,7 +1347,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1245,7 +1416,6 @@ spec:
                         type: string
                       version:
                         description: Version of the image to use
-                        pattern: '[a-zA-Z0-9\.-]+'
                         type: string
                     required:
                     - image
@@ -1324,7 +1494,6 @@ spec:
                     type: boolean
                   version:
                     description: Version of the image to use
-                    pattern: '[a-zA-Z0-9\.-]+'
                     type: string
                 required:
                 - image
