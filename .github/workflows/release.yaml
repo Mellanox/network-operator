@@ -6,7 +6,7 @@ on:
 jobs:
   update_network_operator_version:
     if: ${{ startsWith(github.event.issue.title, 'Release v') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       ISSUE_TITLE: ${{ github.event.issue.title }}
@@ -61,7 +61,7 @@ jobs:
 
   update_sriov_operator_version:
     if: ${{ startsWith(github.event.issue.title, 'Release v') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       ISSUE_TITLE: ${{ github.event.issue.title }}

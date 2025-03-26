@@ -16,7 +16,7 @@ env:
 
 jobs:
   docker-build-push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Determine docker tags
@@ -45,7 +45,7 @@ jobs:
     if:  github.ref_type == 'tag' || github.ref_name == ${{ needs.docker-build-push.outputs.default_branch }}
     needs:
     - docker-build-push
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NGC_REPO: nvstaging/mellanox/network-operator
     steps:
@@ -82,7 +82,7 @@ jobs:
   ocp-bundle:
     needs:
     - docker-build-push
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       DOWNSTREAM_REPO_OWNER: nvidia-ci-cd
