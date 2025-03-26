@@ -134,10 +134,16 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create NIC Configuration Operator State")
 	}
+
+	specrumXOperatorState, _, err := NewStateSpectrumXOperator(
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-spectrum-x-operator"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create state-spectrum-x-operator State")
+	}
 	return []State{
 		multusState, cniPluginsState, ipoibState, whereaboutState,
 		ofedState, sriovDpState, sharedDpState, ibKubernetesState, nvIpamCniState,
-		nicFeatureDiscoveryState, docaTelemetryServiceState, nicConfigurationOperatorState}, nil
+		nicFeatureDiscoveryState, docaTelemetryServiceState, nicConfigurationOperatorState, specrumXOperatorState}, nil
 }
 
 // newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD
