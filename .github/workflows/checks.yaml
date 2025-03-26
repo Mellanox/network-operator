@@ -4,7 +4,7 @@ on: [push, pull_request]
 jobs:
   lint-code:
     name: golangci-lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -18,7 +18,7 @@ jobs:
         run: make lint
   lint-docker:
     name: hadolint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -28,7 +28,7 @@ jobs:
         run: make lint-dockerfile
   lint-helm:
     name: helm lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -38,7 +38,7 @@ jobs:
         run: make lint-helm
   diff-manifests:
     name: check manifests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -52,7 +52,7 @@ jobs:
         run: make check-manifests
   diff-modules:
     name: check go modules
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -66,7 +66,7 @@ jobs:
         run: make check-go-modules
   diff-release-build:
     name: check release-build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -80,7 +80,7 @@ jobs:
         run: make check-release-build
   unit-tests:
     name: Unit-tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
