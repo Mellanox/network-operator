@@ -9,7 +9,7 @@ on:
 
 jobs:
   check-for-cc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: check-for-cc
         id: check-for-cc
