@@ -11,8 +11,45 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       GIT_TAG: ${{ github.ref_name }}
+      REGISTRY: nvcr.io
+      REPO: nvstaging/mellanox/network-operator
+
     steps:
-    - run: |
+    - name: Install skopeo
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y skopeo jq
+
+    - name: Login to registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.NVCR_USERNAME }}
+        password: ${{ secrets.NVCR_TOKEN }}
+
+    - name: Wait for image to be available in registry
+      run: |
+        IMAGE="docker://${{ env.REGISTRY }}/${{ env.REPO }}:${GIT_TAG}"
+        echo "Waiting for image: $IMAGE"
+
+        MAX_RETRIES=90
+        SLEEP_SECONDS=10
+        COUNT=0
+
+        while ! skopeo inspect "$IMAGE" > /dev/null 2>&1; do
+          COUNT=$((COUNT + 1))
+          echo "Image not found yet. Attempt $COUNT/$MAX_RETRIES..."
+          if [ $COUNT -ge $MAX_RETRIES ]; then
+            echo "Image was not found after $((MAX_RETRIES * SLEEP_SECONDS)) seconds. Exiting."
+            exit 1
+          fi
+          sleep $SLEEP_SECONDS
+        done
+
+        echo "Image found. Proceeding with workflow."
+
+    - name: Trigger downstream docs-ci workflow
+      run: |
         gh workflow run docs-ci.yaml \
           --repo ${{ github.repository_owner }}/network-operator-docs \
           --ref main \
