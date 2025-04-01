@@ -33,7 +33,7 @@ Mofed:
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: ghcr.io/mellanox
-  version: v1.5.2
+  version: v1.5.3
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
