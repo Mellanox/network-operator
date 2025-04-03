@@ -27,6 +27,7 @@ spec:
       affinity: {{- toYaml .Values.operator.affinity | nindent 8 }}
       imagePullSecrets: {{ .Values.imagePullSecrets | default list | toJson }}
       securityContext:
+        fsGroup: 65532
         runAsNonRoot: true
       serviceAccountName: {{ include "nic-configuration-operator.serviceAccountName" . }}
       terminationGracePeriodSeconds: 10
@@ -59,3 +60,15 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.nicFirmwareStorage.pvcName }}
+          volumeMounts:
+            - name: firmware-cache
+              mountPath: /nic-firmware
+              readOnly: false
+          {{- end }}
+      {{- if .Values.nicFirmwareStorage.pvcName }}
+      volumes:
+        - name: firmware-cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.nicFirmwareStorage.pvcName }}
+      {{- end }}

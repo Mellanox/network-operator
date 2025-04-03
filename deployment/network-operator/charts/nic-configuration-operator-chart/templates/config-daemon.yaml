@@ -55,7 +55,11 @@ spec:
               readOnly: false
             - name: host
               mountPath: /host
+            {{- if .Values.nicFirmwareStorage.pvcName }}
+            - name: firmware-cache
+              mountPath: /nic-firmware
               readOnly: true
+            {{- end }}
       volumes:
         - name: sys
           hostPath:
@@ -66,3 +70,8 @@ spec:
         - name: host
           hostPath:
             path: /
+        {{- if .Values.nicFirmwareStorage.pvcName }}
+        - name: firmware-cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.nicFirmwareStorage.pvcName }}
+        {{- end }}

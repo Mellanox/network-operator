@@ -135,6 +135,25 @@ spec:
                     - numVfs
                     type: object
                 type: object
+              firmware:
+                description: Firmware specifies the fw upgrade policy requested by
+                  NicFirmwareTemplate
+                properties:
+                  nicFirmwareSourceRef:
+                    description: NicFirmwareSourceRef refers to existing NicFirmwareSource
+                      CR on where to get the FW from
+                    type: string
+                  updatePolicy:
+                    description: UpdatePolicy indicates whether the operator needs
+                      to validate installed FW or upgrade it
+                    enum:
+                    - Validate
+                    - Update
+                    type: string
+                required:
+                - nicFirmwareSourceRef
+                - updatePolicy
+                type: object
             type: object
           status:
             description: NicDeviceStatus defines the observed state of NicDevice
