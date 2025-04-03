@@ -64,7 +64,7 @@ spec:
     ipoib:
       image: ipoib-cni
       repository: ghcr.io/mellanox
-      version: v1.2.1
+      version: v1.2.2
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg

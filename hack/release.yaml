@@ -53,7 +53,7 @@ Multus:
 Ipoib:
   image: ipoib-cni
   repository: ghcr.io/mellanox
-  version: v1.2.1
+  version: v1.2.2
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
