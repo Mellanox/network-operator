@@ -103,7 +103,7 @@ spec:
   ibKubernetes:
     image: ib-kubernetes
     repository: ghcr.io/mellanox
-    version: v1.1.0
+    version: v1.1.1
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
