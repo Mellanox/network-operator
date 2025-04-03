@@ -63,7 +63,8 @@ spec:
               nodeSelector:
                 additionalProperties:
                   type: string
-                description: NodeSelector contains labels required on the node
+                description: NodeSelector contains labels required on the node. When
+                  empty, the template will be applied to matching devices on all nodes.
                 type: object
               resetToDefault:
                 default: false
@@ -162,7 +163,8 @@ spec:
             description: Defines the observed state of NicConfigurationTemplate
             properties:
               nicDevices:
-                description: NicDevice CRs matching this configuration template
+                description: NicDevice CRs matching this configuration / firmware
+                  template
                 items:
                   type: string
                 type: array
