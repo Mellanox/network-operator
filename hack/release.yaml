@@ -77,7 +77,7 @@ ovsCni:
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
-  version: v1.2.0
+  version: v1.3.0
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
