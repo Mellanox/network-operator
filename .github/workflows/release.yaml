@@ -4,8 +4,8 @@ on:
       - opened
 
 jobs:
-  update_network_operator_version:
-    if: ${{ startsWith(github.event.issue.title, 'Release v') }}
+  update-network-operator-version:
+    if: startsWith(github.event.issue.title, 'Release v')
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
@@ -13,21 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          echo "RELEASE_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')" >> $GITHUB_ENV
+          echo "APP_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')" | tee -a $GITHUB_ENV
       - run: |
-          echo "CHART_VERSION=$(echo ${RELEASE_VERSION#v})" >> $GITHUB_ENV
+          echo "CHART_VERSION=$(echo ${APP_VERSION#v})" | tee -a $GITHUB_ENV
       - name: Determine base branch
         run: |
-          if echo $RELEASE_VERSION | grep -q beta; then
+          if echo $APP_VERSION | grep -q beta; then
             base_branch=master
           else
-            v_major_minor=$(echo $RELEASE_VERSION | grep -Eo '^v[0-9]+\.[0-9]+')
+            v_major_minor=$(echo $APP_VERSION | grep -Eo '^v[0-9]+\.[0-9]+')
             base_branch=$v_major_minor.x
           fi
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
       - name: Verify release branch exists if "rc" version
         run: |
-          if echo $RELEASE_VERSION | grep -q 'rc'; then
+          if echo $APP_VERSION | grep -q 'rc'; then
             git fetch origin
             if ! git ls-remote --heads origin $BASE_BRANCH | grep -q "$BASE_BRANCH"; then
               git config user.name  nvidia-ci-cd
@@ -40,27 +40,27 @@ jobs:
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
           git fetch origin $BASE_BRANCH
-          git checkout -b cicd/update-network-operator-to-$RELEASE_VERSION origin/$BASE_BRANCH
-          yq -i e '.NetworkOperator.version = "${{ env.RELEASE_VERSION }}"' hack/release.yaml
-          yq -i e '.version = "${{ env.CHART_VERSION }}"' deployment/network-operator/Chart.yaml
-          yq -i e '.appVersion = "${{ env.RELEASE_VERSION }}"' deployment/network-operator/Chart.yaml
+          git checkout -b cicd/update-network-operator-to-$APP_VERSION origin/$BASE_BRANCH
+          yq -i '.NetworkOperator.version = "${{ env.APP_VERSION }}"' hack/release.yaml
+          yq -i '.version = "${{ env.CHART_VERSION }}"'               deployment/network-operator/Chart.yaml
+          yq -i '.appVersion = "${{ env.APP_VERSION }}"'              deployment/network-operator/Chart.yaml
           make release-build
-          
+
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
             git add hack/release.yaml
-            git commit -sam "cicd: update Network Operator to $RELEASE_VERSION in chart values"
-            git push -u origin cicd/update-network-operator-to-$RELEASE_VERSION
+            git commit -sam "cicd: update Network Operator to $APP_VERSION in chart values"
+            git push -u origin cicd/update-network-operator-to-$APP_VERSION
             gh pr create \
               --repo ${{ github.repository_owner }}/network-operator \
               --base $BASE_BRANCH \
               --head $(git branch --show-current) \
-              --title "cicd: update Network Operator to $RELEASE_VERSION in chart values" \
+              --title "cicd: update Network Operator to $APP_VERSION in chart values" \
               --body "Created by the *${{ github.job }}* job."
           fi
 
-  update_sriov_operator_version:
-    if: ${{ startsWith(github.event.issue.title, 'Release v') }}
+  update-sriov-network-operator-version:
+    if: startsWith(github.event.issue.title, 'Release v')
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
@@ -73,10 +73,10 @@ jobs:
           path: sriov-network-operator-fork
           fetch-depth: 0
       - run: |
-          echo "RELEASE_VERSION=$(echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }')" >> $GITHUB_ENV
+          echo "APP_VERSION=$(echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }')" | tee -a $GITHUB_ENV
       - name: Determine sriov-network-operator branch
         run: |
-          major_minor=$(echo $RELEASE_VERSION | grep -Eo '[0-9]+\.[0-9]+')
+          major_minor=$(echo $APP_VERSION | grep -Eo '[0-9]+\.[0-9]+')
           echo BASE_BRANCH=network-operator-$major_minor.x | tee -a $GITHUB_ENV
       - name: Create tag to trigger PR that update image tags in network-operator values
         run: |
@@ -84,7 +84,6 @@ jobs:
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
 
-          git checkout -b $RELEASE_VERSION origin/$BASE_BRANCH
-          git tag network-operator-$RELEASE_VERSION
+          git checkout -b $APP_VERSION origin/$BASE_BRANCH
+          git tag network-operator-$APP_VERSION
           git push origin --tags
-    
