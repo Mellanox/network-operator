@@ -1433,6 +1433,84 @@ spec:
                     - version
                     type: object
                 type: object
+              spectrumXOperator:
+                description: |-
+                  SpectrumXOperator exposes NVIDIA Spectrum-X Operator.
+                  See: https://github.com/Mellanox/spectrum-x-operator/
+                properties:
+                  containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
+                    items:
+                      description: ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        name:
+                          description: Name of the container the requirements are
+                            set for
+                          type: string
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: Name of the image
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Address of the registry that stores the image
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  spectrumXConfig:
+                    description: Spectrum-X Operator ConfigMap name
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
+                  sriovObjNamespace:
+                    description: SR-IOV Network Operator and related CRDs namespace
+                    type: string
+                  version:
+                    description: Version of the image to use
+                    type: string
+                required:
+                - image
+                - repository
+                - version
+                type: object
               sriovDevicePlugin:
                 description: |-
                   SriovDevicePlugin manages SRIOV through the Kubernetes device plugin framework.
