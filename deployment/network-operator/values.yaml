@@ -181,12 +181,12 @@ nic-configuration-operator-chart:
     image:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator
-      tag: v0.1.18
+      tag: v1.0.0
   configDaemon:
     image:
       repository: ghcr.io/mellanox
       name: nic-configuration-operator-daemon
-      tag: v0.1.18
+      tag: v1.0.0
 
 # Maintenance Operator chart related values.
 maintenance-operator-chart:

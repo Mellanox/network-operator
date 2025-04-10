@@ -119,11 +119,11 @@ spec:
     operator:
       image: nic-configuration-operator
       repository: ghcr.io/mellanox
-      version: v0.1.18
+      version: v1.0.0
     configurationDaemon:
       image: nic-configuration-operator-daemon
       repository: ghcr.io/mellanox
-      version: v0.1.18
+      version: v1.0.0
     nicFirmwareStorage:
       create: true
       pvcName: nic-fw-storage-pvc
