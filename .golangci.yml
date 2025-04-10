@@ -114,3 +114,6 @@ issues:
       linters:
         - stylecheck
         - goimports
+    - path: api
+      linters:
+        - lll

@@ -144,6 +144,11 @@ func getSupportedGVKs() []schema.GroupVersionKind {
 			Kind:    "Certificate",
 			Version: "v1",
 		},
+		{
+			Group:   "",
+			Kind:    "PersistentVolumeClaim",
+			Version: "v1",
+		},
 	}
 }
 
