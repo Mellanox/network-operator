@@ -300,14 +300,20 @@ spec:
                     properties:
                       availableStorageSize:
                         default: 1Gi
-                        description: 'storage size for the NIC Configuration Operator
-                          to request. Default value: 1Gi'
+                        description: 'AvailableStorageSize is storage size for the
+                          NIC Configuration Operator to request. Only applies if nicFirmwareStorage.create
+                          == true. Default value: 1Gi'
                         pattern: ^(\d+)(Ei|Pi|Ti|Gi|Mi|Ki)$
                         type: string
+                        x-kubernetes-validations:
+                        - message: availableStorageSize is immutable once set. nicFirmwareStorage
+                            should be deleted and created again with a new value.
+                          rule: self == oldSelf
                       create:
                         default: true
-                        description: Create specifies whether to create a new PVC
-                          or use an existing one
+                        description: |-
+                          Create specifies whether to create a new PVC or use an existing one
+                          If create == false, the existing PVC should be located in the same namespace as the operator
                         type: boolean
                       pvcName:
                         default: nic-fw-storage-pvc
@@ -325,6 +331,10 @@ spec:
                         minLength: 1
                         pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                         type: string
+                        x-kubernetes-validations:
+                        - message: storageClassName is immutable once set. nicFirmwareStorage
+                            should be deleted and created again with a new value.
+                          rule: self == oldSelf
                     type: object
                   operator:
                     description: Image information for nic-configuration-operator
@@ -1422,6 +1432,84 @@ spec:
                     - repository
                     - version
                     type: object
+                type: object
+              spectrumXOperator:
+                description: |-
+                  SpectrumXOperator exposes NVIDIA Spectrum-X Operator.
+                  See: https://github.com/Mellanox/spectrum-x-operator/
+                properties:
+                  containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
+                    items:
+                      description: ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        name:
+                          description: Name of the container the requirements are
+                            set for
+                          type: string
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: Name of the image
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Address of the registry that stores the image
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  spectrumXConfig:
+                    description: Spectrum-X Operator ConfigMap name
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
+                  sriovObjNamespace:
+                    description: SR-IOV Network Operator and related CRDs namespace
+                    type: string
+                  version:
+                    description: Version of the image to use
+                    type: string
+                required:
+                - image
+                - repository
+                - version
                 type: object
               sriovDevicePlugin:
                 description: |-
