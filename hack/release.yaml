@@ -90,3 +90,7 @@ maintenanceOperator:
   image: maintenance-operator
   repository: ghcr.io/mellanox
   version: v0.2.0
+spectrumXOperator:
+  image: spectrum-x-operator
+  repository: ghcr.io/mellanox
+  version: v0.0.2
