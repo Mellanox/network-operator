@@ -49,7 +49,7 @@ IMAGE_NAME?=network-operator
 CONTROLLER_IMAGE=$(REGISTRY)/$(IMAGE_NAME)
 IMAGE_BUILD_OPTS?=
 BUNDLE_IMG?=network-operator-bundle:$(VERSION)
-BUNDLE_OCP_VERSIONS=v4.14-v4.17
+BUNDLE_OCP_VERSIONS=v4.14-v4.18
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 BUILD_ARCH= amd64 arm64
