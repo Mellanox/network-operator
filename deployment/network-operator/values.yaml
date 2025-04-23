@@ -194,7 +194,7 @@ maintenance-operator-chart:
     image:
       repository: ghcr.io/mellanox
       name: maintenance-operator
-      tag: v0.2.0
+      tag: v0.2.1
     admissionController:
       # -- enable admission controller of the operator
       enable: false
