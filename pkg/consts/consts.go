@@ -38,6 +38,8 @@ const (
 	StateLabel = "nvidia.network-operator.state"
 	// DefaultCniBinDirectory is the default location of the CNI binaries on a host.
 	DefaultCniBinDirectory = "/opt/cni/bin"
+	// DefaultCniNetworkDirectory is the default location of the CNI network configuration on a host.
+	DefaultCniNetworkDirectory = "/etc/cni/net.d"
 	// OcpCniBinDirectory is the location of the CNI binaries on an OpenShift host.
 	OcpCniBinDirectory = "/var/lib/cni/bin"
 	// OfedDriverSkipDrainLabelSelector contains labelselector which is used to indicate

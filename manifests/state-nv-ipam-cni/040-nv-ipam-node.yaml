@@ -76,8 +76,8 @@ spec:
           - --store-file=/var/lib/cni/nv-ipam/store
           - --cni-daemon-socket=unix:///var/lib/cni/nv-ipam/daemon.sock
           - --cni-daemon-call-timeout=5 # 5 seconds
-          - --cni-bin-dir=/opt/cni/bin
-          - --cni-conf-dir=/etc/cni/net.d/nv-ipam.d
+          - --cni-bin-dir={{ .RuntimeSpec.CniBinDirectory }}
+          - --cni-conf-dir={{ .RuntimeSpec.CniNetworkDirectory }}/nv-ipam.d
           - --cni-log-file=/var/log/nv-ipam-cni.log
           - --cni-log-level=info # log level for shim CNI
           - --ippools-namespace=$(IPPOOLS_NAMESPACE)
@@ -108,7 +108,7 @@ spec:
           - name: cnibin
             mountPath: /opt/cni/bin
           - name: cniconf
-            mountPath: /etc/cni/net.d/nv-ipam.d
+            mountPath: {{ .RuntimeSpec.CniNetworkDirectory }}/nv-ipam.d
           - name: daemonstate
             mountPath: /var/lib/cni/nv-ipam/
       volumes:
@@ -118,7 +118,7 @@ spec:
             type: DirectoryOrCreate
         - name: cniconf
           hostPath:
-            path: /etc/cni/net.d/nv-ipam.d
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}/nv-ipam.d
             type: DirectoryOrCreate
         - name: daemonstate
           hostPath:

@@ -78,8 +78,13 @@ spec:
           {{- end }}
           volumeMounts:
             - name: cnibin
-              mountPath: /host/opt/cni/bin
+              mountPath: /host{{ .RuntimeSpec.CniBinDirectory }}
+            - name: cni
+              mountPath: /host{{ .RuntimeSpec.CniNetworkDirectory }}
       volumes:
         - name: cnibin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
+        - name: cni
+          hostPath:
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}
