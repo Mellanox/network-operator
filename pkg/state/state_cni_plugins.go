@@ -155,6 +155,7 @@ func (s *stateCNIPlugins) GetManifestObjects(
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
 			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.CniPlugins.ContainerResources),
 		},
 	}

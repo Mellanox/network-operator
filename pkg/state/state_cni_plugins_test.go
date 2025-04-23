@@ -99,8 +99,12 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			testCniBinDir := "/opt/mydir/cni"
+			testCniNetworkDir := "/opt/mydir/net.d"
 			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: testCniBinDir})
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
+				CniBinDirectory: testCniBinDir,
+				CniNetworkDirectory: testCniNetworkDir,
+			})
 			ts.catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
@@ -111,6 +115,7 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = testCniBinDir
+			expectedDs.Spec.Template.Spec.Volumes[1].VolumeSource.HostPath.Path = testCniNetworkDir
 			By("Verify CNI bin dir")
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 		})
