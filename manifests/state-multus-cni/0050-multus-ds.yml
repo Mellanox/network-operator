@@ -42,7 +42,7 @@ spec:
           effect: NoSchedule
       {{- if hasPrefix .CrSpec.Version "v4" }}
       priorityClassName: "system-node-critical"
-      terminationGracePeriodSeconds: 10        
+      terminationGracePeriodSeconds: 10
       initContainers:
         - name: install-multus-binary
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
@@ -75,11 +75,15 @@ spec:
             - "--cni-conf-dir=/host/etc/cni/net.d"
             - "--cleanup-config-on-exit"
             - "--skip-config-watch"
+            - "--cni-bin-dir=/host/opt/cni/bin"
+            - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
           {{- else }}
           command: ["/entrypoint.sh"]
           args:
             - "--cni-version=0.3.1"
+            - "--cni-conf-dir=/host/etc/cni/net.d"
             - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
+            - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
           # Remove multus config file to prevent failing of creating/deleting pods since multus will fail due to
           # permission issue, https://github.com/intel/multus-cni/issues/592
           lifecycle:
@@ -112,7 +116,7 @@ spec:
             privileged: true
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
-            - name: cni
+            - name: cninetwork
               mountPath: /host/etc/cni/net.d
             - name: cnibin
               mountPath: /host/opt/cni/bin
@@ -121,9 +125,9 @@ spec:
               mountPath: /tmp/multus-conf
           {{- end }}
       volumes:
-        - name: cni
+        - name: cninetwork
           hostPath:
-            path: /etc/cni/net.d
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}
         - name: cnibin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
