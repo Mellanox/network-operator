@@ -90,6 +90,14 @@ spec:
               value: "{{ .repository }}/{{ .image }}:{{ .version }}"
               {{- end }}
             {{- end }}
+            {{- if .Values.maintenanceOperator.enabled }}
+            - name: MAINTENANCE_OPERATOR_ENABLED
+              value: "{{ .Values.operator.maintenanceOperator.useRequestor }}"
+            - name: MAINTENANCE_OPERATOR_REQUESTOR_ID
+              value: {{ .Values.operator.maintenanceOperator.requestorID }}
+            - name: MAINTENANCE_OPERATOR_REQUESTOR_NAMESPACE
+              value: {{ .Values.operator.maintenanceOperator.nodeMaintenanceNamespace }}
+            {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
           livenessProbe:
