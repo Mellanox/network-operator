@@ -63,6 +63,7 @@ rules:
   resources:
   - ovsnetworks
   - sriovnetworknodepolicies
+  - sriovnetworkpoolconfigs
   verbs:
   - create
   - delete
@@ -70,4 +71,3 @@ rules:
   - get
   - list
   - patch
-
