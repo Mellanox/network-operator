@@ -30,6 +30,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
@@ -297,6 +303,19 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - ovsnetworks
+  - sriovnetworknodepolicies
+  - sriovnetworkpoolconfigs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
 - apiGroups:
   - whereabouts.cni.cncf.io
   resources:
