@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:73d55ff475bf0be7c9bc83b364f4ecfc32e6de8501d32f1f707648d4e21f476d
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:30cf8975926940a6a813b48f9a1dd7322c5ddd87541024476aa0da0778c9bdde
     alm-examples: |-
       [
         {
@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2025-04-17T14:32:48Z"
+    createdAt: "2025-04-25T17:56:22Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -110,7 +110,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v25.4.0-beta.2
+  name: nvidia-network-operator.v25.4.0-beta.3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -172,6 +172,12 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps/finalizers
+          verbs:
+          - update
         - apiGroups:
           - ""
           resources:
@@ -351,6 +357,12 @@ spec:
           - update
           - watch
         - apiGroups:
+          - maintenance.nvidia.com
+          resources:
+          - nodemaintenances/status
+          verbs:
+          - get
+        - apiGroups:
           - mellanox.com
           resources:
           - hostdevicenetworks
@@ -437,6 +449,19 @@ spec:
           verbs:
           - use
         - apiGroups:
+          - sriovnetwork.openshift.io
+          resources:
+          - ovsnetworks
+          - sriovnetworknodepolicies
+          - sriovnetworkpoolconfigs
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+        - apiGroups:
           - whereabouts.cni.cncf.io
           resources:
           - ippools
@@ -503,7 +528,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
-                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:73d55ff475bf0be7c9bc83b364f4ecfc32e6de8501d32f1f707648d4e21f476d
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:30cf8975926940a6a813b48f9a1dd7322c5ddd87541024476aa0da0778c9bdde
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -610,7 +635,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 25.4.0-beta.2
+  version: 25.4.0-beta.3
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -654,7 +679,7 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicclusterpolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:73d55ff475bf0be7c9bc83b364f4ecfc32e6de8501d32f1f707648d4e21f476d
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:30cf8975926940a6a813b48f9a1dd7322c5ddd87541024476aa0da0778c9bdde
     - name: nvidia-network-operator-init-container
       image: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
     - name: rdma-shared-device-plugin
