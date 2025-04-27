@@ -38,7 +38,7 @@ spec:
             - /flowcontroller
           args:
             - --cm-namespace={{ .RuntimeSpec.Namespace }}
-            {{- if .CrSpec.SpectrumXConfig.Name }}
+            {{- if and .CrSpec.SpectrumXConfig .CrSpec.SpectrumXConfig.Name }}
             - --cm-name={{ .CrSpec.SpectrumXConfig.Name }}
             {{- end }}
             - --metrics-bind-address=:8082

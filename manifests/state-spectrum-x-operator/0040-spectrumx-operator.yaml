@@ -41,7 +41,7 @@ spec:
             - --health-probe-bind-address=:8081
             - --cm-namespace={{ .RuntimeSpec.Namespace }}
             - --cidrpools-namespace={{ .RuntimeSpec.Namespace }}
-            {{- if .CrSpec.SpectrumXConfig.Name }}
+            {{- if and .CrSpec.SpectrumXConfig .CrSpec.SpectrumXConfig.Name }}
             - --cm-name={{ .CrSpec.SpectrumXConfig.Name }}
             {{- end }}
             {{- if .CrSpec.SriovObjNamespace }}
