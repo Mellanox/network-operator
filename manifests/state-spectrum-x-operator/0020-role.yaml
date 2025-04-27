@@ -53,6 +53,7 @@ rules:
   resources:
   - cidrpools
   verbs:
+  - create
   - delete
   - deletecollection
   - get

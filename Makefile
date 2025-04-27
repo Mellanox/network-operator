@@ -391,6 +391,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 manifests: $(CONTROLLER_GEN)	## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	cp config/crd/bases/* deployment/network-operator/crds/
+	hack/scripts/update-helm-role.sh
 
 generate: $(CONTROLLER_GEN) ## Generate code
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
