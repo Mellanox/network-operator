@@ -159,7 +159,7 @@ sriov-network-operator:
     sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:9b37f8b
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.8.1
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.2.1
-    ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.37.0
+    ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.38.2
     # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.3.0
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.9.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
