@@ -1,4 +1,4 @@
-# Copyright 2020 NVIDIA
+# Copyright 2025 NVIDIA
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,14 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
-  creationTimestamp: null
-  name: ippools.whereabouts.cni.cncf.io
+  name: nodeslices.whereabouts.cni.cncf.io
 spec:
   group: whereabouts.cni.cncf.io
   names:
-    kind: IPPool
-    listKind: IPPoolList
-    plural: ippools
-    singular: ippool
+    kind: NodeSlice
+    listKind: NodeSliceList
+    plural: nodeslices
+    singular: nodeslice
   scope: Namespaced
   versions:
     - name: v1alpha1
@@ -37,12 +34,15 @@ spec:
             spec:
               type: object
               properties:
+                nodeName:
+                  type: string
+                  description: NodeName is the name of the node this slice is assigned to
                 range:
                   type: string
                   description: Range is a RFC 4632/4291-style string that represents an IP address and prefix length in CIDR notation
                 allocations:
                   type: object
-                  description: Allocations is the set of allocated IPs for the given range. Its indices are a direct mapping to the IP with the same index/offset for the pool's range.
+                  description: Allocations is the set of allocated IPs for the given range
                   additionalProperties:
                     type: object
                     properties:
@@ -53,11 +53,15 @@ spec:
                     required:
                       - id
               required:
+                - nodeName
                 - range
                 - allocations
       subresources:
         status: {}
       additionalPrinterColumns:
+        - name: Node
+          type: string
+          jsonPath: .spec.nodeName
         - name: Range
           type: string
           jsonPath: .spec.range
@@ -67,9 +71,3 @@ spec:
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
