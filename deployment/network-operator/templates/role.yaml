@@ -426,6 +426,18 @@ rules:
     - update
     - watch
 - apiGroups:
+    - whereabouts.cni.cncf.io
+  resources:
+    - nodeslicepools
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
     - nv-ipam.nvidia.com
   resources:
     - cidrpools

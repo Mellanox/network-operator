@@ -320,6 +320,7 @@ rules:
   - whereabouts.cni.cncf.io
   resources:
   - ippools
+  - nodeslicepools
   - overlappingrangeipreservations
   verbs:
   - create

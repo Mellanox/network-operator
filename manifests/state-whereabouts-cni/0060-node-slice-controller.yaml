@@ -1,0 +1,122 @@
+# Copyright 2025 NVIDIA
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whereabouts-node-slice-controller
+  namespace: {{ .RuntimeSpec.Namespace }}
+  labels:
+    app: whereabouts-node-slice-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whereabouts-node-slice-controller
+  template:
+    metadata:
+      labels:
+        app: whereabouts-node-slice-controller
+    spec:
+      serviceAccountName: whereabouts
+      {{- if .NodeAffinity }}
+      affinity:
+        nodeAffinity:
+          {{- .NodeAffinity | yaml | nindent 10 }}
+      {{- end }}
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: whereabouts-node-slice-controller
+        image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
+        command:
+        - /node-slice-controller
+        env:
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: WHEREABOUTS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        {{- with .RuntimeSpec.ContainerResources }}
+        {{- with index . "whereabouts-node-slice-controller" }}
+        resources:
+          {{- if .Requests }}
+          requests:
+            {{ .Requests | yaml | nindent 12}}
+          {{- end }}
+          {{- if .Limits }}
+          limits:
+            {{ .Limits | yaml | nindent 12}}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /host/opt/cni/bin
+          name: cnibin
+        - mountPath: /host/etc/cni/net.d
+          name: cni-net-dir
+        - mountPath: /cron-schedule
+          name: cron-scheduler-configmap
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access
+          readOnly: true
+      preemptionPolicy: PreemptLowerPriority
+      priority: 0
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /opt/cni/bin
+          type: ""
+        name: cnibin
+      - hostPath:
+          path: /etc/cni/net.d
+          type: ""
+        name: cni-net-dir
+      - configMap:
+          defaultMode: 484
+          items:
+          - key: cron-expression
+            path: config
+          name: whereabouts-config
+        name: cron-scheduler-configmap
+      - name: kube-api-access
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              expirationSeconds: 3607
+              path: token
+          - configMap:
+              items:
+              - key: ca.crt
+                path: ca.crt
+              name: kube-root-ca.crt
+          - downwardAPI:
+              items:
+              - fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+                path: namespace

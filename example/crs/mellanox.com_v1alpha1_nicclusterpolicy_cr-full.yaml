@@ -94,7 +94,7 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.7.0
+      version: v0.9.0
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
