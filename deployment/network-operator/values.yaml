@@ -155,15 +155,15 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components.
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:919d5ad
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:919d5ad
+    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:4be5b0e
+    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:4be5b0e
     sriovCni: ghcr.io/k8snetworkplumbingwg/sriov-cni:v2.8.1
     ibSriovCni: ghcr.io/k8snetworkplumbingwg/ib-sriov-cni:v1.2.1
     ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin:v0.38.2
     # rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni:v1.3.0
     sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin:v3.9.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
-    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:919d5ad
+    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:4be5b0e
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
   sriovOperatorConfig:
