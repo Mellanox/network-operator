@@ -41,7 +41,7 @@ For additional information and methods for installing Helm, refer to the officia
 #### Deploy from OCI repo
 
 ```
-$ helm install -n sriov-network-operator --create-namespace --version 1.3.0 --set sriovOperatorConfig.deploy=true sriov-network-operator oci://ghcr.io/k8snetworkplumbingwg/sriov-network-operator-chart
+$ helm install -n sriov-network-operator --create-namespace --version 1.5.0 --set sriovOperatorConfig.deploy=true sriov-network-operator oci://ghcr.io/k8snetworkplumbingwg/sriov-network-operator-chart
 ```
 
 #### Deploy from project sources
