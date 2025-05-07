@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/Mellanox/maintenance-operator/api v0.2.1
+	github.com/Mellanox/maintenance-operator/api v0.2.2
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250423130453-abf588756c1c
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/containers/image/v5 v5.34.3
