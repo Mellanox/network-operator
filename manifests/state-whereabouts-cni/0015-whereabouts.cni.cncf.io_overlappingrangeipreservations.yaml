@@ -27,40 +27,46 @@ spec:
     singular: overlappingrangeipreservation
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        description: OverlappingRangeIPReservation is the Schema for the OverlappingRangeIPReservations
-          API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: OverlappingRangeIPReservationSpec defines the desired state
-              of OverlappingRangeIPReservation
-            properties:
-              containerid:
-                type: string
-              podref:
-                type: string
-            required:
-            - containerid
-            type: object
-        required:
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                range:
+                  type: string
+                  description: Range is a RFC 4632/4291-style string that represents an IP address and prefix length in CIDR notation
+                allocations:
+                  type: object
+                  description: Allocations is the set of allocated IPs for the given range. Its indices are a direct mapping to the IP with the same index/offset for the pool's range.
+                  additionalProperties:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      podref:
+                        type: string
+                    required:
+                      - id
+              required:
+                - range
+                - allocations
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Range
+          type: string
+          jsonPath: .spec.range
+        - name: Allocations
+          type: integer
+          jsonPath: .spec.allocations
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
 status:
   acceptedNames:
     kind: ""
