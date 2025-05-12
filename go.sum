@@ -6,8 +6,8 @@ github.com/Masterminds/semver/v3 v3.3.1 h1:QtNSWtVZ3nBfk8mAOu/B6v7FMJ+NHTIgUPi7r
 github.com/Masterminds/semver/v3 v3.3.1/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Mellanox/maintenance-operator/api v0.2.2 h1:7bl/txeHv49NdubQ72AqC7tLXa9oJrZuqk27TG5CybM=
 github.com/Mellanox/maintenance-operator/api v0.2.2/go.mod h1:pkd4TxjMFItohSXT0D1JhXB/E3d8jE5asBzxNATwT2s=
-github.com/NVIDIA/k8s-operator-libs v0.0.0-20250423130453-abf588756c1c h1:QAx1rvFT70PPyYU/bx1KlKoQBZpod1D7hKLAluU4lIE=
-github.com/NVIDIA/k8s-operator-libs v0.0.0-20250423130453-abf588756c1c/go.mod h1:B5g1bFq39qbuVK62pz0m93Qy3CCjeutfNICSl7SFoYo=
+github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512065337-030173ec072e h1:ksJHmD+NQ1LYrZCJTfv8M7SFUqVI9IsxaM7GNa29zCw=
+github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512065337-030173ec072e/go.mod h1:B5g1bFq39qbuVK62pz0m93Qy3CCjeutfNICSl7SFoYo=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
