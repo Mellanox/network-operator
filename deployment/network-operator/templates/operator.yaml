@@ -95,6 +95,8 @@ spec:
               value: "{{ .Values.operator.maintenanceOperator.useRequestor }}"
             - name: MAINTENANCE_OPERATOR_REQUESTOR_ID
               value: {{ .Values.operator.maintenanceOperator.requestorID }}
+            - name: MAINTENANCE_OPERATOR_NODE_MAINTENANCE_PREFIX
+              value: {{ .Values.operator.maintenanceOperator.nodeMaintenanceNamePrefix }}
             - name: MAINTENANCE_OPERATOR_REQUESTOR_NAMESPACE
               value: {{ .Values.operator.maintenanceOperator.nodeMaintenanceNamespace }}
             {{- end }}
