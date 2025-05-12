@@ -1,4 +1,4 @@
-{{- if .Values.cleanupLabels }}
+{{- if .Values.postDeleteCleanup }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
