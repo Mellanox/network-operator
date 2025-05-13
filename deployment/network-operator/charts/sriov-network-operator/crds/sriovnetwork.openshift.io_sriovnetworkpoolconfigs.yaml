@@ -112,6 +112,14 @@ spec:
                       On OpenShift:
                       Name is the name of MachineConfigPool to be enabled with OVS hardware offload
                     type: string
+                  otherConfig:
+                    additionalProperties:
+                      type: string
+                    default:
+                      hw-offload: "true"
+                    description: OVS config. It will be provided for ovs-vswitchd
+                      service as other_config option
+                    type: object
                 type: object
               rdmaMode:
                 description: RDMA subsystem. Allowed value "shared", "exclusive".
