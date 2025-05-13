@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/Mellanox/maintenance-operator/api v0.2.2
-	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512065337-030173ec072e
+	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512170135-63bc7baf3f6f
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/containers/image/v5 v5.35.0
 	github.com/go-logr/logr v1.4.2
