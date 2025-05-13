@@ -15,7 +15,7 @@ featureGates:
 
 priorityClassName: ""
 
-cleanupLabels: true
+postDeleteCleanup: true
 
 master:
   enable: true
