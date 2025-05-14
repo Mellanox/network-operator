@@ -68,4 +68,19 @@ var _ = Describe("Utils tests", func() {
 			Expect(result).To(Equal(consts.DefaultCniBinDirectory))
 		})
 	})
+
+	Context("Testing CniNetworkDirectory retrieval", func() {
+		It("Should return user set directory when configured", func() {
+			userSetDir := "/user/set/network/directory"
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniNetworkDirectory: userSetDir})
+			result := GetCniNetworkDirectory(staticConfigProvider, nil)
+			Expect(result).To(Equal(userSetDir))
+		})
+
+		It("Should return default directory when no user set directory is configured", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniNetworkDirectory: ""})
+			result := GetCniNetworkDirectory(staticConfigProvider, nil)
+			Expect(result).To(Equal(consts.DefaultCniNetworkDirectory))
+		})
+	})
 })

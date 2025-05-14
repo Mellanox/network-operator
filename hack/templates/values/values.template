@@ -36,7 +36,7 @@ nicConfigurationOperator:
 
 maintenanceOperator:
   # -- Deploy Maintenance Operator.
-  enabled: false  
+  enabled: false
 
 # Set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable.
 node-feature-discovery:
@@ -209,7 +209,7 @@ maintenance-operator-chart:
           generateSelfSigned: false
         custom:
           # -- enable custom certificates using secrets
-          enable: false         
+          enable: false
 
 # General Operator related values
 # The operator element allows to deploy network operator from an alternate location
@@ -265,11 +265,15 @@ operator:
   fullnameOverride: ""
   # tag, if defined will use the given image tag, else Chart. AppVersion will be used.
   # tag
-  # -- Directory, where CNI binaries will be deployed on the nodes. Setting for 
+  # -- Directory, where CNI binaries will be deployed on the nodes. Setting for
   # the sriov-network-operator is set with ``sriov-network-operator.cniBinPath``
   # parameter. Note that the CNI bin directory should be aligned with the CNI bin
   # directory in the container runtime.
   cniBinDirectory: /opt/cni/bin
+  # -- Directory, where CNI network configuration will be deployed on the nodes.
+  # Note that the CNI network directory should be aligned with the CNI network
+  # directory in the container runtime.
+  cniNetworkDirectory: /etc/cni/net.d
   # -- Enable the use of maintenance operator upgrade logic.
   maintenanceOperator:
     useRequestor: false
@@ -288,7 +292,7 @@ operator:
       #   -----BEGIN CERTIFICATE-----
       #   MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
       #   ...
-      #   -----END CERTIFICATE-----    
+      #   -----END CERTIFICATE-----
       # tlsCrt: |
       #   -----BEGIN CERTIFICATE-----
       #   MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G

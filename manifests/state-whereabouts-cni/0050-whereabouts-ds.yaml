@@ -97,7 +97,7 @@ spec:
         volumeMounts:
         - name: cnibin
           mountPath: /host/opt/cni/bin
-        - name: cni-net-dir
+        - name: cninetwork
           mountPath: /host/etc/cni/net.d
         - name: cron-scheduler-configmap
           mountPath: /cron-schedule
@@ -105,9 +105,9 @@ spec:
         - name: cnibin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
-        - name: cni-net-dir
+        - name: cninetwork
           hostPath:
-            path: /etc/cni/net.d
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}
         - name: cron-scheduler-configmap
           configMap:
             name: "whereabouts-config"

@@ -99,8 +99,12 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			testCniBinDir := "/opt/mydir/cni"
+			testCniNetworkDir := "/etc/mydir/cni/net.d"
 			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: testCniBinDir})
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
+				CniBinDirectory:     testCniBinDir,
+				CniNetworkDirectory: testCniNetworkDir,
+			})
 			ts.catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
@@ -111,7 +115,7 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = testCniBinDir
-			By("Verify CNI bin dir")
+			By("Verify CNI directories")
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 		})
 
@@ -119,7 +123,9 @@ var _ = Describe("CNI plugins state", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
+			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
+				CniBinDirectory: "",
+			})
 			ts.openshiftCatalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			status, err := ts.state.Sync(context.Background(), cr, ts.openshiftCatalog)
 			Expect(err).NotTo(HaveOccurred())
@@ -130,7 +136,7 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(err).NotTo(HaveOccurred())
 			expectedDs := getExpectedMinimalCniPluginDS()
 			expectedDs.Spec.Template.Spec.Volumes[0].VolumeSource.HostPath.Path = "/var/lib/cni/bin"
-			By("Verify CNI bin dir")
+			By("Verify CNI directories")
 			Expect(ds.Spec).To(BeEquivalentTo(expectedDs.Spec))
 		})
 

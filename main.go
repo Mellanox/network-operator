@@ -95,7 +95,11 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 	}
 
 	cniBinDir := os.Getenv("CNI_BIN_DIR")
-	staticInfoProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: cniBinDir})
+	cniNetworkDir := os.Getenv("CNI_NETWORK_DIR")
+	staticInfoProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
+		CniBinDirectory:     cniBinDir,
+		CniNetworkDirectory: cniNetworkDir,
+	})
 
 	docaImagesProvider := docadriverimages.NewProvider(ctx, c)
 
