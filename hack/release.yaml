@@ -9,15 +9,15 @@ NetworkOperatorInitContainer:
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: 9cc1a6f
+  version: 4225daf
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
-  version: 9cc1a6f
+  version: 4225daf
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
-  version: 9cc1a6f
+  version: 4225daf
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
