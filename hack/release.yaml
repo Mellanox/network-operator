@@ -9,6 +9,7 @@ NetworkOperatorInitContainer:
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: sriov-network-operator
   version: 4225daf
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
@@ -41,6 +42,7 @@ SriovDevicePlugin:
 IbKubernetes:
   image: ib-kubernetes
   repository: ghcr.io/mellanox
+  sourceRepository: ib-kubernetes
   version: v1.1.1
 CniPlugins:
   image: plugins
@@ -49,6 +51,7 @@ CniPlugins:
 Multus:
   image: multus-cni
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: multus-cni
   version: v4.1.0
 Ipoib:
   image: ipoib-cni
@@ -81,6 +84,7 @@ rdmaCni:
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
+  sourceRepository: nic-configuration-operator
   version: v1.0.3
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
