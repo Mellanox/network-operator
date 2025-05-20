@@ -77,6 +77,18 @@ jobs:
       if: github.ref_type == 'tag'
       run: |
         git_tag=${{ github.ref_name }}
+
+        # If this is a GA release (no hyphen in tag), update necessary files
+        if ! echo $git_tag | grep -q "-"; then
+          # Update files for GA release
+          echo "Updating files for GA release $git_tag"
+          yq -i '.NetworkOperator.repository = "nvcr.io/nvidia/cloud-native"' hack/release.yaml
+          yq -i '.SriovNetworkOperator.repository = "nvcr.io/nvidia/mellanox"' hack/release.yaml
+          yq -i '.SriovNetworkOperatorWebhook.repository = "nvcr.io/nvidia/mellanox"' hack/release.yaml
+          yq -i '.SriovConfigDaemon.repository = "nvcr.io/nvidia/mellanox"' hack/release.yaml
+          make release-build
+        fi
+
         APP_VERSION=$git_tag VERSION=${git_tag:1} make chart-build chart-push  # VERSION as 'v' prefix removed
 
   ocp-bundle:
