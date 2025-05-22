@@ -41,7 +41,10 @@ var _ = Describe("Multus CNI state", func() {
 		Expect(ts).NotTo(BeNil())
 
 		ts.catalog.Add(state.InfoTypeStaticConfig,
-			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
+			staticconfig.NewProvider(staticconfig.StaticConfig{
+				CniBinDirectory:     "custom-cni-bin-directory",
+				CniNetworkDirectory: "custom-cni-network-directory",
+			}))
 	})
 
 	It("should render ServiceAccount", func() {
@@ -316,6 +319,67 @@ var _ = Describe("Multus CNI state", func() {
 		for _, obj := range objs {
 			Expect(obj.GetKind()).ToNot(Equal("ConfigMap"))
 		}
+	})
+
+	It("should render Daemonset with custom CNI directories", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify CNI bin directory
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{
+					Name: "cnibin",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "custom-cni-bin-directory",
+						},
+					},
+				},
+			))
+
+			// Verify CNI network directory
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{
+					Name: "cninetwork",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "custom-cni-network-directory",
+						},
+					},
+				},
+			))
+
+			// Verify volume mounts
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{
+					Name:      "cnibin",
+					MountPath: "/host/opt/cni/bin",
+				},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{
+					Name:      "cninetwork",
+					MountPath: "/host/etc/cni/net.d",
+				},
+			))
+
+			// Verify multus kubeconfig path uses the custom CNI network directory
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement(
+				"--multus-kubeconfig-file-host=custom-cni-network-directory/multus.d/multus.kubeconfig",
+			))
+
+			// Verify CNI conf dir argument
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement(
+				"--cni-conf-dir=/host/etc/cni/net.d",
+			))
+		})).To(BeTrue())
 	})
 
 })

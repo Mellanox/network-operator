@@ -118,7 +118,7 @@ spec:
             type: DirectoryOrCreate
         - name: cniconf
           hostPath:
-            path: /etc/cni/net.d/nv-ipam.d
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}/nv-ipam.d
             type: DirectoryOrCreate
         - name: daemonstate
           hostPath:

@@ -84,6 +84,10 @@ spec:
             - name: CNI_BIN_DIR
               value: "{{ .Values.operator.cniBinDirectory }}"
             {{- end }}
+            {{- if .Values.operator.cniNetworkDirectory }}
+            - name: CNI_NETWORK_DIR
+              value: "{{ .Values.operator.cniNetworkDirectory }}"
+            {{- end }}
             {{- if and .Values.operator.ofedDriver.initContainer .Values.operator.ofedDriver.initContainer.enable }}
             - name: OFED_INIT_CONTAINER_IMAGE
               {{- with .Values.operator.ofedDriver.initContainer }}

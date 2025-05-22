@@ -149,9 +149,10 @@ func (s *stateWhereaboutsCNI) GetManifestObjects(
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
-			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.IpamPlugin.ContainerResources),
+			runtimeSpec:         runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
+			ContainerResources:  createContainerResourcesMap(cr.Spec.SecondaryNetwork.IpamPlugin.ContainerResources),
 		},
 	}
 	// render objects

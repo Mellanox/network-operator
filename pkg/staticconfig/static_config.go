@@ -23,7 +23,8 @@ package staticconfig
 
 // StaticConfig holds static config for the operator.
 type StaticConfig struct {
-	CniBinDirectory string
+	CniBinDirectory     string
+	CniNetworkDirectory string
 }
 
 // Provider provides static cluster attributes

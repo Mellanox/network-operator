@@ -81,3 +81,13 @@ func GetCniBinDirectory(staticInfo staticconfig.Provider,
 	}
 	return consts.DefaultCniBinDirectory
 }
+
+// GetCniNetworkDirectory returns the location where the CNI network configuration is stored on the node.
+func GetCniNetworkDirectory(staticInfo staticconfig.Provider, _ clustertype.Provider) string {
+	// First we try to set the user-set value, then fallback to defaults
+	userSetDirectory := staticInfo.GetStaticConfig().CniNetworkDirectory
+	if userSetDirectory != "" {
+		return userSetDirectory
+	}
+	return consts.DefaultCniNetworkDirectory
+}
