@@ -12,8 +12,20 @@ jobs:
       ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          echo "APP_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')" | tee -a $GITHUB_ENV
+      - id: set-version
+        run: |
+          # full release version, i.e. v25.4.0-rc.1
+          APP_VERSION=$(echo $ISSUE_TITLE | awk '{ print $2 }')
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=${APP_VERSION}" | tee -a $GITHUB_ENV
+
+          # major.minor version with v prefix and x suffix, i.e. v25.4.x
+          V_MAJOR_MINOR_X=$(echo $APP_VERSION | grep -Eo '^v[0-9]+\.[0-9]+').x
+          echo "V_MAJOR_MINOR_X=${V_MAJOR_MINOR_X}" | tee -a $GITHUB_ENV
+
+          # major.minor version without v prefix and with x suffix, i.e. 25.4.x
+          MAJOR_MINOR_X=$(echo ${V_MAJOR_MINOR_X#v})
+          echo "major_minor_x=${MAJOR_MINOR_X}" >> $GITHUB_OUTPUT
       - run: |
           echo "CHART_VERSION=$(echo ${APP_VERSION#v})" | tee -a $GITHUB_ENV
       - name: Determine base branch
@@ -21,8 +33,7 @@ jobs:
           if echo $APP_VERSION | grep -q beta; then
             base_branch=master
           else
-            v_major_minor=$(echo $APP_VERSION | grep -Eo '^v[0-9]+\.[0-9]+')
-            base_branch=$v_major_minor.x
+            base_branch=$V_MAJOR_MINOR_X
           fi
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
       - name: Verify release branch exists if "rc" version
@@ -58,32 +69,66 @@ jobs:
               --title "cicd: update Network Operator to $APP_VERSION in chart values" \
               --body "Created by the *${{ github.job }}* job."
           fi
+    outputs:
+      app_version: ${{ steps.set-version.outputs.app_version }}
+      major_minor_x: ${{ steps.set-version.outputs.major_minor_x }}
 
-  update-sriov-network-operator-version:
-    if: startsWith(github.event.issue.title, 'Release v')
+  get-managed-components:
+    needs: update-network-operator-version
     runs-on: ubuntu-24.04
+    outputs:
+      managed_components: ${{ steps.set-components.outputs.managed_components }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-components
+        run: |
+          # Extract the sourceRepository field from each component
+          # This will create a JSON array of the repository names
+          components=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null) | .value.sourceRepository)' hack/release.yaml | jq -c .)
+          echo $components
+          echo "managed_components=$(echo $components)" >> $GITHUB_OUTPUT
+
+  update-component-versions:
+    runs-on: ubuntu-24.04
+    needs: [get-managed-components, update-network-operator-version]
+    strategy:
+      matrix:
+        component: ${{ fromJson(needs.get-managed-components.outputs.managed_components) }}
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-      ISSUE_TITLE: ${{ github.event.issue.title }}
+      APP_VERSION: ${{ needs.update-network-operator-version.outputs.app_version }}
+      MAJOR_MINOR_X: ${{ needs.update-network-operator-version.outputs.major_minor_x }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-          repository: ${{ github.repository_owner }}/sriov-network-operator
-          path: sriov-network-operator-fork
+          repository: ${{ github.repository_owner }}/${{ matrix.component }}
+          path: ${{ matrix.component }}
           fetch-depth: 0
-      - run: |
-          echo "APP_VERSION=$(echo $ISSUE_TITLE | awk -F 'Release v' '{ print $2 }')" | tee -a $GITHUB_ENV
-      - name: Determine sriov-network-operator branch
-        run: |
-          major_minor=$(echo $APP_VERSION | grep -Eo '[0-9]+\.[0-9]+')
-          echo BASE_BRANCH=network-operator-$major_minor.x | tee -a $GITHUB_ENV
       - name: Create tag to trigger PR that update image tags in network-operator values
         run: |
-          cd sriov-network-operator-fork
+          cd ${{ matrix.component }}
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
+          git fetch origin
 
-          git checkout -b $APP_VERSION origin/$BASE_BRANCH
+          RELEASE_BRANCH=network-operator-${MAJOR_MINOR_X}
+
+          echo "Checking if the release branch exists"
+          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q "$RELEASE_BRANCH"; then
+            echo "Release branch exists, using it"
+            git checkout -b $APP_VERSION origin/$RELEASE_BRANCH
+          else
+            echo "Release branch doesn't exist, creating it"
+            echo "Branch $RELEASE_BRANCH does not exist for ${{ matrix.component }}, creating it from default branch"
+
+            git checkout -b $RELEASE_BRANCH
+            git push -u origin $RELEASE_BRANCH
+
+            echo "Creating the version branch from the new release branch"
+            git checkout -b $APP_VERSION
+          fi
+
+          echo "Creating and pushing the tag"
           git tag network-operator-$APP_VERSION
           git push origin --tags
