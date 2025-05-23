@@ -118,12 +118,12 @@ spec:
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
-      repository: ghcr.io/mellanox
-      version: v1.0.3
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.5.0-beta.1
     configurationDaemon:
       image: nic-configuration-operator-daemon
-      repository: ghcr.io/mellanox
-      version: v1.0.3
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.5.0-beta.1
     nicFirmwareStorage:
       create: true
       pvcName: nic-fw-storage-pvc
