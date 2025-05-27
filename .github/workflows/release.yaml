@@ -67,7 +67,7 @@ jobs:
               --base $BASE_BRANCH \
               --head $(git branch --show-current) \
               --title "cicd: update Network Operator to $APP_VERSION in chart values" \
-              --body "Created by the *${{ github.job }}* job."
+              --body "Created by the [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           fi
     outputs:
       app_version: ${{ steps.set-version.outputs.app_version }}
