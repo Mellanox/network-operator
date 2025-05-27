@@ -92,6 +92,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [get-managed-components, update-network-operator-version]
     strategy:
+      fail-fast: false  # allow all jobs to run independently
       matrix:
         component: ${{ fromJson(needs.get-managed-components.outputs.managed_components) }}
     env:
