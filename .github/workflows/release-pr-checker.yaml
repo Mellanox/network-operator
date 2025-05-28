@@ -77,6 +77,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: .
-      - run:
-          # There are branch protection rules in place, to override them, we need to pass --admin option
-          gh pr merge $PR_NUMBER --merge --delete-branch --admin
+      - run: |
+          # Check if PR is open before attempting to merge
+          PR_STATE=$(gh pr view $PR_NUMBER --json state -q .state)
+          if [ "$PR_STATE" = "OPEN" ]; then
+            # There are branch protection rules in place, to override them, we need to pass --admin option
+            gh pr merge $PR_NUMBER --merge --delete-branch --admin
+          else
+            echo "PR #$PR_NUMBER is not open (current state: $PR_STATE). Skipping merge."
+            exit 1
+          fi
