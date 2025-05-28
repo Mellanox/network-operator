@@ -18,8 +18,8 @@ metadata:
 spec:
   ofedDriver:
     image: doca-driver
-    repository: nvcr.io/nvstaging/mellanox
-    version: 25.01-0.3.9.0-0
+    repository: nvcr.io/nvidia/mellanox
+    version: 25.04-0.6.1.0-2
     livenessProbe:
       initialDelaySeconds: 30
       periodSeconds: 30
@@ -42,7 +42,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: ghcr.io/mellanox
-    version: sha256:9f468fdc4449e65e4772575f83aa85840a00f97165f9a00ba34695c91d610fbd
+    version: sha256:1eb5ab7f4b6f0cf89c954cf7ac8eb2e6fb2290a4f5f57417136a5302f20b12c8
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
