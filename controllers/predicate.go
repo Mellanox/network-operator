@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -98,4 +99,55 @@ func (p IgnoreSameContentPredicate) handleDeployment(oldObj, newObj *appsv1.Depl
 	revAnnotation := "deployment.kubernetes.io/revision"
 	delete(oldObj.Annotations, revAnnotation)
 	delete(newObj.Annotations, revAnnotation)
+}
+
+// NodeTaintChangedPredicate filters if node taints have changed
+type NodeTaintChangedPredicate struct {
+	predicate.Funcs
+}
+
+// Update returns true if the node taints have been changed
+func (p NodeTaintChangedPredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil || e.ObjectNew == nil {
+		return false
+	}
+
+	oldNode, ok := e.ObjectOld.(*corev1.Node)
+	if !ok {
+		return false
+	}
+	newNode, ok := e.ObjectNew.(*corev1.Node)
+	if !ok {
+		return false
+	}
+
+	// Compare taints
+	if len(oldNode.Spec.Taints) != len(newNode.Spec.Taints) {
+		return true
+	}
+
+	// Create maps for easier comparison
+	oldTaints := make(map[string]corev1.Taint)
+	newTaints := make(map[string]corev1.Taint)
+
+	for _, taint := range oldNode.Spec.Taints {
+		oldTaints[taint.Key] = taint
+	}
+	for _, taint := range newNode.Spec.Taints {
+		newTaints[taint.Key] = taint
+	}
+
+	// Compare taint maps
+	if len(oldTaints) != len(newTaints) {
+		return true
+	}
+
+	for key, oldTaint := range oldTaints {
+		newTaint, exists := newTaints[key]
+		if !exists || !reflect.DeepEqual(oldTaint, newTaint) {
+			return true
+		}
+	}
+
+	return false
 }
