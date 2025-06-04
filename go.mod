@@ -8,7 +8,7 @@ require (
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512170135-63bc7baf3f6f
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/containers/image/v5 v5.35.0
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/go-containerregistry v0.20.3
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20231129213221-4fdaa32ee934
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.6
