@@ -171,6 +171,17 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 							ImagePullSecrets: []string{},
 						},
 					},
+					// The node created by the API call is subject to default taints applied by Kubernetes
+					// (e.g., "node.kubernetes.io/not-ready:NoSchedule" for new nodes).
+					// This toleration is added to the NicClusterPolicy to ensure the OFED driver DaemonSet
+					// can be scheduled on the test node by matching such taints.
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node.kubernetes.io/not-ready",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
 				},
 			}
 
@@ -393,6 +404,161 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 
 			By("Delete NICClusterPolicy")
 			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
+		})
+	})
+})
+
+const (
+	stateOFEDName = "state-OFED" // Assuming this is the value for the state label for OFED
+)
+
+// Helper function to create a new Node for testing
+func newTestNode(name, kernelVersion, osName, osVer, arch string, taints []corev1.Taint) *corev1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				nodeinfo.NodeLabelMlnxNIC:       "true",
+				nodeinfo.NodeLabelOSName:        osName,
+				nodeinfo.NodeLabelOSVer:         osVer,
+				nodeinfo.NodeLabelKernelVerFull: kernelVersion,
+				nodeinfo.NodeLabelCPUArch:       arch,
+				// Add a unique label to help select this node if needed, though not strictly used in these tests for DS directly
+				"test-node-label": name,
+			},
+		},
+		Spec: corev1.NodeSpec{
+			Taints: taints,
+		},
+		Status: corev1.NodeStatus{ // Add basic status to make node appear more realistic to controller
+			Conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+			},
+		},
+	}
+}
+
+// Helper function to create a NicClusterPolicy with OFEDDriver spec
+func newOfedNicClusterPolicy(name string, tolerations []corev1.Toleration) *mellanoxv1alpha1.NicClusterPolicy {
+	return &mellanoxv1alpha1.NicClusterPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			// Namespace: "test-namespace", // NCP is cluster-scoped
+		},
+		Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+			OFEDDriver: &mellanoxv1alpha1.OFEDDriverSpec{
+				ImageSpec: mellanoxv1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/nvidia/mellanox", // Using a common repo
+					Version:    "5.9-0.5.6.0",             // A version used in other tests
+				},
+			},
+			Tolerations: tolerations,
+		},
+	}
+}
+
+var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration Interactions", func() {
+	const (
+		testNodeNamePrefix   = "taint-test-node-"
+		testOSName           = "ubuntu"
+		testOSVer            = "20.04"
+		testKernelVersion    = "5.15.0-testkernel"
+		testArch             = "amd64"
+		nicClusterPolicyName = "nic-cluster-policy"
+		customTaintKey       = "custom/test-taint"
+		customTaintValue     = "true"
+		customTaintEffect    = corev1.TaintEffectNoSchedule
+	)
+
+	ctx := context.Background()
+
+	// Default toleration for newly created nodes in test environments
+	defaultNodeTolerations := []corev1.Toleration{
+		{
+			Key:      "node.kubernetes.io/not-ready",
+			Operator: corev1.TolerationOpExists,
+			Effect:   corev1.TaintEffectNoSchedule,
+		},
+	}
+
+	Context("When Node taint changes and NicClusterPolicy tolerations are static", func() {
+		It("should create OFED DaemonSet initially and delete it after Node is tainted", func() {
+			nodeName := fmt.Sprintf("%s%s", testNodeNamePrefix, "test1")
+			node := newTestNode(nodeName, testKernelVersion, testOSName, testOSVer, testArch, nil) // No taints initially
+			Expect(k8sClient.Create(ctx, node)).Should(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, node)).Should(Succeed()) }()
+
+			ncp := newOfedNicClusterPolicy(nicClusterPolicyName, defaultNodeTolerations)
+			Expect(k8sClient.Create(ctx, ncp)).Should(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, ncp)).Should(Succeed()) }()
+
+			By("Verifying OFED DaemonSet is created for the untainted node")
+			Eventually(func(g Gomega) {
+				dsList := &appsv1.DaemonSetList{}
+				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
+					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
+				g.Expect(dsList.Items).To(HaveLen(1), "Expected 1 OFED DaemonSet")
+			}, timeout*3, interval).Should(Succeed())
+
+			By("Adding a taint to the Node")
+			updatedNode := &corev1.Node{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nodeName}, updatedNode)).Should(Succeed())
+			updatedNode.Spec.Taints = []corev1.Taint{
+				{Key: customTaintKey, Value: customTaintValue, Effect: customTaintEffect},
+			}
+			Expect(k8sClient.Update(ctx, updatedNode)).Should(Succeed())
+
+			By("Verifying OFED DaemonSet is deleted as NCP does not tolerate the new taint")
+			Eventually(func(g Gomega) {
+				dsList := &appsv1.DaemonSetList{}
+				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
+					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
+				g.Expect(dsList.Items).To(BeEmpty(), "Expected 0 OFED DaemonSets after node taint")
+			}, timeout*3, interval).Should(Succeed())
+		})
+	})
+
+	Context("When NicClusterPolicy tolerations change for a tainted Node", func() {
+		It("should not create OFED DaemonSet initially and create it after NCP toleration is added", func() {
+			nodeName := fmt.Sprintf("%s%s", testNodeNamePrefix, "test2")
+			nodeTaints := []corev1.Taint{
+				{Key: customTaintKey, Value: customTaintValue, Effect: customTaintEffect},
+			}
+			node := newTestNode(nodeName, testKernelVersion, testOSName, testOSVer, testArch, nodeTaints)
+			Expect(k8sClient.Create(ctx, node)).Should(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, node)).Should(Succeed()) }()
+
+			ncp := newOfedNicClusterPolicy(nicClusterPolicyName, defaultNodeTolerations) // Initially no custom toleration
+			Expect(k8sClient.Create(ctx, ncp)).Should(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, ncp)).Should(Succeed()) }()
+
+			By("Verifying no OFED DaemonSet is created for the tainted node without specific toleration")
+			Consistently(func(g Gomega) {
+				dsList := &appsv1.DaemonSetList{}
+				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
+					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
+				g.Expect(dsList.Items).To(BeEmpty(), "Expected 0 OFED DaemonSets initially for tainted node")
+			}, timeout, interval*2).Should(Succeed()) // Check consistently for a period
+
+			By("Updating NicClusterPolicy to add toleration for the Node's taint")
+			updatedNcp := &mellanoxv1alpha1.NicClusterPolicy{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nicClusterPolicyName}, updatedNcp)).Should(Succeed())
+			updatedNcp.Spec.Tolerations = append(updatedNcp.Spec.Tolerations, corev1.Toleration{
+				Key:      customTaintKey,
+				Operator: corev1.TolerationOpEqual,
+				Value:    customTaintValue,
+				Effect:   customTaintEffect,
+			})
+			Expect(k8sClient.Update(ctx, updatedNcp)).Should(Succeed())
+
+			By("Verifying OFED DaemonSet is created after NCP toleration is added")
+			Eventually(func(g Gomega) {
+				dsList := &appsv1.DaemonSetList{}
+				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
+					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
+				g.Expect(dsList.Items).To(HaveLen(1), "Expected 1 OFED DaemonSet after adding toleration")
+			}, timeout*5, interval).Should(Succeed())
 		})
 	})
 })

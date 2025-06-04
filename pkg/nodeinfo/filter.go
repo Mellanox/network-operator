@@ -141,3 +141,136 @@ func (b *NodeLabelNoValFilterBuilder) Reset() *NodeLabelNoValFilterBuilder {
 	b.filter = newNodeLabelNoValFilter()
 	return b
 }
+
+// A node taint filter. use NewNodeTaintFilterBuilder to create instances
+type nodeTaintFilter struct {
+	tolerations []corev1.Toleration
+}
+
+// Apply Filter on Nodes
+func (ntf *nodeTaintFilter) Apply(nodes []*corev1.Node) (filtered []*corev1.Node) {
+	for _, node := range nodes {
+		if ntf.toleratesTaints(node.Spec.Taints) {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
+}
+
+// toleratesTaints checks if the tolerations can tolerate all taints on the node
+func (ntf *nodeTaintFilter) toleratesTaints(taints []corev1.Taint) bool {
+	if len(taints) == 0 {
+		return true // No taints -> don't filter
+	}
+	// If a node has taints, but the filter has no tolerations,
+	// it would normally be filtered. However, we need to special-case the cordon taint.
+	// The loop below will correctly handle this: if only a cordon taint exists, it will be skipped.
+	// If other taints exist, ntf.toleratesTaint() will return false if ntf.tolerations is empty.
+
+	for _, taint := range taints {
+		// If the taint is the specific "unschedulable" (cordon) taint,
+		// we effectively ignore it for the purpose of this filter.
+		// This means a node that is only cordoned (and has no other taints
+		// that aren't tolerated by ntf.tolerations) will not be filtered out by this logic.
+		if taint.Key == "node.kubernetes.io/unschedulable" && taint.Effect == corev1.TaintEffectNoSchedule {
+			continue // This particular taint does not cause the node to be filtered out by itself
+		}
+
+		// For any other taint, it must be explicitly tolerated by the provided tolerations.
+		if !ntf.toleratesTaint(taint) {
+			// ntf.toleratesTaint() checks if any of ntf.tolerations can tolerate this specific taint.
+			// If not, this node has an untolerated (non-cordon) taint.
+			return false // At least one non-cordon taint is not tolerated -> filter the node
+		}
+	}
+	// If we've looped through all taints and all non-cordon taints were tolerated
+	// (or if there were only cordon taints that were skipped), then the node is not filtered.
+	return true
+}
+
+// toleratesTaint checks if any of the tolerations can tolerate the given taint
+func (ntf *nodeTaintFilter) toleratesTaint(taint corev1.Taint) bool {
+	for _, toleration := range ntf.tolerations {
+		if toleration.ToleratesTaint(&taint) {
+			return true
+		}
+	}
+	return false
+}
+
+// newNodeTaintFilter creates a new nodeTaintFilter
+func newNodeTaintFilter() nodeTaintFilter {
+	return nodeTaintFilter{tolerations: make([]corev1.Toleration, 0)}
+}
+
+// NodeTaintFilterBuilder is a builder for nodeTaintFilter
+type NodeTaintFilterBuilder struct {
+	filter nodeTaintFilter
+}
+
+// NewNodeTaintFilterBuilder returns a new NodeTaintFilterBuilder
+func NewNodeTaintFilterBuilder() *NodeTaintFilterBuilder {
+	return &NodeTaintFilterBuilder{filter: newNodeTaintFilter()}
+}
+
+// WithTolerations adds tolerations for the Build process of the Taint filter
+func (b *NodeTaintFilterBuilder) WithTolerations(tolerations []corev1.Toleration) *NodeTaintFilterBuilder {
+	b.filter.tolerations = tolerations
+	return b
+}
+
+// Build the Filter
+func (b *NodeTaintFilterBuilder) Build() Filter {
+	return &b.filter
+}
+
+// Reset NodeTaintFilterBuilder
+func (b *NodeTaintFilterBuilder) Reset() *NodeTaintFilterBuilder {
+	b.filter = newNodeTaintFilter()
+	return b
+}
+
+// CompositeNodeFilter combines multiple filters into one
+type CompositeNodeFilter struct {
+	filters []Filter
+}
+
+// Apply applies all filters in sequence, each filter operating on the output of the previous one.
+// This means filters form a pipeline where nodes must pass ALL filters to be included in the result.
+func (cnf *CompositeNodeFilter) Apply(nodes []*corev1.Node) []*corev1.Node {
+	filtered := nodes
+	for _, filter := range cnf.filters {
+		filtered = filter.Apply(filtered)
+		if len(filtered) == 0 {
+			break // No nodes left to filter, so stop early
+		}
+	}
+	return filtered
+}
+
+// NodeFilterBuilder is a builder for creating composite node filters
+type NodeFilterBuilder struct {
+	filters []Filter
+}
+
+// NewNodeFilterBuilder returns a new NodeFilterBuilder
+func NewNodeFilterBuilder() *NodeFilterBuilder {
+	return &NodeFilterBuilder{filters: make([]Filter, 0)}
+}
+
+// WithLabel adds a label filter
+func (b *NodeFilterBuilder) WithLabel(key, val string) *NodeFilterBuilder {
+	b.filters = append(b.filters, NewNodeLabelFilterBuilder().WithLabel(key, val).Build())
+	return b
+}
+
+// WithTolerations adds a taint filter with the given tolerations
+func (b *NodeFilterBuilder) WithTolerations(tolerations []corev1.Toleration) *NodeFilterBuilder {
+	b.filters = append(b.filters, NewNodeTaintFilterBuilder().WithTolerations(tolerations).Build())
+	return b
+}
+
+// Build creates a composite filter from the builder
+func (b *NodeFilterBuilder) Build() Filter {
+	return &CompositeNodeFilter{filters: b.filters}
+}
