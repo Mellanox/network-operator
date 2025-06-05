@@ -70,6 +70,7 @@ type spectrumXRuntimeSpec struct {
 	runtimeSpec
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	CniBinDirectory    string
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -131,7 +132,6 @@ func (s *stateSpectrumXOperator) Sync(
 // GetWatchSources returns a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *stateSpectrumXOperator) GetWatchSources() map[string]client.Object {
 	wr := make(map[string]client.Object)
-	wr["Deployment"] = &appsv1.Deployment{}
 	wr["DaemonSet"] = &appsv1.DaemonSet{}
 	return wr
 }
@@ -148,6 +148,10 @@ func (s *stateSpectrumXOperator) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
 	renderData := &spectrumXOperatorRenderData{
 		CrSpec:       cr.Spec.SpectrumXOperator,
 		NodeAffinity: cr.Spec.NodeAffinity,
@@ -155,6 +159,7 @@ func (s *stateSpectrumXOperator) GetManifestObjects(
 		RuntimeSpec: &spectrumXRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
+			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
 			ContainerResources: createContainerResourcesMap(cr.Spec.SpectrumXOperator.ContainerResources),
 		},
 	}
