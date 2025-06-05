@@ -332,13 +332,10 @@ type NicConfigurationOperatorSpec struct {
 type SpectrumXOperatorSpec struct {
 	// Image information for NVIDIA Spectrum-X Operator
 	ImageSpec `json:""`
-	// Spectrum-X Operator ConfigMap name
-	SpectrumXConfig *ConfigMapNameReference `json:"spectrumXConfig,omitempty"`
-	// SR-IOV Network Operator and related CRDs namespace
-	SriovObjNamespace string `json:"sriovObjNamespace,omitempty"`
 }
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
+// +kubebuilder:pruning:PreserveUnknownFields
 type NicClusterPolicySpec struct {
 	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
 	// See https://network.nvidia.com/support/mlnx-ofed-matrix/
