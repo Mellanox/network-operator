@@ -126,7 +126,7 @@ GO = go
 # golangci-lint is used to lint go code.
 GOLANGCI_LINT_PKG=github.com/golangci/golangci-lint/cmd/golangci-lint
 GOLANGCI_LINT_BIN= golangci-lint
-GOLANGCI_LINT_VER = v1.61.0
+GOLANGCI_LINT_VER = v1.64.8
 GOLANGCI_LINT = $(TOOLSDIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 $(GOLANGCI_LINT):
 	$(call go-install-tool,$(GOLANGCI_LINT_PKG),$(GOLANGCI_LINT_BIN),$(GOLANGCI_LINT_VER))

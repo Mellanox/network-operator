@@ -347,7 +347,6 @@ func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context, stateObjectsT
 			return false, err
 		}
 		for _, obj := range l.Items {
-			obj := obj
 			if stateObjectsToKeep.Exist(gvk, types.NamespacedName{
 				Name:      obj.GetName(),
 				Namespace: obj.GetNamespace()}) {

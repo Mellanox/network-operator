@@ -101,6 +101,13 @@ const (
 	defaultDriversInventoryPath = "/mnt/drivers-inventory"
 )
 
+const (
+	defaultInitialDelaySeconds      = 10
+	defaultPeriodSeconds            = 30
+	startupProbePeriodSeconds       = 10
+	initialDelayStartupProbeSeconds = 30
+)
+
 // CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
 // Where Go looks for certs: https://golang.org/src/crypto/x509/root_linux.go
 // Where OCP mounts proxy certs on RHCOS nodes:
@@ -804,22 +811,22 @@ func (e envVarsWithGet) Get(name string) *v1.EnvVar {
 func setProbesDefaults(cr *mellanoxv1alpha1.NicClusterPolicy) {
 	if cr.Spec.OFEDDriver.StartupProbe == nil {
 		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
+			InitialDelaySeconds: defaultInitialDelaySeconds,
+			PeriodSeconds:       startupProbePeriodSeconds,
 		}
 	}
 
 	if cr.Spec.OFEDDriver.LivenessProbe == nil {
 		cr.Spec.OFEDDriver.LivenessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 30,
-			PeriodSeconds:       30,
+			InitialDelaySeconds: initialDelayStartupProbeSeconds,
+			PeriodSeconds:       defaultPeriodSeconds,
 		}
 	}
 
 	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
 		cr.Spec.OFEDDriver.ReadinessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       30,
+			InitialDelaySeconds: defaultInitialDelaySeconds,
+			PeriodSeconds:       defaultPeriodSeconds,
 		}
 	}
 }
