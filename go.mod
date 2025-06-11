@@ -3,7 +3,6 @@ module github.com/Mellanox/network-operator
 go 1.23.3
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/Mellanox/maintenance-operator/api v0.2.2
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512170135-63bc7baf3f6f
 	github.com/caarlos0/env/v6 v6.10.1
