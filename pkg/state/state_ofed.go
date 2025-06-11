@@ -360,12 +360,6 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to create k8s objects from manifest")
 	}
-	if len(objs) == 0 {
-		// GetManifestObjects returned no objects, this means that no objects need to be applied to the cluster
-		// as (most likely) no Mellanox hardware is found (No mellanox labels where found).
-		// Return SyncStateNotReady so we retry the Sync.
-		return SyncStateNotReady, nil
-	}
 
 	// Create objects if they dont exist, Update objects if they do exist
 	err = s.createOrUpdateObjs(ctx, func(obj *unstructured.Unstructured) error {
@@ -384,6 +378,14 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	if waitForStaleObjectsRemoval {
 		return SyncStateNotReady, nil
 	}
+
+	if len(objs) == 0 {
+		// GetManifestObjects returned no objects, this means that no objects need to be applied to the cluster
+		// as (most likely) no Mellanox hardware is found (No mellanox labels where found).
+		// Return SyncStateNotReady so we retry the Sync.
+		return SyncStateNotReady, nil
+	}
+
 	// Check objects status
 	syncState, err := s.getSyncState(ctx, objs)
 	if err != nil {
@@ -459,6 +461,31 @@ func (s *stateOFED) handleAdditionalMounts(
 	return nil
 }
 
+// addGPUToleration adds the nvidia.com/gpu:NoSchedule toleration if not already present
+func addGPUToleration(tolerations []v1.Toleration) []v1.Toleration {
+	gpuToleration := v1.Toleration{
+		Key:      "nvidia.com/gpu",
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists, // Operator can be Exists if Value is not specified, or Equal if Value is specified.
+	}
+
+	// Handle nil input gracefully
+	if tolerations == nil {
+		tolerations = make([]v1.Toleration, 0)
+	}
+
+	// Check if the GPU toleration already exists
+	for _, t := range tolerations {
+		// More robust check: consider operator and value if they become relevant
+		if t.Key == gpuToleration.Key && t.Effect == gpuToleration.Effect && t.Operator == gpuToleration.Operator {
+			return tolerations // Already present
+		}
+	}
+
+	// Add the GPU toleration
+	return append(tolerations, gpuToleration)
+}
+
 //nolint:funlen
 func (s *stateOFED) GetManifestObjects(
 	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
@@ -472,10 +499,17 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, err
 	}
 
-	nodePools := nodeInfo.GetNodePools(
-		nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build())
+	// Add default GPU toleration to the list of tolerations from CR for filtering purposes
+	tolerationsForFiltering := addGPUToleration(cr.Spec.Tolerations)
+
+	// Create filters for labels and taints
+	labelFilter := nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build()
+	taintFilter := nodeinfo.NewNodeTaintFilterBuilder().WithTolerations(tolerationsForFiltering).Build()
+
+	nodePools := nodeInfo.GetNodePools(labelFilter, taintFilter) // Apply the filters
+
 	if len(nodePools) == 0 {
-		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs where found in the cluster.")
+		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs and matching tolerations found")
 		return []*unstructured.Unstructured{}, nil
 	}
 
@@ -489,7 +523,8 @@ func (s *stateOFED) GetManifestObjects(
 
 	for _, np := range nodePools {
 		nodePool := np
-		// render objects
+		// render objects, passing only user-defined tolerations to the renderer
+		// as the GPU toleration is expected to be in the template.
 		renderedObjs, err := renderObjects(ctx, &nodePool, useDtk, s, cr, reqLogger, clusterInfo, docaProvider)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to render objects")

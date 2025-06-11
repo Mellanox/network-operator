@@ -379,6 +379,80 @@ var _ = Describe("MOFED state test", func() {
 				verifySubscriptionVolumesRhel(ds.Spec.Template.Spec.Volumes)
 			}
 		})
+		It("Should render DaemonSet with CR and default GPU tolerations, and filter nodes correctly", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-tolerations-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+			}
+			cr.Spec.Tolerations = []v1.Toleration{
+				{
+					Key:      "custom-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "true",
+					Effect:   v1.TaintEffectNoSchedule,
+				},
+			}
+
+			node1 := getNode("node1-selected", kernelFull1)
+			node1.Spec.Taints = []v1.Taint{
+				{Key: "nvidia.com/gpu", Value: "true", Effect: v1.TaintEffectNoSchedule},
+				{Key: "custom-taint", Value: "true", Effect: v1.TaintEffectNoSchedule},
+			}
+
+			node2 := getNode("node2-not-selected", kernelFull2)
+			node2.Spec.Taints = []v1.Taint{
+				{Key: "another-critical-taint", Value: "true", Effect: v1.TaintEffectNoSchedule},
+			}
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{node1, node2})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			By("Calling GetManifestObjects with nodes requiring specific tolerations")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Expect 1 DaemonSet + ServiceAccount, Role, RoleBinding
+			By("Verifying the correct number of objects are rendered")
+			Expect(len(objs)).To(Equal(4), "Expected 1 DaemonSet and its 3 associated RBAC resources")
+
+			By("Finding the rendered DaemonSet")
+			var daemonSet *appsv1.DaemonSet
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					ds := &appsv1.DaemonSet{}
+					err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, ds)
+					Expect(err).NotTo(HaveOccurred())
+					// Ensure we only find one DaemonSet
+					Expect(daemonSet).To(BeNil(), "Expected only one DaemonSet to be rendered")
+					daemonSet = ds
+				}
+			}
+			Expect(daemonSet).NotTo(BeNil(), "A DaemonSet should have been rendered")
+		})
 	})
 	It("Should Render subscription mounts for SLES", func() {
 		client := mocks.ControllerRuntimeClient{}
