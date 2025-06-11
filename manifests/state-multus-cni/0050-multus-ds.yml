@@ -21,6 +21,8 @@ spec:
         name: multus
     spec:
       hostNetwork: true
+      securityContext:
+        privileged: true
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
