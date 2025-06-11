@@ -92,9 +92,9 @@ type ConfigMapNameReference struct {
 	Name string `json:"name,omitempty"`
 }
 
-// OFEDDriverSpec describes configuration options for DOCA Driver Container
+// OFEDDriverSpec describes configuration options for DOCA-OFED Driver Container
 type OFEDDriverSpec struct {
-	// Image information for DOCA driver container
+	// Image information for DOCA-OFED driver container
 	ImageSpec `json:""`
 	// Pod startup probe settings
 	StartupProbe *PodProbeSpec `json:"startupProbe,omitempty"`
@@ -102,22 +102,22 @@ type OFEDDriverSpec struct {
 	LivenessProbe *PodProbeSpec `json:"livenessProbe,omitempty"`
 	// Pod readiness probe settings
 	ReadinessProbe *PodProbeSpec `json:"readinessProbe,omitempty"`
-	// List of environment variables to set in the DOCA driver container.
+	// List of environment variables to set in the DOCA-OFED driver container.
 	Env []v1.EnvVar `json:"env,omitempty"`
-	// DOCA driver auto-upgrade settings
+	// DOCA-OFED driver auto-upgrade settings
 	OfedUpgradePolicy *DriverUpgradePolicySpec `json:"upgradePolicy,omitempty"`
-	// Optional: Custom TLS certificates configuration for DOCA driver container
+	// Optional: Custom TLS certificates configuration for DOCA-OFED driver container
 	CertConfig *ConfigMapNameReference `json:"certConfig,omitempty"`
-	// Optional: Custom package repository configuration for DOCA driver container
+	// Optional: Custom package repository configuration for DOCA-OFED driver container
 	RepoConfig *ConfigMapNameReference `json:"repoConfig,omitempty"`
 	// TerminationGracePeriodSeconds specifies the length of time in seconds
-	// to wait before killing the DOCA driver container pod on termination
+	// to wait before killing the DOCA-OFED driver container pod on termination
 	// +optional
 	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Minimum:=0
 	TerminationGracePeriodSeconds int64 `json:"terminationGracePeriodSeconds,omitempty"`
-	// ForcePrecompiled specifies if only DOCA driver precompiled images are allowed
-	// If set to false and precompiled image does not exists, DOCA driver will be compiled on Nodes
+	// ForcePrecompiled specifies if only DOCA-OFED driver precompiled images are allowed
+	// If set to false and precompiled image does not exists, DOCA-OFED driver will be compiled on Nodes
 	// If set to true and precompiled image does not exists, OFED state will be Error.
 	// +optional
 	// +kubebuilder:default:=false

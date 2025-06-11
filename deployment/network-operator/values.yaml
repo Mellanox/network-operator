@@ -280,7 +280,7 @@ operator:
     requestorID: "nvidia.network.operator"
     nodeMaintenanceNamePrefix: "network-operator"
     nodeMaintenanceNamespace: default
-  # -- Enable the use of Driver ToolKit to compile DOCA Drivers (OpenShift only).
+  # -- Enable the use of Driver ToolKit to compile DOCA-OFED Drivers (OpenShift only).
   useDTK: true
   admissionController:
     # -- Deploy with admission controller.
