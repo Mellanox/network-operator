@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	"github.com/go-logr/logr"
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -621,11 +620,8 @@ func (s *stateOFED) getInitContainerConfig(
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
 	pool *nodeinfo.NodePool, precompiledExists bool, reqLogger logr.Logger) string {
-	curDriverVer, err := semver.NewVersion(cr.Spec.OFEDDriver.Version)
-	if err != nil {
-		reqLogger.V(consts.LogLevelDebug).Info("failed to parse ofed driver version as semver")
-	}
-	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v", "version", curDriverVer)
+	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v",
+		"version", cr.Spec.OFEDDriver.Version)
 
 	if precompiledExists {
 		return fmt.Sprintf(precompiledImageFormat,
