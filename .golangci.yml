@@ -27,13 +27,11 @@ linters-settings:
     local-prefixes: github.com/Mellanox/network-operator
   golint:
     min-confidence: 0
-  gomnd:
+  mnd:
     settings:
-      mnd:
-        # don't include the "operation" and "assign"
-        checks: argument,case,condition,return
+      # don't include the "operation" and "assign"
+      checks: argument,case,condition,return
   govet:
-    check-shadowing: true
     settings:
       printf:
         funcs:
@@ -61,7 +59,7 @@ linters:
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
+    - copyloopvar
     - funlen
       #- gochecknoinits
       #- goconst
@@ -69,7 +67,7 @@ linters:
     - gocognit
     - gofmt
     - goimports
-    - gomnd
+    - mnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -104,11 +102,12 @@ issues:
       text: "should not use dot imports"
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
         - goconst
+        - typecheck
     - text: "Magic number: 1"
       linters:
-        - gomnd
+        - mnd
     # controller-gen generates zz_generated.deepcopy.go that doesn't comply with some golangci-lint checks
     - path: api/v1alpha1/zz_generated.deepcopy.go
       linters:

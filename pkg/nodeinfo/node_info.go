@@ -74,7 +74,6 @@ func (p *provider) GetNodePools(filters ...Filter) []NodePool {
 	nodePoolMap := make(map[string]NodePool)
 
 	for _, node := range filtered {
-		node := node
 		nodeLabels := node.GetLabels()
 
 		nodePool := NodePool{}
