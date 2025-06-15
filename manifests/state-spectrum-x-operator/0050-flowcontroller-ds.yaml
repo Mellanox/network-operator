@@ -37,10 +37,6 @@ spec:
         - command:
             - /flowcontroller
           args:
-            - --cm-namespace={{ .RuntimeSpec.Namespace }}
-            {{- if and .CrSpec.SpectrumXConfig .CrSpec.SpectrumXConfig.Name }}
-            - --cm-name={{ .CrSpec.SpectrumXConfig.Name }}
-            {{- end }}
             - --metrics-bind-address=:8082
             - --health-probe-bind-address=:8084
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
@@ -95,6 +91,23 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+      initContainers:
+        - command:
+          - cp
+          - /railcni
+          - /hostcni/rail
+          image:  {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
+          name: copy-rail-cni
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          volumeMounts:
+          - mountPath: /hostcni
+            name: host-cni-bin
       volumes:
         - name: proc
           hostPath:
@@ -108,6 +121,10 @@ spec:
         - name: ovs-systemd-config
           hostPath:
             path: /etc/default/openvswitch-switch
+        - name: host-cni-bin
+          hostPath:
+            path: {{ .RuntimeSpec.CniBinDirectory }}
+            type: DirectoryOrCreate
       serviceAccountName: spectrum-x-operator
       {{- if .NodeAffinity }}
       affinity:

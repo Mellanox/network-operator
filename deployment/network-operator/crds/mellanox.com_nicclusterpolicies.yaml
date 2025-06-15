@@ -1493,16 +1493,6 @@ spec:
                     description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
-                  spectrumXConfig:
-                    description: Spectrum-X Operator ConfigMap name
-                    properties:
-                      name:
-                        description: Name of the ConfigMap
-                        type: string
-                    type: object
-                  sriovObjNamespace:
-                    description: SR-IOV Network Operator and related CRDs namespace
-                    type: string
                   version:
                     description: Version of the image to use
                     type: string

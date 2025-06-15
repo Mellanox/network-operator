@@ -6,8 +6,11 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps/finalizers
+  - events
   verbs:
+  - create
+  - get
+  - patch
   - update
 - apiGroups:
   - coordination.k8s.io
@@ -24,7 +27,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
   - pods
   verbs:
   - create
@@ -48,27 +50,3 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - nv-ipam.nvidia.com
-  resources:
-  - cidrpools
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-- apiGroups:
-  - sriovnetwork.openshift.io
-  resources:
-  - ovsnetworks
-  - sriovnetworknodepolicies
-  - sriovnetworkpoolconfigs
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch

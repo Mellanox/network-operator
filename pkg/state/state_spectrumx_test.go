@@ -22,31 +22,37 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 //nolint:dupl
 var _ = Describe("Spectrum X Operator", func() {
-	var ts testScope
-
+	var (
+		ts      testScope
+		catalog state.InfoCatalog
+	)
 	BeforeEach(func() {
 		ts = ts.New(state.NewStateSpectrumXOperator, "../../manifests/state-spectrum-x-operator")
 		Expect(ts).NotTo(BeNil())
+		catalog = getTestCatalog()
+		catalog.Add(state.InfoTypeStaticConfig,
+			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
 	})
 
 	Context("should render", func() {
 		It("Kubernetes manifests", func() {
 			cr := getSpectrumXOperator()
-			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(5))
-			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.SpectrumXOperator.ImageSpec, ts.renderer)
+			Expect(len(objs)).To(Equal(4))
+			GetManifestObjectsTest(ts.context, cr, catalog, &cr.Spec.SpectrumXOperator.ImageSpec, ts.renderer)
 		})
 		It("Openshift manifests", func() {
 			cr := getSpectrumXOperator()
 			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.openshiftCatalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(7))
-			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.SpectrumXOperator.ImageSpec, ts.renderer)
+			Expect(len(objs)).To(Equal(6))
+			GetManifestObjectsTest(ts.context, cr, ts.openshiftCatalog, &cr.Spec.SpectrumXOperator.ImageSpec, ts.renderer)
 		})
 	})
 	Context("should sync", func() {
@@ -54,7 +60,7 @@ var _ = Describe("Spectrum X Operator", func() {
 			cr := getSpectrumXOperator()
 			err := ts.client.Create(ts.context, cr)
 			Expect(err).NotTo(HaveOccurred())
-			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
+			status, err := ts.state.Sync(ts.context, cr, catalog)
 			Expect(err).NotTo(HaveOccurred())
 			// We do not expect that the sync state (i.e. the DaemonSet) will be ready.
 			// There is no real Kubernetes cluster in the unit tests and thus the Pods cannot be scheduled.
@@ -66,15 +72,10 @@ var _ = Describe("Spectrum X Operator", func() {
 func getSpectrumXOperator() *mellanoxv1alpha1.NicClusterPolicy {
 	cr := getTestClusterPolicyWithBaseFields()
 	imageSpec := getTestImageSpec()
-	imageSpec = addContainerResources(imageSpec, "spectrum-x-operator", "1", "9")
 	imageSpec = addContainerResources(imageSpec, "spectrum-x-flowcontroller", "1", "9")
 	cr.Name = "nic-cluster-policy"
 	cr.Spec.SpectrumXOperator = &mellanoxv1alpha1.SpectrumXOperatorSpec{
 		ImageSpec: *imageSpec,
-		SpectrumXConfig: &mellanoxv1alpha1.ConfigMapNameReference{
-			Name: "spectrum-x-config",
-		},
-		SriovObjNamespace: "default",
 	}
 	return cr
 }
