@@ -135,3 +135,277 @@ var _ = Describe("NodeAttributes tests", func() {
 		})
 	})
 })
+
+var _ = Describe("Combined filtering tests", func() {
+	commonLabel := map[string]string{"app": "test-app"}
+	nodeWithLabelOnly := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-label-only", Labels: commonLabel},
+	}
+	nodeWithTaintNoSchedule := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-taint-noschedule", Labels: commonLabel},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{{
+				Key:    "gpu",
+				Value:  "true",
+				Effect: corev1.TaintEffectNoSchedule,
+			}},
+		},
+	}
+	nodeWithTaintNoExecute := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-taint-noexecute", Labels: commonLabel},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{{
+				Key:    "gpu",
+				Value:  "true",
+				Effect: corev1.TaintEffectNoExecute,
+			}},
+		},
+	}
+	nodeWithOtherTaint := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-other-taint", Labels: commonLabel},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{{
+				Key:    "storage",
+				Value:  "slow",
+				Effect: corev1.TaintEffectNoSchedule,
+			}},
+		},
+	}
+	nodeWithMultipleTaints := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-multi-taint", Labels: commonLabel},
+		Spec: corev1.NodeSpec{Taints: []corev1.Taint{
+			{Key: "gpu", Value: "true", Effect: corev1.TaintEffectNoSchedule},
+			{Key: "maintenance", Value: "true", Effect: corev1.TaintEffectNoExecute},
+		}},
+	}
+	nodeNoLabelWithTaint := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-nolabel-taint"},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{{
+				Key:    "gpu",
+				Value:  "true",
+				Effect: corev1.TaintEffectNoSchedule,
+			}},
+		},
+	}
+
+	allTestNodes := []*corev1.Node{
+		nodeWithLabelOnly, nodeWithTaintNoSchedule, nodeWithTaintNoExecute,
+		nodeWithOtherTaint, nodeWithMultipleTaints, nodeNoLabelWithTaint,
+	}
+
+	tolerationGpuNoSchedule := corev1.Toleration{
+		Key:      "gpu",
+		Operator: corev1.TolerationOpExists,
+		Effect:   corev1.TaintEffectNoSchedule,
+	}
+	tolerationGpuNoExecute := corev1.Toleration{
+		Key:      "gpu",
+		Operator: corev1.TolerationOpExists,
+		Effect:   corev1.TaintEffectNoExecute,
+	}
+	tolerationMaintenance := corev1.Toleration{
+		Key:      "maintenance",
+		Operator: corev1.TolerationOpExists,
+		Effect:   corev1.TaintEffectNoExecute,
+	}
+
+	Context("When label and tolerations are provided", func() {
+		It("Should filter nodes matching both label and tolerated taints", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationGpuNoSchedule}).Build()
+
+			filteredNodes := labelFilter.Apply(allTestNodes)
+			filteredNodes = taintFilter.Apply(filteredNodes)
+
+			Expect(len(filteredNodes)).To(Equal(2))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly))       // No taints, passes
+			Expect(filteredNodes).To(ContainElement(nodeWithTaintNoSchedule)) // Tolerated NoSchedule taint
+		})
+
+		It("Should return no nodes if taints are not tolerated", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationGpuNoExecute}).Build()
+			// nodeWithTaintNoSchedule has TaintEffectNoSchedule, so it should be filtered out
+			// nodeWithLabelOnly has no taints, so it should pass
+			// nodeWithTaintNoExecute has TaintEffectNoExecute, so it should pass
+			nodesToFilter := []*corev1.Node{nodeWithLabelOnly, nodeWithTaintNoSchedule, nodeWithTaintNoExecute}
+			filteredNodes := labelFilter.Apply(nodesToFilter)
+			filteredNodes = taintFilter.Apply(filteredNodes)
+			Expect(len(filteredNodes)).To(Equal(2))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly))
+			Expect(filteredNodes).To(ContainElement(nodeWithTaintNoExecute))
+		})
+
+		It("Should return only nodes with label if empty tolerations list is provided", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{}).Build()
+
+			filteredNodes := labelFilter.Apply(allTestNodes)
+			filteredNodes = taintFilter.Apply(filteredNodes)
+
+			// Empty tolerations should only include nodes with no taints
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly))
+			Expect(filteredNodes).NotTo(ContainElement(nodeWithTaintNoSchedule))
+			Expect(filteredNodes).NotTo(ContainElement(nodeWithTaintNoExecute))
+			Expect(filteredNodes).NotTo(ContainElement(nodeWithOtherTaint))
+			Expect(filteredNodes).NotTo(ContainElement(nodeWithMultipleTaints))
+		})
+
+		It("Should support all 5 taint/toleration scenarios", func() {
+			// Create a single node list with nodes for all 5 scenarios
+			noTaintNode := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "no-taint-node", Labels: commonLabel},
+			}
+			gpuTaintNode := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "gpu-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    "gpu",
+						Value:  "true",
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+			otherTaintNode := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "other-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    "storage",
+						Value:  "slow",
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+
+			testNodes := []*corev1.Node{noTaintNode, gpuTaintNode, otherTaintNode}
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+
+			// 1. No tolerations + no taints -> don't filter
+			// 2. No tolerations + taints -> filter
+			noTolerationsTaintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{}).Build()
+
+			filteredNodes := noTolerationsTaintFilter.Apply(labelFilter.Apply(testNodes))
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes).To(ContainElement(noTaintNode))       // Scenario 1: passes
+			Expect(filteredNodes).NotTo(ContainElement(gpuTaintNode))   // Scenario 2: filtered out
+			Expect(filteredNodes).NotTo(ContainElement(otherTaintNode)) // Scenario 2: filtered out
+
+			// 3. Tolerations + no taints -> don't filter
+			// 4. Tolerations + taints which don't match -> filter
+			// 5. Tolerations + taints which match -> don't filter
+			gpuTolerationsTaintFilter := NewNodeTaintFilterBuilder().
+				WithTolerations([]corev1.Toleration{tolerationGpuNoSchedule}).
+				Build()
+
+			filteredNodes = gpuTolerationsTaintFilter.Apply(labelFilter.Apply(testNodes))
+			Expect(len(filteredNodes)).To(Equal(2))
+			Expect(filteredNodes).To(ContainElement(noTaintNode))       // Scenario 3: passes
+			Expect(filteredNodes).To(ContainElement(gpuTaintNode))      // Scenario 5: passes
+			Expect(filteredNodes).NotTo(ContainElement(otherTaintNode)) // Scenario 4: filtered out
+		})
+	})
+
+	Context("When only label filter is applied", func() {
+		It("Should return all nodes matching the label, regardless of taints", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			filteredNodes := labelFilter.Apply(allTestNodes)
+			Expect(len(filteredNodes)).To(Equal(5))
+			Expect(filteredNodes).To(ContainElements(
+				nodeWithLabelOnly, nodeWithTaintNoSchedule, nodeWithTaintNoExecute,
+				nodeWithOtherTaint, nodeWithMultipleTaints,
+			))
+		})
+	})
+
+	Context("When only taint filter is applied", func() {
+		It("Should filter nodes based on taints, regardless of labels", func() {
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationGpuNoSchedule}).Build()
+			filteredNodes := taintFilter.Apply(allTestNodes)
+			// nodeWithLabelOnly (no taints) - PASS
+			// nodeWithTaintNoSchedule (gpu/NoSchedule, tolerated) - PASS
+			// nodeWithTaintNoExecute (gpu/NoExecute, not tolerated by this filter) - FAIL
+			// nodeWithOtherTaint (storage/NoSchedule, not tolerated by this filter) - FAIL
+			// nodeWithMultipleTaints (gpu/NoSchedule tolerated, maintenance/NoExecute not tolerated) -
+			// FAIL (all taints must be tolerated)
+			// nodeNoLabelWithTaint (gpu/NoSchedule, tolerated) - PASS
+			Expect(len(filteredNodes)).To(Equal(3))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly))
+			Expect(filteredNodes).To(ContainElement(nodeWithTaintNoSchedule))
+			Expect(filteredNodes).To(ContainElement(nodeNoLabelWithTaint))
+		})
+	})
+
+	Context("When node has multiple taints", func() {
+		It("Should only pass if all taints are tolerated", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations(
+				[]corev1.Toleration{tolerationGpuNoSchedule, tolerationMaintenance}).Build()
+
+			nodesToFilter := []*corev1.Node{nodeWithLabelOnly, nodeWithMultipleTaints}
+			filteredNodes := taintFilter.Apply(labelFilter.Apply(nodesToFilter))
+
+			Expect(len(filteredNodes)).To(Equal(2))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly))
+			Expect(filteredNodes).To(ContainElement(nodeWithMultipleTaints))
+		})
+
+		It("Should fail if not all taints are tolerated", func() {
+			labelFilter := NewNodeLabelFilterBuilder().WithLabel("app", "test-app").Build()
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations(
+				[]corev1.Toleration{tolerationGpuNoSchedule}).Build() // Only tolerates one of the two taints
+
+			nodesToFilter := []*corev1.Node{nodeWithLabelOnly, nodeWithMultipleTaints}
+			filteredNodes := taintFilter.Apply(labelFilter.Apply(nodesToFilter))
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes).To(ContainElement(nodeWithLabelOnly)) // nodeWithMultipleTaints should be filtered out
+		})
+	})
+
+	Context("When no filter criteria are specified", func() {
+		It("Should return all input nodes", func() {
+			filteredNodes := allTestNodes
+			Expect(len(filteredNodes)).To(Equal(len(allTestNodes)))
+		})
+	})
+
+	Context("New Filter Test for Node with MlnxNIC and No Taints", func() {
+		It("Should include the node if it has the Mellanox NIC label and no taints, even if the filter has tolerations",
+			func() {
+				testNodes := []*corev1.Node{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test-node-mlnx-nic-no-taints",
+							Labels: map[string]string{
+								NodeLabelMlnxNIC:       "true",
+								NodeLabelOSName:        "ubuntu",
+								NodeLabelCPUArch:       "amd64",
+								NodeLabelKernelVerFull: "generic-9.0.1",
+								NodeLabelOSVer:         "20.0.4",
+							},
+							// No taints defined for this node
+						},
+					},
+				}
+
+				// Define a filter that requires the Mellanox NIC label
+				// and includes some tolerations.
+				filterTolerations := []corev1.Toleration{
+					{Key: "example.com/some-taint", Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule},
+				}
+
+				labelFilter := NewNodeLabelFilterBuilder().WithLabel(NodeLabelMlnxNIC, "true").Build()
+				taintFilter := NewNodeTaintFilterBuilder().WithTolerations(filterTolerations).Build()
+
+				filteredNodes := taintFilter.Apply(labelFilter.Apply(testNodes))
+
+				// Expectation: The node has the required label and no taints.
+				// A node with no taints should always pass a toleration check.
+				// Thus, it should not be filtered out.
+				Expect(filteredNodes).To(HaveLen(1), "Node with MlnxNIC and no taints should not be filtered out")
+				Expect(filteredNodes[0].Name).To(Equal("test-node-mlnx-nic-no-taints"),
+					"The correct node should be present in the filtered list")
+			})
+	})
+})

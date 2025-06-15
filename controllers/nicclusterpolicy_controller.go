@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -376,9 +377,12 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 	}
 	r.stateManager = stateManager
 
-	ctl := ctrl.NewControllerManagedBy(mgr).
+	// Define the controller builder
+	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&mellanoxv1alpha1.NicClusterPolicy{}).
 		// Watch for changes to primary resource NicClusterPolicy
+		// The EnqueueRequestForObject handler is fine for the primary resource if no complex mapping is needed.
+		// If generation checks are needed, WithEventFilter can be used on For().
 		Watches(&mellanoxv1alpha1.NicClusterPolicy{}, &handler.EnqueueRequestForObject{})
 
 	// we always add object with a same(static) key to the queue to reduce
@@ -391,18 +395,29 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 		},
 	}
 
-	// Watch for "feature.node.kubernetes.io/pci-15b3.present" label applying
-	nodePredicates := builder.WithPredicates(MlnxLabelChangedPredicate{})
-	ctl = ctl.Watches(&corev1.Node{}, updateEnqueue, nodePredicates)
+	// Predicates for Node events
+	nodeEventPredicates := predicate.Or(
+		MlnxLabelChangedPredicate{},
+		NodeTaintChangedPredicate{},
+	)
+
+	// Add a watch for Node resources with the combined predicates
+	bld = bld.Watches(
+		&corev1.Node{},
+		updateEnqueue, // Use the handler.Funcs defined above
+		builder.WithPredicates(nodeEventPredicates), // Wrap predicates for WatchesOption
+	)
 
 	ws := stateManager.GetWatchSources()
 
 	for kindName := range ws {
 		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", kindName)
-		ctl = ctl.Watches(ws[kindName], handler.EnqueueRequestForOwner(
+		// For secondary resources, EnqueueRequestForOwner is typical.
+		// The IgnoreSameContentPredicate is also wrapped with builder.WithPredicates.
+		bld = bld.Watches(ws[kindName], handler.EnqueueRequestForOwner(
 			mgr.GetScheme(), mgr.GetRESTMapper(), &mellanoxv1alpha1.NicClusterPolicy{}, handler.OnlyControllerOwner()),
 			builder.WithPredicates(IgnoreSameContentPredicate{}))
 	}
 
-	return ctl.Complete(r)
+	return bld.Complete(r)
 }
