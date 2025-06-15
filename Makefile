@@ -423,7 +423,7 @@ release-build:
 
 .PHONY: check-doca-drivers
 check-doca-drivers: $(HACKTMPDIR)
-	$(eval DRIVERVERSION := $(shell yq '.Mofed.version'  hack/release.yaml | cut -d'-' -f1))
+	$(eval DRIVERVERSION := $(shell yq '.Mofed.version'  hack/release.yaml | sed 's/^doca[0-9]\+\.[0-9]\+\.0-//' | cut -d'-' -f1))
 	wget $(DOCA_DRIVER_RELEASE_URL)$(DRIVERVERSION).yaml  -O $(HACKTMPDIR)/doca-driver-matrix.yaml
 	cd hack && $(GO) run release.go --doca-driver-check --doca-driver-matrix $(HACKTMPDIR)/doca-driver-matrix.yaml
 
