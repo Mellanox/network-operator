@@ -103,9 +103,9 @@ nicConfigurationConfigDaemon:
   version: v1.0.3
 maintenanceOperator:
   image: maintenance-operator
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: v0.2.2
+  version: network-operator-v25.7.0-beta.1
 spectrumXOperator:
   image: spectrum-x-operator
   repository: ghcr.io/mellanox
