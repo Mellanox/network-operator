@@ -60,9 +60,9 @@ Multus:
   version: v4.1.0
 Ipoib:
   image: ipoib-cni
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: v1.2.2
+  version: network-operator-v25.7.0-beta.1
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
