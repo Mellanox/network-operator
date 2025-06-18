@@ -22,10 +22,12 @@ SriovConfigDaemon:
 SriovCni:
   image: sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: sriov-cni
   version: v2.8.1
 SriovIbCni:
   image: ib-sriov-cni
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: ib-sriov-cni
   version: v1.2.1
 Mofed:
   image: doca-driver
@@ -34,10 +36,12 @@ Mofed:
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: ghcr.io/mellanox
+  sourceRepository: k8s-rdma-shared-dev-plugin
   version: v1.5.3
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: sriov-network-device-plugin
   version: v3.9.0
 IbKubernetes:
   image: ib-kubernetes
@@ -47,6 +51,7 @@ IbKubernetes:
 CniPlugins:
   image: plugins
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: k8snetworkplumbingwg-plugins
   version: v1.6.2-update.1
 Multus:
   image: multus-cni
@@ -56,18 +61,22 @@ Multus:
 Ipoib:
   image: ipoib-cni
   repository: ghcr.io/mellanox
+  sourceRepository: ipoib-cni
   version: v1.2.2
 IpamPlugin:
   image: whereabouts
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: whereabouts
   version: v0.9.0
 nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
+  sourceRepository: nvidia-k8s-ipam
   version: v0.3.7
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: ghcr.io/mellanox
+  sourceRepository: nic-feature-discovery
   version: v0.0.2
 docaTelemetryService:
   image: doca_telemetry
@@ -76,10 +85,12 @@ docaTelemetryService:
 ovsCni:
   image: ovs-cni-plugin
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: ovs-cni
   version: v0.38.2
 rdmaCni:
   image: rdma-cni
   repository: ghcr.io/k8snetworkplumbingwg
+  sourceRepository: rdma-cni
   version: v1.3.0
 nicConfigurationOperator:
   image: nic-configuration-operator
@@ -93,8 +104,10 @@ nicConfigurationConfigDaemon:
 maintenanceOperator:
   image: maintenance-operator
   repository: ghcr.io/mellanox
+  sourceRepository: maintenance-operator
   version: v0.2.2
 spectrumXOperator:
   image: spectrum-x-operator
   repository: ghcr.io/mellanox
+  sourceRepository: spectrum-x-operator
   version: v0.1.2
