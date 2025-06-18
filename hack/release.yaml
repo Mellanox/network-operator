@@ -45,9 +45,9 @@ SriovDevicePlugin:
   version: v3.9.0
 IbKubernetes:
   image: ib-kubernetes
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-kubernetes
-  version: v1.1.1
+  version: network-operator-v25.7.0-beta.1
 CniPlugins:
   image: plugins
   repository: ghcr.io/k8snetworkplumbingwg
