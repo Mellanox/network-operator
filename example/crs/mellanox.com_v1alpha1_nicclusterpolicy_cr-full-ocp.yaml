@@ -101,8 +101,8 @@ spec:
     ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: nic-feature-discovery
-    repository: ghcr.io/mellanox
-    version: v0.0.2
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-v25.7.0-beta.1
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
