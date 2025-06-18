@@ -89,9 +89,9 @@ ovsCni:
   version: v0.38.2
 rdmaCni:
   image: rdma-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
-  version: v1.3.0
+  version: network-operator-v25.7.0-beta.1
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
