@@ -72,7 +72,7 @@ nicFeatureDiscovery:
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
-  version: 1.16.5-doca2.6.0-host
+  version: 1.21.4-doca3.0.0-host
 ovsCni:
   image: ovs-cni-plugin
   repository: ghcr.io/k8snetworkplumbingwg
