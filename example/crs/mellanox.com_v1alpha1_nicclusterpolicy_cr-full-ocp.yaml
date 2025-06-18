@@ -85,8 +85,8 @@ spec:
       version: v1.2.2
     ipamPlugin:
       image: whereabouts
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.9.0
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.7.0-beta.1
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
