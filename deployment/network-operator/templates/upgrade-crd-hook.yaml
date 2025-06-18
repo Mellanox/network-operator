@@ -80,6 +80,14 @@ spec:
         - name: upgrade-crd
           image: "{{ .Values.operator.repository }}/{{ .Values.operator.image }}:{{ .Values.operator.tag | default .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           command:
             - /apply-crds
           args:
