@@ -111,3 +111,8 @@ spectrumXOperator:
   repository: ghcr.io/mellanox
   sourceRepository: spectrum-x-operator
   version: v0.1.2
+nodeFeatureDiscovery:
+  image: node-feature-discovery
+  repository: ghcr.io/kubernetes-sigs
+  sourceRepository: node-feature-discovery
+  version: v0.17.3
