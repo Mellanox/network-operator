@@ -102,8 +102,8 @@ spec:
     enableWebhook: false
   ibKubernetes:
     image: ib-kubernetes
-    repository: ghcr.io/mellanox
-    version: v1.1.1
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-v25.7.0-beta.1
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
