@@ -63,8 +63,8 @@ spec:
       }
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.9.0
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-v25.7.0-beta.1
     config: |
       {
         "resourceList": [

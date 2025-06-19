@@ -40,9 +40,9 @@ RdmaSharedDevicePlugin:
   version: v1.5.3
 SriovDevicePlugin:
   image: sriov-network-device-plugin
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
-  version: v3.9.0
+  version: network-operator-v25.7.0-beta.1
 IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
