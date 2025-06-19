@@ -75,9 +75,9 @@ nvIpam:
   version: v0.3.7
 nicFeatureDiscovery:
   image: nic-feature-discovery
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: v0.0.2
+  version: network-operator-v25.7.0-beta.1
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
