@@ -104,6 +104,7 @@ spec:
         {{- end }}
         securityContext:
           privileged: true
+          runAsUser: 0
         volumeMounts:
           - name: cnibin
             mountPath: /opt/cni/bin
