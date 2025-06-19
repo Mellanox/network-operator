@@ -76,7 +76,7 @@ type Release struct {
 	IpamPlugin                   *ReleaseImageSpec
 	NvIPAM                       *ReleaseImageSpec
 	NicFeatureDiscovery          *ReleaseImageSpec
-	NodeFeatureDiscovery		 *ReleaseImageSpec
+	NodeFeatureDiscovery         *ReleaseImageSpec
 	DOCATelemetryService         *ReleaseImageSpec
 	OVSCni                       *ReleaseImageSpec
 	RDMACni                      *ReleaseImageSpec
@@ -142,7 +142,6 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("IPAM_PLUGIN", release.Ipoib)
 	initWithEnvVariale("NV_IPAM", release.NvIPAM)
 	initWithEnvVariale("NIC_FEATURE_DISCOVERY", release.NicFeatureDiscovery)
-	initWithEnvVariale("NODE_FEATURE_DISCOVERY", release.NodeFeatureDiscovery)
 	initWithEnvVariale("DOCA_TELEMETRY_SERVICE", release.DOCATelemetryService)
 	initWithEnvVariale("OVS_CNI", release.OVSCni)
 	initWithEnvVariale("RDMA_CNI", release.RDMACni)
