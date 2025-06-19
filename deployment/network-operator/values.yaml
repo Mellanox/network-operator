@@ -192,9 +192,9 @@ nic-configuration-operator-chart:
 maintenance-operator-chart:
   operator:
     image:
-      repository: ghcr.io/mellanox
+      repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
-      tag: v0.2.2
+      tag: network-operator-v25.7.0-beta.1
     admissionController:
       # -- enable admission controller of the operator
       enable: false
