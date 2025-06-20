@@ -70,9 +70,9 @@ IpamPlugin:
   version: network-operator-v25.7.0-beta.1
 nvIpam:
   image: nvidia-k8s-ipam
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
-  version: v0.3.7
+  version: network-operator-v25.7.0-beta.1
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
