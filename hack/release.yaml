@@ -55,9 +55,9 @@ CniPlugins:
   version: v1.6.2-update.1
 Multus:
   image: multus-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
-  version: v4.1.0
+  version: network-operator-v25.7.0-beta.1
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
