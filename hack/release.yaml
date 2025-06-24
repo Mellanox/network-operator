@@ -40,9 +40,9 @@ RdmaSharedDevicePlugin:
   version: v1.5.3
 SriovDevicePlugin:
   image: sriov-network-device-plugin
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
-  version: v3.9.0
+  version: network-operator-v25.7.0-beta.1
 IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
@@ -60,14 +60,14 @@ Multus:
   version: v4.1.0
 Ipoib:
   image: ipoib-cni
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: v1.2.2
+  version: network-operator-v25.7.0-beta.1
 IpamPlugin:
   image: whereabouts
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: whereabouts
-  version: v0.9.0
+  version: network-operator-v25.7.0-beta.1
 nvIpam:
   image: nvidia-k8s-ipam
   repository: ghcr.io/mellanox
@@ -75,9 +75,9 @@ nvIpam:
   version: v0.3.7
 nicFeatureDiscovery:
   image: nic-feature-discovery
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: v0.0.2
+  version: network-operator-v25.7.0-beta.1
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
@@ -89,9 +89,9 @@ ovsCni:
   version: network-operator-v25.7.0-beta.1
 rdmaCni:
   image: rdma-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
-  version: v1.3.0
+  version: network-operator-v25.7.0-beta.1
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
@@ -103,11 +103,11 @@ nicConfigurationConfigDaemon:
   version: v1.0.3
 maintenanceOperator:
   image: maintenance-operator
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: v0.2.2
+  version: network-operator-v25.7.0-beta.1
 spectrumXOperator:
   image: spectrum-x-operator
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: v0.1.2
+  version: network-operator-v25.7.0-beta.1

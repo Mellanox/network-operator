@@ -63,8 +63,8 @@ spec:
       }
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: ghcr.io/k8snetworkplumbingwg
-    version: v3.9.0
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-v25.7.0-beta.1
     config: |
       {
         "resourceList": [
@@ -85,16 +85,16 @@ spec:
       version: v1.6.2-update.1
     ipoib:
       image: ipoib-cni
-      repository: ghcr.io/mellanox
-      version: v1.2.2
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.7.0-beta.1
     multus:
       image: multus-cni
       repository: ghcr.io/k8snetworkplumbingwg
       version: v4.1.0
     ipamPlugin:
       image: whereabouts
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.9.0
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.7.0-beta.1
   nvIpam:
     image: nvidia-k8s-ipam
     repository: ghcr.io/mellanox
@@ -109,8 +109,8 @@ spec:
     ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: nic-feature-discovery
-    repository: ghcr.io/mellanox
-    version: v0.0.2
+    repository: nvcr.io/nvstaging/mellanox
+    version: network-operator-v25.7.0-beta.1
   docaTelemetryService:
     image: doca_telemetry
     repository: nvcr.io/nvidia/doca
