@@ -65,7 +65,7 @@ spec:
       containers:
         - name: kube-multus
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
-          {{- if hasPrefix .CrSpec.Version "v4" }}
+          {{- if (or (hasPrefix .CrSpec.Version "v4") (hasPrefix .CrSpec.Version "network-operator")) }}
           command: ["/thin_entrypoint"]
           args:
             # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
