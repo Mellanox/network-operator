@@ -26,9 +26,9 @@ SriovCni:
   version: v2.8.1
 SriovIbCni:
   image: ib-sriov-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-sriov-cni
-  version: v1.2.1
+  version: network-operator-v25.7.0-beta.1
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
