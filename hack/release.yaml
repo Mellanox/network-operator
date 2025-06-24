@@ -21,9 +21,9 @@ SriovConfigDaemon:
   version: 4225daf
 SriovCni:
   image: sriov-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
-  version: v2.8.1
+  version: network-operator-v25.7.0-beta.1
 SriovIbCni:
   image: ib-sriov-cni
   repository: nvcr.io/nvstaging/mellanox
@@ -50,14 +50,14 @@ IbKubernetes:
   version: network-operator-v25.7.0-beta.1
 CniPlugins:
   image: plugins
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
-  version: v1.6.2-update.1
+  version: network-operator-v25.7.0-beta.1
 Multus:
   image: multus-cni
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
-  version: v4.1.0
+  version: network-operator-v25.7.0-beta.1
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
@@ -84,9 +84,9 @@ docaTelemetryService:
   version: 1.21.4-doca3.0.0-host
 ovsCni:
   image: ovs-cni-plugin
-  repository: ghcr.io/k8snetworkplumbingwg
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
-  version: v0.38.2
+  version: network-operator-v25.7.0-beta.1
 rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox

@@ -59,16 +59,16 @@ spec:
   secondaryNetwork:
     cniPlugins:
       image: plugins
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v1.6.2-update.1
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.7.0-beta.1
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvstaging/mellanox
       version: network-operator-v25.7.0-beta.1
     multus:
       image: multus-cni
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v4.1.0
+      repository: nvcr.io/nvstaging/mellanox
+      version: network-operator-v25.7.0-beta.1
     ipamPlugin:
       image: whereabouts
       repository: nvcr.io/nvstaging/mellanox
