@@ -48,6 +48,10 @@ node-feature-discovery:
   # -- Enable labels cleanup when uninstalling NFD
   postDeleteCleanup: false
 
+  image:
+    repository: registry.k8s.io/nfd/node-feature-discovery/node-feature-discovery
+    tag: v0.15.3
+
   # -- NFD master deployment configuration.
   # @notationType -- yaml
   master:
