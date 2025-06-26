@@ -49,8 +49,8 @@ node-feature-discovery:
   postDeleteCleanup: false
 
   image:
-    repository: registry.k8s.io/nfd/node-feature-discovery/node-feature-discovery
-    tag: v0.15.3
+    repository: registry.k8s.io/nfd/node-feature-discovery
+    tag: v0.17.0
 
   # -- NFD master deployment configuration.
   # @notationType -- yaml
