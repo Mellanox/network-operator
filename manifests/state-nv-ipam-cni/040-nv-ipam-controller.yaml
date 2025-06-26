@@ -69,6 +69,19 @@ spec:
                   operator: In
                   values:
                     - ""
+          {{- if .DeploymentNodeAffinity }}
+          {{- if .DeploymentNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution }}
+          {{- range .DeploymentNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution }}
+          - weight: {{ .Weight }}
+            preference:
+              {{ .Preference | yaml | nindent 14 }}
+          {{- end }}
+          {{- end }}
+          {{- if .DeploymentNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            {{ .DeploymentNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution | yaml | nindent 12 }}
+          {{- end }}
+          {{- end }}
       tolerations:
         - key: nvidia.com/gpu
           operator: Exists
@@ -79,6 +92,9 @@ spec:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
+        {{- if .DeploymentTolerations }}
+        {{ .DeploymentTolerations | yaml | nindent 8 }}
+        {{- end }}
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
       {{- range .CrSpec.ImagePullSecrets }}

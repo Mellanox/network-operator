@@ -27,10 +27,17 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-      {{- if .NodeAffinity }}
+        {{- if .DeploymentTolerations }}
+        {{ .DeploymentTolerations | yaml | nindent 8 }}
+        {{- end }}
+      {{- if or .DeploymentNodeAffinity .NodeAffinity }}
       affinity:
         nodeAffinity:
-          {{- .NodeAffinity | yaml | nindent 10 }}
+          {{- if .DeploymentNodeAffinity }}
+          {{ .DeploymentNodeAffinity | yaml | nindent 10 }}
+          {{- else }}
+          {{ .NodeAffinity | yaml | nindent 10 }}
+          {{- end }}
       {{- end }}
       {{- if .CrSpec.Operator.ImagePullSecrets }}
       imagePullSecrets:

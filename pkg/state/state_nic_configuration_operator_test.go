@@ -301,6 +301,209 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 				MountPath: "/nic-firmware",
 			}))
 		})
+
+		It("should render DeploymentNodeAffinity", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "custom-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"value1", "value2"},
+								},
+							},
+						},
+					},
+				},
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, cr.Spec.NicConfigurationOperator.Operator)
+			By("Verify NodeAffinity in Deployment")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution).NotTo(BeNil())
+			required := d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+			nodeSelectorTerms := required.NodeSelectorTerms
+			Expect(len(nodeSelectorTerms)).To(Equal(1))
+			Expect(len(nodeSelectorTerms[0].MatchExpressions)).To(Equal(1))
+			expr := nodeSelectorTerms[0].MatchExpressions[0]
+			Expect(expr.Key).To(Equal("custom-label"))
+			Expect(expr.Operator).To(Equal(v1.NodeSelectorOpIn))
+			Expect(expr.Values).To(ContainElements("value1", "value2"))
+		})
+
+		It("should render DeploymentTolerations", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "custom-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "custom-value",
+					Effect:   v1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "another-taint",
+					Operator: v1.TolerationOpExists,
+					Effect:   v1.TaintEffectPreferNoSchedule,
+				},
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, cr.Spec.NicConfigurationOperator.Operator)
+			By("Verify Tolerations in Deployment")
+			tolerations := d.Spec.Template.Spec.Tolerations
+			Expect(len(tolerations)).To(Equal(5)) // 3 default + 2 custom
+			// Check that custom tolerations are present
+			foundCustomTaint := false
+			foundAnotherTaint := false
+			for _, tol := range tolerations {
+				if tol.Key == "custom-taint" {
+					foundCustomTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpEqual))
+					Expect(tol.Value).To(Equal("custom-value"))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectNoSchedule))
+				}
+				if tol.Key == "another-taint" {
+					foundAnotherTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpExists))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectPreferNoSchedule))
+				}
+			}
+			Expect(foundCustomTaint).To(BeTrue())
+			Expect(foundAnotherTaint).To(BeTrue())
+		})
+
+		It("should render both DeploymentNodeAffinity and DeploymentTolerations together", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+					{
+						Weight: 10,
+						Preference: v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "preferred-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"preferred-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "combined-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "combined-value",
+					Effect:   v1.TaintEffectNoExecute,
+				},
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, cr.Spec.NicConfigurationOperator.Operator)
+			By("Verify NodeAffinity in Deployment")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			preferred := d.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+			Expect(len(preferred)).To(Equal(1))
+			Expect(preferred[0].Weight).To(Equal(int32(10)))
+			Expect(len(preferred[0].Preference.MatchExpressions)).To(Equal(1))
+			expr := preferred[0].Preference.MatchExpressions[0]
+			Expect(expr.Key).To(Equal("preferred-label"))
+			Expect(expr.Operator).To(Equal(v1.NodeSelectorOpIn))
+			Expect(expr.Values).To(ContainElements("preferred-value"))
+			By("Verify Tolerations in Deployment")
+			tolerations := d.Spec.Template.Spec.Tolerations
+			Expect(len(tolerations)).To(Equal(4)) // 3 default + 1 custom
+			// Verify custom toleration is present
+			foundCombinedTaint := false
+			for _, tol := range tolerations {
+				if tol.Key == "combined-taint" {
+					foundCombinedTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpEqual))
+					Expect(tol.Value).To(Equal("combined-value"))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectNoExecute))
+				}
+			}
+			Expect(foundCombinedTaint).To(BeTrue())
+		})
+
+		It("should prioritize DeploymentNodeAffinity over NodeAffinity", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.NodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "general-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"general-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "deployment-specific-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"deployment-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, cr.Spec.NicConfigurationOperator.Operator)
+			By("Verify DeploymentNodeAffinity takes precedence")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution).NotTo(BeNil())
+			required := d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+			nodeSelectorTerms := required.NodeSelectorTerms
+			Expect(len(nodeSelectorTerms)).To(Equal(1))
+			Expect(len(nodeSelectorTerms[0].MatchExpressions)).To(Equal(1))
+			expr := nodeSelectorTerms[0].MatchExpressions[0]
+			Expect(expr.Key).To(Equal("deployment-specific-label"))
+			Expect(expr.Values).To(ContainElements("deployment-value"))
+		})
 	})
 	Context("Verify Sync flows", func() {
 		It("should create DaemonSet, update state to Ready", func() {

@@ -29,10 +29,14 @@ spec:
         app: whereabouts-node-slice-controller
     spec:
       serviceAccountName: whereabouts
-      {{- if .NodeAffinity }}
+      {{- if .DeploymentTolerations }}
+      tolerations:
+        {{ .DeploymentTolerations | yaml | nindent 8 }}
+      {{- end }}
+      {{- if .DeploymentNodeAffinity }}
       affinity:
         nodeAffinity:
-          {{- .NodeAffinity | yaml | nindent 10 }}
+          {{ .DeploymentNodeAffinity | yaml | nindent 10 }}
       {{- end }}
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
