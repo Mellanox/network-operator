@@ -278,5 +278,238 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			image := containers[0].(map[string]interface{})["image"]
 			Expect(image).To(Equal("myRepo/myImage@sha256:1699d23027ea30c9fa"))
 		})
+		It("Should Render DeploymentNodeAffinity", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			// Add custom deployment node affinity
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "custom-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"value1", "value2"},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			affinity := templateSpec["affinity"].(map[string]interface{})
+			nodeAffinity := affinity["nodeAffinity"].(map[string]interface{})
+
+			// Check that the default preferredDuringSchedulingIgnoredDuringExecution is present
+			preferred := nodeAffinity["preferredDuringSchedulingIgnoredDuringExecution"].([]interface{})
+			Expect(len(preferred)).To(Equal(2))
+
+			// Check that the custom requiredDuringSchedulingIgnoredDuringExecution is present
+			required := nodeAffinity["requiredDuringSchedulingIgnoredDuringExecution"].(map[string]interface{})
+			nodeSelectorTerms := required["nodeSelectorTerms"].([]interface{})
+			Expect(len(nodeSelectorTerms)).To(Equal(1))
+
+			term := nodeSelectorTerms[0].(map[string]interface{})
+			matchExpressions := term["matchExpressions"].([]interface{})
+			Expect(len(matchExpressions)).To(Equal(1))
+
+			expr := matchExpressions[0].(map[string]interface{})
+			Expect(expr["key"]).To(Equal("custom-label"))
+			Expect(expr["operator"]).To(Equal("In"))
+			values := expr["values"].([]interface{})
+			Expect(values).To(ContainElements("value1", "value2"))
+		})
+		It("Should Render DeploymentTolerations", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			// Add custom deployment tolerations
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "custom-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "custom-value",
+					Effect:   v1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "another-taint",
+					Operator: v1.TolerationOpExists,
+					Effect:   v1.TaintEffectPreferNoSchedule,
+				},
+			}
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			tolerations := templateSpec["tolerations"].([]interface{})
+
+			// Check that default tolerations are present (3 default + 2 custom = 5 total)
+			Expect(len(tolerations)).To(Equal(5))
+
+			// Check that custom tolerations are present
+			foundCustomTaint := false
+			foundAnotherTaint := false
+
+			for _, tol := range tolerations {
+				tolMap := tol.(map[string]interface{})
+				if key, exists := tolMap["key"]; exists && key == "custom-taint" {
+					foundCustomTaint = true
+					Expect(tolMap["operator"]).To(Equal("Equal"))
+					Expect(tolMap["value"]).To(Equal("custom-value"))
+					Expect(tolMap["effect"]).To(Equal("NoSchedule"))
+				}
+				if key, exists := tolMap["key"]; exists && key == "another-taint" {
+					foundAnotherTaint = true
+					Expect(tolMap["operator"]).To(Equal("Exists"))
+					Expect(tolMap["effect"]).To(Equal("PreferNoSchedule"))
+				}
+			}
+
+			Expect(foundCustomTaint).To(BeTrue())
+			Expect(foundAnotherTaint).To(BeTrue())
+		})
+		It("Should Render both DeploymentNodeAffinity and DeploymentTolerations together", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			// Add both custom deployment node affinity and tolerations
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+					{
+						Weight: 10,
+						Preference: v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "preferred-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"preferred-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "combined-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "combined-value",
+					Effect:   v1.TaintEffectNoExecute,
+				},
+			}
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+
+			// Check affinity
+			affinity := templateSpec["affinity"].(map[string]interface{})
+			nodeAffinity := affinity["nodeAffinity"].(map[string]interface{})
+
+			// Check that both default and custom preferredDuringSchedulingIgnoredDuringExecution are present
+			preferred := nodeAffinity["preferredDuringSchedulingIgnoredDuringExecution"].([]interface{})
+			Expect(len(preferred)).To(Equal(3)) // 2 default + 1 custom
+
+			// Check tolerations
+			tolerations := templateSpec["tolerations"].([]interface{})
+			Expect(len(tolerations)).To(Equal(4)) // 3 default + 1 custom
+
+			// Verify custom toleration is present
+			foundCombinedTaint := false
+			for _, tol := range tolerations {
+				tolMap := tol.(map[string]interface{})
+				if key, exists := tolMap["key"]; exists && key == "combined-taint" {
+					foundCombinedTaint = true
+					Expect(tolMap["operator"]).To(Equal("Equal"))
+					Expect(tolMap["value"]).To(Equal("combined-value"))
+					Expect(tolMap["effect"]).To(Equal("NoExecute"))
+				}
+			}
+			Expect(foundCombinedTaint).To(BeTrue())
+		})
 	})
 })

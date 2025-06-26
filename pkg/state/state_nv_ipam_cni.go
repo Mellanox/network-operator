@@ -60,10 +60,12 @@ type stateNVIPAMCNI struct {
 
 // NVIPAMManifestRenderData contains information used to render Kubernetes objects related to NVIPAM.
 type NVIPAMManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.NVIPAMSpec
-	NodeAffinity *v1.NodeAffinity
-	Tolerations  []v1.Toleration
-	RuntimeSpec  *cniRuntimeSpec
+	CrSpec                 *mellanoxv1alpha1.NVIPAMSpec
+	NodeAffinity           *v1.NodeAffinity
+	Tolerations            []v1.Toleration
+	DeploymentNodeAffinity *v1.NodeAffinity
+	DeploymentTolerations  []v1.Toleration
+	RuntimeSpec            *cniRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -153,9 +155,11 @@ func (s *stateNVIPAMCNI) GetManifestObjects(
 		return nil, errors.New("staticConfig provider required")
 	}
 	renderData := &NVIPAMManifestRenderData{
-		CrSpec:       cr.Spec.NvIpam,
-		NodeAffinity: cr.Spec.NodeAffinity,
-		Tolerations:  cr.Spec.Tolerations,
+		CrSpec:                 cr.Spec.NvIpam,
+		NodeAffinity:           cr.Spec.NodeAffinity,
+		Tolerations:            cr.Spec.Tolerations,
+		DeploymentNodeAffinity: cr.Spec.DeploymentNodeAffinity,
+		DeploymentTolerations:  cr.Spec.DeploymentTolerations,
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:         runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:         clusterInfo.IsOpenshift(),
