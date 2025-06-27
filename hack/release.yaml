@@ -12,13 +12,17 @@ SriovNetworkOperator:
   repository: nvcr.io/nvidia/mellanox
   sourceRepository: sriov-network-operator
   version: network-operator-25.4.0
+  chartLocation: deployment/sriov-network-operator-chart
+  excludeChartFiles: ["Chart.yaml"]
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvidia/mellanox
+  sourceRepository: sriov-network-operator
   version: network-operator-25.4.0
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvidia/mellanox
+  sourceRepository: sriov-network-operator
   version: network-operator-25.4.0
 SriovCni:
   image: sriov-cni
@@ -101,6 +105,7 @@ nicConfigurationOperator:
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: ghcr.io/mellanox
+  sourceRepository: sriov-network-operator
   version: v1.0.3
 maintenanceOperator:
   image: maintenance-operator
@@ -117,3 +122,5 @@ nodeFeatureDiscovery:
   repository: registry.k8s.io/nfd
   sourceRepository: node-feature-discovery
   version: v0.17.0
+  chartLocation: deployment/helm/node-feature-discovery
+  excludeChartFiles: ["Chart.yaml"]
