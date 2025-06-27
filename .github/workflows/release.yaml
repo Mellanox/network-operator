@@ -2,9 +2,10 @@ on:
   issues:
     types:
       - opened
+      - reopened
 
 jobs:
-  update-network-operator-version:
+  determine-versions:
     if: startsWith(github.event.issue.title, 'Release v')
     runs-on: ubuntu-24.04
     env:
@@ -25,16 +26,27 @@ jobs:
 
           # major.minor version without v prefix and with x suffix, i.e. 25.4.x
           MAJOR_MINOR_X=$(echo ${V_MAJOR_MINOR_X#v})
-          echo "major_minor_x=${MAJOR_MINOR_X}" >> $GITHUB_OUTPUT
-      - run: |
-          echo "CHART_VERSION=$(echo ${APP_VERSION#v})" | tee -a $GITHUB_ENV
-      - name: Determine base branch
+
+          # name of the release branch for downstream components
+          RELEASE_BRANCH=network-operator-${MAJOR_MINOR_X}
+          echo "release_branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
+          
+          # tag for components
+          TAG="network-operator-${APP_VERSION}"
+          echo "component_tag=${TAG}" >> $GITHUB_OUTPUT
+      - id: set-chart-version
+        run: |
+          CHART_VERSION=$(echo ${APP_VERSION#v})
+          echo "chart_version=${CHART_VERSION}" >> $GITHUB_OUTPUT
+          echo "CHART_VERSION=${CHART_VERSION}" | tee -a $GITHUB_ENV
+      - id: determine-base-branch
         run: |
           if echo $APP_VERSION | grep -q beta; then
             base_branch=master
           else
             base_branch=$V_MAJOR_MINOR_X
           fi
+          echo "base_branch=${base_branch}" >> $GITHUB_OUTPUT
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
       - name: Verify release branch exists if "rc" version
         run: |
@@ -47,89 +59,227 @@ jobs:
               git push -u origin $BASE_BRANCH
             fi
           fi
-      - run: |
+    outputs:
+      app_version: ${{ steps.set-version.outputs.app_version }}
+      base_branch: ${{ steps.determine-base-branch.outputs.base_branch }}
+      chart_version: ${{ steps.set-chart-version.outputs.chart_version }}
+      component_tag: ${{ steps.set-version.outputs.component_tag }}
+      docker_registry: nvcr.io/nvstaging/mellanox
+      release_branch: ${{ steps.set-version.outputs.release_branch }}
+
+  get-managed-components:
+    needs: determine-versions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-components
+        run: |
+          # Extract unique sourceRepository names for tagging
+          repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null) | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
+          echo "Managed repositories: $repos"
+          echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
+          
+          # Extract image names with repository for components that have sourceRepository  
+          images=$(yq 'to_entries | map(select(.value.sourceRepository != null)) | .value.image | .[]' hack/release.yaml | tr '\n' ' ')
+          echo "Managed images: $images"
+          echo "managed_images=$images" >> $GITHUB_OUTPUT
+    outputs:
+      managed_repos: ${{ steps.set-components.outputs.managed_repos }}
+      managed_images: ${{ steps.set-components.outputs.managed_images }}
+
+  create-tags-for-components:
+    runs-on: ubuntu-24.04
+    needs: [determine-versions, get-managed-components]
+    strategy:
+      fail-fast: false  # allow all jobs to run independently
+      matrix:
+        repo: ${{ fromJson(needs.get-managed-components.outputs.managed_repos) }}
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
+      RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
+      COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          repository: ${{ github.repository_owner }}/${{ matrix.repo }}
+          path: ${{ matrix.repo }}
+          fetch-depth: 0
+      - name: Create tag to trigger PR that update image tags in network-operator values
+        run: |
+          cd ${{ matrix.repo }}
+          git config user.name  nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+          git fetch origin
+
+          echo "Checking if the release branch exists"
+          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q "$RELEASE_BRANCH"; then
+            echo "Release branch exists, using it for tagging"
+            git checkout $RELEASE_BRANCH
+          else
+            echo "Release branch doesn't exist, creating it from default branch"
+            git checkout -b $RELEASE_BRANCH
+            git push -u origin $RELEASE_BRANCH
+          fi
+
+          echo "Checking if tag already exists: $COMPONENT_TAG"
+          if git ls-remote --tags origin | grep -q "refs/tags/$COMPONENT_TAG$"; then
+            echo "Tag $COMPONENT_TAG already exists, skipping tag creation"
+          else
+            echo "Creating and pushing the tag: $COMPONENT_TAG"
+            git tag $COMPONENT_TAG
+            git push origin --tags
+          fi
+
+  wait-for-images:
+    runs-on: ubuntu-24.04
+    needs: [determine-versions, get-managed-components, create-tags-for-components]
+    env:
+      COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
+      DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry }}
+    steps:
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.NVCR_USERNAME }}
+          password: ${{ secrets.NVCR_TOKEN }}
+      - name: Wait for images to be available
+        run: |
+          echo "Waiting for images to be pullable from registry..."
+          
+          images='${{ needs.get-managed-components.outputs.managed_images }}'
+          read -a IMAGE_ARRAY <<< "$images"
+          
+          MAX_RETRIES=120
+          SLEEP_INTERVAL=60
+          retry_count=0
+          
+          for image in "${IMAGE_ARRAY[@]}"; do
+            image_url="${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}"
+            echo "Checking availability of: ${image_url}"
+
+            while [ $retry_count -lt $MAX_RETRIES ]; do
+              if docker manifest inspect "${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}" > /dev/null 2>&1; then
+                echo "Image available: ${image_url}"
+                break
+              else
+                echo "Image not yet available: ${image_url} (attempt $((retry_count + 1))/$MAX_RETRIES)"
+                sleep $SLEEP_INTERVAL
+                retry_count=$((retry_count + 1))
+              fi
+            done
+            
+            if [ $retry_count -eq $MAX_RETRIES ]; then
+              echo "Failed to find image after $MAX_RETRIES attempts: ${image_url}"
+              exit 1
+            fi
+          done
+          
+          echo "All images are available"
+    
+  create-release-pr:
+    needs: [determine-versions, wait-for-images]
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
+      BASE_BRANCH: ${{ needs.determine-versions.outputs.base_branch }}
+      CHART_VERSION: ${{ needs.determine-versions.outputs.chart_version }}
+      DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry }}
+      COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/sriov-network-operator
+          path: sriov-network-operator
+          ref: ${{ needs.determine-versions.outputs.release_branch }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/node-feature-discovery
+          path: node-feature-discovery
+          ref: ${{ needs.determine-versions.outputs.release_branch }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/network-operator
+          path: network-operator
+      - name: Create staging branch and update component versions
+        run: |
+          cd network-operator
           git config user.name  nvidia-ci-cd
           git config user.email svc-cloud-orch-gh@nvidia.com
           git fetch origin $BASE_BRANCH
-          git checkout -b cicd/update-network-operator-to-$APP_VERSION origin/$BASE_BRANCH
+
+          git checkout -b staging-${APP_VERSION} origin/$BASE_BRANCH
+
+          # Update Network Operator version
           yq -i '.NetworkOperator.version = "${{ env.APP_VERSION }}"' hack/release.yaml
-          yq -i '.version = "${{ env.CHART_VERSION }}"'               deployment/network-operator/Chart.yaml
-          yq -i '.appVersion = "${{ env.APP_VERSION }}"'              deployment/network-operator/Chart.yaml
+          
+          # Update components with sourceRepository to use new registry and version
+          for component in $(yq 'keys | .[]' hack/release.yaml); do
+            SOURCE_REPO=$(yq ".${component}.sourceRepository" hack/release.yaml)
+            
+            # Skip components without sourceRepository
+            if [ "$SOURCE_REPO" = "null" ]; then
+              continue
+            fi
+            
+            echo "Updating component: $component"
+            echo "  Setting repository to: $DOCKER_REGISTRY"
+            echo "  Setting version to: $COMPONENT_TAG"
+            
+            # Update repository and version for components with sourceRepository
+            yq -i ".${component}.repository = \"$DOCKER_REGISTRY\"" hack/release.yaml
+            yq -i ".${component}.version = \"$COMPONENT_TAG\"" hack/release.yaml
+
+
+            # Pull the component's helm chart
+            CHART_LOCATION=$(yq ".${component}.chartLocation" hack/release.yaml)
+            # Skip next steps if component doesn't export a helm chart
+            if [ "$CHART_LOCATION" = "null" ]; then
+              continue
+            fi
+
+            CHART_LOCATION_IN_NETWORK_OPERATOR=deployment/network-operator/charts/$SOURCE_REPO
+            rm -rf $CHART_LOCATION_IN_NETWORK_OPERATOR/*
+            cp -r ../$SOURCE_REPO/$CHART_LOCATION/* $CHART_LOCATION_IN_NETWORK_OPERATOR
+
+            if ! git diff --color --unified=0 --exit-code; then
+              git add $CHART_LOCATION_IN_NETWORK_OPERATOR
+            fi
+
+            # Exclude chart files from update if specified in hack/release.yaml
+            EXCLUDE_CHART_FILES=$(yq ".${component}.excludeChartFiles" hack/release.yaml)
+            if [ -n "$EXCLUDE_CHART_FILES" ]; then
+              git diff --cached --name-only | while read -r file; do
+                REL_PATH=$(realpath -m --relative-to="$CHART_LOCATION_IN_NETWORK_OPERATOR" "$file")
+                if echo "$EXCLUDE_CHART_FILES" | jq -e --arg value "$REL_PATH" 'index($value) != null' > /dev/null; then
+                  echo "Exclude chart file $file from update"
+                  git restore --staged $file
+                else
+                  echo "Update chart file $file"
+                fi
+              done
+            fi
+          done
+
+          # Update chart versions
+          yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
+          yq -i '.appVersion = "${{ env.APP_VERSION }}"' deployment/network-operator/Chart.yaml
           make release-build
 
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
             git add hack/release.yaml
-            git commit -sam "cicd: update Network Operator to $APP_VERSION in chart values"
-            git push -u origin cicd/update-network-operator-to-$APP_VERSION
-            gh pr create \
-              --repo ${{ github.repository_owner }}/network-operator \
-              --base $BASE_BRANCH \
-              --head $(git branch --show-current) \
-              --title "cicd: update Network Operator to $APP_VERSION in chart values" \
-              --body "Created by the [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-          fi
-    outputs:
-      app_version: ${{ steps.set-version.outputs.app_version }}
-      major_minor_x: ${{ steps.set-version.outputs.major_minor_x }}
-
-  get-managed-components:
-    needs: update-network-operator-version
-    runs-on: ubuntu-24.04
-    outputs:
-      managed_components: ${{ steps.set-components.outputs.managed_components }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: set-components
-        run: |
-          # Extract the sourceRepository field from each component
-          # This will create a JSON array of the repository names
-          components=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null) | .value.sourceRepository)' hack/release.yaml | jq -c .)
-          echo $components
-          echo "managed_components=$(echo $components)" >> $GITHUB_OUTPUT
-
-  update-component-versions:
-    runs-on: ubuntu-24.04
-    needs: [get-managed-components, update-network-operator-version]
-    strategy:
-      fail-fast: false  # allow all jobs to run independently
-      matrix:
-        component: ${{ fromJson(needs.get-managed-components.outputs.managed_components) }}
-    env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-      APP_VERSION: ${{ needs.update-network-operator-version.outputs.app_version }}
-      MAJOR_MINOR_X: ${{ needs.update-network-operator-version.outputs.major_minor_x }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-          repository: ${{ github.repository_owner }}/${{ matrix.component }}
-          path: ${{ matrix.component }}
-          fetch-depth: 0
-      - name: Create tag to trigger PR that update image tags in network-operator values
-        run: |
-          cd ${{ matrix.component }}
-          git config user.name  nvidia-ci-cd
-          git config user.email svc-cloud-orch-gh@nvidia.com
-          git fetch origin
-
-          RELEASE_BRANCH=network-operator-${MAJOR_MINOR_X}
-
-          echo "Checking if the release branch exists"
-          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q "$RELEASE_BRANCH"; then
-            echo "Release branch exists, using it"
-            git checkout -b $APP_VERSION origin/$RELEASE_BRANCH
-          else
-            echo "Release branch doesn't exist, creating it"
-            echo "Branch $RELEASE_BRANCH does not exist for ${{ matrix.component }}, creating it from default branch"
-
-            git checkout -b $RELEASE_BRANCH
-            git push -u origin $RELEASE_BRANCH
-
-            echo "Creating the version branch from the new release branch"
-            git checkout -b $APP_VERSION
+            git commit -sam "cicd: release Network Operator $APP_VERSION"
+            git push -u origin staging-${APP_VERSION}
           fi
 
-          echo "Creating and pushing the tag"
-          git tag network-operator-$APP_VERSION
-          git push origin --tags
+          gh pr create \
+            --repo ${{ github.repository_owner }}/network-operator \
+            --base $BASE_BRANCH \
+            --head $(git branch --show-current) \
+            --title "cicd: release Network Operator $APP_VERSION" \
+            --body "Created by the [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
