@@ -1,0 +1,127 @@
+on:
+  push:
+    branches:
+      - 'staging-*'
+
+jobs:
+  validate-and-create-pr:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+    steps:
+      - name: Extract release version from branch name
+        id: extract-version
+        run: |
+          # Extract version from staging-v25.4.0-rc.1 -> v25.4.0-rc.1
+          RELEASE_VERSION=${GITHUB_REF_NAME#staging-}
+          echo "release_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" | tee -a $GITHUB_ENV
+          
+          # Determine base branch based on version type
+          if echo $RELEASE_VERSION | grep -q beta; then
+            BASE_BRANCH=master
+          else
+            # Extract major.minor version with v prefix and x suffix, i.e. v25.4.x
+            V_MAJOR_MINOR_X=$(echo $RELEASE_VERSION | grep -Eo '^v[0-9]+\.[0-9]+').x
+            BASE_BRANCH=$V_MAJOR_MINOR_X
+          fi
+          echo "base_branch=${BASE_BRANCH}" >> $GITHUB_OUTPUT
+          echo "BASE_BRANCH=${BASE_BRANCH}" | tee -a $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Validate component versions
+        id: validate
+        run: |
+          EXPECTED_VERSION="network-operator-${RELEASE_VERSION}"
+          echo "Expected version: ${EXPECTED_VERSION}"
+          
+          # Extract components with sourceRepository and check their versions
+          VALIDATION_FAILED=false
+          
+          # Get all components with sourceRepository field
+          versions=$(yq 'to_entries | map(select(.value.sourceRepository != null) | .value.version) | .[]' hack/release.yaml)
+          echo "Versions: $versions"
+          
+          # Check each version
+          for version in $versions; do
+            if [ "$version" != "$EXPECTED_VERSION" ]; then
+              echo "::error::Version mismatch found"
+              echo "::error::Expected: $EXPECTED_VERSION"
+              echo "::error::Found: $version"
+              exit 1
+            fi
+          done
+
+      - name: Setup git config
+        run: |
+          git config user.name nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+
+      - name: Create squashed commit and PR
+        run: |
+          # Fetch the base branch
+          git fetch origin $BASE_BRANCH
+          
+          # Get the first commit of the staging branch (where it diverged from base)
+          BASE_COMMIT=$(git merge-base origin/$BASE_BRANCH HEAD)
+          
+          # Check if there are actually commits to squash
+          COMMIT_COUNT=$(git rev-list --count ${BASE_COMMIT}..HEAD)
+          
+          if [ "$COMMIT_COUNT" -eq "0" ]; then
+            echo "No commits to squash, staging branch is up to date with base branch"
+            exit 0
+          fi
+          
+          echo "Found $COMMIT_COUNT commits to squash"
+          
+          # Create a new branch for the PR
+          PR_BRANCH="release/${RELEASE_VERSION}"
+          git checkout -b $PR_BRANCH origin/$BASE_BRANCH
+          
+          # Create a squashed commit with all changes from staging branch
+          git merge --squash $GITHUB_REF_NAME
+          
+          # Check if there are changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit after squash"
+            exit 0
+          fi
+          
+          # Commit the squashed changes
+          git commit -m "cicd: Release ${RELEASE_VERSION}"
+          
+          # Push the PR branch
+          git push -u origin $PR_BRANCH
+          
+          # Create the PR
+          PR_BODY="## Release ${RELEASE_VERSION}
+
+          This PR contains the squashed changes from the staging branch [\`${GITHUB_REF_NAME}\`](${{ github.server_url }}/${{ github.repository }}/tree/${GITHUB_REF_NAME}).
+
+          ### Original Staging Branch
+          - **Staging Branch**: [\`${GITHUB_REF_NAME}\`](${{ github.server_url }}/${{ github.repository }}/tree/${GITHUB_REF_NAME})
+          - **Base Branch**: [\`${BASE_BRANCH}\`](${{ github.server_url }}/${{ github.repository }}/tree/${BASE_BRANCH})
+          - **Commits squashed**: ${COMMIT_COUNT}
+          - **Release Configuration**: [hack/release.yaml](${{ github.server_url }}/${{ github.repository }}/blob/${GITHUB_REF_NAME}/hack/release.yaml)
+
+          ---
+          Created by the [**${{ github.job }}** workflow job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) • [View workflow file](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/.github/workflows/staging-validation.yaml)"
+          
+          gh pr create \
+            --repo ${{ github.repository }} \
+            --base $BASE_BRANCH \
+            --head $PR_BRANCH \
+            --title "cicd: Release ${RELEASE_VERSION}" \
+            --body "$PR_BODY"
+
+      - name: Report validation failure
+        if: steps.validate.outputs.validation_passed == 'false'
+        run: |
+          echo "::error::Component version validation failed. Please ensure all components with sourceRepository have version 'network-operator-${RELEASE_VERSION}'"
+          exit 1 
