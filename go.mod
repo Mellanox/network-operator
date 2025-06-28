@@ -26,6 +26,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+replace github.com/NVIDIA/k8s-operator-libs => github.com/Heyvister1/k8s-operator-libs v0.0.0-20250628101550-ab89e302f3d0
+
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
