@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -194,8 +195,7 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 // SetupWithManager sets up the controller with the Manager.
 //
 //nolint:dupl
-func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager,
-	requestorPredicate upgrade.ConditionChangedPredicate) error {
+func (r *UpgradeReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Manager) error {
 	// we always add object with a same(static) key to the queue to reduce
 	// reconciliation count
 	qHandler := func(q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
@@ -231,7 +231,7 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager,
 		labels := object.GetLabels()
 		_, ok := labels[consts.OfedDriverLabel]
 		return ok
-	}), requestorPredicate)
+	}))
 
 	// react only on label and annotation changes
 	nodePredicates := builder.WithPredicates(
@@ -252,8 +252,12 @@ func (r *UpgradeReconciler) SetupWithManager(mgr ctrl.Manager,
 	// Conditionally add Watches for NodeMaintenance if UseMaintenanceOperator is true
 	requestorOpts := upgrade.GetRequestorOptsFromEnvs()
 	if requestorOpts.UseMaintenanceOperator {
+		nodeMaintenancePredicate := upgrade.NewConditionChangedPredicate(log,
+			requestorOpts.MaintenanceOPRequestorID)
+		requestorIDPredicate := upgrade.NewRequestorIDPredicate(log,
+			requestorOpts.MaintenanceOPRequestorID)
 		mngr = mngr.Watches(&maintenancev1alpha1.NodeMaintenance{}, createUpdateDeleteEnqueue,
-			builder.WithPredicates(requestorPredicate))
+			builder.WithPredicates(nodeMaintenancePredicate, requestorIDPredicate))
 	}
 
 	return mngr.Complete(r)
