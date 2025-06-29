@@ -130,7 +130,7 @@ jobs:
 
   wait-for-images:
     runs-on: ubuntu-24.04
-    needs: [determine-versions, get-managed-components, create-tags-for-components]
+    needs: [determine-versions, get-managed-components]
     env:
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
       DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry }}
