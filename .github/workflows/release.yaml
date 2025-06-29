@@ -129,7 +129,6 @@ jobs:
           git push origin --tags
 
   wait-for-images:
-    if: false
     runs-on: ubuntu-24.04
     needs: [determine-versions, get-managed-components, create-tags-for-components]
     env:
