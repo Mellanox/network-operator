@@ -49,8 +49,8 @@ node-feature-discovery:
   postDeleteCleanup: false
 
   image:
-    repository: registry.k8s.io/nfd/node-feature-discovery
-    tag: v0.17.0
+    repository: nvcr.io/nvstaging/mellanox/node-feature-discovery
+    tag: network-operator-v25.7.0-beta.2
 
   # -- NFD master deployment configuration.
   # @notationType -- yaml

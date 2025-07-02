@@ -114,6 +114,6 @@ spectrumXOperator:
   version: network-operator-v25.7.0-beta.1
 nodeFeatureDiscovery:
   image: node-feature-discovery
-  repository: registry.k8s.io/nfd
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
-  version: v0.17.0
+  version: network-operator-v25.7.0-beta.2
