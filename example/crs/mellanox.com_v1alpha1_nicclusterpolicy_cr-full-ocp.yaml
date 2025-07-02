@@ -86,7 +86,7 @@ spec:
     ipamPlugin:
       image: whereabouts
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0-beta.1
+      version: network-operator-v25.7.0-beta.2
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
