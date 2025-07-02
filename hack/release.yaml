@@ -111,7 +111,7 @@ spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: registry.k8s.io/nfd
