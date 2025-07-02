@@ -9,17 +9,17 @@ NetworkOperatorInitContainer:
   version: v0.0.3
 SriovNetworkOperator:
   image: sriov-network-operator
-  repository: nvcr.io/nvidia/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-25.4.0
+  version: edc3500
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
-  repository: nvcr.io/nvidia/mellanox
-  version: network-operator-25.4.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: edc3500
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
-  repository: nvcr.io/nvidia/mellanox
-  version: network-operator-25.4.0
+  repository: nvcr.io/nvstaging/mellanox
+  version: edc3500
 SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
