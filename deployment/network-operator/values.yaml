@@ -162,7 +162,7 @@ sriov-network-operator:
     operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-25.4.0
     sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-25.4.0
     sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v25.7.0-beta.1
-    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v25.7.0-beta.1
+    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v25.7.0-beta.2
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v25.7.0-beta.1
     # rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v25.7.0-beta.1
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v25.7.0-beta.1
