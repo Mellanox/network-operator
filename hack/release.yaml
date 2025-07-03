@@ -106,7 +106,7 @@ maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox

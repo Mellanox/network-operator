@@ -198,7 +198,7 @@ maintenance-operator-chart:
     image:
       repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
-      tag: network-operator-v25.7.0-beta.1
+      tag: network-operator-v25.7.0-beta.2
     admissionController:
       # -- enable admission controller of the operator
       enable: false
