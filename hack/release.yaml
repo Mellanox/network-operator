@@ -53,7 +53,7 @@ CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
