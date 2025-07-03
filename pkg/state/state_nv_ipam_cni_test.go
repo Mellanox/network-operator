@@ -158,6 +158,219 @@ var _ = Describe("NVIPAM Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sv.Spec.Selector).Should(ContainElement("nv-ipam-controller"))
 		})
+
+		It("should render DeploymentNodeAffinity", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "custom-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"value1", "value2"},
+								},
+							},
+						},
+					},
+				},
+			}
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-controller"}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
+			By("Verify NodeAffinity in Deployment")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			// Check that default preferredDuringSchedulingIgnoredDuringExecution is present
+			preferred := d.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+			Expect(len(preferred)).To(Equal(2)) // 2 default preferred terms
+			// Check that custom requiredDuringSchedulingIgnoredDuringExecution is present
+			required := d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+			Expect(required).NotTo(BeNil())
+			nodeSelectorTerms := required.NodeSelectorTerms
+			Expect(len(nodeSelectorTerms)).To(Equal(1))
+			Expect(len(nodeSelectorTerms[0].MatchExpressions)).To(Equal(1))
+			expr := nodeSelectorTerms[0].MatchExpressions[0]
+			Expect(expr.Key).To(Equal("custom-label"))
+			Expect(expr.Operator).To(Equal(v1.NodeSelectorOpIn))
+			Expect(expr.Values).To(ContainElements("value1", "value2"))
+		})
+		It("should render DeploymentTolerations", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "custom-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "custom-value",
+					Effect:   v1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "another-taint",
+					Operator: v1.TolerationOpExists,
+					Effect:   v1.TaintEffectPreferNoSchedule,
+				},
+			}
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-controller"}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
+			By("Verify Tolerations in Deployment")
+			tolerations := d.Spec.Template.Spec.Tolerations
+			Expect(len(tolerations)).To(Equal(5)) // 3 default + 2 custom
+			// Check that custom tolerations are present
+			foundCustomTaint := false
+			foundAnotherTaint := false
+			for _, tol := range tolerations {
+				if tol.Key == "custom-taint" {
+					foundCustomTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpEqual))
+					Expect(tol.Value).To(Equal("custom-value"))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectNoSchedule))
+				}
+				if tol.Key == "another-taint" {
+					foundAnotherTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpExists))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectPreferNoSchedule))
+				}
+			}
+			Expect(foundCustomTaint).To(BeTrue())
+			Expect(foundAnotherTaint).To(BeTrue())
+		})
+		It("should render both DeploymentNodeAffinity and DeploymentTolerations together", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+					{
+						Weight: 10,
+						Preference: v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "preferred-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"preferred-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "combined-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "combined-value",
+					Effect:   v1.TaintEffectNoExecute,
+				},
+			}
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-controller"}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
+			By("Verify NodeAffinity in Deployment")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			// Check that both default and custom preferredDuringSchedulingIgnoredDuringExecution are present
+			preferred := d.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+			Expect(len(preferred)).To(Equal(3)) // 2 default + 1 custom
+			// Verify custom preferred term is present
+			foundPreferredLabel := false
+			for _, term := range preferred {
+				if len(term.Preference.MatchExpressions) > 0 && term.Preference.MatchExpressions[0].Key == "preferred-label" {
+					foundPreferredLabel = true
+					Expect(term.Weight).To(Equal(int32(10)))
+					Expect(term.Preference.MatchExpressions[0].Operator).To(Equal(v1.NodeSelectorOpIn))
+					Expect(term.Preference.MatchExpressions[0].Values).To(ContainElements("preferred-value"))
+				}
+			}
+			Expect(foundPreferredLabel).To(BeTrue())
+			By("Verify Tolerations in Deployment")
+			tolerations := d.Spec.Template.Spec.Tolerations
+			Expect(len(tolerations)).To(Equal(4)) // 3 default + 1 custom
+			// Verify custom toleration is present
+			foundCombinedTaint := false
+			for _, tol := range tolerations {
+				if tol.Key == "combined-taint" {
+					foundCombinedTaint = true
+					Expect(tol.Operator).To(Equal(v1.TolerationOpEqual))
+					Expect(tol.Value).To(Equal("combined-value"))
+					Expect(tol.Effect).To(Equal(v1.TaintEffectNoExecute))
+				}
+			}
+			Expect(foundCombinedTaint).To(BeTrue())
+		})
+		It("should prioritize DeploymentNodeAffinity over NodeAffinity", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNVIpam("nv-ipam-controller")
+			cr.Spec.NodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "general-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"general-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "deployment-specific-label",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"deployment-value"},
+								},
+							},
+						},
+					},
+				},
+			}
+			status, err := nvIpamState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "nv-ipam-controller"}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, &cr.Spec.NvIpam.ImageSpec)
+			By("Verify DeploymentNodeAffinity takes precedence")
+			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			// Check that both default preferred and custom required terms are present
+			preferred := d.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+			Expect(len(preferred)).To(Equal(2)) // 2 default preferred terms
+			required := d.Spec.Template.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+			Expect(required).NotTo(BeNil())
+			nodeSelectorTerms := required.NodeSelectorTerms
+			Expect(len(nodeSelectorTerms)).To(Equal(1))
+			Expect(len(nodeSelectorTerms[0].MatchExpressions)).To(Equal(1))
+			expr := nodeSelectorTerms[0].MatchExpressions[0]
+			Expect(expr.Key).To(Equal("deployment-specific-label"))
+			Expect(expr.Values).To(ContainElements("deployment-value"))
+		})
 	})
 	Context("Verify Sync flows", func() {
 		It("should create Daemonset, update state to Ready", func() {

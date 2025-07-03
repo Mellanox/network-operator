@@ -60,10 +60,12 @@ type stateWhereaboutsCNI struct {
 
 // WhereaboutsManifestRenderData contains information used to render Kubernetes objects related to Whereabouts.
 type WhereaboutsManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.ImageSpec
-	Tolerations  []v1.Toleration
-	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *cniRuntimeSpec
+	CrSpec                 *mellanoxv1alpha1.ImageSpec
+	Tolerations            []v1.Toleration
+	NodeAffinity           *v1.NodeAffinity
+	DeploymentNodeAffinity *v1.NodeAffinity
+	DeploymentTolerations  []v1.Toleration
+	RuntimeSpec            *cniRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -145,9 +147,11 @@ func (s *stateWhereaboutsCNI) GetManifestObjects(
 		return nil, errors.New("clusterInfo provider required")
 	}
 	renderData := &WhereaboutsManifestRenderData{
-		CrSpec:       cr.Spec.SecondaryNetwork.IpamPlugin,
-		Tolerations:  cr.Spec.Tolerations,
-		NodeAffinity: cr.Spec.NodeAffinity,
+		CrSpec:                 cr.Spec.SecondaryNetwork.IpamPlugin,
+		Tolerations:            cr.Spec.Tolerations,
+		NodeAffinity:           cr.Spec.NodeAffinity,
+		DeploymentNodeAffinity: cr.Spec.DeploymentNodeAffinity,
+		DeploymentTolerations:  cr.Spec.DeploymentTolerations,
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:         runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
