@@ -65,7 +65,7 @@ jobs:
               sleep $WAIT_INTERVAL
             fi
           done
-  update-network-operator-version:
+  merge-release-pr:
     needs:
       - wait-for-ci
     if: startsWith(github.event.pull_request.title, 'cicd:')
@@ -86,4 +86,34 @@ jobs:
           else
             echo "PR #$PR_NUMBER is not open (current state: $PR_STATE). Skipping merge."
             exit 1
+          fi
+
+          SOURCE_BRANCH=$(gh pr view $PR_NUMBER --json headRefName -q .headRefName)
+          TARGET_BRANCH=$(gh pr view $PR_NUMBER --json baseRefName -q .baseRefName)
+
+          if [[ "$SOURCE_BRANCH" =~ ^staging- ]]; then
+            # Extract version from staging branch name (staging-v25.4.0-rc.1 -> v25.4.0-rc.1)
+            VERSION=${SOURCE_BRANCH#staging-}
+            echo "Creating release: $VERSION"
+            echo "Target branch (release source): $TARGET_BRANCH"
+
+            # Determine if this is a pre-release (has '-' after version numbers)
+            if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+- ]]; then
+              PRERELEASE_FLAG="--prerelease"
+              echo "Detected pre-release version: $VERSION"
+            else
+              PRERELEASE_FLAG=""
+              echo "Detected GA version: $VERSION"
+            fi
+
+            # Create GitHub release with auto-generated notes
+            gh release create "$VERSION" \
+              --target "$TARGET_BRANCH" \
+              --title "Release $VERSION" \
+              --generate-notes \
+              $PRERELEASE_FLAG
+
+            echo "Successfully created GitHub release: $VERSION"
+          else
+            echo "Not creating release - source branch is not staging-*"
           fi
