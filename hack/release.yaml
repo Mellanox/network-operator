@@ -92,7 +92,7 @@ rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
