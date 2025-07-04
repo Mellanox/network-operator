@@ -51,6 +51,7 @@ node-feature-discovery:
   image:
     repository: {{ .NodeFeatureDiscovery.Repository }}/{{ .NodeFeatureDiscovery.Image }}
     tag: {{ .NodeFeatureDiscovery.Version }}
+    pullPolicy: IfNotPresent
 
   # -- NFD master deployment configuration.
   # @notationType -- yaml
