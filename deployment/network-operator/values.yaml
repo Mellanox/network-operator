@@ -165,7 +165,7 @@ sriov-network-operator:
     ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v25.7.0-beta.2
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v25.7.0-beta.2
     # rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v25.7.0-beta.2
-    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v25.7.0-beta.1
+    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v25.7.0-beta.2
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
     webhook: nvcr.io/nvidia/mellanox/sriov-network-operator-webhook:network-operator-25.4.0
   # imagePullSecrest for SR-IOV Network Operator related images
