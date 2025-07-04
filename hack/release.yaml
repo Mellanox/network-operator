@@ -4,9 +4,9 @@ NetworkOperator:
   version: v25.7.0-beta.1
 NetworkOperatorInitContainer:
   image: network-operator-init-container
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: network-operator-init-container
-  version: v0.0.3
+  version: network-operator-v25.7.0-beta.2
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvidia/mellanox
@@ -24,12 +24,12 @@ SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 SriovIbCni:
   image: ib-sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-sriov-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
@@ -38,7 +38,7 @@ RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8s-rdma-shared-dev-plugin
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
@@ -53,32 +53,32 @@ CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 IpamPlugin:
   image: whereabouts
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: whereabouts
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
@@ -87,12 +87,12 @@ ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: ghcr.io/mellanox
@@ -106,12 +106,12 @@ maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v25.7.0-beta.1
+  version: network-operator-v25.7.0-beta.2
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: registry.k8s.io/nfd
