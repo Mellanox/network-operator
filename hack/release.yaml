@@ -4,9 +4,9 @@ NetworkOperator:
   version: v25.7.0-beta.1
 NetworkOperatorInitContainer:
   image: network-operator-init-container
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: network-operator-init-container
-  version: v0.0.3
+  version: network-operator-v25.7.0-beta.2
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvidia/mellanox
