@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvidia/cloud-native/network-operatorsha256:93c2063f4da6a93810784be95df0083f07618486699d93245c97a29a63861dee
+    containerImage: nvcr.io/nvidia/cloud-native/network-operator@sha256:93c2063f4da6a93810784be95df0083f07618486699d93245c97a29a63861dee
     alm-examples: |-
       [
         {
@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2025-05-28T17:59:25Z"
+    createdAt: "2025-07-07T06:54:56Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -110,7 +110,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v25.4.0
+  name: nvidia-network-operator.v25.4.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -528,7 +528,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b
-                image: nvcr.io/nvidia/cloud-native/network-operatorsha256:93c2063f4da6a93810784be95df0083f07618486699d93245c97a29a63861dee
+                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:93c2063f4da6a93810784be95df0083f07618486699d93245c97a29a63861dee
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -635,7 +635,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 25.4.0
+  version: 25.4.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
