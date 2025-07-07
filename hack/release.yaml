@@ -33,7 +33,7 @@ SriovIbCni:
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
-  version: 25.04-0.6.1.0-2
+  version: 25.07-0.6.6.0-0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
