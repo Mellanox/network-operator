@@ -70,6 +70,8 @@ type IBKubernetesManifestRenderData struct {
 	PeriodicUpdateSecondsString string
 	Tolerations                 []v1.Toleration
 	NodeAffinity                *v1.NodeAffinity
+	DeploymentNodeAffinity      *v1.NodeAffinity
+	DeploymentTolerations       []v1.Toleration
 	DeployInitContainer         bool
 	RuntimeSpec                 *IBKubernetesSpec
 }
@@ -152,6 +154,8 @@ func (s *stateIBKubernetes) GetManifestObjects(
 		PeriodicUpdateSecondsString: strconv.Itoa(cr.Spec.IBKubernetes.PeriodicUpdateSeconds),
 		Tolerations:                 cr.Spec.Tolerations,
 		NodeAffinity:                cr.Spec.NodeAffinity,
+		DeploymentNodeAffinity:      cr.Spec.DeploymentNodeAffinity,
+		DeploymentTolerations:       cr.Spec.DeploymentTolerations,
 		DeployInitContainer:         cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &IBKubernetesSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},

@@ -66,10 +66,12 @@ type stateNicConfigurationOperator struct {
 
 // NicConfigurationOperatorManifestRenderData contains data used to render K8s objects related to NIC Config Operator.
 type NicConfigurationOperatorManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.NicConfigurationOperatorSpec
-	NodeAffinity *v1.NodeAffinity
-	Tolerations  []v1.Toleration
-	RuntimeSpec  *nicConfigurationOperatorRuntimeSpec
+	CrSpec                 *mellanoxv1alpha1.NicConfigurationOperatorSpec
+	NodeAffinity           *v1.NodeAffinity
+	Tolerations            []v1.Toleration
+	DeploymentNodeAffinity *v1.NodeAffinity
+	DeploymentTolerations  []v1.Toleration
+	RuntimeSpec            *nicConfigurationOperatorRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -159,9 +161,11 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		return nil, errors.New("staticConfig provider required")
 	}
 	renderData := &NicConfigurationOperatorManifestRenderData{
-		CrSpec:       cr.Spec.NicConfigurationOperator,
-		NodeAffinity: cr.Spec.NodeAffinity,
-		Tolerations:  cr.Spec.Tolerations,
+		CrSpec:                 cr.Spec.NicConfigurationOperator,
+		NodeAffinity:           cr.Spec.NodeAffinity,
+		Tolerations:            cr.Spec.Tolerations,
+		DeploymentNodeAffinity: cr.Spec.DeploymentNodeAffinity,
+		DeploymentTolerations:  cr.Spec.DeploymentTolerations,
 		RuntimeSpec: &nicConfigurationOperatorRuntimeSpec{
 			runtimeSpec: runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift: clusterInfo.IsOpenshift(),

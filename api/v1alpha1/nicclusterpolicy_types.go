@@ -382,8 +382,11 @@ type NicClusterPolicySpec struct {
 	NodeAffinity *v1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// Tolerations to inject to the DaemonSets objects that are managed by the operator
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// NodeAffinity rules to inject to the Deployments objects that are managed by the operator
+	DeploymentNodeAffinity *v1.NodeAffinity `json:"deploymentNodeAffinity,omitempty"`
+	// Tolerations to inject to the Deployments objects that are managed by the operator
+	DeploymentTolerations []v1.Toleration `json:"deploymentTolerations,omitempty"`
 	// Configuration options for OFED driver
-
 }
 
 // AppliedState defines a finer-grained view of the observed state of NicClusterPolicy
