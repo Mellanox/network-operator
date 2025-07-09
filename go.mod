@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/Mellanox/maintenance-operator/api v0.2.2
-	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250512170135-63bc7baf3f6f
+	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250708070119-9dc24ccc10ee
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/containers/image/v5 v5.35.0
 	github.com/go-logr/logr v1.4.3

@@ -245,14 +245,12 @@ func setupUpgradeController(mgr ctrl.Manager, migrationChan chan struct{}) error
 		setupLog.Error(err, "unable to create new ClusterUpdateStateManager", "controller", "Upgrade")
 		return err
 	}
-	requestorPredicate := upgrade.NewConditionChangedPredicate(setupLog,
-		requestorOpts.MaintenanceOPRequestorID)
 	if err = (&controllers.UpgradeReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		StateManager: clusterUpdateStateManager,
 		MigrationCh:  migrationChan,
-	}).SetupWithManager(mgr, requestorPredicate); err != nil {
+	}).SetupWithManager(setupLog, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Upgrade")
 		return err
 	}
