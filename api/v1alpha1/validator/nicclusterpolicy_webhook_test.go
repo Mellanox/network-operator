@@ -136,6 +136,24 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		It("Valid MOFED version (with doca prefix)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.1-24.01-0.3.3.1-0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
 		It("Valid MOFED version", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{

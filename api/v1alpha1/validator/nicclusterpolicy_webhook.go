@@ -468,7 +468,7 @@ func (ofedSpec *ofedDriverSpecWrapper) validateVersion(fldPath *field.Path) fiel
 	// Perform version validation logic here
 	if !isValidOFEDVersion(ofedSpec.Version) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), ofedSpec.Version,
-			`invalid OFED version, the regex used for validation is ^(\d+\.\d+-\d+(\.\d+)*)$ `))
+			`invalid OFED version, supported formats: "23.10-0.2.2.0", "24.01-0.3.3.1-0", "doca3.1-24.01-0.3.3.1-0"`))
 	}
 	return allErrs
 }
@@ -717,7 +717,11 @@ func validateResources(resources map[v1.ResourceName]apiresource.Quantity, allEr
 
 // isValidOFEDVersion is a custom function to validate OFED version
 func isValidOFEDVersion(version string) bool {
-	versionPattern := `^(\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
+	// Support multiple OFED version formats:
+	// 1. Old scheme: "23.10-0.2.2.0" or "23.10-0.2.2.0.1"
+	// 2. New scheme: "24.01-0.3.3.1-0"
+	// 3. DOCA prefix: "doca3.1-24.01-0.3.3.1-0"
+	versionPattern := `^(doca\d+\.\d+-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+|\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
 	versionRegex := regexp.MustCompile(versionPattern)
 	return versionRegex.MatchString(version)
 }
