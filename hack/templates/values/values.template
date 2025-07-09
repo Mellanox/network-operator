@@ -51,6 +51,7 @@ node-feature-discovery:
   image:
     repository: {{ .NodeFeatureDiscovery.Repository }}/{{ .NodeFeatureDiscovery.Image }}
     tag: {{ .NodeFeatureDiscovery.Version }}
+    pullPolicy: IfNotPresent
   # imagePullSecrest for node-feature-discovery Network Operator related images
   #imagePullSecrets: []
 
