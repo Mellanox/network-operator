@@ -56,7 +56,7 @@ jobs:
           --no-verbose \
           --content-disposition \
           -O ngccli_linux.zip \
-          https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.41.4/files/ngccli_linux.zip
+          https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.160.1/files/ngccli_linux.zip
         unzip -q ngccli_linux.zip
         echo "./ngc-cli" >> $GITHUB_PATH
 
