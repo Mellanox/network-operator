@@ -720,8 +720,8 @@ func isValidOFEDVersion(version string) bool {
 	// Support multiple OFED version formats:
 	// 1. Old scheme: "23.10-0.2.2.0" or "23.10-0.2.2.0.1"
 	// 2. New scheme: "24.01-0.3.3.1-0"
-	// 3. DOCA prefix: "doca3.1-24.01-0.3.3.1-0"
-	versionPattern := `^(doca\d+\.\d+-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+|\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
+	// 3. DOCA prefix: "doca3.1.0-25.07-0.6.6.0-0"
+	versionPattern := `^(doca\d+\.\d+\.\d+-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+|\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
 	versionRegex := regexp.MustCompile(versionPattern)
 	return versionRegex.MatchString(version)
 }
