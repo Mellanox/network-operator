@@ -83,6 +83,12 @@ spec:
         {{- if .DeploymentTolerations }}
         {{ .DeploymentTolerations | yaml | nindent 8 }}
         {{- end }}
+      {{- if .CrSpec.ImagePullSecrets }}
+      imagePullSecrets:
+      {{- range .CrSpec.ImagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
         - name: ib-kubernetes
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}

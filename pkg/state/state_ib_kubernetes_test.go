@@ -511,5 +511,169 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			}
 			Expect(foundCombinedTaint).To(BeTrue())
 		})
+		It("Should Render ImagePullSecrets", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{"secret1", "secret2", "secret3"}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+
+			// Check that imagePullSecrets is present
+			imagePullSecrets, exists := templateSpec["imagePullSecrets"]
+			Expect(exists).To(BeTrue())
+
+			// Check that it's a slice
+			imagePullSecretsSlice := imagePullSecrets.([]interface{})
+			Expect(len(imagePullSecretsSlice)).To(Equal(3))
+
+			// Check each secret name
+			secretNames := []string{}
+			for _, secret := range imagePullSecretsSlice {
+				secretMap := secret.(map[string]interface{})
+				name, exists := secretMap["name"]
+				Expect(exists).To(BeTrue())
+				secretNames = append(secretNames, name.(string))
+			}
+
+			Expect(secretNames).To(ContainElements("secret1", "secret2", "secret3"))
+		})
+		It("Should NOT Render ImagePullSecrets when empty", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+
+			// Check that imagePullSecrets is NOT present when empty
+			_, exists := templateSpec["imagePullSecrets"]
+			Expect(exists).To(BeFalse())
+		})
+		It("Should Render ImagePullSecrets with other configurations", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			Expect(err).NotTo(HaveOccurred())
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.ImagePullSecrets = []string{"my-secret"}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			// Add custom deployment tolerations to test combination
+			cr.Spec.DeploymentTolerations = []v1.Toleration{
+				{
+					Key:      "test-taint",
+					Operator: v1.TolerationOpEqual,
+					Value:    "test-value",
+					Effect:   v1.TaintEffectNoSchedule,
+				},
+			}
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+			ds := objs[3]
+			Expect(ds.GetKind()).To(Equal("Deployment"))
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+
+			// Check that imagePullSecrets is present
+			imagePullSecrets, exists := templateSpec["imagePullSecrets"]
+			Expect(exists).To(BeTrue())
+
+			imagePullSecretsSlice := imagePullSecrets.([]interface{})
+			Expect(len(imagePullSecretsSlice)).To(Equal(1))
+
+			secretMap := imagePullSecretsSlice[0].(map[string]interface{})
+			name, exists := secretMap["name"]
+			Expect(exists).To(BeTrue())
+			Expect(name).To(Equal("my-secret"))
+
+			// Check that tolerations are also present (4 total: 3 default + 1 custom)
+			tolerations := templateSpec["tolerations"].([]interface{})
+			Expect(len(tolerations)).To(Equal(4))
+
+			// Verify custom toleration is present
+			foundTestTaint := false
+			for _, tol := range tolerations {
+				tolMap := tol.(map[string]interface{})
+				if key, exists := tolMap["key"]; exists && key == "test-taint" {
+					foundTestTaint = true
+					Expect(tolMap["operator"]).To(Equal("Equal"))
+					Expect(tolMap["value"]).To(Equal("test-value"))
+					Expect(tolMap["effect"]).To(Equal("NoSchedule"))
+				}
+			}
+			Expect(foundTestTaint).To(BeTrue())
+		})
 	})
 })
