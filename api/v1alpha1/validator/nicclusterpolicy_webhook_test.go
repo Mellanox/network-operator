@@ -145,7 +145,7 @@ var _ = Describe("Validate", func() {
 						ImageSpec: v1alpha1.ImageSpec{
 							Image:            "mofed",
 							Repository:       "ghcr.io/mellanox",
-							Version:          "doca3.1-24.01-0.3.3.1-0",
+							Version:          "doca3.1.0-25.07-0.6.6.0-0",
 							ImagePullSecrets: []string{},
 						},
 					},
