@@ -50,7 +50,7 @@ node-feature-discovery:
 
   image:
     repository: nvcr.io/nvstaging/mellanox/node-feature-discovery
-    tag: network-operator-v25.7.0-beta.2
+    tag: network-operator-v25.7.0-beta.3
     pullPolicy: IfNotPresent
   # imagePullSecrest for node-feature-discovery Network Operator related images
   #imagePullSecrets: []
@@ -162,15 +162,15 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components.
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:16392c2
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:16392c2
-    sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v25.7.0-beta.2
-    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v25.7.0-beta.2
-    ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v25.7.0-beta.2
-    # rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v25.7.0-beta.2
-    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v25.7.0-beta.2
+    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-v25.7.0-beta.3
+    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-v25.7.0-beta.3
+    sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v25.7.0-beta.3
+    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v25.7.0-beta.3
+    ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v25.7.0-beta.3
+    # rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v25.7.0-beta.3
+    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v25.7.0-beta.3
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
-    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:16392c2
+    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-v25.7.0-beta.3
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
   sriovOperatorConfig:
@@ -201,7 +201,7 @@ maintenance-operator-chart:
     image:
       repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
-      tag: network-operator-v25.7.0-beta.2
+      tag: network-operator-v25.7.0-beta.3
     # imagePullSecrets for Maintenance Operator related images
     #imagePullSecrets: []
     admissionController:
@@ -321,7 +321,7 @@ operator:
       # -- Init container image name.
       image: network-operator-init-container
       # -- Init container image version.
-      version: network-operator-v25.7.0-beta.2
+      version: network-operator-v25.7.0-beta.3
 
 # -- An optional list of references to secrets to use for pulling any of the
 # Network Operator images.
