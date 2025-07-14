@@ -95,13 +95,14 @@ rdmaCni:
   version: network-operator-v25.7.0-beta.2
 nicConfigurationOperator:
   image: nic-configuration-operator
-  repository: ghcr.io/mellanox
+  repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: v1.0.3
+  version: network-operator-v25.7.0-beta.3
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
-  repository: ghcr.io/mellanox
-  version: v1.0.3
+  repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: nic-configuration-operator-daemon
+  version: network-operator-v25.7.0-beta.3
 maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox

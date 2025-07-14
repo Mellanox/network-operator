@@ -53,19 +53,39 @@ spec:
             description: NicFirmwareSourceSpec represents a list of url sources for
               FW
             properties:
+              bfbUrlSource:
+                description: BFBUrlSource represents a url source for BlueField Bundle
+                type: string
               binUrlSources:
-                description: BinUrlSources represents a list of url sources for FW
+                description: BinUrlSources represents a list of url sources for ConnectX
+                  Firmware
                 items:
                   type: string
                 minItems: 1
                 type: array
-            required:
-            - binUrlSources
             type: object
+            x-kubernetes-validations:
+            - message: At least one of binUrlSources or bfbUrlSource must be specified
+              rule: size(self.binUrlSources) > 0 || size(self.bfbUrlSource) > 0
           status:
             description: NicFirmwareSourceStatus represents the status of the FW from
               given sources, e.g. version available for PSIDs
             properties:
+              bfbVersions:
+                additionalProperties:
+                  type: string
+                description: BFBVersions represents the FW versions available in the
+                  provided BFB bundle
+                type: object
+              binaryVersions:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: |-
+                  Versions is a map of available FW binaries versions to PSIDs
+                  a PSID should have only a single FW version available for it
+                type: object
               reason:
                 description: Reason shows an error message if occurred
                 type: string
@@ -79,15 +99,6 @@ spec:
                 - DownloadFailed
                 - CacheVerificationFailed
                 type: string
-              versions:
-                additionalProperties:
-                  items:
-                    type: string
-                  type: array
-                description: |-
-                  Versions is a map of available FW versions to PSIDs
-                  a PSID should have only a single FW version available for it
-                type: object
             required:
             - state
             type: object

@@ -186,14 +186,14 @@ sriov-network-operator:
 nic-configuration-operator-chart:
   operator:
     image:
-      repository: ghcr.io/mellanox
+      repository: nvcr.io/nvstaging/mellanox
       name: nic-configuration-operator
-      tag: v1.0.3
+      tag: network-operator-v25.7.0-beta.3
   configDaemon:
     image:
-      repository: ghcr.io/mellanox
+      repository: nvcr.io/nvstaging/mellanox
       name: nic-configuration-operator-daemon
-      tag: v1.0.3
+      tag: network-operator-v25.7.0-beta.3
 
 # Maintenance Operator chart related values.
 maintenance-operator-chart:
