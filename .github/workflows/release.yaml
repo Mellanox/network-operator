@@ -80,7 +80,7 @@ jobs:
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
           
           # Extract image names with repository for components that have sourceRepository  
-          images=$(yq 'to_entries | map(select(.value.sourceRepository != null)) | .value.image | .[]' hack/release.yaml | tr '\n' ' ')
+          images=$(yq 'to_entries | map(select(.value.sourceRepository != null) | .value.image) | join(" ")' hack/release.yaml)
           echo "Managed images: $images"
           echo "managed_images=$images" >> $GITHUB_OUTPUT
     outputs:
