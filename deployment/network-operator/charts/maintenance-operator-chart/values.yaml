@@ -79,6 +79,8 @@ operator:
 
 # -- operator configuration values. fields here correspond to fields in MaintenanceOperatorConfig CR
 operatorConfig:
+  # -- deploy operatorConfig CR with the below values
+  deploy: false
   # -- log level configuration
   logLevel: info
   # operatorConfig.maxParallelOperations -- max number of parallel operations

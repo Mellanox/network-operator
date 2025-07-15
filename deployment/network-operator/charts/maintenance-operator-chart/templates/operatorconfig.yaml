@@ -1,3 +1,4 @@
+{{- if .Values.operatorConfig.deploy }}
 apiVersion: maintenance.nvidia.com/v1alpha1
 kind: MaintenanceOperatorConfig
 metadata:
@@ -18,4 +19,5 @@ spec:
 {{- end }}
 {{- if .Values.operatorConfig.maxNodeMaintenanceTimeSeconds }}
   maxNodeMaintenanceTimeSeconds: {{ .Values.operatorConfig.maxNodeMaintenanceTimeSeconds }}
+{{- end }}
 {{- end }}

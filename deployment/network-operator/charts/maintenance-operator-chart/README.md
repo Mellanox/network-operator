@@ -26,6 +26,7 @@ Maintenance Operator Helm Chart
 | operator.serviceAccount.annotations | object | `{}` | set annotations for the operator service account |
 | operator.tolerations | list | `[{"effect":"NoSchedule","key":"node-role.kubernetes.io/master","operator":"Exists"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]` | toleration for the operator |
 | operatorConfig | object | `{"logLevel":"info","maxNodeMaintenanceTimeSeconds":null,"maxParallelOperations":null,"maxUnavailable":null}` | operator configuration values. fields here correspond to fields in MaintenanceOperatorConfig CR |
+| operatorConfig.deploy | bool | `false` | deploy operatorConfig custom resource |
 | operatorConfig.logLevel | string | `"info"` | log level configuration |
 | operatorConfig.maxNodeMaintenanceTimeSeconds | string | `nil` | max time for node maintenance |
 | operatorConfig.maxParallelOperations | string | `nil` | max number of parallel operations |
