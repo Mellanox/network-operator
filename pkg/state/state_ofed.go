@@ -114,7 +114,7 @@ const (
 //
 //nolint:lll
 var CertConfigPathMap = map[string]string{
-	"ubuntu": "/etc/ssl/certs",
+	"ubuntu": "/usr/local/share/ca-certificates",
 	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
 	"rhel":   "/etc/pki/ca-trust/extracted/pem",
 	"sles":   "/etc/ssl",
