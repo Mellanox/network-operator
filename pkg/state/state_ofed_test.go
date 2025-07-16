@@ -616,6 +616,13 @@ var _ = Describe("MOFED state test", func() {
 				verifyAdditionalMounts(ds.Spec.Template.Spec.Containers[1].VolumeMounts)
 				verifyAdditionalVolumes(ds.Spec.Template.Spec.Volumes)
 			}
+			By("Verify postStart lifecycle hook is present and correct")
+			container := ds.Spec.Template.Spec.Containers[0]
+			Expect(container.Lifecycle).NotTo(BeNil(), "Lifecycle should not be nil")
+			Expect(container.Lifecycle.PostStart).NotTo(BeNil(), "PostStart should be defined")
+			Expect(container.Lifecycle.PostStart.Exec).NotTo(BeNil(), "PostStart exec should be defined")
+			expectedCmd := []string{"/bin/sh", "-c", "echo \"[INFO] Updating system CA certificates...\"; if command -v update-ca-certificates >/dev/null 2>&1; then update-ca-certificates; elif command -v update-ca-trust >/dev/null 2>&1; then update-ca-trust extract; else echo \"[WARN] No cert update tool found.\"; fi"}
+			Expect(container.Lifecycle.PostStart.Exec.Command).To(Equal(expectedCmd))
 		})
 	})
 	Context("Force Precompiled", func() {
