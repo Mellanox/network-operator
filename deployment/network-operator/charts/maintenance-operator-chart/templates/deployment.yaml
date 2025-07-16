@@ -27,7 +27,12 @@ spec:
       tolerations: {{- toYaml .Values.operator.tolerations | nindent 8 }}
       nodeSelector: {{- toYaml .Values.operator.nodeSelector | nindent 8 }}
       affinity: {{- toYaml .Values.operator.affinity | nindent 8 }}
-      imagePullSecrets: {{ .Values.imagePullSecrets | default list | toJson }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "maintenance-operator.fullname" . }}-controller-manager

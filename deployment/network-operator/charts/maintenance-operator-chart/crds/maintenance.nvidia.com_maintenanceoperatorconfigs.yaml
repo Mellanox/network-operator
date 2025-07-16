@@ -50,12 +50,12 @@ spec:
                 - error
                 type: string
               maxNodeMaintenanceTimeSeconds:
-                default: 1600
+                default: 3600
                 description: |-
                   MaxNodeMaintenanceTimeSeconds is the time from when a NodeMaintenance is marked as ready (phase: Ready)
                   until the NodeMaintenance is considered stale and removed by the operator.
                   should be less than idle time for any autoscaler that is running.
-                  default to 30m (1600 seconds)
+                  default to 60m (3600 seconds)
                 format: int32
                 minimum: 0
                 type: integer

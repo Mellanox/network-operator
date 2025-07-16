@@ -197,6 +197,11 @@ nic-configuration-operator-chart:
 
 # Maintenance Operator chart related values.
 maintenance-operator-chart:
+  # -- Deploy MaintenanceOperatorConfig.
+  # Maintenance Operator might be already deployed on the cluster, in that case no need to deploy MaintenanceOperatorConfig.
+  operatorConfig:
+    # -- deploy MaintenanceOperatorConfig CR
+    deploy: false
   operator:
     image:
       repository: nvcr.io/nvstaging/mellanox
