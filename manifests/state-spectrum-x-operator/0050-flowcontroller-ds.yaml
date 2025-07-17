@@ -121,6 +121,7 @@ spec:
         - name: ovs-systemd-config
           hostPath:
             path: /etc/default/openvswitch-switch
+            type: FileOrCreate
         - name: host-cni-bin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
