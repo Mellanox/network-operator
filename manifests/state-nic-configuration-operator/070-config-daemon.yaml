@@ -85,6 +85,8 @@ spec:
               readOnly: false
             - name: host
               mountPath: /host
+            - name: dev
+              mountPath: /dev
           {{- if .CrSpec.NicFirmwareStorage }}
             - name: firmware-cache
               mountPath: /nic-firmware
@@ -100,6 +102,9 @@ spec:
         - name: host
           hostPath:
             path: /
+        - name: dev
+          hostPath:
+            path: /dev
         {{- if .CrSpec.NicFirmwareStorage }}
         - name: firmware-cache
           persistentVolumeClaim:
