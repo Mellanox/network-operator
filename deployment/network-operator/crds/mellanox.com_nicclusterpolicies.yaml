@@ -1179,6 +1179,14 @@ spec:
                   livenessProbe:
                     description: Pod liveness probe settings
                     properties:
+                      enabled:
+                        default: true
+                        description: Enabled indicates if the probe is enabled
+                        type: boolean
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
@@ -1186,13 +1194,26 @@ spec:
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
                         type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
                     required:
+                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
                   readinessProbe:
                     description: Pod readiness probe settings
                     properties:
+                      enabled:
+                        default: true
+                        description: Enabled indicates if the probe is enabled
+                        type: boolean
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
@@ -1200,7 +1221,12 @@ spec:
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
                         type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
                     required:
+                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
@@ -1219,6 +1245,14 @@ spec:
                   startupProbe:
                     description: Pod startup probe settings
                     properties:
+                      enabled:
+                        default: true
+                        description: Enabled indicates if the probe is enabled
+                        type: boolean
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
@@ -1226,7 +1260,12 @@ spec:
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
                         type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
                     required:
+                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
