@@ -79,10 +79,17 @@ type ImageSpecWithConfig struct {
 
 // PodProbeSpec describes a pod probe.
 type PodProbeSpec struct {
+	// Enabled indicates if the probe is enabled
+	// +kubebuilder:default:=true
+	Enabled bool `json:"enabled"`
 	// Number of seconds after the container has started before the probe is initiated
 	InitialDelaySeconds int `json:"initialDelaySeconds"`
 	// How often (in seconds) to perform the probe
 	PeriodSeconds int `json:"periodSeconds"`
+	// Minimum consecutive failures for the probe to be considered failed after having succeeded
+	FailureThreshold int `json:"failureThreshold,omitempty"`
+	// Number of seconds after which the probe times out
+	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
 }
 
 // ConfigMapNameReference references a config map in a specific namespace.
