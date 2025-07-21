@@ -83,6 +83,10 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 
 	if err != nil {
 		if errors.IsNotFound(err) {
+			// Cleanup existing upgrade related resources
+			if err := r.cleanupUpgradeResources(ctx); err != nil {
+				return ctrl.Result{}, err
+			}
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -99,8 +103,8 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 		nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy == nil ||
 		!nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade {
 		reqLogger.V(consts.LogLevelInfo).Info("OFED Upgrade Policy is disabled, skipping driver upgrade")
-		err = r.removeNodeUpgradeStateLabels(ctx)
-		if err != nil {
+		// Cleanup existing upgrade related resources
+		if err := r.cleanupUpgradeResources(ctx); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -130,6 +134,27 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 	// Since node/ds/nicclusterpolicy updates from outside of the upgrade flow
 	// are not guaranteed, for safety reconcile loop should be requeued every few minutes.
 	return ctrl.Result{Requeue: true, RequeueAfter: plannedRequeueInterval}, nil
+}
+
+// cleanupUpgradeResources cleans up existing nodeMaintenance and state label upgrade resources
+// upon NicClusterPolicy deletion, OfedUpgradePolicy removal or disabled autoUpgrade feature
+func (r *UpgradeReconciler) cleanupUpgradeResources(ctx context.Context) error {
+	reqLogger := log.FromContext(ctx)
+	reqLogger.V(consts.LogLevelInfo).Info("Starting nodeMaintenance, state label upgrade resources cleanup")
+
+	// Clean up node upgrade state labels
+	if err := r.removeNodeUpgradeStateLabels(ctx); err != nil {
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to remove node upgrade state labels")
+		return err
+	}
+
+	// Clean up NodeMaintenance objects
+	if err := r.cleanupNodeMaintenanceObjects(ctx); err != nil {
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to cleanup NodeMaintenance objects")
+		return err
+	}
+
+	return nil
 }
 
 // removeNodeUpgradeStateLabels loops over nodes in the cluster and removes upgrade.UpgradeStateLabel
@@ -189,6 +214,66 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateAnnotations(ctx context.Contex
 			}
 		}
 	}
+	return nil
+}
+
+// cleanupNodeMaintenanceObjects removes all NodeMaintenance objects created by the network operator
+// It is called when NicClusterPolicy is deleted to ensure proper cleanup
+func (r *UpgradeReconciler) cleanupNodeMaintenanceObjects(ctx context.Context) error {
+	reqLogger := log.FromContext(ctx)
+	// Get requestor configuration from environment
+	requestorOpts := upgrade.GetRequestorOptsFromEnvs()
+	// Only proceed if requestor mode is enabled
+	if !requestorOpts.UseMaintenanceOperator {
+		reqLogger.V(consts.LogLevelDebug).Info("Requestor mode not enabled, skipping NodeMaintenance cleanup")
+		return nil
+	}
+	reqLogger.V(consts.LogLevelInfo).Info("Cleaning up NodeMaintenance objects",
+		"requestorID", requestorOpts.MaintenanceOPRequestorID)
+
+	// List all NodeMaintenance objects in the target namespace
+	nodeMaintenanceList := &maintenancev1alpha1.NodeMaintenanceList{}
+	err := r.List(ctx, nodeMaintenanceList,
+		[]client.ListOption{client.InNamespace(requestorOpts.MaintenanceOPRequestorNS)}...)
+	if err != nil {
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to list NodeMaintenance objects")
+		return err
+	}
+
+	// Delete NodeMaintenance objects that belong to our requestor ID
+	ownedNMCount := 0
+	for i := range nodeMaintenanceList.Items {
+		nm := &nodeMaintenanceList.Items[i]
+
+		// Only delete objects created by our requestor ID
+		if nm.Spec.RequestorID == requestorOpts.MaintenanceOPRequestorID {
+			reqLogger.V(consts.LogLevelInfo).Info("Deleting NodeMaintenance object",
+				"name", nm.Name, "namespace", nm.Namespace, "nodeName", nm.Spec.NodeName)
+
+			err := r.Delete(ctx, nm)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					// Object was already deleted, continue
+					reqLogger.V(consts.LogLevelDebug).Info("NodeMaintenance object already deleted",
+						"name", nm.Name, "namespace", nm.Namespace)
+					continue
+				}
+				reqLogger.V(consts.LogLevelError).Error(err,
+					"Failed to delete NodeMaintenance object",
+					"name", nm.Name, "namespace", nm.Namespace)
+				return err
+			}
+			ownedNMCount++
+		}
+	}
+
+	if ownedNMCount > 0 {
+		reqLogger.V(consts.LogLevelInfo).Info("Successfully cleaned up NodeMaintenance objects",
+			"count", ownedNMCount)
+	} else {
+		reqLogger.V(consts.LogLevelInfo).Info("No NodeMaintenance objects found for cleanup")
+	}
+
 	return nil
 }
 

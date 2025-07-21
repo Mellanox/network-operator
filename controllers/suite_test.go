@@ -23,19 +23,20 @@ import (
 	"testing"
 	"time"
 
+	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	osconfigv1 "github.com/openshift/api/config/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
@@ -52,9 +53,12 @@ const (
 	namespaceName = "nvidia-network-operator"
 )
 
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var k8sManagerCancelFn context.CancelFunc
+var (
+	k8sClient          client.Client
+	k8sConfig          *rest.Config
+	testEnv            *envtest.Environment
+	k8sManagerCancelFn context.CancelFunc
+)
 
 type mockImageProvider struct {
 }
@@ -72,6 +76,7 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	var err error
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	testSetupLog := logf.Log.WithName("test-log").WithName("setup")
 
@@ -81,12 +86,16 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("config", "crd", "bases"), filepath.Join("hack", "crds")},
+		CRDDirectoryPaths: []string{
+			filepath.Join("config", "crd", "bases"),
+			filepath.Join("hack", "crds"),
+			filepath.Join("deployment", "network-operator", "charts", "maintenance-operator-chart", "crds"),
+		},
 	}
 
-	cfg, err := testEnv.Start()
+	k8sConfig, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	Expect(k8sConfig).NotTo(BeNil())
 
 	err = mellanoxcomv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
@@ -97,9 +106,12 @@ var _ = BeforeSuite(func() {
 	err = osconfigv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = maintenancev1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	k8sClient, err = client.New(k8sConfig, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
@@ -110,7 +122,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Start controllers
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	k8sManager, err := ctrl.NewManager(k8sConfig, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
