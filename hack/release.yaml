@@ -112,6 +112,7 @@ maintenanceOperator:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
   version: network-operator-v25.7.0-beta.3
+  chartLocation: deployment/maintenance-operator-chart
 spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox

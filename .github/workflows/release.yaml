@@ -48,6 +48,15 @@ jobs:
           fi
           echo "base_branch=${base_branch}" >> $GITHUB_OUTPUT
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
+      - id: determine-docker-registry
+        run: |
+          if echo $APP_VERSION | grep -q '-'; then
+            echo "docker_registry_network_operator=nvcr.io/nvstaging/mellanox" >> $GITHUB_OUTPUT
+            echo "docker_registry_managed_components=nvcr.io/nvstaging/mellanox" >> $GITHUB_OUTPUT
+          else
+            echo "docker_registry_network_operator=nvcr.io/nvidia/cloud-native" >> $GITHUB_OUTPUT
+            echo "docker_registry_managed_components=nvcr.io/nvidia/mellanox" >> $GITHUB_OUTPUT
+          fi
       - name: Verify release branch exists if "rc" version
         run: |
           if echo $APP_VERSION | grep -q 'rc'; then
@@ -64,7 +73,9 @@ jobs:
       base_branch: ${{ steps.determine-base-branch.outputs.base_branch }}
       chart_version: ${{ steps.set-chart-version.outputs.chart_version }}
       component_tag: ${{ steps.set-version.outputs.component_tag }}
-      docker_registry: nvcr.io/nvstaging/mellanox
+      docker_registry_network_operator: ${{ steps.determine-docker-registry.outputs.docker_registry_network_operator }}
+      docker_registry_managed_components: ${{ steps.determine-docker-registry.outputs.docker_registry_managed_components }}
+      docker_registry_staging: nvcr.io/nvstaging/mellanox
       release_branch: ${{ steps.set-version.outputs.release_branch }}
 
   get-managed-components:
@@ -137,7 +148,7 @@ jobs:
     needs: [determine-versions, get-managed-components, create-tags-for-components]
     env:
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
-      DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry }}
+      DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry_staging }}
     steps:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -188,7 +199,8 @@ jobs:
       APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
       BASE_BRANCH: ${{ needs.determine-versions.outputs.base_branch }}
       CHART_VERSION: ${{ needs.determine-versions.outputs.chart_version }}
-      DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry }}
+      DOCKER_REGISTRY_NETWORK_OPERATOR: ${{ needs.determine-versions.outputs.docker_registry_network_operator }}
+      DOCKER_REGISTRY_MANAGED_COMPONENTS: ${{ needs.determine-versions.outputs.docker_registry_managed_components }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
       - uses: actions/checkout@v4
@@ -216,6 +228,7 @@ jobs:
 
           # Update Network Operator version
           yq -i '.NetworkOperator.version = "${{ env.APP_VERSION }}"' hack/release.yaml
+          yq -i '.NetworkOperator.repository = "${{ env.DOCKER_REGISTRY_NETWORK_OPERATOR }}"' hack/release.yaml
           
           # Update components with sourceRepository to use new registry and version
           for component in $(yq 'keys | .[]' hack/release.yaml); do
@@ -227,13 +240,12 @@ jobs:
             fi
             
             echo "Updating component: $component"
-            echo "  Setting repository to: $DOCKER_REGISTRY"
+            echo "  Setting repository to: $DOCKER_REGISTRY_MANAGED_COMPONENTS"
             echo "  Setting version to: $COMPONENT_TAG"
             
             # Update repository and version for components with sourceRepository
-            yq -i ".${component}.repository = \"$DOCKER_REGISTRY\"" hack/release.yaml
+            yq -i ".${component}.repository = \"$DOCKER_REGISTRY_MANAGED_COMPONENTS\"" hack/release.yaml
             yq -i ".${component}.version = \"$COMPONENT_TAG\"" hack/release.yaml
-
 
             # Pull the component's helm chart
             CHART_LOCATION=$(yq ".${component}.chartLocation" hack/release.yaml)
