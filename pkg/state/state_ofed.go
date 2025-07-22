@@ -954,9 +954,6 @@ func setProbesDefaults(cr *mellanoxv1alpha1.NicClusterPolicy) {
 
 // sanitizeProbeSpec checks and adjusts probe spec values to meet Kubernetes requirements
 func sanitizeProbeSpec(probeSpec *mellanoxv1alpha1.PodProbeSpec, defaultProbeSpec mellanoxv1alpha1.PodProbeSpec) {
-	if !probeSpec.Enabled {
-		return
-	}
 	if probeSpec.InitialDelaySeconds < 1 {
 		probeSpec.InitialDelaySeconds = defaultProbeSpec.InitialDelaySeconds
 	}

@@ -79,7 +79,7 @@ type ImageSpecWithConfig struct {
 
 // PodProbeSpec describes a pod probe.
 type PodProbeSpec struct {
-	// Enabled indicates if the probe is enabled
+	// Enabled indicates if the probe is enabled (ignored for startup probe)
 	// +kubebuilder:default:=true
 	Enabled bool `json:"enabled"`
 	// Number of seconds after the container has started before the probe is initiated

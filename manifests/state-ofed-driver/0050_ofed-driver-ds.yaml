@@ -143,7 +143,6 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
-          {{- if .CrSpec.StartupProbe.Enabled }}
           startupProbe:
             exec:
               command:
@@ -153,7 +152,6 @@ spec:
             successThreshold: 1
             timeoutSeconds: {{ .CrSpec.StartupProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
-          {{- end }}
           {{- if .CrSpec.LivenessProbe.Enabled }}
           livenessProbe:
             exec:
