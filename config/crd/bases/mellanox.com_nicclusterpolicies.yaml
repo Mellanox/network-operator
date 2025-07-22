@@ -1181,7 +1181,8 @@ spec:
                     properties:
                       enabled:
                         default: true
-                        description: Enabled indicates if the probe is enabled
+                        description: Enabled indicates if the probe is enabled (ignored
+                          for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
@@ -1208,7 +1209,8 @@ spec:
                     properties:
                       enabled:
                         default: true
-                        description: Enabled indicates if the probe is enabled
+                        description: Enabled indicates if the probe is enabled (ignored
+                          for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
@@ -1247,7 +1249,8 @@ spec:
                     properties:
                       enabled:
                         default: true
-                        description: Enabled indicates if the probe is enabled
+                        description: Enabled indicates if the probe is enabled (ignored
+                          for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
