@@ -17,6 +17,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Wait for CI checks
+        # We skip the checks for GA release PRs, as they refer to not yet available images and will fail the CI.
+        # All the functionality was tested with the previous release candidate, so these checks are not mandatory.
+        if: (!startsWith(github.head_ref, 'staging')) || contains(github.head_ref, 'beta') || contains(github.head_ref, 'rc')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -114,6 +117,18 @@ jobs:
               $PRERELEASE_FLAG
 
             echo "Successfully created GitHub release: $VERSION"
+
+            # Find and close related GitHub issue
+            echo "Searching for GitHub issue with version: $VERSION"
+            ISSUE_NUMBER=$(gh issue list --search "$VERSION in:title" --state open --json number --jq '.[0].number' || echo "")
+            
+            if [ -n "$ISSUE_NUMBER" ] && [ "$ISSUE_NUMBER" != "null" ]; then
+              echo "Found issue #$ISSUE_NUMBER for version $VERSION. Closing it..."
+              gh issue close "$ISSUE_NUMBER" --comment "Closed automatically after releasing $VERSION"
+              echo "Successfully closed issue #$ISSUE_NUMBER"
+            else
+              echo "No open issue found for version $VERSION"
+            fi
           else
             echo "Not creating release - source branch is not staging-*"
           fi
