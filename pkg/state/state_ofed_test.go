@@ -719,6 +719,354 @@ var _ = Describe("MOFED state test", func() {
 			}
 		})
 	})
+	Context("Probe Configuration", func() {
+		It("Should set default probe values when not provided", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "mofed",
+							Repository: "nvcr.io/mellanox",
+							Version:    "23.10-0.5.5.0",
+						},
+					},
+				},
+			}
+
+			// Verify probes are initially nil
+			Expect(cr.Spec.OFEDDriver.StartupProbe).To(BeNil())
+			Expect(cr.Spec.OFEDDriver.LivenessProbe).To(BeNil())
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe).To(BeNil())
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			// Call GetManifestObjects which internally calls setProbesDefaults
+			_, err = ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify default values are set in the CR after GetManifestObjects
+			Expect(cr.Spec.OFEDDriver.StartupProbe).NotTo(BeNil())
+			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(10))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(10))
+
+			Expect(cr.Spec.OFEDDriver.LivenessProbe).NotTo(BeNil())
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.PeriodSeconds).To(Equal(30))
+
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe).NotTo(BeNil())
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.InitialDelaySeconds).To(Equal(10))
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.PeriodSeconds).To(Equal(30))
+		})
+
+		It("Should preserve custom probe values when provided", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			customStartupProbe := &v1alpha1.PodProbeSpec{
+				InitialDelaySeconds: 15,
+				PeriodSeconds:       20,
+			}
+			customLivenessProbe := &v1alpha1.PodProbeSpec{
+				InitialDelaySeconds: 45,
+				PeriodSeconds:       60,
+			}
+			customReadinessProbe := &v1alpha1.PodProbeSpec{
+				InitialDelaySeconds: 25,
+				PeriodSeconds:       40,
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "mofed",
+							Repository: "nvcr.io/mellanox",
+							Version:    "23.10-0.5.5.0",
+						},
+						StartupProbe:   customStartupProbe,
+						LivenessProbe:  customLivenessProbe,
+						ReadinessProbe: customReadinessProbe,
+					},
+				},
+			}
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			// Call GetManifestObjects which internally calls setProbesDefaults
+			_, err = ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify custom values are preserved after GetManifestObjects
+			Expect(cr.Spec.OFEDDriver.StartupProbe).To(Equal(customStartupProbe))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe).To(Equal(customLivenessProbe))
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe).To(Equal(customReadinessProbe))
+		})
+
+		It("Should render DaemonSet with probe configurations", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "mofed",
+							Repository: "nvcr.io/mellanox",
+							Version:    "23.10-0.5.5.0",
+						},
+						StartupProbe: &v1alpha1.PodProbeSpec{
+							InitialDelaySeconds: 15,
+							PeriodSeconds:       20,
+						},
+						LivenessProbe: &v1alpha1.PodProbeSpec{
+							InitialDelaySeconds: 45,
+							PeriodSeconds:       60,
+						},
+						ReadinessProbe: &v1alpha1.PodProbeSpec{
+							InitialDelaySeconds: 25,
+							PeriodSeconds:       40,
+						},
+					},
+				},
+			}
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Find the DaemonSet and verify probe configurations
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					ds := appsv1.DaemonSet{}
+					err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+					Expect(err).NotTo(HaveOccurred())
+
+					container := ds.Spec.Template.Spec.Containers[0]
+
+					// Verify StartupProbe
+					Expect(container.StartupProbe).NotTo(BeNil())
+					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(15)))
+					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(20)))
+					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(60)))
+					Expect(container.StartupProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.StartupProbe.TimeoutSeconds).To(Equal(int32(10)))
+
+					// Verify LivenessProbe
+					Expect(container.LivenessProbe).NotTo(BeNil())
+					Expect(container.LivenessProbe.InitialDelaySeconds).To(Equal(int32(45)))
+					Expect(container.LivenessProbe.PeriodSeconds).To(Equal(int32(60)))
+					Expect(container.LivenessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.LivenessProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.LivenessProbe.TimeoutSeconds).To(Equal(int32(10)))
+
+					// Verify ReadinessProbe
+					Expect(container.ReadinessProbe).NotTo(BeNil())
+					Expect(container.ReadinessProbe.InitialDelaySeconds).To(Equal(int32(25)))
+					Expect(container.ReadinessProbe.PeriodSeconds).To(Equal(int32(40)))
+					Expect(container.ReadinessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.ReadinessProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.ReadinessProbe.TimeoutSeconds).To(Equal(int32(10)))
+
+					// Verify probe commands
+					Expect(container.StartupProbe.Exec.Command).To(
+						Equal([]string{"sh", "-c", "ls /run/mellanox/drivers/.driver-ready"}))
+					Expect(container.LivenessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
+					Expect(container.ReadinessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
+
+					break
+				}
+			}
+		})
+
+		It("Should render DaemonSet with default probe configurations when not specified", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "mofed",
+							Repository: "nvcr.io/mellanox",
+							Version:    "23.10-0.5.5.0",
+						},
+					},
+				},
+			}
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Find the DaemonSet and verify default probe configurations
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					ds := appsv1.DaemonSet{}
+					err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+					Expect(err).NotTo(HaveOccurred())
+
+					container := ds.Spec.Template.Spec.Containers[0]
+
+					// Verify StartupProbe defaults
+					Expect(container.StartupProbe).NotTo(BeNil())
+					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(10)))
+					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(10)))
+
+					// Verify LivenessProbe defaults
+					Expect(container.LivenessProbe).NotTo(BeNil())
+					Expect(container.LivenessProbe.InitialDelaySeconds).To(Equal(int32(30)))
+					Expect(container.LivenessProbe.PeriodSeconds).To(Equal(int32(30)))
+
+					// Verify ReadinessProbe defaults
+					Expect(container.ReadinessProbe).NotTo(BeNil())
+					Expect(container.ReadinessProbe.InitialDelaySeconds).To(Equal(int32(10)))
+					Expect(container.ReadinessProbe.PeriodSeconds).To(Equal(int32(30)))
+
+					break
+				}
+			}
+		})
+
+		It("Should handle partial probe configurations", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:      "mofed",
+							Repository: "nvcr.io/mellanox",
+							Version:    "23.10-0.5.5.0",
+						},
+						// Only set StartupProbe, leave others nil
+						StartupProbe: &v1alpha1.PodProbeSpec{
+							InitialDelaySeconds: 20,
+							PeriodSeconds:       25,
+						},
+					},
+				},
+			}
+
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			_, err = ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify custom StartupProbe is preserved
+			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(20))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(25))
+
+			// Verify defaults are set for LivenessProbe and ReadinessProbe
+			Expect(cr.Spec.OFEDDriver.LivenessProbe).NotTo(BeNil())
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.PeriodSeconds).To(Equal(30))
+
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe).NotTo(BeNil())
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.InitialDelaySeconds).To(Equal(10))
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.PeriodSeconds).To(Equal(30))
+		})
+	})
 })
 
 func getOfedState() *stateOFED {
