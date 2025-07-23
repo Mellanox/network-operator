@@ -1179,10 +1179,9 @@ spec:
                   livenessProbe:
                     description: Pod liveness probe settings
                     properties:
-                      enabled:
-                        default: true
-                        description: Enabled indicates if the probe is enabled (ignored
-                          for startup probe)
+                      disabled:
+                        description: Disabled indicates if the probe should be disabled
+                          (ignored for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
@@ -1200,17 +1199,15 @@ spec:
                           out
                         type: integer
                     required:
-                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
                   readinessProbe:
                     description: Pod readiness probe settings
                     properties:
-                      enabled:
-                        default: true
-                        description: Enabled indicates if the probe is enabled (ignored
-                          for startup probe)
+                      disabled:
+                        description: Disabled indicates if the probe should be disabled
+                          (ignored for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
@@ -1228,7 +1225,6 @@ spec:
                           out
                         type: integer
                     required:
-                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
@@ -1247,10 +1243,9 @@ spec:
                   startupProbe:
                     description: Pod startup probe settings
                     properties:
-                      enabled:
-                        default: true
-                        description: Enabled indicates if the probe is enabled (ignored
-                          for startup probe)
+                      disabled:
+                        description: Disabled indicates if the probe should be disabled
+                          (ignored for startup probe)
                         type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
@@ -1268,7 +1263,6 @@ spec:
                           out
                         type: integer
                     required:
-                    - enabled
                     - initialDelaySeconds
                     - periodSeconds
                     type: object
