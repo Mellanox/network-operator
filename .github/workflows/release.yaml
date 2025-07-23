@@ -215,6 +215,11 @@ jobs:
           ref: ${{ needs.determine-versions.outputs.release_branch }}
       - uses: actions/checkout@v4
         with:
+          repository: ${{ github.repository_owner }}/maintenance-operator
+          path: maintenance-operator
+          ref: ${{ needs.determine-versions.outputs.release_branch }}
+      - uses: actions/checkout@v4
+        with:
           repository: ${{ github.repository_owner }}/network-operator
           path: network-operator
       - name: Create staging branch and update component versions
