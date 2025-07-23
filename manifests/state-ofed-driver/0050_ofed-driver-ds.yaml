@@ -152,7 +152,7 @@ spec:
             successThreshold: 1
             timeoutSeconds: {{ .CrSpec.StartupProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
-          {{- if .CrSpec.LivenessProbe.Enabled }}
+          {{- if not .CrSpec.LivenessProbe.Disabled }}
           livenessProbe:
             exec:
               command:
@@ -163,7 +163,7 @@ spec:
             timeoutSeconds: {{ .CrSpec.LivenessProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.LivenessProbe.PeriodSeconds }}
           {{- end }}
-          {{- if .CrSpec.ReadinessProbe.Enabled }}
+          {{- if not .CrSpec.ReadinessProbe.Disabled }}
           readinessProbe:
             exec:
               command:
