@@ -259,7 +259,12 @@ jobs:
               continue
             fi
 
-            CHART_LOCATION_IN_NETWORK_OPERATOR=deployment/network-operator/charts/$SOURCE_REPO
+            CHART_NAME=$(yq ".${component}.chartName" hack/release.yaml)
+            # Use SOURCE_REPO if chartName is null or empty
+            if [ "$CHART_NAME" = "null" ] || [ -z "$CHART_NAME" ]; then
+              CHART_NAME=$SOURCE_REPO
+            fi
+            CHART_LOCATION_IN_NETWORK_OPERATOR=deployment/network-operator/charts/$CHART_NAME
             rm -rf $CHART_LOCATION_IN_NETWORK_OPERATOR/*
             cp -r ../$SOURCE_REPO/$CHART_LOCATION/* $CHART_LOCATION_IN_NETWORK_OPERATOR
 
