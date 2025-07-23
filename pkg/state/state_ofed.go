@@ -547,9 +547,16 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 	clusterInfo clustertype.Provider, docaProvider docadriverimages.Provider) ([]*unstructured.Unstructured, error) {
 	precompiledTag := fmt.Sprintf(precompiledTagFormat, cr.Spec.OFEDDriver.Version, nodePool.Kernel,
 		nodePool.OsName, nodePool.OsVersion, nodePool.Arch)
-	precompiledExists := docaProvider.TagExists(precompiledTag)
-	reqLogger.V(consts.LogLevelDebug).Info("Precompiled tag", "tag:", precompiledTag, "found:", precompiledExists)
+	precompiledExists, tagErr := docaProvider.TagExists(precompiledTag)
+	reqLogger.V(consts.LogLevelDebug).Info("Precompiled tag",
+		"tag", precompiledTag,
+		"found", precompiledExists,
+		"error", tagErr)
 	if !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
+		if tagErr != nil {
+			return nil, fmt.Errorf(
+				"ForcePrecompiled is enabled, but failed to verify existence of precompiled tag: %s, %w", precompiledTag, tagErr)
+		}
 		return nil, fmt.Errorf("ForcePrecompiled is enabled and precompiled tag was not found: %s", precompiledTag)
 	}
 
