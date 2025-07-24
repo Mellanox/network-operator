@@ -1265,7 +1265,7 @@ func verifyAdditionalMounts(mounts []v1.VolumeMount) {
 	cert := v1.VolumeMount{
 		Name:             "cert-cm",
 		ReadOnly:         true,
-		MountPath:        "/etc/ssl/certs/my-cert",
+		MountPath:        "/usr/local/share/ca-certificates/my-cert",
 		SubPath:          "my-cert",
 		MountPropagation: nil,
 		SubPathExpr:      "",
