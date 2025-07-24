@@ -52,8 +52,8 @@ func (d *dummyProvider) GetNodePools(...nodeinfo.Filter) []nodeinfo.NodePool {
 		},
 	}
 }
-func (d *dummyProvider) TagExists(_ string) bool {
-	return false
+func (d *dummyProvider) TagExists(_ string) (bool, error) {
+	return false, nil
 }
 
 func (d *dummyProvider) SetImageSpec(_ *v1alpha1.ImageSpec) {}
