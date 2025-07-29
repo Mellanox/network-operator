@@ -202,13 +202,13 @@ maintenance-operator-chart:
   operatorConfig:
     # -- deploy MaintenanceOperatorConfig CR
     deploy: false
+  # imagePullSecrets for Maintenance Operator related images
+  #imagePullSecrets: []
   operator:
     image:
       repository: {{ .MaintenanceOperator.Repository }}
       name: {{ .MaintenanceOperator.Image }}
       tag: {{ .MaintenanceOperator.Version }}
-    # imagePullSecrets for Maintenance Operator related images
-    #imagePullSecrets: []
     admissionController:
       # -- enable admission controller of the operator
       enable: false
