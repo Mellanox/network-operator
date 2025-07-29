@@ -428,13 +428,18 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(d.Spec.Template.Spec.Affinity).NotTo(BeNil())
 			Expect(d.Spec.Template.Spec.Affinity.NodeAffinity).NotTo(BeNil())
 			preferred := d.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-			Expect(len(preferred)).To(Equal(1))
-			Expect(preferred[0].Weight).To(Equal(int32(10)))
-			Expect(len(preferred[0].Preference.MatchExpressions)).To(Equal(1))
-			expr := preferred[0].Preference.MatchExpressions[0]
-			Expect(expr.Key).To(Equal("preferred-label"))
-			Expect(expr.Operator).To(Equal(v1.NodeSelectorOpIn))
-			Expect(expr.Values).To(ContainElements("preferred-value"))
+			Expect(len(preferred)).To(Equal(3)) // 2 default + 1 custom
+			// Verify custom preferred term is present
+			foundPreferredLabel := false
+			for _, term := range preferred {
+				if len(term.Preference.MatchExpressions) > 0 && term.Preference.MatchExpressions[0].Key == "preferred-label" {
+					foundPreferredLabel = true
+					Expect(term.Weight).To(Equal(int32(10)))
+					Expect(term.Preference.MatchExpressions[0].Operator).To(Equal(v1.NodeSelectorOpIn))
+					Expect(term.Preference.MatchExpressions[0].Values).To(ContainElements("preferred-value"))
+				}
+			}
+			Expect(foundPreferredLabel).To(BeTrue())
 			By("Verify Tolerations in Deployment")
 			tolerations := d.Spec.Template.Spec.Tolerations
 			Expect(len(tolerations)).To(Equal(4)) // 3 default + 1 custom
