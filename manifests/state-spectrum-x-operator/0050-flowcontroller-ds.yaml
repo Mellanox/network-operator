@@ -17,6 +17,8 @@ spec:
       labels:
         control-plane: spectrum-x-flowcontroller
     spec:
+      nodeSelector:
+        feature.node.kubernetes.io/pci-15b3.present: "true"
       tolerations:
         {{- if .Tolerations }}
         {{- .Tolerations | yaml | nindent 8 }}
@@ -37,8 +39,8 @@ spec:
         - command:
             - /flowcontroller
           args:
-            - --metrics-bind-address=:8082
-            - --health-probe-bind-address=:8084
+            - --metrics-bind-address=0
+            - --health-probe-bind-address=0
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           name: spectrum-x-flowcontroller
           env:
@@ -66,18 +68,6 @@ spec:
               mountPath: /var/run/openvswitch/
             - name: ovs-systemd-config
               mountPath: /etc/default/openvswitch-switch
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8084
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8084
-            initialDelaySeconds: 5
-            periodSeconds: 10
           {{- with .RuntimeSpec.ContainerResources }}
           {{- with index . "spectrum-x-flowcontroller" }}
           resources:
