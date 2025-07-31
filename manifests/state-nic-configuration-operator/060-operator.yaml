@@ -17,6 +17,7 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
     spec:
+      priorityClassName: system-cluster-critical
       tolerations:
         - key: node-role.kubernetes.io/master
           operator: Exists
@@ -30,15 +31,36 @@ spec:
         {{- if .DeploymentTolerations }}
         {{ .DeploymentTolerations | yaml | nindent 8 }}
         {{- end }}
-      {{- if or .DeploymentNodeAffinity .NodeAffinity }}
       affinity:
         nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/master"
+                    operator: In
+                    values: [ "" ]
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/control-plane"
+                    operator: In
+                    values: [ "" ]
+            {{- if .DeploymentNodeAffinity }}
+            {{- if .DeploymentNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution }}
+            {{- range .DeploymentNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution }}
+            - weight: {{ .Weight }}
+              preference:
+                {{ .Preference | yaml | nindent 16 }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
           {{- if .DeploymentNodeAffinity }}
-          {{ .DeploymentNodeAffinity | yaml | nindent 10 }}
-          {{- else }}
-          {{ .NodeAffinity | yaml | nindent 10 }}
+          {{- if .DeploymentNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            {{ .DeploymentNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution | yaml | nindent 12 }}
           {{- end }}
-      {{- end }}
+          {{- end }}
       {{- if .CrSpec.Operator.ImagePullSecrets }}
       imagePullSecrets:
       {{- range .CrSpec.Operator.ImagePullSecrets }}
