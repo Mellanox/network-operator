@@ -202,13 +202,13 @@ maintenance-operator-chart:
   operatorConfig:
     # -- deploy MaintenanceOperatorConfig CR
     deploy: false
+  # imagePullSecrets for Maintenance Operator related images
+  #imagePullSecrets: []
   operator:
     image:
       repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
       tag: network-operator-v25.7.0-beta.3
-    # imagePullSecrets for Maintenance Operator related images
-    #imagePullSecrets: []
     admissionController:
       # -- enable admission controller of the operator
       enable: false
