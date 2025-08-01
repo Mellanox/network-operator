@@ -76,11 +76,22 @@ type dummyOfedImageProvider struct {
 	tagExists bool
 }
 
-func (d *dummyOfedImageProvider) TagExists(_ string) bool {
-	return d.tagExists
+func (d *dummyOfedImageProvider) TagExists(_ string) (bool, error) {
+	return d.tagExists, nil
 }
 
 func (d *dummyOfedImageProvider) SetImageSpec(*v1alpha1.ImageSpec) {}
+
+type errorOfedImageProvider struct {
+	tagExists bool
+	err       error
+}
+
+func (d *errorOfedImageProvider) TagExists(_ string) (bool, error) {
+	return d.tagExists, d.err
+}
+
+func (d *errorOfedImageProvider) SetImageSpec(*v1alpha1.ImageSpec) {}
 
 var _ = Describe("MOFED state test", func() {
 	var stateOfed stateOFED
@@ -1065,6 +1076,190 @@ var _ = Describe("MOFED state test", func() {
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe).NotTo(BeNil())
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe.InitialDelaySeconds).To(Equal(10))
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe.PeriodSeconds).To(Equal(30))
+		})
+	})
+	//nolint:dupl
+	Context("TagExists error handling", func() {
+		It("Should return error when TagExists fails and ForcePrecompiled is enabled", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-error-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: true,
+			}
+
+			node := getNode("node1", kernelFull1)
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{node})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &errorOfedImageProvider{
+				tagExists: false,
+				err:       fmt.Errorf("network error: failed to list tags"),
+			})
+
+			By("Calling GetManifestObjects with TagExists returning error and ForcePrecompiled enabled")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(
+				ContainSubstring("ForcePrecompiled is enabled, but failed to verify existence of precompiled tag"))
+			Expect(err.Error()).To(ContainSubstring("network error: failed to list tags"))
+			Expect(objs).To(BeNil())
+		})
+
+		It("Should not return error when TagExists fails and ForcePrecompiled is disabled", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-error-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: false,
+			}
+
+			node := getNode("node1", kernelFull1)
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{node})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &errorOfedImageProvider{
+				tagExists: false,
+				err:       fmt.Errorf("authentication failed"),
+			})
+
+			By("Calling GetManifestObjects with TagExists returning error and ForcePrecompiled disabled")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(objs).NotTo(BeNil())
+			Expect(len(objs)).To(BeNumerically(">", 0))
+		})
+
+		It("Should succeed when TagExists returns false without error and ForcePrecompiled is disabled", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-success-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: false,
+			}
+
+			node := getNode("node1", kernelFull1)
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{node})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &errorOfedImageProvider{
+				tagExists: false,
+				err:       nil,
+			})
+
+			By("Calling GetManifestObjects with TagExists returning false without error")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(objs).NotTo(BeNil())
+			Expect(len(objs)).To(BeNumerically(">", 0))
+		})
+
+		It("Should succeed when TagExists returns true without error", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-success-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+				ForcePrecompiled: true,
+			}
+
+			node := getNode("node1", kernelFull1)
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{node})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &errorOfedImageProvider{
+				tagExists: true,
+				err:       nil,
+			})
+
+			By("Calling GetManifestObjects with TagExists returning true without error")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(objs).NotTo(BeNil())
+			Expect(len(objs)).To(BeNumerically(">", 0))
 		})
 	})
 })

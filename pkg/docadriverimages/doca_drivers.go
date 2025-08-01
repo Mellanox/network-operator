@@ -42,7 +42,8 @@ import (
 // Provider provides interface to check the DOCA driver images
 type Provider interface {
 	// TagExists returns true if DOCA driver image with provided tag exists
-	TagExists(tag string) bool
+	// Returns an error if there was a problem listing tags from the registry
+	TagExists(tag string) (bool, error)
 	// SetImageSpec sets the Container registry details
 	SetImageSpec(*mellanoxv1alpha1.ImageSpec)
 }
@@ -69,18 +70,19 @@ type provider struct {
 	docaImageSpec *mellanoxv1alpha1.ImageSpec
 	ctx           context.Context
 	mu            sync.Mutex
+	lastError     error // tracks the last error from tag retrieval
 }
 
 // TagExists returns true if DOCA driver image with provided tag exists
-func (p *provider) TagExists(tag string) bool {
+func (p *provider) TagExists(tag string) (bool, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, t := range p.tags {
 		if t == tag {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, p.lastError
 }
 
 // SetImageSpec sets the Container registry details
@@ -122,6 +124,7 @@ func (p *provider) retrieveTags() {
 			continue
 		} else if err != nil {
 			logger.Error(err, "failed to get pull secret")
+			p.lastError = fmt.Errorf("failed to get pull secret: %w", err)
 			return
 		}
 		pullSecrets = append(pullSecrets, *secret)
@@ -129,18 +132,22 @@ func (p *provider) retrieveTags() {
 	auth, err := kauth.NewFromPullSecrets(p.ctx, pullSecrets)
 	if err != nil {
 		logger.Error(err, "failed to create registry auth from secrets")
+		p.lastError = fmt.Errorf("failed to create registry auth from secrets: %w", err)
 		return
 	}
 	image := fmt.Sprintf("%s/%s", p.docaImageSpec.Repository, p.docaImageSpec.Image)
 	repo, err := name.NewRepository(image)
 	if err != nil {
 		logger.Error(err, "failed to create repo")
+		p.lastError = fmt.Errorf("failed to create repo: %w", err)
 		return
 	}
 	tags, err := remote.List(repo, remote.WithAuthFromKeychain(auth))
 	if err != nil {
 		logger.Error(err, "failed to list tags")
+		p.lastError = fmt.Errorf("failed to list tags: %w", err)
 		return
 	}
 	p.tags = tags
+	p.lastError = nil // clear error on successful tag retrieval
 }
