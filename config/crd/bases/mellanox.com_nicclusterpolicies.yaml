@@ -290,7 +290,7 @@ spec:
               docaTelemetryService:
                 description: |-
                   DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
-                  See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
+                  See: https://docs.nvidia.com/doca/sdk/doca+telemetry+service+guide/index.html
                 properties:
                   config:
                     description: |-

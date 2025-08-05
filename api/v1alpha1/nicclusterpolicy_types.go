@@ -369,7 +369,7 @@ type NicClusterPolicySpec struct {
 	// https://github.com/Mellanox/nic-feature-discovery
 	NicFeatureDiscovery *NICFeatureDiscoverySpec `json:"nicFeatureDiscovery,omitempty"`
 	// DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
-	// See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
+	// See: https://docs.nvidia.com/doca/sdk/doca+telemetry+service+guide/index.html
 	DOCATelemetryService *DOCATelemetryServiceSpec `json:"docaTelemetryService,omitempty"`
 	//nolint:lll
 	// NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
