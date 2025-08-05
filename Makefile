@@ -27,6 +27,7 @@ TESTPKGS=./...
 ENVTEST_K8S_VERSION=1.28
 ARCH ?= $(shell go env GOARCH)
 OS ?= $(shell go env GOOS)
+GOPROXY ?= direct
 
 # Version
 VERSION?=master
@@ -299,6 +300,7 @@ image: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg LDFLAGS=$(LDFLAGS) \
 		--build-arg ARCH="$(ARCH)" \
 		--build-arg GCFLAGS="$(GCFLAGS)" \
+		--build-arg GOPROXY="$(GOPROXY)" \
 		-t $(TAG) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-push:
@@ -318,6 +320,7 @@ image-build: ; $(info Building Docker image...)  @ ## Build container image
 		--build-arg LDFLAGS=$(LDFLAGS) \
 		--build-arg ARCH="$(ARCH)" \
 		--build-arg GCFLAGS="$(GCFLAGS)" \
+		--build-arg GOPROXY="$(GOPROXY)" \
 		-t $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH) -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
 
 image-build-%:
