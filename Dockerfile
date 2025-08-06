@@ -35,6 +35,9 @@ COPY ./ ./
 ARG ARCH
 ARG LDFLAGS
 ARG GCFLAGS
+ARG GOPROXY=direct
+ENV GOPROXY=$GOPROXY
+
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go  && \
