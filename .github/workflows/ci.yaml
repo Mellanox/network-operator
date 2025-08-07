@@ -46,7 +46,7 @@ jobs:
     if:  github.ref_type == 'tag' || github.ref_name == ${{ needs.docker-build-push.outputs.default_branch }}
     needs:
     - docker-build-push
-    runs-on: ubuntu-24.04
+    runs-on: linux-amd64-cpu4
     env:
       NGC_REPO: nvstaging/mellanox/network-operator
     steps:
