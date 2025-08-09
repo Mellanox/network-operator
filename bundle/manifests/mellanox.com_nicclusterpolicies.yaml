@@ -290,7 +290,7 @@ spec:
               docaTelemetryService:
                 description: |-
                   DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
-                  See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
+                  See: https://docs.nvidia.com/doca/sdk/doca+telemetry+service+guide/index.html
                 properties:
                   config:
                     description: |-
@@ -1471,7 +1471,9 @@ spec:
                     - version
                     type: object
                   ipamPlugin:
-                    description: Image information for IPAM plugin
+                    description: |-
+                      Image information for IPAM plugin
+                      Deprecated: This field is deprecated and will be removed in a future version. Use 'nvIpam' instead.
                     properties:
                       containerResources:
                         description: ResourceRequirements describes the compute resource
