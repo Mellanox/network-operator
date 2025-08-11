@@ -29,11 +29,6 @@ sriovNetworkOperator:
   # -- Deploy SR-IOV Network Operator.
   enabled: false
 
-# -- NIC Configuration Operator helm chart is deprecated and will be deleted in future releases. Use NIC Cluster Policy to deploy the NIC Configuration Operator instead.
-nicConfigurationOperator:
-  # -- Deploy NIC Configuration Operator.
-  enabled: false
-
 maintenanceOperator:
   # -- Deploy Maintenance Operator.
   enabled: false
@@ -181,19 +176,6 @@ sriov-network-operator:
     configDaemonNodeSelector:
       beta.kubernetes.io/os: "linux"
       network.nvidia.com/operator.mofed.wait: "false"
-
-# Nic Configuration Operator chart related values.
-nic-configuration-operator-chart:
-  operator:
-    image:
-      repository: {{ .NicConfigurationOperator.Repository }}
-      name: {{ .NicConfigurationOperator.Image }}
-      tag: {{ .NicConfigurationOperator.Version }}
-  configDaemon:
-    image:
-      repository: {{ .NicConfigurationConfigDaemon.Repository }}
-      name: {{ .NicConfigurationConfigDaemon.Image }}
-      tag: {{ .NicConfigurationConfigDaemon.Version }}
 
 # Maintenance Operator chart related values.
 maintenance-operator-chart:
