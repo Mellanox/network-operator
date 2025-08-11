@@ -113,10 +113,10 @@ spec:
           resources:
             limits:
               cpu: 500m
-              memory: 128Mi
+              memory: 256Mi
             requests:
-              cpu: 10m
-              memory: 64Mi
+              cpu: 100m
+              memory: 256Mi
           {{- end }}
           {{- if .CrSpec.NicFirmwareStorage }}
           volumeMounts:
