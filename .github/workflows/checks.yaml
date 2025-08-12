@@ -13,7 +13,7 @@ jobs:
         with:
           go-version: '1.24.x'
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: lint
         run: make lint
   lint-docker:
@@ -23,7 +23,7 @@ jobs:
       contents: read
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: lint Dockerfile
         run: make lint-dockerfile
   lint-helm:
@@ -33,7 +33,7 @@ jobs:
       contents: read
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: lint helm chart
         run: make lint-helm
   diff-manifests:
@@ -47,7 +47,7 @@ jobs:
         with:
           go-version: '1.24.x'
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: check manifests
         run: make check-manifests
   diff-modules:
@@ -61,7 +61,7 @@ jobs:
         with:
           go-version: '1.24.x'
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: check go modules
         run: make check-go-modules
   diff-release-build:
@@ -75,7 +75,7 @@ jobs:
         with:
           go-version: '1.24.x'
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: check release-build
         run: make check-release-build
   unit-tests:
@@ -89,7 +89,7 @@ jobs:
         with:
           go-version: '1.24.x'
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: test
         run: make test-coverage
       - name: Generate LCOV report
