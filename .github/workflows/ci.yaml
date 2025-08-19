@@ -33,7 +33,7 @@ jobs:
     - name: Make build and push
       env:
         TAG: mellanox/${{ env.IMAGE_NAME }}
-        GOPROXY: ${{ secrets.GOPROXY }}
+        GOPROXY: ${{ secrets.GO_PROXY_URL }}
       run: |
         echo "Docker tags will be: $DOCKER_TAGS"
         for docker_tag in $DOCKER_TAGS; do

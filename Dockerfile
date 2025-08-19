@@ -50,10 +50,9 @@ RUN mkdir crds && \
     mkdir -p /workspace/crds/network-operator/ && \
     cp -r network-operator-chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
     cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
-    cp -r network-operator-chart/charts/nic-configuration-operator-chart/crds /workspace/crds/nic-configuration-operator/ && \
     cp -r network-operator-chart/charts/maintenance-operator-chart/crds /workspace/crds/maintenance-operator/
 
-FROM --platform=linux/${ARCH} registry.access.redhat.com/ubi8-micro:8.10
+FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v3.1.11
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
