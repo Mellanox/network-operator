@@ -30,8 +30,8 @@ spec:
       maxParallelUpgrades: 1
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0-rc.3
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v25.7.0
     config: |
       {
         "resourceList": [

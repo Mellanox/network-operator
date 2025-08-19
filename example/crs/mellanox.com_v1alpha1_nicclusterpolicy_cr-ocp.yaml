@@ -30,8 +30,8 @@ spec:
       maxParallelUpgrades: 1
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0-rc.3
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v25.7.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
