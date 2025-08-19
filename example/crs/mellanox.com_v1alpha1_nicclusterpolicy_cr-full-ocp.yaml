@@ -24,7 +24,7 @@ spec:
   ofedDriver:
     image: doca-driver
     repository: nvcr.io/nvstaging/mellanox
-    version: doca3.2.0-25.10-0.1.0.0-0
+    version: doca3.2.0-25.10-0.2.0.0-0
     upgradePolicy:
       autoUpgrade: true
       drain:
