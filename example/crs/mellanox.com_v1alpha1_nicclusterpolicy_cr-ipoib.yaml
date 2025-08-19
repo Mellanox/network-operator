@@ -39,8 +39,8 @@ spec:
       periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0-rc.3
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v25.7.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -59,17 +59,17 @@ spec:
   secondaryNetwork:
     cniPlugins:
       image: plugins
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0-rc.3
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v25.7.0
     ipoib:
       image: ipoib-cni
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0-rc.3
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v25.7.0
     multus:
       image: multus-cni
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0-rc.3
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v25.7.0
     ipamPlugin:
       image: whereabouts
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0-rc.3
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v25.7.0
