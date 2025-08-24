@@ -288,6 +288,10 @@ jobs:
             fi
           done
 
+          # Special handling for Mofed component (update registry only, not version, for all releases)
+          echo "Updating Mofed component registry for release"
+          yq -i '.Mofed.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
+
           # Update chart versions
           yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
           yq -i '.appVersion = "${{ env.APP_VERSION }}"' deployment/network-operator/Chart.yaml
