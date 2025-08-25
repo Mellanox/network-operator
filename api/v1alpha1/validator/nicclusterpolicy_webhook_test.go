@@ -190,6 +190,114 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
 		})
+		It("Valid MOFED version (SHA256 format)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version (SHA256 format with uppercase hex)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "sha256:ABCDEF1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Invalid MOFED version (SHA256 format with wrong length)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e44",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
+		It("Invalid MOFED version (SHA256 format with invalid characters)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e44g",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
+		It("Invalid MOFED version (SHA256 format missing prefix)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
+		It("Invalid MOFED version (SHA256 format missing colon)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "sha2569a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
 		It("MOFED SafeLoad requires AutoUpgrade to be enabled", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{

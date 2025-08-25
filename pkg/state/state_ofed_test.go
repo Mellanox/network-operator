@@ -122,18 +122,23 @@ var _ = Describe("MOFED state test", func() {
 
 		It("generates new image format", func() {
 			cr.Spec.OFEDDriver.Version = "5.7-1.0.0.0"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.7-1.0.0.0-ubuntu20.04-amd64"))
 		})
 		It("generates new image format double digit minor", func() {
 			cr.Spec.OFEDDriver.Version = "5.10-0.0.0.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:5.10-0.0.0.1-ubuntu20.04-amd64"))
 		})
 		It("return new image format in case of a bad version", func() {
 			cr.Spec.OFEDDriver.Version = "1.1.1.1.1"
-			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, testLogger)
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, false, testLogger)
 			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed:1.1.1.1.1-ubuntu20.04-amd64"))
+		})
+		It("return SHA256 image format", func() {
+			cr.Spec.OFEDDriver.Version = "sha256:1234567890"
+			imageName := stateOfed.getMofedDriverImageName(cr, nodePool, false, true, testLogger)
+			Expect(imageName).To(Equal("nvcr.io/mellanox/mofed@sha256:1234567890"))
 		})
 	})
 
@@ -516,6 +521,77 @@ var _ = Describe("MOFED state test", func() {
 			verifySubscriptionMountsSles(ds.Spec.Template.Spec.Containers[0].VolumeMounts)
 			verifySubscriptionVolumesSles(ds.Spec.Template.Spec.Volumes)
 		}
+	})
+	Context("SHA256 version", func() {
+		It("Should Render DaemonSet with SHA256 version", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-sha256"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449",
+				},
+			}
+
+			By("Creating NodeProvider with 1 Node")
+			infoProvider := nodeinfo.NewProvider([]*v1.Node{
+				getNode("node1", kernelFull1),
+			})
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, infoProvider)
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+
+			By("Calling GetManifestObjects with SHA256 version")
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Expect 4 objects: 1 DaemonSet + ServiceAccount, Role, RoleBinding
+			By("Verifying the correct number of objects are rendered")
+			Expect(len(objs)).To(Equal(4), "Expected 1 DaemonSet and its 3 associated RBAC resources")
+
+			By("Finding and verifying the rendered DaemonSet with SHA256 image")
+			var daemonSet *appsv1.DaemonSet
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					ds := &appsv1.DaemonSet{}
+					err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, ds)
+					Expect(err).NotTo(HaveOccurred())
+					daemonSet = ds
+					break
+				}
+			}
+			Expect(daemonSet).NotTo(BeNil(), "A DaemonSet should have been rendered")
+
+			By("Verifying the SHA256 image format in the DaemonSet")
+			expectedImageName := "nvcr.io/mellanox/mofed@sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Image).To(Equal(expectedImageName),
+				"DaemonSet should use SHA256 image format with @ separator")
+
+			Expect(len(daemonSet.Spec.Template.Spec.Containers)).To(Equal(1))
+
+			By("Verifying node selector is set correctly")
+			verifyDSNodeSelector(daemonSet.Spec.Template.Spec.NodeSelector, kernelFull1)
+
+			By("Verifying pod anti-affinity is set")
+			verifyPodAntiInfinity(daemonSet.Spec.Template.Spec.Affinity)
+		})
 	})
 	Context("Render Manifests DTK", func() {
 		It("Should Render DaemonSet with DTK and additional mounts", func() {
