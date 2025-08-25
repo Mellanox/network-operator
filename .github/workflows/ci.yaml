@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v5
     - name: Determine docker tags
       run: |
-        git_sha=$(git rev-parse --short HEAD)                                  # short git commit hash
+        git_sha=$(git rev-parse --short=12 HEAD)                                  # short git commit hash
         git_tag=${{ github.ref_type == 'tag' && github.ref_name || '' }}       # git tag, if triggered by tag event
         latest=${{ github.ref_name == env.DEFAULT_BRANCH && 'latest' || '' }}  # 'latest', if branch is master
         echo DOCKER_TAGS=""$git_sha $git_tag $latest"" | tee -a $GITHUB_ENV
@@ -70,7 +70,7 @@ jobs:
         EOF
     - name: Make package and push (`current_version+git_sha` as chart version)
       run: |
-        git_sha=$(git rev-parse --short HEAD)  # short git commit hash
+        git_sha=$(git rev-parse --short=12 HEAD)  # short git commit hash
         current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
         APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha make chart-build chart-push \
           2> >(tee error.log) || grep 'already exists in the repository' error.log  # catches any errors to `error.log`; if there is a specific error - passes (exit 0)
@@ -107,7 +107,7 @@ jobs:
           fi
           echo BASE_BRANCH=$base_branch | tee -a $GITHUB_ENV
         elif [[ "${{ github.ref_type }}" == "branch" ]]; then
-          echo VERSION_WITH_PREFIX=$(git rev-parse --short HEAD) | tee -a $GITHUB_ENV
+          echo VERSION_WITH_PREFIX=$(git rev-parse --short=12 HEAD) | tee -a $GITHUB_ENV
         fi
     - uses: docker/login-action@v3
       with:
