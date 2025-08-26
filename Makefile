@@ -38,7 +38,7 @@ GCFLAGS=""
 BUILD_VERSION := $(strip $(shell [ -d .git ] && git describe --always --tags --dirty))
 BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
 VCS_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD))
-VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short HEAD))
+VCS_REF := $(strip $(shell [ -d .git ] && git rev-parse --short=12 HEAD))
 DOCA_DRIVER_RELEASE_URL := https://raw.githubusercontent.com/Mellanox/doca-driver-build/refs/heads/main/release_manifests/
 
 # Docker
