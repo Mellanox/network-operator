@@ -70,6 +70,10 @@ const (
 	// format: <repo>/<image-name>:<driver-container-version>-<kernel-full>-<os-name><os-ver>-<cpu-arch>
 	// e.x: nvcr.io/nvidia/mellanox/doca-driver:5.7-0.1.2.0-0-5.15.0-91-generic-ubuntu22.04-amd64
 	precompiledImageFormat = "%s/%s:%s-%s-%s%s-%s"
+
+	// sha256ImageFormat is the sha256 DOCA driver container image name format
+	// format: <repo>/<image-name>@<sha256-hash>
+	sha256ImageFormat = "%s/%s@%s"
 )
 
 // Openshift cluster-wide Proxy
@@ -545,6 +549,11 @@ func (s *stateOFED) GetManifestObjects(
 func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool, s *stateOFED,
 	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger,
 	clusterInfo clustertype.Provider, docaProvider docadriverimages.Provider) ([]*unstructured.Unstructured, error) {
+	isSha256 := strings.HasPrefix(cr.Spec.OFEDDriver.Version, "sha256")
+	if isSha256 {
+		reqLogger.V(consts.LogLevelInfo).Info("DOCA OFED Driver is using sha256 tag",
+			"tag", cr.Spec.OFEDDriver.Version)
+	}
 	precompiledTag := fmt.Sprintf(precompiledTagFormat, cr.Spec.OFEDDriver.Version, nodePool.Kernel,
 		nodePool.OsName, nodePool.OsVersion, nodePool.Arch)
 	precompiledExists, tagErr := docaProvider.TagExists(precompiledTag)
@@ -552,7 +561,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 		"tag", precompiledTag,
 		"found", precompiledExists,
 		"error", tagErr)
-	if !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
+	if !isSha256 && !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
 		if tagErr != nil {
 			return nil, fmt.Errorf(
 				"ForcePrecompiled is enabled, but failed to verify existence of precompiled tag: %s, %w", precompiledTag, tagErr)
@@ -560,7 +569,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 		return nil, fmt.Errorf("ForcePrecompiled is enabled and precompiled tag was not found: %s", precompiledTag)
 	}
 
-	if precompiledExists {
+	if isSha256 || precompiledExists {
 		useDtk = false
 	}
 
@@ -607,7 +616,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 			OSVer:          nodePool.OsVersion,
 			Kernel:         nodePool.Kernel,
 			KernelHash:     getStringHash(nodePool.Kernel),
-			MOFEDImageName: s.getMofedDriverImageName(cr, nodePool, precompiledExists, reqLogger),
+			MOFEDImageName: s.getMofedDriverImageName(cr, nodePool, precompiledExists, isSha256, reqLogger),
 			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
 				config.FromEnv().State.OFEDState.InitContainerImage),
 			IsOpenshift:        clusterInfo.IsOpenshift(),
@@ -668,10 +677,15 @@ func (s *stateOFED) getInitContainerConfig(
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
 func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
-	pool *nodeinfo.NodePool, precompiledExists bool, reqLogger logr.Logger) string {
+	pool *nodeinfo.NodePool, precompiledExists bool, isSha256 bool, reqLogger logr.Logger) string {
 	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v",
 		"version", cr.Spec.OFEDDriver.Version)
 
+	if isSha256 {
+		return fmt.Sprintf(sha256ImageFormat,
+			cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
+			cr.Spec.OFEDDriver.Version)
+	}
 	if precompiledExists {
 		return fmt.Sprintf(precompiledImageFormat,
 			cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
