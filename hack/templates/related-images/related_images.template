@@ -21,6 +21,8 @@
       image: {{ (imageAsSha .NicConfigurationOperator) }}
     - name: nic-configuration-operator-daemon
       image: {{ (imageAsSha .NicConfigurationConfigDaemon) }}
+    - name: spectrum-x-operator
+      image: {{ (imageAsSha .SpectrumXOperator) }}
     {{- range .Mofed.Shas }}
     - name: {{ .Name }}
       image: {{ .ImageRef }}
