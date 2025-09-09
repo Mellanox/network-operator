@@ -52,7 +52,7 @@ RUN mkdir crds && \
     cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
     cp -r network-operator-chart/charts/maintenance-operator-chart/crds /workspace/crds/maintenance-operator/
 
-FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v3.1.11
+FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v3.1.12
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
