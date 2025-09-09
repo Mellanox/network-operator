@@ -6,7 +6,7 @@ require (
 	github.com/Mellanox/maintenance-operator/api v0.2.3
 	github.com/NVIDIA/k8s-operator-libs v0.0.0-20250708070119-9dc24ccc10ee
 	github.com/caarlos0/env/v6 v6.10.1
-	github.com/containers/image/v5 v5.36.1
+	github.com/containers/image/v5 v5.36.2
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20231129213221-4fdaa32ee934
