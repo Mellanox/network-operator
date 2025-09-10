@@ -27,7 +27,7 @@ TESTPKGS=./...
 ENVTEST_K8S_VERSION=1.28
 ARCH ?= $(shell go env GOARCH)
 OS ?= $(shell go env GOOS)
-GOPROXY ?= direct
+GOPROXY ?=
 
 # Version
 VERSION?=master
