@@ -24,6 +24,7 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
     spec:
+      priorityClassName: system-cluster-critical
       tolerations: {{- toYaml .Values.operator.tolerations | nindent 8 }}
       nodeSelector: {{- toYaml .Values.operator.nodeSelector | nindent 8 }}
       affinity: {{- toYaml .Values.operator.affinity | nindent 8 }}
