@@ -35,7 +35,7 @@ COPY ./ ./
 ARG ARCH
 ARG LDFLAGS
 ARG GCFLAGS
-ARG GOPROXY=direct
+ARG GOPROXY=
 ENV GOPROXY=$GOPROXY
 
 RUN --mount=type=cache,target=/go/pkg/mod \
