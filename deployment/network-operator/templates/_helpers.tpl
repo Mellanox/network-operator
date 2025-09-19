@@ -67,20 +67,24 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-imagePullSecrets helpers
+imagePullSecrets helper - supports global.imagePullSecrets, operator.imagePullSecrets and root imagePullSecrets fallback
 */}}
-{{- define "network-operator.operator.imagePullSecrets" }}
-{{- $imagePullSecrets := list }}
-{{- if .Values.operator.imagePullSecrets }}
-{{- range .Values.operator.imagePullSecrets }}
-{{- $imagePullSecrets  = append $imagePullSecrets  (dict "name" . ) }}
-{{- end }}
-{{- else }}
-{{- if .Values.imagePullSecrets }}
-{{- range .Values.imagePullSecrets }}
-{{- $imagePullSecrets  = append $imagePullSecrets  (dict "name" . ) }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- define "network-operator.operator.imagePullSecrets" -}}
+{{- $imagePullSecrets := list -}}
+{{- if .Values.operator.imagePullSecrets -}}
+  {{- range .Values.operator.imagePullSecrets -}}
+    {{- $imagePullSecrets = append $imagePullSecrets (dict "name" .) -}}
+  {{- end -}}
+{{- else if .Values.imagePullSecrets -}}
+  {{- range .Values.imagePullSecrets -}}
+    {{- $imagePullSecrets = append $imagePullSecrets (dict "name" .) -}}
+  {{- end -}}
+{{- else if .Values.global.imagePullSecrets -}}
+  {{- range .Values.global.imagePullSecrets -}}
+    {{- $imagePullSecrets = append $imagePullSecrets (dict "name" .) -}}
+  {{- end -}}
+{{- end -}}
+{{- if $imagePullSecrets -}}
 {{- $imagePullSecrets | toJson }}
-{{- end }}
+{{- end -}}
+{{- end -}}
