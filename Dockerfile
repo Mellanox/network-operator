@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # copy CRDs from helm charts
 COPY deployment/network-operator/ ./network-operator-chart/
 RUN mkdir crds && \
-    cp -r network-operator-chart/crds /workspace/crds/network-operator/ && \
+    mkdir -p /workspace/crds/network-operator/ && \
     cp -r network-operator-chart/charts/sriov-network-operator/crds /workspace/crds/sriov-network-operator/ && \
     cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
     cp -r network-operator-chart/charts/maintenance-operator-chart/crds /workspace/crds/maintenance-operator/
