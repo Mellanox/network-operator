@@ -39,7 +39,7 @@ spec:
       {{- end }}
       {{- end }}
       containers:
-        - name: {{ include "sriov-network-operator.fullname" . }}
+        - name: sriov-operator-pod
           image: {{ .Values.images.operator }}
           command:
             - sriov-network-operator
@@ -47,6 +47,14 @@ spec:
             requests:
               cpu: 100m
               memory: 100Mi
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
