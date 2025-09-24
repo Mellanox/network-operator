@@ -105,7 +105,13 @@ spec:
               value: {{ .Values.operator.maintenanceOperator.nodeMaintenanceNamespace }}
             {{- end }}
           securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           livenessProbe:
             httpGet:
               path: /healthz
