@@ -631,12 +631,6 @@ func (w *nicClusterPolicyValidator) validateContainerResources(
 				filepath.Join(manifestBaseDir, "state-multus-cni"),
 			}
 		}
-		if policy.Spec.SecondaryNetwork.IpamPlugin != nil {
-			states["ipamPlugin"] = stateRenderData{
-				policy.Spec.SecondaryNetwork.IpamPlugin, state.NewStateWhereaboutsCNI,
-				filepath.Join(manifestBaseDir, "state-whereabouts-cni"),
-			}
-		}
 		for stateName, renderData := range states {
 			localData := renderData
 			allErrs = validateContainerResourcesIfNotNil(&localData, policy, allErrs, snfp, stateName)

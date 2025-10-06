@@ -104,11 +104,6 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create Container Networking CNI Plugins State")
 	}
-	whereaboutState, _, err := NewStateWhereaboutsCNI(
-		k8sAPIClient, filepath.Join(manifestBaseDir, "state-whereabouts-cni"))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create Whereabouts CNI State")
-	}
 	ibKubernetesState, _, err := NewStateIBKubernetes(
 		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ib-kubernetes"))
 	if err != nil {
@@ -141,7 +136,7 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 		return nil, errors.Wrapf(err, "failed to create state-spectrum-x-operator State")
 	}
 	return []State{
-		multusState, cniPluginsState, ipoibState, whereaboutState,
+		multusState, cniPluginsState, ipoibState,
 		ofedState, sriovDpState, sharedDpState, ibKubernetesState, nvIpamCniState,
 		nicFeatureDiscoveryState, docaTelemetryServiceState, nicConfigurationOperatorState, specrumXOperatorState}, nil
 }
