@@ -217,9 +217,6 @@ type SecondaryNetworkSpec struct {
 	CniPlugins *ImageSpec `json:"cniPlugins,omitempty"`
 	// Image information for IPoIB CNI
 	IPoIB *ImageSpec `json:"ipoib,omitempty"`
-	// Image information for IPAM plugin
-	// Deprecated: This field is deprecated and will be removed in a future version. Use 'nvIpam' instead.
-	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.

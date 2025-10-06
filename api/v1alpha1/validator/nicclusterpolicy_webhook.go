@@ -527,9 +527,6 @@ func (w *nicClusterPolicyValidator) validateRepositories(
 		if in.Spec.SecondaryNetwork.Multus != nil {
 			allErrs = validateRepository(in.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
 		}
-		if in.Spec.SecondaryNetwork.IpamPlugin != nil {
-			allErrs = validateRepository(in.Spec.SecondaryNetwork.IpamPlugin.Repository, allErrs, snfp, "ipamPlugin")
-		}
 	}
 	return allErrs
 }
