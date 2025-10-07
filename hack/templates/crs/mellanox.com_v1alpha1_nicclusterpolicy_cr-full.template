@@ -91,10 +91,6 @@ spec:
       image: {{ .Multus.Image }}
       repository: {{ .Multus.Repository }}
       version: {{ .Multus.Version }}
-    ipamPlugin:
-      image: {{ .IpamPlugin.Image }}
-      repository: {{ .IpamPlugin.Repository }}
-      version: {{ .IpamPlugin.Version }}
   nvIpam:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}

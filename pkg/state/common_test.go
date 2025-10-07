@@ -123,9 +123,8 @@ func getTestCatalogForOpenshift(isOpenshift bool) state.InfoCatalog {
 }
 
 type nadConfigIPAM struct {
-	Type    string   `json:"type"`
-	Range   string   `json:"range"`
-	Exclude []string `json:"exclude"`
+	Type     string `json:"type"`
+	PoolName string `json:"range"`
 }
 
 type nadConfig struct {

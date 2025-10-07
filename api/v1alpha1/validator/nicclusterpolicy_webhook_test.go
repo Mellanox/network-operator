@@ -821,25 +821,6 @@ var _ = Describe("Validate", func() {
 			Expect(err.Error()).To(ContainSubstring(
 				"invalid container image repository format"))
 		})
-		It("Invalid Repository SecondaryNetwork IpamPlugin", func() {
-			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
-				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: v1alpha1.NicClusterPolicySpec{
-					SecondaryNetwork: &v1alpha1.SecondaryNetworkSpec{
-						IpamPlugin: &v1alpha1.ImageSpec{
-							Image:            "mofed",
-							Repository:       "ghcr.io/mellanox!@!#$!",
-							Version:          "23.10-0.2.2.0",
-							ImagePullSecrets: []string{},
-						},
-					},
-				},
-			}
-			validator := nicClusterPolicyValidator{}
-			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
-			Expect(err.Error()).To(ContainSubstring(
-				"invalid container image repository format"))
-		})
 		It("Empty ContainerResources OFEDDriver", func() {
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},

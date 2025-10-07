@@ -1401,7 +1401,6 @@ spec:
                   It consists of the following optionally deployed components:
                   - Multus-CNI: Delegate CNI plugin to support secondary networks in Kubernetes
                   - CNI plugins: Currently only containernetworking-plugins is supported
-                  - IPAM CNI: Currently only Whereabout IPAM CNI is supported as a part of the secondaryNetwork section.
                   - IPoIB CNI: Allows the user to create IPoIB child link and move it to the pod
                 properties:
                   cniPlugins:

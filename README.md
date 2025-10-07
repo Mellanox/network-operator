@@ -100,8 +100,6 @@ and related configurations.
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
->__NOTE__: NVIDIA IPAM and Whereabouts IPAM plugin can be deployed simultaneously in the same cluster
-
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
 It contains a per sub-state and a global state `status`.
@@ -124,8 +122,6 @@ status:
     state: ignore
   - name: state-ipoib-cni
     state: ignore
-  - name: state-whereabouts-cni
-    state: ready
   - name: state-OFED
     state: ready
   - name: state-SRIOV-device-plugin

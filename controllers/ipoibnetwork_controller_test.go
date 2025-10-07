@@ -83,7 +83,7 @@ var _ = Describe("IPoIBNetwork Controller", func() {
 				Spec: mellanoxv1alpha1.IPoIBNetworkSpec{
 					NetworkNamespace: "default",
 					Master:           "",
-					IPAM:             " {\"type\": whereabouts}",
+					IPAM:             " {\"type\": \"nv-ipam\"}",
 				},
 			}
 

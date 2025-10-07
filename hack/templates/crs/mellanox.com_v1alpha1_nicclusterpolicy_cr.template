@@ -56,6 +56,11 @@ spec:
           }
         ]
       }
+  nvIpam:
+    image: {{ .NvIPAM.Image }}
+    repository: {{ .NvIPAM.Repository }}
+    version: {{ .NvIPAM.Version }}
+    enableWebhook: false
   secondaryNetwork:
     cniPlugins:
       image: {{ .CniPlugins.Image }}
@@ -65,7 +70,3 @@ spec:
       image: {{ .Multus.Image }}
       repository: {{ .Multus.Repository }}
       version: {{ .Multus.Version }}
-    ipamPlugin:
-      image: {{ .IpamPlugin.Image }}
-      repository: {{ .IpamPlugin.Repository }}
-      version: {{ .IpamPlugin.Version }}

@@ -68,9 +68,8 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 		})
 		It("Should Render NetworkAttachmentDefinition with IPAM", func() {
 			ipam := nadConfigIPAM{
-				Type:    "whereabouts",
-				Range:   "192.168.2.225/28",
-				Exclude: []string{"192.168.2.229/30", "192.168.2.236/32"},
+				Type:     "nv-ipam",
+				PoolName: "my-pool",
 			}
 			cr := getIPoIBNetwork(testName, testNamespace, testMaster)
 			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)

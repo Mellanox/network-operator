@@ -20,14 +20,14 @@ package migrate
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -83,7 +83,7 @@ func migrate(ctx context.Context, log logr.Logger, c client.Client) error {
 		return err
 	}
 	if err := handleWhereaboutsObj(ctx, log, c); err != nil {
-		log.V(consts.LogLevelError).Error(err, "error trying to update Whereabouts resoources")
+		log.V(consts.LogLevelError).Error(err, "error trying to update Whereabouts resources")
 		return err
 	}
 	return nil
@@ -189,7 +189,8 @@ func handleWhereaboutsObj(ctx context.Context, log logr.Logger, c client.Client)
 	for _, gvk := range state.GetSupportedGVKs() {
 		l := &unstructured.UnstructuredList{}
 		l.SetGroupVersionKind(gvk)
-		err := c.List(ctx, l, client.MatchingLabels(stateLabel), client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace))
+		err := c.List(ctx, l, client.MatchingLabels(stateLabel),
+			client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace))
 		if meta.IsNoMatchError(err) {
 			continue
 		}
@@ -197,18 +198,14 @@ func handleWhereaboutsObj(ctx context.Context, log logr.Logger, c client.Client)
 			return err
 		}
 		for _, obj := range l.Items {
-			modified := false
 			if len(obj.GetOwnerReferences()) > 0 {
 				obj.SetOwnerReferences(nil)
-				modified = true
-				log.V(consts.LogLevelDebug).Info("Removed OwnerReferences: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
-			}
-
-			// Update only if modified
-			if modified {
+				log.V(consts.LogLevelDebug).Info(
+					"Removed OwnerReferences: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
 				err := c.Update(ctx, &obj)
 				if err != nil {
-					log.V(consts.LogLevelError).Error(err, "Failed to update: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
+					log.V(consts.LogLevelError).Error(
+						err, "Failed to update: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
 					return err
 				}
 			}

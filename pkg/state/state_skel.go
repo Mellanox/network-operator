@@ -68,6 +68,7 @@ func (s *stateSkel) Description() string {
 	return s.description
 }
 
+// GetSupportedGVKs returns a list of GetSupportedGVKs managed by Network Operator
 func GetSupportedGVKs() []schema.GroupVersionKind {
 	return []schema.GroupVersionKind{
 		{

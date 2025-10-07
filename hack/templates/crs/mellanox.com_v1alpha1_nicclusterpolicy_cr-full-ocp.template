@@ -83,10 +83,6 @@ spec:
       image: {{ .Ipoib.Image }}
       repository: {{ .Ipoib.Repository }}
       version: {{ .Ipoib.Version }}
-    ipamPlugin:
-      image: {{ .IpamPlugin.Image }}
-      repository: {{ .IpamPlugin.Repository }}
-      version: {{ .IpamPlugin.Version }}
   nvIpam:
     image: {{ .NvIPAM.Image }}
     repository: {{ .NvIPAM.Repository }}
