@@ -162,23 +162,14 @@ func (ntf *nodeTaintFilter) toleratesTaints(taints []corev1.Taint) bool {
 	if len(taints) == 0 {
 		return true // No taints -> don't filter
 	}
-	// We special-case the cordon taint to avoid filtering nodes that are only cordoned.
-	// Any other present taints must be tolerated.
-	for _, taint := range taints {
-		// The "unschedulable" taint is added when a node is cordoned. We ignore it for filtering purposes.
-		if taint.Key == corev1.TaintNodeUnschedulable && taint.Effect == corev1.TaintEffectNoSchedule {
-			continue // This particular taint does not cause the node to be filtered out by itself
-		}
 
-		// For any other taint, it must be explicitly tolerated by the provided tolerations.
+	// All taints must be tolerated by the provided tolerations
+	for _, taint := range taints {
 		if !ntf.toleratesTaint(taint) {
-			// ntf.toleratesTaint() checks if any of ntf.tolerations can tolerate this specific taint.
-			// If not, this node has an untolerated (non-cordon) taint.
-			return false // At least one non-cordon taint is not tolerated -> filter the node
+			return false // At least one taint is not tolerated -> filter the node
 		}
 	}
-	// If we've looped through all taints and all non-cordon taints were tolerated
-	// (or if there were only cordon taints that were skipped), then the node is not filtered.
+
 	return true
 }
 

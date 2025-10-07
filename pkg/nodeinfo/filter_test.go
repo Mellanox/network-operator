@@ -408,4 +408,168 @@ var _ = Describe("Combined filtering tests", func() {
 					"The correct node should be present in the filtered list")
 			})
 	})
+
+	Context("DaemonSet default tolerations", func() {
+		// Test that nodes with DaemonSet default taints are properly handled when tolerations are provided
+		It("Should filter nodes with unschedulable taint when toleration is provided", func() {
+			nodeWithUnschedulable := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "cordoned-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    corev1.TaintNodeUnschedulable,
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+
+			tolerationForUnschedulable := corev1.Toleration{
+				Key:      corev1.TaintNodeUnschedulable,
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationForUnschedulable}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithUnschedulable})
+
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes[0].Name).To(Equal("cordoned-node"))
+		})
+
+		It("Should filter out nodes with unschedulable taint when NO toleration is provided", func() {
+			nodeWithUnschedulable := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "cordoned-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    corev1.TaintNodeUnschedulable,
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithUnschedulable})
+
+			Expect(len(filteredNodes)).To(Equal(0), "Node with unschedulable taint should be filtered out without toleration")
+		})
+
+		It("Should handle nodes with disk pressure taint when toleration is provided", func() {
+			nodeWithDiskPressure := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "disk-pressure-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    corev1.TaintNodeDiskPressure,
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+
+			tolerationForDiskPressure := corev1.Toleration{
+				Key:      corev1.TaintNodeDiskPressure,
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationForDiskPressure}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithDiskPressure})
+
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes[0].Name).To(Equal("disk-pressure-node"))
+		})
+
+		It("Should handle nodes with memory pressure taint when toleration is provided", func() {
+			nodeWithMemoryPressure := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "memory-pressure-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    corev1.TaintNodeMemoryPressure,
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			}
+
+			tolerationForMemoryPressure := corev1.Toleration{
+				Key:      corev1.TaintNodeMemoryPressure,
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationForMemoryPressure}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithMemoryPressure})
+
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes[0].Name).To(Equal("memory-pressure-node"))
+		})
+
+		It("Should handle nodes with not-ready taint when toleration is provided", func() {
+			nodeNotReady := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "not-ready-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{{
+						Key:    corev1.TaintNodeNotReady,
+						Effect: corev1.TaintEffectNoExecute,
+					}},
+				},
+			}
+
+			tolerationForNotReady := corev1.Toleration{
+				Key:      corev1.TaintNodeNotReady,
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoExecute,
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{tolerationForNotReady}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeNotReady})
+
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes[0].Name).To(Equal("not-ready-node"))
+		})
+
+		It("Should handle nodes with multiple DaemonSet default taints when all tolerations are provided", func() {
+			nodeWithMultipleDefaultTaints := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "multi-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						{Key: corev1.TaintNodeUnschedulable, Effect: corev1.TaintEffectNoSchedule},
+						{Key: corev1.TaintNodeDiskPressure, Effect: corev1.TaintEffectNoSchedule},
+						{Key: corev1.TaintNodeMemoryPressure, Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			}
+
+			allDefaultTolerations := []corev1.Toleration{
+				{Key: corev1.TaintNodeUnschedulable, Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule},
+				{Key: corev1.TaintNodeDiskPressure, Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule},
+				{Key: corev1.TaintNodeMemoryPressure, Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule},
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations(allDefaultTolerations).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithMultipleDefaultTaints})
+
+			Expect(len(filteredNodes)).To(Equal(1))
+			Expect(filteredNodes[0].Name).To(Equal("multi-taint-node"))
+		})
+
+		It("Should filter out nodes with multiple DaemonSet default taints when only some tolerations are provided", func() {
+			nodeWithMultipleDefaultTaints := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "multi-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						{Key: corev1.TaintNodeUnschedulable, Effect: corev1.TaintEffectNoSchedule},
+						{Key: corev1.TaintNodeDiskPressure, Effect: corev1.TaintEffectNoSchedule},
+						{Key: corev1.TaintNodeMemoryPressure, Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			}
+
+			// Only provide toleration for unschedulable, not for disk/memory pressure
+			partialTolerations := []corev1.Toleration{
+				{Key: corev1.TaintNodeUnschedulable, Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule},
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations(partialTolerations).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithMultipleDefaultTaints})
+
+			Expect(len(filteredNodes)).To(Equal(0), "Node should be filtered out when not all taints are tolerated")
+		})
+	})
 })

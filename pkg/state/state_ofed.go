@@ -465,12 +465,54 @@ func (s *stateOFED) handleAdditionalMounts(
 	return nil
 }
 
-// addGPUToleration adds the nvidia.com/gpu:NoSchedule toleration if not already present
-func addGPUToleration(tolerations []v1.Toleration) []v1.Toleration {
-	gpuToleration := v1.Toleration{
-		Key:      "nvidia.com/gpu",
-		Effect:   v1.TaintEffectNoSchedule,
-		Operator: v1.TolerationOpExists, // Operator can be Exists if Value is not specified, or Equal if Value is specified.
+// addDefaultDaemonSetTolerations adds tolerations that the DaemonSet controller automatically adds at runtime.
+// These tolerations must be included in the filtering logic to avoid incorrectly filtering out nodes
+// that the DaemonSet pods will actually be able to schedule on.
+// See: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/#taints-and-tolerations
+func addDefaultDaemonSetTolerations(tolerations []v1.Toleration) []v1.Toleration {
+	// Define all default tolerations that DaemonSet controller adds automatically
+	defaultTolerations := []v1.Toleration{
+		{
+			Key:      "nvidia.com/gpu",
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodeNotReady,
+			Effect:   v1.TaintEffectNoExecute,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodeUnreachable,
+			Effect:   v1.TaintEffectNoExecute,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodeDiskPressure,
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodeMemoryPressure,
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodePIDPressure,
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			Key:      v1.TaintNodeUnschedulable,
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
+		{
+			// Added for DaemonSet Pods that request host networking (which OFED does)
+			Key:      v1.TaintNodeNetworkUnavailable,
+			Effect:   v1.TaintEffectNoSchedule,
+			Operator: v1.TolerationOpExists,
+		},
 	}
 
 	// Handle nil input gracefully
@@ -478,16 +520,21 @@ func addGPUToleration(tolerations []v1.Toleration) []v1.Toleration {
 		tolerations = make([]v1.Toleration, 0)
 	}
 
-	// Check if the GPU toleration already exists
-	for _, t := range tolerations {
-		// More robust check: consider operator and value if they become relevant
-		if t.Key == gpuToleration.Key && t.Effect == gpuToleration.Effect && t.Operator == gpuToleration.Operator {
-			return tolerations // Already present
+	// Add each default toleration if not already present
+	for _, defaultTol := range defaultTolerations {
+		found := false
+		for _, t := range tolerations {
+			if t.Key == defaultTol.Key && t.Effect == defaultTol.Effect && t.Operator == defaultTol.Operator {
+				found = true
+				break
+			}
+		}
+		if !found {
+			tolerations = append(tolerations, defaultTol)
 		}
 	}
 
-	// Add the GPU toleration
-	return append(tolerations, gpuToleration)
+	return tolerations
 }
 
 //nolint:funlen
@@ -503,8 +550,10 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, err
 	}
 
-	// Add default GPU toleration to the list of tolerations from CR for filtering purposes
-	tolerationsForFiltering := addGPUToleration(cr.Spec.Tolerations)
+	// Add default DaemonSet tolerations to the list of tolerations from CR for filtering purposes.
+	// The DaemonSet controller automatically adds these tolerations at runtime, so we need to include
+	// them in our node filtering logic to avoid incorrectly filtering out eligible nodes.
+	tolerationsForFiltering := addDefaultDaemonSetTolerations(cr.Spec.Tolerations)
 
 	// Create filters for labels and taints
 	labelFilter := nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build()

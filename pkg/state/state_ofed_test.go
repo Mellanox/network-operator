@@ -1338,6 +1338,200 @@ var _ = Describe("MOFED state test", func() {
 			Expect(len(objs)).To(BeNumerically(">", 0))
 		})
 	})
+
+	Context("addDefaultDaemonSetTolerations", func() {
+		It("Should add all default DaemonSet tolerations to an empty list", func() {
+			result := addDefaultDaemonSetTolerations(nil)
+
+			// Should have 8 default tolerations: GPU + 7 DaemonSet defaults
+			Expect(len(result)).To(Equal(8))
+
+			// Verify each expected toleration is present
+			expectedKeys := []string{
+				"nvidia.com/gpu",
+				v1.TaintNodeNotReady,
+				v1.TaintNodeUnreachable,
+				v1.TaintNodeDiskPressure,
+				v1.TaintNodeMemoryPressure,
+				v1.TaintNodePIDPressure,
+				v1.TaintNodeUnschedulable,
+				v1.TaintNodeNetworkUnavailable,
+			}
+
+			for _, key := range expectedKeys {
+				found := false
+				for _, tol := range result {
+					if tol.Key == key {
+						found = true
+						Expect(tol.Operator).To(Equal(v1.TolerationOpExists))
+						break
+					}
+				}
+				Expect(found).To(BeTrue(), fmt.Sprintf("Expected toleration with key %s to be present", key))
+			}
+		})
+
+		It("Should not add duplicate tolerations when GPU toleration already exists", func() {
+			existingTolerations := []v1.Toleration{
+				{
+					Key:      "nvidia.com/gpu",
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpExists,
+				},
+			}
+
+			result := addDefaultDaemonSetTolerations(existingTolerations)
+
+			// Should have 8 total: 1 existing GPU + 7 new DaemonSet defaults
+			Expect(len(result)).To(Equal(8))
+
+			// Count GPU tolerations - should only be 1
+			gpuCount := 0
+			for _, tol := range result {
+				if tol.Key == "nvidia.com/gpu" {
+					gpuCount++
+				}
+			}
+			Expect(gpuCount).To(Equal(1), "Should not have duplicate GPU tolerations")
+		})
+
+		It("Should not add duplicate tolerations when unschedulable toleration already exists", func() {
+			existingTolerations := []v1.Toleration{
+				{
+					Key:      v1.TaintNodeUnschedulable,
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpExists,
+				},
+			}
+
+			result := addDefaultDaemonSetTolerations(existingTolerations)
+
+			// Should have 8 total: 1 existing unschedulable + 7 new defaults
+			Expect(len(result)).To(Equal(8))
+
+			// Count unschedulable tolerations - should only be 1
+			unschedulableCount := 0
+			for _, tol := range result {
+				if tol.Key == v1.TaintNodeUnschedulable {
+					unschedulableCount++
+				}
+			}
+			Expect(unschedulableCount).To(Equal(1), "Should not have duplicate unschedulable tolerations")
+		})
+
+		It("Should preserve user-defined custom tolerations", func() {
+			customTolerations := []v1.Toleration{
+				{
+					Key:      "custom-taint",
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpEqual,
+					Value:    "true",
+				},
+				{
+					Key:      "another-custom-taint",
+					Effect:   v1.TaintEffectNoExecute,
+					Operator: v1.TolerationOpExists,
+				},
+			}
+
+			result := addDefaultDaemonSetTolerations(customTolerations)
+
+			// Should have 10 total: 2 custom + 8 defaults
+			Expect(len(result)).To(Equal(10))
+
+			// Verify custom tolerations are preserved
+			foundCustom1 := false
+			foundCustom2 := false
+			for _, tol := range result {
+				if tol.Key == "custom-taint" {
+					foundCustom1 = true
+					Expect(tol.Value).To(Equal("true"))
+					Expect(tol.Operator).To(Equal(v1.TolerationOpEqual))
+				}
+				if tol.Key == "another-custom-taint" {
+					foundCustom2 = true
+					Expect(tol.Effect).To(Equal(v1.TaintEffectNoExecute))
+				}
+			}
+			Expect(foundCustom1).To(BeTrue(), "First custom toleration should be preserved")
+			Expect(foundCustom2).To(BeTrue(), "Second custom toleration should be preserved")
+		})
+
+		It("Should not add duplicates when all default tolerations already exist", func() {
+			// Start with all default tolerations
+			existingTolerations := []v1.Toleration{
+				{Key: "nvidia.com/gpu", Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeNotReady, Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeUnreachable, Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeDiskPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeMemoryPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodePIDPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeUnschedulable, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				{Key: v1.TaintNodeNetworkUnavailable, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+			}
+
+			result := addDefaultDaemonSetTolerations(existingTolerations)
+
+			// Should still have exactly 8 - no duplicates added
+			Expect(len(result)).To(Equal(8))
+		})
+
+		It("Should handle mixed scenario with some existing and some new tolerations", func() {
+			mixedTolerations := []v1.Toleration{
+				// User's custom toleration
+				{Key: "custom-taint", Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				// One default toleration that user explicitly added
+				{Key: v1.TaintNodeDiskPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+				// Another user custom toleration
+				{Key: "another-custom", Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
+			}
+
+			result := addDefaultDaemonSetTolerations(mixedTolerations)
+
+			// Should have 10 total: 3 existing (2 custom + 1 default) + 7 new defaults
+			Expect(len(result)).To(Equal(10))
+
+			// Verify disk pressure toleration appears only once
+			diskPressureCount := 0
+			for _, tol := range result {
+				if tol.Key == v1.TaintNodeDiskPressure {
+					diskPressureCount++
+				}
+			}
+			Expect(diskPressureCount).To(Equal(1), "Disk pressure toleration should not be duplicated")
+
+			// Verify all defaults are present
+			expectedDefaultKeys := []string{
+				"nvidia.com/gpu",
+				v1.TaintNodeNotReady,
+				v1.TaintNodeUnreachable,
+				v1.TaintNodeDiskPressure,
+				v1.TaintNodeMemoryPressure,
+				v1.TaintNodePIDPressure,
+				v1.TaintNodeUnschedulable,
+				v1.TaintNodeNetworkUnavailable,
+			}
+
+			for _, key := range expectedDefaultKeys {
+				found := false
+				for _, tol := range result {
+					if tol.Key == key {
+						found = true
+						break
+					}
+				}
+				Expect(found).To(BeTrue(), fmt.Sprintf("Default toleration %s should be present", key))
+			}
+		})
+
+		It("Should handle empty slice input", func() {
+			emptySlice := []v1.Toleration{}
+			result := addDefaultDaemonSetTolerations(emptySlice)
+
+			// Should have 8 default tolerations
+			Expect(len(result)).To(Equal(8))
+		})
+	})
 })
 
 func getOfedState() *stateOFED {
