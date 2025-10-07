@@ -59,7 +59,6 @@ spec:
                   resetToDefault:
                     description: |-
                       ResetToDefault specifies whether node agent needs to perform a reset flow.
-                      In NIC Configuration Operator template v0.1.14 BF2/BF3 DPUs (not SuperNics) FW reset flow isn't supported.
                       The following operations will be performed:
                       * Nvconfig reset of all non-volatile configurations
                         - Mstconfig -d <device> reset for each PF
@@ -119,6 +118,21 @@ spec:
                         required:
                         - enabled
                         type: object
+                      rawNvConfig:
+                        description: List of arbitrary nv config parameters
+                        items:
+                          properties:
+                            name:
+                              description: Name of the arbitrary nvconfig parameter
+                              type: string
+                            value:
+                              description: Value of the arbitrary nvconfig parameter
+                              type: string
+                          required:
+                          - name
+                          - value
+                          type: object
+                        type: array
                       roceOptimized:
                         description: RoCE optimization settings
                         properties:
@@ -133,6 +147,9 @@ spec:
                                   e.g. "0,0,0,1,0,0,0,0"
                                 pattern: ^([01],){7}[01]$
                                 type: string
+                              tos:
+                                description: 8-bit value for type of service
+                                type: integer
                               trust:
                                 description: Trust mode for QoS settings, e.g. trust-dscp
                                 type: string
@@ -143,10 +160,42 @@ spec:
                         required:
                         - enabled
                         type: object
+                      spectrumXOptimized:
+                        description: Spectrum-X optimization settings. Works only
+                          with linkType==Ethernet && numVfs==0. Other optimizations
+                          must be skipped or disabled. RawNvConfig must be empty.
+                        properties:
+                          enabled:
+                            description: Optimize Spectrum X
+                            type: boolean
+                          version:
+                            description: Version of the Spectrum-X architecture to
+                              optimize for
+                            enum:
+                            - RA1.3
+                            - RA2.0
+                            type: string
+                        required:
+                        - enabled
+                        - version
+                        type: object
                     required:
                     - linkType
                     - numVfs
                     type: object
+                    x-kubernetes-validations:
+                    - message: spectrumXOptimized can be enabled only when linkType=='Ethernet'
+                        and numVfs==1
+                      rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
+                        || (self.linkType == ''Ethernet'' && self.numVfs == 1)'
+                    - message: spectrumXOptimized includes RoCE optimizations, so
+                        separate roceOptimized section must not be enabled
+                      rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
+                        || !(has(self.roceOptimized) && self.roceOptimized.enabled)'
+                    - message: when spectrumXOptimized is enabled, rawNvConfig must
+                        be empty
+                      rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
+                        || !has(self.rawNvConfig) || size(self.rawNvConfig) == 0'
                 type: object
               firmware:
                 description: Firmware specifies the fw upgrade policy requested by
@@ -241,9 +290,16 @@ spec:
                   - type
                   type: object
                 type: array
+              dpu:
+                description: DPU indicates if the device is a BlueField in DPU mode
+                type: boolean
               firmwareVersion:
                 description: Firmware version currently installed on the device, e.g.
                   22.31.1014
+                type: string
+              modelName:
+                description: ModelName is the model name of the device, e.g. ConnectX-6
+                  or BlueField-3
                 type: string
               node:
                 description: Node where the device is located
@@ -277,16 +333,22 @@ spec:
               serialNumber:
                 description: Serial number of the device, e.g. MT2116X09299
                 type: string
+              superNIC:
+                description: SuperNIC indicates if the device is a SuperNIC
+                type: boolean
               type:
                 description: Type of device, e.g. ConnectX7
                 type: string
             required:
+            - dpu
             - firmwareVersion
+            - modelName
             - node
             - partNumber
             - ports
             - psid
             - serialNumber
+            - superNIC
             - type
             type: object
         type: object

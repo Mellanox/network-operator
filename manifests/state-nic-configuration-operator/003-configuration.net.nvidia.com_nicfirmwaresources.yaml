@@ -63,10 +63,17 @@ spec:
                   type: string
                 minItems: 1
                 type: array
+              docaSpcXCCUrlSource:
+                description: |-
+                  DocaSpcXCCUrlSource represents a url source for DOCA SPC-X CC .deb package for ubuntu 22.04
+                  Will be removed in the future, once Doca SPC-X CC algorithm will be publicly available
+                type: string
             type: object
             x-kubernetes-validations:
-            - message: At least one of binUrlSources or bfbUrlSource must be specified
-              rule: size(self.binUrlSources) > 0 || size(self.bfbUrlSource) > 0
+            - message: At least one of binUrlSources, bfbUrlSource, or docaSpcXCCUrlSource
+                must be specified
+              rule: size(self.binUrlSources) > 0 || size(self.bfbUrlSource) > 0 ||
+                size(self.docaSpcXCCUrlSource) > 0
           status:
             description: NicFirmwareSourceStatus represents the status of the FW from
               given sources, e.g. version available for PSIDs
@@ -86,6 +93,10 @@ spec:
                   Versions is a map of available FW binaries versions to PSIDs
                   a PSID should have only a single FW version available for it
                 type: object
+              docaSpcXCCVersion:
+                description: DocaSpcXCCVersion represents the FW versions available
+                  in the provided DOCA SPC-X CC .deb package for ubuntu 22.04
+                type: string
               reason:
                 description: Reason shows an error message if occurred
                 type: string
