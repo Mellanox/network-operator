@@ -3,34 +3,32 @@
 [![Coverage Status](https://coveralls.io/repos/github/Mellanox/network-operator/badge.svg)](https://coveralls.io/github/Mellanox/network-operator)
 
 - [NVIDIA Network Operator](#nvidia-network-operator)
-  - [Documentation](#documentation)
-  - [Prerequisites](#prerequisites)
-    - [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery-nfd)
-  - [Resource Definitions](#resource-definitions)
-    - [NICClusterPolicy CRD](#nicclusterpolicy-crd)
-      - [NICClusterPolicy spec:](#nicclusterpolicy-spec)
-        - [Example for NICClusterPolicy resource:](#example-for-nicclusterpolicy-resource)
+  * [Documentation](#documentation)
+  * [Prerequisites](#prerequisites)
+    + [Kubernetes Node Feature Discovery (NFD)](#kubernetes-node-feature-discovery--nfd-)
+  * [Resource Definitions](#resource-definitions)
+    + [NICClusterPolicy CRD](#nicclusterpolicy-crd)
+      - [NICClusterPolicy spec](#nicclusterpolicy-spec-)
       - [NICClusterPolicy status](#nicclusterpolicy-status)
-        - [Example Status field of a NICClusterPolicy instance](#example-status-field-of-a-nicclusterpolicy-instance)
-    - [MacvlanNetwork CRD](#macvlannetwork-crd)
-      - [MacvlanNetwork spec:](#macvlannetwork-spec)
-        - [Example for MacvlanNetwork resource:](#example-for-macvlannetwork-resource)
-    - [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
-      - [HostDeviceNetwork spec:](#hostdevicenetwork-spec)
-        - [Example for HostDeviceNetwork resource:](#example-for-hostdevicenetwork-resource)
-    - [IPoIBNetwork CRD](#ipoibnetwork-crd)
-      - [IPoIBNetwork spec:](#ipoibnetwork-spec)
-        - [Example for IPoIBNetwork resource:](#example-for-ipoibnetwork-resource)
-  - [System Requirements](#system-requirements)
-  - [Tested Network Adapters](#tested-network-adapters)
-  - [Compatibility Notes](#compatibility-notes)
-  - [Deployment Example](#deployment-example)
-  - [Docker image](#docker-image)
-  - [Driver Containers](#driver-containers)
-  - [Upgrade](#upgrade)
-  - [Externally Provided Configurations For Network Operator Sub-Components](#externally-provided-configurations-for-network-operator-sub-components)
+        * [Example Status field of a NICClusterPolicy instance](#example-status-field-of-a-nicclusterpolicy-instance)
+    + [MacvlanNetwork CRD](#macvlannetwork-crd)
+      - [MacvlanNetwork spec](#macvlannetwork-spec-)
+    + [HostDeviceNetwork CRD](#hostdevicenetwork-crd)
+      - [HostDeviceNetwork spec](#hostdevicenetwork-spec-)
+    + [IPoIBNetwork CRD](#ipoibnetwork-crd)
+      - [IPoIBNetwork spec](#ipoibnetwork-spec-)
+    + [Examples](#examples)
+  * [System Requirements](#system-requirements)
+  * [Tested Network Adapters](#tested-network-adapters)
+  * [Compatibility Notes](#compatibility-notes)
+  * [Deployment Example](#deployment-example)
+  * [Docker image](#docker-image)
+  * [Driver Containers](#driver-containers)
+  * [Upgrade](#upgrade)
+  * [Externally Provided Configurations For Network Operator Sub-Components](#externally-provided-configurations-for-network-operator-sub-components)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 
 # NVIDIA Network Operator
 NVIDIA Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
@@ -85,7 +83,7 @@ CRD that defines a Cluster state for Mellanox Network devices.
 
 >__NOTE__: The operator will act on a NicClusterPolicy instance with a predefined name "nic-cluster-policy", instances with different names will be ignored.
 
-#### NICClusterPolicy spec:
+#### NICClusterPolicy spec
 NICClusterPolicy CRD Spec includes the following sub-states:
 - `ofedDriver`: [OFED driver container](https://github.com/Mellanox/ofed-docker) to be deployed on Mellanox supporting nodes.
 - `rdmaSharedDevicePlugin`: [RDMA shared device plugin](https://github.com/Mellanox/k8s-rdma-shared-dev-plugin)
@@ -104,126 +102,6 @@ and related configurations.
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
 >__NOTE__: NVIDIA IPAM and Whereabouts IPAM plugin can be deployed simultaneously in the same cluster
-
-
-##### Example for NICClusterPolicy resource:
-In the example below we request OFED driver to be deployed together with RDMA shared device plugin.
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: NicClusterPolicy
-metadata:
-  name: nic-cluster-policy
-spec:
-  ofedDriver:
-    image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 23.04-0.5.3.3.1
-    startupProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    livenessProbe:
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readinessProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 30
-  rdmaSharedDevicePlugin:
-    image: k8s-rdma-shared-dev-plugin
-    repository: ghcr.io/mellanox
-    version: sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775
-    # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
-    # Replace 'devices' with your (RDMA capable) netdevice name.
-    config: |
-      {
-        "configList": [
-          {
-            "resourceName": "rdma_shared_device_a",
-            "rdmaHcaMax": 63,
-            "selectors": {
-              "vendors": ["15b3"],
-              "deviceIDs": ["1017"],
-              "ifNames": ["ens2f0"]
-            }
-          }
-        ]
-      }
-  secondaryNetwork:
-    cniPlugins:
-      image: plugins
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v1.2.0-amd64
-    multus:
-      image: multus-cni
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v3.9.3
-      # if config is missing or empty then multus config will be automatically generated from the CNI configuration file of the master plugin (the first file in lexicographical order in cni-conf-dir)
-      # config: ''
-    ipamPlugin:
-      image: whereabouts
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v0.6.1-amd64
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml`
-
-NicClusterPolicy with [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam) configuration
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: NicClusterPolicy
-metadata:
-  name: nic-cluster-policy
-spec:
-  ofedDriver:
-    image: mofed
-    repository: nvcr.io/nvidia/mellanox
-    version: 23.04-0.5.3.3.1
-    startupProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    livenessProbe:
-      initialDelaySeconds: 30
-      periodSeconds: 30
-    readinessProbe:
-      initialDelaySeconds: 10
-      periodSeconds: 30
-  rdmaSharedDevicePlugin:
-    image: k8s-rdma-shared-dev-plugin
-    repository: ghcr.io/mellanox
-    version: sha-fe7f371c7e1b8315bf900f71cd25cfc1251dc775
-    # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
-    # Replace 'devices' with your (RDMA capable) netdevice name.
-    config: |
-      {
-        "configList": [
-          {
-            "resourceName": "rdma_shared_device_a",
-            "rdmaHcaMax": 63,
-            "selectors": {
-              "vendors": ["15b3"],
-              "deviceIDs": ["101b"]
-            }
-          }
-        ]
-      }
-  secondaryNetwork:
-    cniPlugins:
-      image: plugins
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v1.2.0-amd64
-    multus:
-      image: multus-cni
-      repository: ghcr.io/k8snetworkplumbingwg
-      version: v3.9.3
-  nvIpam:
-    image: nvidia-k8s-ipam
-    repository: ghcr.io/mellanox
-    version: v0.1.2
-    enableWebhook: false
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_nicclusterpolicy_cr-nvidia-ipam.yaml`
 
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
@@ -268,7 +146,7 @@ status:
 ### MacvlanNetwork CRD
 This CRD defines a MacVlan secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
 
-#### MacvlanNetwork spec:
+#### MacvlanNetwork spec
 MacvlanNetwork CRD Spec includes the following fields:
 - `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this MacvlanNetwork CRD.
 - `master`: Name of the host interface to enslave. Defaults to default route interface.
@@ -276,143 +154,27 @@ MacvlanNetwork CRD Spec includes the following fields:
 - `mtu`: MTU of interface to the specified value. 0 for master's MTU.
 - `ipam`: IPAM configuration to be used for this network.
 
-##### Example for MacvlanNetwork resource:
-In the example below we deploy MacvlanNetwork CRD instance with mode as bridge, MTU 1500, default route interface as master,
-with resource "rdma/rdma_shared_device_a", that will be used to deploy NetworkAttachmentDefinition for macvlan to default namespace.
-
-
-With [Whereabouts IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts)
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: MacvlanNetwork
-metadata:
-  name: example-macvlannetwork
-spec:
-  networkNamespace: "default"
-  master: "ens2f0"
-  mode: "bridge"
-  mtu: 1500
-  ipam: |
-    {
-      "type": "whereabouts",
-      "datastore": "kubernetes",
-      "kubernetes": {
-        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-      },
-      "range": "192.168.2.225/28",
-      "exclude": [
-       "192.168.2.229/30",
-       "192.168.2.236/32"
-      ],
-      "log_file" : "/var/log/whereabouts.log",
-      "log_level" : "info",
-      "gateway": "192.168.2.1"
-    }
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr.yaml`
-
-With [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam)
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: MacvlanNetwork
-metadata:
-  name: example-macvlannetwork
-spec:
-  networkNamespace: "default"
-  master: "ens2f0"
-  mode: "bridge"
-  mtu: 1500
-  ipam: |
-    {
-      "type": "nv-ipam",
-      "poolName": "my-pool"
-    }
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_macvlannetwork_cr-nvidia-ipam.yaml`
 
 ### HostDeviceNetwork CRD
 This CRD defines a HostDevice secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
 
-#### HostDeviceNetwork spec:
+#### HostDeviceNetwork spec
 HostDeviceNetwork CRD Spec includes the following fields:
 - `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
 - `resourceName`: Host device resource pool.
 - `ipam`: IPAM configuration to be used for this network.
 
-##### Example for HostDeviceNetwork resource:
-In the example below we deploy HostDeviceNetwork CRD instance with "hostdev" resource pool, that will be used to deploy NetworkAttachmentDefinition for HostDevice network to default namespace.
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: HostDeviceNetwork
-metadata:
-  name: example-hostdevice-network
-spec:
-  networkNamespace: "default"
-  resourceName: "hostdev"
-  ipam: |
-    {
-      "type": "whereabouts",
-      "datastore": "kubernetes",
-      "kubernetes": {
-        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-      },
-      "range": "192.168.3.225/28",
-      "exclude": [
-       "192.168.3.229/30",
-       "192.168.3.236/32"
-      ],
-      "log_file" : "/var/log/whereabouts.log",
-      "log_level" : "info"
-    }
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_hostdevicenetwork_cr.yaml`
-
 ### IPoIBNetwork CRD
 This CRD defines an IPoIBNetwork secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
 
-#### IPoIBNetwork spec:
+#### IPoIBNetwork spec
 HostDeviceNetwork CRD Spec includes the following fields:
 - `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
 - `master`: Name of the host interface to enslave.
 - `ipam`: IPAM configuration to be used for this network.
 
-##### Example for IPoIBNetwork resource:
-In the example below we deploy IPoIBNetwork CRD instance with "ibs3f1" host interface, that will be used to deploy NetworkAttachmentDefinition for IPoIBNetwork network to default namespace.
-
-```
-apiVersion: mellanox.com/v1alpha1
-kind: IPoIBNetwork
-metadata:
-  name: example-ipoibnetwork
-spec:
-  networkNamespace: "default"
-  master: "ibs3f1"
-  ipam: |
-    {
-      "type": "whereabouts",
-      "datastore": "kubernetes",
-      "kubernetes": {
-        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-      },
-      "range": "192.168.5.225/28",
-      "exclude": [
-       "192.168.6.229/30",
-       "192.168.6.236/32"
-      ],
-      "log_file" : "/var/log/whereabouts.log",
-      "log_level" : "info",
-      "gateway": "192.168.6.1"
-    }
-
-```
-
-Can be found at: `example/crs/mellanox.com_v1alpha1_ipoibnetwork_cr.yaml`
+### Examples
+Sample CRDs can be found at: `example/` directory.
 
 ## System Requirements
 * RDMA capable hardware: Mellanox ConnectX-5 NIC or newer.
