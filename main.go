@@ -25,7 +25,6 @@ import (
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/vars"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -275,9 +274,6 @@ func setupDrainController(mgr ctrl.Manager, migrationChan chan struct{}) error {
 		return nil
 	}
 	restConfig := ctrl.GetConfigOrDie()
-	// Initial global info
-	vars.Config = restConfig
-	vars.Namespace = requestorOpts.SriovNodeStateNamespace
 	// we need a client that doesn't use the local cache for the objects
 	drainKClient, err := client.New(restConfig, client.Options{
 		Scheme: scheme,
@@ -301,6 +297,7 @@ func setupDrainController(mgr ctrl.Manager, migrationChan chan struct{}) error {
 	}
 	drainController, err := controllers.NewDrainReconcileController(
 		drainKClient,
+		restConfig,
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("SR-IOV operator"),
 		platformsHelper,

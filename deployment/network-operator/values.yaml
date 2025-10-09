@@ -272,10 +272,18 @@ operator:
   cniNetworkDirectory: /etc/cni/net.d
   # -- Enable the use of maintenance operator upgrade logic.
   maintenanceOperator:
+    # k8s namespace to be used for generated nodeMaintenance objects
+    nodeMaintenanceNamespace: default  
+    # enable upgrade controller requestor
     useRequestor: false
-    requestorID: "nvidia.network.operator"
+    # upgrade controller requestor ID to be used in nodeMaintenance objects
+    requestorID: "nvidia.network-operator-driver-upgrade-controller"
+    # nodeMaintenance name prefix to be used by upgrade-controller (default is "")
     nodeMaintenanceNamePrefix: "network-operator"
-    nodeMaintenanceNamespace: default
+    # enable drain controller requestor
+    useDrainControllerRequestor: false
+    # drain controller requestor ID to be used in nodeMaintenance objects
+    drainControllerRequestorID: "nvidia.network-operator-drain-controller"
   # -- Enable the use of Driver ToolKit to compile DOCA-OFED Drivers (OpenShift only).
   useDTK: true
   admissionController:
