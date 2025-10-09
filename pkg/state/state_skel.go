@@ -68,7 +68,7 @@ func (s *stateSkel) Description() string {
 	return s.description
 }
 
-func getSupportedGVKs() []schema.GroupVersionKind {
+func GetSupportedGVKs() []schema.GroupVersionKind {
 	return []schema.GroupVersionKind{
 		{
 			Group:   "",
@@ -185,7 +185,7 @@ func (s *stateSkel) createObj(ctx context.Context, obj *unstructured.Unstructure
 func (s *stateSkel) checkDeleteSupported(ctx context.Context, obj *unstructured.Unstructured) {
 	reqLogger := log.FromContext(ctx)
 
-	for _, gvk := range getSupportedGVKs() {
+	for _, gvk := range GetSupportedGVKs() {
 		objGvk := obj.GroupVersionKind()
 		if objGvk.Group == gvk.Group && objGvk.Version == gvk.Version && objGvk.Kind == gvk.Kind {
 			return
@@ -336,7 +336,7 @@ func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context, stateObjectsT
 		consts.StateLabel: s.name,
 	}
 	found := false
-	for _, gvk := range getSupportedGVKs() {
+	for _, gvk := range GetSupportedGVKs() {
 		l := &unstructured.UnstructuredList{}
 		l.SetGroupVersionKind(gvk)
 		err := s.client.List(ctx, l, client.MatchingLabels(stateLabel))

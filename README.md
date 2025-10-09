@@ -95,7 +95,6 @@ and related configurations.
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
     - [IP Over Infiniband (IPoIB) CNI Plugin](https://github.com/Mellanox/ipoib-cni): Allow users to create an IPoIB child link and move it to the pod.
-    - IPAM CNI: [Whereabouts IPAM CNI](https://github.com/k8snetworkplumbingwg/whereabouts) and related configurations
 - `nvIpam`: [NVIDIA Kubernetes IPAM](https://github.com/Mellanox/nvidia-k8s-ipam) and related configurations.
 - `nicConfigurationOperator`: [NVIDIA NIC Configuration Operator](https://github.com/Mellanox/nic-configuration-operator) and related configuration.
 
