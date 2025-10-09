@@ -235,6 +235,8 @@ rules:
   - nodemaintenances/status
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - mellanox.com
   resources:
@@ -322,6 +324,14 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - sriovnodestates
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - whereabouts.cni.cncf.io
   resources:
