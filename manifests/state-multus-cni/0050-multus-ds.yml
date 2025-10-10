@@ -21,6 +21,8 @@ spec:
         name: multus
     spec:
       hostNetwork: true
+      securityContext:
+        privileged: true
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
@@ -56,6 +58,7 @@ spec:
               memory: "15Mi"
           securityContext:
             privileged: true
+            runAsUser: 0
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
             - name: cnibin
@@ -114,6 +117,7 @@ spec:
           {{- end }}
           securityContext:
             privileged: true
+            runAsUser: 0
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
             - name: cninetwork

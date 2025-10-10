@@ -115,7 +115,13 @@ spec:
             {{- end }}
             {{- end }}
           securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           livenessProbe:
             httpGet:
               path: /healthz
