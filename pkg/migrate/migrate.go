@@ -25,12 +25,15 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/state"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 
@@ -77,6 +80,10 @@ func migrate(ctx context.Context, log logr.Logger, c client.Client) error {
 	if err := handleSingleMofedDS(ctx, log, c); err != nil {
 		// critical for the operator operation, will fail Mofed migration
 		log.V(consts.LogLevelError).Error(err, "error trying to handle single MOFED DS")
+		return err
+	}
+	if err := handleWhereaboutsObj(ctx, log, c); err != nil {
+		log.V(consts.LogLevelError).Error(err, "error trying to update Whereabouts resources")
 		return err
 	}
 	return nil
@@ -173,4 +180,36 @@ func getDaemonSetNodes(ctx context.Context, c client.Client, ds *appsv1.DaemonSe
 		}
 	}
 	return nodeNames, nil
+}
+
+func handleWhereaboutsObj(ctx context.Context, log logr.Logger, c client.Client) error {
+	stateLabel := map[string]string{
+		consts.StateLabel: "state-whereabouts-cni",
+	}
+	for _, gvk := range state.GetSupportedGVKs() {
+		l := &unstructured.UnstructuredList{}
+		l.SetGroupVersionKind(gvk)
+		err := c.List(ctx, l, client.MatchingLabels(stateLabel),
+			client.InNamespace(config.FromEnv().State.NetworkOperatorResourceNamespace))
+		if meta.IsNoMatchError(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		for _, obj := range l.Items {
+			if len(obj.GetOwnerReferences()) > 0 {
+				obj.SetOwnerReferences(nil)
+				log.V(consts.LogLevelDebug).Info(
+					"Removed OwnerReferences: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
+				err := c.Update(ctx, &obj)
+				if err != nil {
+					log.V(consts.LogLevelError).Error(
+						err, "Failed to update: %s/%s/%s\n", obj.GetNamespace(), obj.GetKind(), obj.GetName())
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }

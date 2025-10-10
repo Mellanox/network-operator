@@ -20,10 +20,6 @@ spec:
   master: "ibs3f1"
   ipam: |
     {
-      "type": "whereabouts",
-      "range": "192.168.6.225/28",
-      "exclude": [
-       "192.168.6.229/30",
-       "192.168.6.236/32"
-      ]
+      "type": "nv-ipam",
+      "poolName": "my-pool"
     }

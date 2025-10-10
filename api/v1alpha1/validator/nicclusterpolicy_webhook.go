@@ -527,9 +527,6 @@ func (w *nicClusterPolicyValidator) validateRepositories(
 		if in.Spec.SecondaryNetwork.Multus != nil {
 			allErrs = validateRepository(in.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
 		}
-		if in.Spec.SecondaryNetwork.IpamPlugin != nil {
-			allErrs = validateRepository(in.Spec.SecondaryNetwork.IpamPlugin.Repository, allErrs, snfp, "ipamPlugin")
-		}
 	}
 	return allErrs
 }
@@ -629,12 +626,6 @@ func (w *nicClusterPolicyValidator) validateContainerResources(
 			states["multus"] = stateRenderData{
 				policy.Spec.SecondaryNetwork.Multus, state.NewStateMultusCNI,
 				filepath.Join(manifestBaseDir, "state-multus-cni"),
-			}
-		}
-		if policy.Spec.SecondaryNetwork.IpamPlugin != nil {
-			states["ipamPlugin"] = stateRenderData{
-				policy.Spec.SecondaryNetwork.IpamPlugin, state.NewStateWhereaboutsCNI,
-				filepath.Join(manifestBaseDir, "state-whereabouts-cni"),
 			}
 		}
 		for stateName, renderData := range states {

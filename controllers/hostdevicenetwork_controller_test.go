@@ -76,7 +76,7 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 				Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
 					NetworkNamespace: "",
 					ResourceName:     "",
-					IPAM:             " {\"type\": whereabouts}",
+					IPAM:             " {\"type\": \"nv-ipam\"}",
 				},
 			}
 

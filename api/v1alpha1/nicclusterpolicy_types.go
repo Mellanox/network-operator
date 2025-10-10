@@ -217,9 +217,6 @@ type SecondaryNetworkSpec struct {
 	CniPlugins *ImageSpec `json:"cniPlugins,omitempty"`
 	// Image information for IPoIB CNI
 	IPoIB *ImageSpec `json:"ipoib,omitempty"`
-	// Image information for IPAM plugin
-	// Deprecated: This field is deprecated and will be removed in a future version. Use 'nvIpam' instead.
-	IpamPlugin *ImageSpec `json:"ipamPlugin,omitempty"`
 }
 
 // ResourceRequirements describes the compute resource requirements.
@@ -359,7 +356,6 @@ type NicClusterPolicySpec struct {
 	// It consists of the following optionally deployed components:
 	// - Multus-CNI: Delegate CNI plugin to support secondary networks in Kubernetes
 	// - CNI plugins: Currently only containernetworking-plugins is supported
-	// - IPAM CNI: Currently only Whereabout IPAM CNI is supported as a part of the secondaryNetwork section.
 	// - IPoIB CNI: Allows the user to create IPoIB child link and move it to the pod
 	SecondaryNetwork *SecondaryNetworkSpec `json:"secondaryNetwork,omitempty"`
 	// NvIpam is an IPAM provider that dynamically assigns IP addresses with speed and performance in mind.

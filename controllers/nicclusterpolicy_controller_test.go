@@ -37,19 +37,19 @@ import (
 
 var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 	Context("When NicClusterPolicy CR is created", func() {
-		It("should create whereabouts and delete it after un-setting CR value", func() {
-			By("Check NicClusterPolicy with whereabouts")
+		It("should create nv-ipam and delete it after un-setting CR value", func() {
+			By("Check NicClusterPolicy with nv-ipam")
 			cr := mellanoxv1alpha1.NicClusterPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "nic-cluster-policy",
 					Namespace: "",
 				},
 				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
-					SecondaryNetwork: &mellanoxv1alpha1.SecondaryNetworkSpec{
-						IpamPlugin: &mellanoxv1alpha1.ImageSpec{
-							Image:            "whereabouts",
-							Repository:       "ghcr.io/k8snetworkplumbingwg",
-							Version:          "v0.5.4-amd64",
+					NvIpam: &mellanoxv1alpha1.NVIPAMSpec{
+						ImageSpec: mellanoxv1alpha1.ImageSpec{
+							Image:            "nvidia-k8s-ipam",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "v0.3.7",
 							ImagePullSecrets: []string{},
 						},
 					},
@@ -66,7 +66,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			By("Check DS created with state label")
 			Eventually(func() bool {
 				ds := &appsv1.DaemonSet{}
-				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "whereabouts"}, ds)
+				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "nv-ipam-node"}, ds)
 				if err != nil {
 					return false
 				}
@@ -74,13 +74,13 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				if !ok {
 					return false
 				}
-				return l == "state-whereabouts-cni"
+				return l == "state-nv-ipam-cni"
 			}, timeout*3, interval).Should(BeTrue())
 
 			By("Check SA created with state label")
 			Eventually(func() bool {
 				ds := &corev1.ServiceAccount{}
-				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "whereabouts"}, ds)
+				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "nv-ipam-node"}, ds)
 				if err != nil {
 					return false
 				}
@@ -88,29 +88,29 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				if !ok {
 					return false
 				}
-				return l == "state-whereabouts-cni"
+				return l == "state-nv-ipam-cni"
 			}, timeout*3, interval).Should(BeTrue())
 
-			By("Update CR to remove whereabout")
+			By("Update CR to remove nv-ipam")
 			ncp = &mellanoxv1alpha1.NicClusterPolicy{}
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
 			Expect(err).NotTo(HaveOccurred())
 
-			ncp.Spec.SecondaryNetwork = nil
+			ncp.Spec.NvIpam = nil
 			err = k8sClient.Update(context.TODO(), ncp)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Check DS is deleted")
 			Eventually(func() bool {
 				ds := &appsv1.DaemonSet{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "whereabouts"}, ds)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "nv-ipam-node"}, ds)
 				return apierrors.IsNotFound(err)
 			}, timeout*3, interval).Should(BeTrue())
 
 			By("Check SA is deleted")
 			Eventually(func() bool {
 				sa := &corev1.ServiceAccount{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "whereabouts"}, sa)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "nv-ipam-node"}, sa)
 				return apierrors.IsNotFound(err)
 			}, timeout*3, interval).Should(BeTrue())
 

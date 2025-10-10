@@ -11,7 +11,6 @@ network-operator, at this stage, deploys and configures the follwoing components
 * SecondaryNetwork`: Specifies components to deploy in order to facilitate a secondary network in Kubernetes. It consists of the following optionally deployed components:
     - [Multus-CNI](https://github.com/intel/multus-cni): Delegate CNI plugin to support secondary networks in Kubernetes
     - CNI plugins: Currently only [containernetworking-plugins](https://github.com/containernetworking/plugins) is supported
-    - IPAM CNI: Currently only [Whereabout IPAM CNI](https://github.com/dougbtv/whereabouts-cni) is supported
 There are still additional    pieces that need to be setup before _RDMA_ or _GPU-Direct RDMA_ workloads
 can run on a Kubernetes cluster.
 
@@ -47,7 +46,7 @@ __The example assumes the follwoing:__
 ...
 # kubectl apply -f ./crs/mellanox.com_v1alpha1_nicclusterpolicy_cr.yaml
 ```
-Deploy a kubernetes secondary network from `networking` folder, there are `macvlan` and `host-device` networks each has example file for deploying with/without IPAM Whereabouts
+Deploy a kubernetes secondary network from `networking` folder, there are example files for `macvlan` and `host-device` networks to deploy them with/without NVIDIA IPAM plugin
 ```bash
 # kubectl apply -f ./networking/<file-name>
 ```

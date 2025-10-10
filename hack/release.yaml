@@ -68,11 +68,6 @@ Ipoib:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
   version: network-operator-v25.7.0
-IpamPlugin:
-  image: whereabouts
-  repository: nvcr.io/nvstaging/mellanox
-  sourceRepository: whereabouts
-  version: network-operator-v25.7.0
 nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox

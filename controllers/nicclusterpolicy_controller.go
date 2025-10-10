@@ -60,7 +60,7 @@ type NicClusterPolicyReconciler struct {
 	stateManager state.Manager
 }
 
-// In case of adding support for additional types, also update in getSupportedGVKs func in pkg/state/state_skel.go
+// In case of adding support for additional types, also update in GetSupportedGVKs func in pkg/state/state_skel.go
 
 //nolint:lll
 // +kubebuilder:rbac:groups=mellanox.com,resources=nicclusterpolicies;nicclusterpolicies/status,verbs=get;list;watch;create;update;patch;delete
@@ -80,9 +80,6 @@ type NicClusterPolicyReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=whereabouts.cni.cncf.io,resources=ippools,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=whereabouts.cni.cncf.io,resources=overlappingrangeipreservations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=whereabouts.cni.cncf.io,resources=nodeslicepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=config.openshift.io,resources=proxies;clusterversions,verbs=get;list;watch
