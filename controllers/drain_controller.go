@@ -27,11 +27,11 @@ import (
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/drain"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/utils"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/vars"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -64,9 +64,10 @@ type DrainReconcile struct {
 }
 
 // NewDrainReconcileController creates a new DrainReconcile controller
-func NewDrainReconcileController(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
-	platformHelper platforms.Interface, migrationCh chan struct{}, log logr.Logger) (*DrainReconcile, error) {
-	drainer, err := drainer.NewDrainRequestor(client, log, platformHelper)
+func NewDrainReconcileController(client client.Client, k8sConfig *rest.Config, scheme *runtime.Scheme,
+	recorder record.EventRecorder, platformHelper platforms.Interface, migrationCh chan struct{},
+	log logr.Logger) (*DrainReconcile, error) {
+	drainer, err := drainer.NewDrainRequestor(client, k8sConfig, log, platformHelper)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +99,6 @@ func (r *DrainReconcile) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 	reqLogger := r.log.WithName("Drain Reconcile")
 
-	req.Namespace = vars.Namespace
-
 	// get node object
 	node := &corev1.Node{}
 	found, err := r.getObject(ctx, req, node)
@@ -112,6 +111,7 @@ func (r *DrainReconcile) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
+	req.Namespace = drainer.GetDrainRequestorOpts(r.drainer).SriovNodeStateNamespace
 	// get sriovNodeNodeState object
 	nodeNetworkState := &sriovnetworkv1.SriovNetworkNodeState{}
 	found, err = r.getObject(ctx, req, nodeNetworkState)
@@ -228,11 +228,6 @@ func (r *DrainReconcile) handleNodeIdleNodeStateDrainingOrCompleted(ctx context.
 	// if we didn't manage to complete the un drain of the node we retry
 	if !completed {
 		reqLogger.Info("CompleteDrainNode() was not completed re queueing the request")
-		r.recorder.Event(nodeNetworkState,
-			corev1.EventTypeWarning,
-			"DrainController",
-			"CompleteDrainNode() was not completed")
-		// TODO: make this time configurable
 		return reconcile.Result{RequeueAfter: constants.DrainControllerRequeueTime}, nil
 	}
 
@@ -300,10 +295,6 @@ func (r *DrainReconcile) handleNodeDrainOrReboot(ctx context.Context,
 	// if we didn't manage to complete the drain of the node we retry
 	if !drained {
 		reqLogger.Info("the nodes was not drained, re queueing the request")
-		r.recorder.Event(nodeNetworkState,
-			corev1.EventTypeWarning,
-			"DrainController",
-			"node drain operation was not completed")
 		return reconcile.Result{RequeueAfter: constants.DrainControllerRequeueTime}, nil
 	}
 

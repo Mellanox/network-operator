@@ -31,10 +31,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/drain"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/vars"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -187,9 +190,9 @@ func setDefaultNodeMaintenance(opts *RequestorOptions) *maintenancev1alpha1.Node
 }
 
 // NewDrainRequestor creates a new DrainRequestor
-func NewDrainRequestor(k8sClient client.Client, log logr.Logger,
+func NewDrainRequestor(k8sClient client.Client, k8sConfig *rest.Config, log logr.Logger,
 	platformHelpers platforms.Interface) (*DrainRequestor, error) {
-	kclient, err := kubernetes.NewForConfig(vars.Config)
+	kclient, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +216,36 @@ func (d *DrainRequestor) DrainNode(ctx context.Context, node *corev1.Node,
 	log := d.log.WithName("drainNode")
 	log.Info("Node drain requested")
 
-	// TODO: Implement this
-	_ = ctx
-	_ = node
-	_ = fullNodeDrain
-	_ = singleNode
+	completed, err := d.platformHelpers.OpenshiftBeforeDrainNode(ctx, node)
+	if err != nil {
+		log.Error(err, "error running OpenshiftDrainNode")
+		return false, err
+	}
+
+	if !completed {
+		log.Info("OpenshiftDrainNode did not finish re queue the node request")
+		return false, nil
+	}
+
+	// Check if we are on a single node, and we require a reboot/full-drain we just return
+	if fullNodeDrain && singleNode {
+		return true, nil
+	}
+
+	// create node maintenance object
+	nm, err := d.createOrUpdateNodeMaintenance(ctx, node.Name)
+	if err != nil {
+		log.Error(err, "error creating node maintenance")
+		return false, err
+	}
+	cond := meta.FindStatusCondition(nm.Status.Conditions, maintenancev1alpha1.ConditionReasonReady)
+	if cond != nil {
+		if cond.Reason == maintenancev1alpha1.ConditionReasonReady {
+			log.V(consts.LogLevelDebug).Info("node maintenance operation completed", nm.Spec.NodeName, cond.Reason)
+			log.Info("drainNode(): Drain completed")
+			return true, nil
+		}
+	}
 
 	return false, nil
 }
@@ -227,34 +255,181 @@ func (d *DrainRequestor) DrainNode(ctx context.Context, node *corev1.Node,
 // only if we are the last draining node on that pool
 func (d *DrainRequestor) CompleteDrainNode(ctx context.Context, node *corev1.Node) (bool, error) {
 	log := d.log.WithName("CompleteDrainNode")
-	_ = log
+	d.log.WithName("CompleteDrainNode")
 
-	// TODO: Implement this
-	_ = ctx
-	_ = node
+	nmName := d.getNodeMaintenanceName(node.Name)
+	// run the un cordon function on the node, by deleting node maintenance object
+	// once node maintenance object is actually deleted by maintenance operator,
+	// the node will be uncordoned.
+	deleted, err := d.deleteOrUpdateNodeMaintenance(ctx, nmName)
+	if err != nil {
+		d.log.Error(
+			err, "failed to delete NodeMaintenance, node uncordon failed", "nodeMaintenance",
+			nmName)
+		return false, err
+	}
 
-	return false, nil
+	// call the openshift complete drain to unpause the MCP
+	// only if we are the last draining node in the pool
+	completed, err := d.platformHelpers.OpenshiftAfterCompleteDrainNode(ctx, node)
+	if err != nil {
+		log.Error(err, "failed to complete openshift draining")
+		return false, err
+	}
+	log.V(consts.LogLevelDebug).Info("CompleteDrainNode:()", " nodeMaintenance deleted",
+		deleted, "drainCompleted", completed)
+	return completed && deleted, nil
 }
 
 //nolint:unused,unparam
 func (d *DrainRequestor) createOrUpdateNodeMaintenance(ctx context.Context,
 	nodeName string) (*maintenancev1alpha1.NodeMaintenance, error) {
-	// TODO: Implement this
-	nm := d.defaultNodeMaintenance.DeepCopy()
-	_ = ctx
-	_ = nodeName
+	nm, err := d.checkForExistingNodeMaintenance(ctx, nodeName)
+	if err != nil {
+		return nil, err
+	}
+	// check for existing nodeMaintenance obj and if default prefix is used
+	if nm != nil && d.opts.NodeMaintenanceNamePrefix == DefaultNodeMaintenanceNamePrefix {
+		// if exists append requestorID to spec.AdditionalRequestors list
+		// check if object is owned by the requestor, if so skip re-creation
+		if nm.Spec.RequestorID == d.opts.MaintenanceOPRequestorID {
+			d.log.V(consts.LogLevelInfo).Info("nodeMaintenance already exists", nm.Name, "skip creation",
+				"requestorID", d.opts.MaintenanceOPRequestorID)
+			return nm, nil
+		}
+
+		// check if requestor is already in AdditionalRequestors
+		if slices.Contains(nm.Spec.AdditionalRequestors, d.opts.MaintenanceOPRequestorID) {
+			d.log.V(consts.LogLevelInfo).Info("requestor already in AdditionalRequestors list",
+				"requestorID", d.opts.MaintenanceOPRequestorID)
+			return nm, nil
+		}
+
+		d.log.V(consts.LogLevelInfo).Info("appending new requestor under AdditionalRequestors", "requestor",
+			d.opts.MaintenanceOPRequestorID, "nodeMaintenance", client.ObjectKeyFromObject(nm))
+		// create a deep copy of the original object before modifying it
+		originalNm := nm.DeepCopy()
+		// update AdditionalRequestor list
+		nm.Spec.AdditionalRequestors = append(nm.Spec.AdditionalRequestors, d.opts.MaintenanceOPRequestorID)
+		// using optimistic lock and patch command to avoid updating entire object and refraining of
+		// additionalRequestors list overwritten by other operators
+		patch := client.MergeFromWithOptions(originalNm, client.MergeFromWithOptimisticLock{})
+		err := d.k8sClient.Patch(ctx, nm, patch)
+		if err != nil {
+			d.log.V(consts.LogLevelError).Error(err, "failed to update nodeMaintenance")
+			return nil, err
+		}
+	} else {
+		nm, err = d.createNodeMaintenance(ctx, nodeName)
+		if err != nil {
+			d.log.V(consts.LogLevelError).Error(err, "failed to create nodeMaintenance")
+			return nil, err
+		}
+	}
 
 	return nm, nil
 }
 
-//nolint:unused
+func (d *DrainRequestor) checkForExistingNodeMaintenance(ctx context.Context,
+	nodeName string) (*maintenancev1alpha1.NodeMaintenance, error) {
+	nm := &maintenancev1alpha1.NodeMaintenance{}
+	err := d.k8sClient.Get(ctx, types.NamespacedName{Name: nodeName,
+		Namespace: d.opts.MaintenanceOPRequestorNS},
+		nm, &client.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nm, err
+		}
+	}
+	// check if node maintenance object is already exists
+	if nm.GetUID() != "" {
+		return nm, nil
+	}
+	return nil, nil
+}
+
+func (d *DrainRequestor) createNodeMaintenance(ctx context.Context,
+	nodeName string) (*maintenancev1alpha1.NodeMaintenance, error) {
+	nm := d.defaultNodeMaintenance.DeepCopy()
+	nm.Name = d.getNodeMaintenanceName(nodeName)
+	d.log.V(consts.LogLevelInfo).Info("Creating", "node maintenance", nm, "namespace", nm.Namespace, "node", nodeName)
+	nm.Spec.NodeName = nodeName
+	err := d.k8sClient.Create(ctx, nm, &client.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			return nm, err
+		}
+	}
+	return nm, nil
+}
+
 func (d *DrainRequestor) deleteOrUpdateNodeMaintenance(ctx context.Context,
 	nodeName string) (bool, error) {
-	// TODO: Implement this
-	_ = ctx
-	_ = nodeName
+	// check for existing nodeMaintenance obj
+	nm, err := d.checkForExistingNodeMaintenance(ctx, nodeName)
+	if err != nil {
+		return false, err
+	}
+	if nm == nil {
+		return true, nil
+	}
+
+	// check if object is owned by deleting requestor, if so proceed to deletion
+	if nm.Spec.RequestorID == d.opts.MaintenanceOPRequestorID {
+		d.log.V(consts.LogLevelInfo).Info("deleting node maintenance",
+			"nodeMaintenance", client.ObjectKeyFromObject(nm))
+		err := d.deleteNodeMaintenance(ctx, nm)
+		if err != nil {
+			d.log.V(consts.LogLevelWarning).Error(
+				err, "failed to delete NodeMaintenance, node uncordon failed", "nodeMaintenance",
+				client.ObjectKeyFromObject(nm))
+			return false, err
+		}
+		return true, nil
+	}
+	d.log.V(consts.LogLevelInfo).Info("removing requestor from node maintenance additional requestors list",
+		nm.GetName(), nm.GetNamespace())
+	// remove requestorID from spec.AdditionalRequestors list and patch the object
+	// check if requestorID is under additional requestors list
+	if slices.Contains(nm.Spec.AdditionalRequestors, d.opts.MaintenanceOPRequestorID) {
+		originalNm := nm.DeepCopy()
+		nm.Spec.AdditionalRequestors = slices.DeleteFunc(nm.Spec.AdditionalRequestors, func(id string) bool {
+			return id == d.opts.MaintenanceOPRequestorID
+		})
+		patch := client.MergeFromWithOptions(originalNm, client.MergeFromWithOptimisticLock{})
+		err := d.k8sClient.Patch(ctx, nm, patch)
+		if err != nil {
+			return false, fmt.Errorf("failed to remove requestor from additionalRequestors."+
+				"failed to patch nodeMaintenance %s. %w", client.ObjectKeyFromObject(nm), err)
+		}
+	}
 
 	return false, nil
+}
+
+// deleteNodeMaintenance requests to delete nodeMaintenance obj
+func (d *DrainRequestor) deleteNodeMaintenance(ctx context.Context,
+	nm *maintenancev1alpha1.NodeMaintenance) error {
+	if nm.Spec.RequestorID == d.opts.MaintenanceOPRequestorID {
+		d.log.V(consts.LogLevelInfo).Info("Deleting",
+			"nodeMaintenance", client.ObjectKeyFromObject(nm), "node", nm.Spec.NodeName)
+
+		// send deletion request to uncordon undelying node
+		// avoid deletion if deletion timestamp is already set
+		if nm.DeletionTimestamp == nil {
+			err := d.k8sClient.Delete(ctx, nm)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// getNodeMaintenanceName returns expected name of the nodeMaintenance object
+func (d *DrainRequestor) getNodeMaintenanceName(nodeName string) string {
+	// TODO: return fmt.Sprintf("%s-%s", d.opts.NodeMaintenanceNamePrefix, nodeName)
+	return nodeName
 }
 
 // GetDrainRequestorOpts from a drain interface

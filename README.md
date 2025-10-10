@@ -25,6 +25,7 @@
   * [Docker image](#docker-image)
   * [Driver Containers](#driver-containers)
   * [Upgrade](#upgrade)
+  * [Drain Controller](#drain-controller)
   * [Externally Provided Configurations For Network Operator Sub-Components](#externally-provided-configurations-for-network-operator-sub-components)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
@@ -240,6 +241,42 @@ check [MOFED Driver Container Environment Variables](docs/mofed-container-env-va
 
 ## Upgrade
 Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.
+
+## Drain Controller
+In case users would like to use [NVIDIA maintenance operator](https://github.com/Mellanox/maintenance-operator) to manage node operations, e.g. SRIOV node draining, there is an option to disable [SRIOV operator's internal drain controller](https://github.com/Mellanox/sriov-network-operator/blob/master/README.md#key-configuration-fields) and enabling network operator drain controller, which utilizes maintenance operator.
+To do so, the following environment variables are required by network operator pod:
+```text
+# enable drain controller requestor
+DRAIN_CONTROLLER_ENABLED="true"
+# drain controller requestor ID to be used in nodeMaintenance objects
+DRAIN_CONTROLLER_REQUESTOR_ID="nvidia.network-operator-drain-controller"
+# k8s namespace to be used for generated nodeMaintenance objects
+DRAIN_CONTROLLER_REQUESTOR_NAMESPACE=default
+# k8s namespace used for generated SRIOV node state objects
+DRAIN_CONTROLLER_SRIOV_NODE_STATE_NAMESPACE=nvidia-network-operator
+```
+Setting above environment variables can be used in values.yaml, in case network-operator is provisioned by Helm.
+```yaml
+    # k8s namespace to be used for created nodeMaintenance objects
+    nodeMaintenanceNamespace: default  
+    # enable drain controller requestor
+    useDrainControllerRequestor: false
+    # drain controller requestor ID to be used in nodeMaintenance objects
+    drainControllerRequestorID: "nvidia.network-operator-drain-controller"
+```
+
+Using requestor mode supports a `shared-requestor` flow where multiple operators can coordinate node maintenance operations:
+Assumptions:
+1. Requestors are using same nodeMaintenance objects name 
+2. During `DrainComplete` completion:
+   - Non-owning operators remove themselves from nodeMaintenance `spec.AdditionalRequestors` list using patch with optimistic lock
+2. The owning nodeMaintenance operator handles client side creation and deletion of the nodeMaintenance object
+
+> __Note__: `owning operator`
+> It is the operator that managed to create the `NodeMaintenance` object.
+> which means for a given `NodeMaintenance` obj (name of obj is the same in the shared-requestor mode for all cooperating operators) it is the operator whose RequestorID is set under `spec.requestorID`.
+> `non-owning` operator
+> It is the operator that did not create the `NodeMaintenance` object, which means for a given `NodeMaintenance` obj it is the operator whose RequestorID is present under `spec.AdditionalRequestors`
 
 ## Externally Provided Configurations For Network Operator Sub-Components
 

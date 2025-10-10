@@ -25,9 +25,15 @@ import (
 
 	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	sriovnetworkv1 "github.com/k8snetworkplumbingwg/sriov-network-operator/api/v1"
+	mock_platforms "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms/mock"
+	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms/openshift"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	osconfigv1 "github.com/openshift/api/config/v1"
+	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
+	"go.uber.org/mock/gomock"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -37,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
@@ -54,9 +61,11 @@ const (
 )
 
 var (
+	ctx                context.Context
 	k8sClient          client.Client
 	k8sConfig          *rest.Config
 	testEnv            *envtest.Environment
+	k8sManager         manager.Manager
 	k8sManagerCancelFn context.CancelFunc
 )
 
@@ -68,6 +77,41 @@ func (d *mockImageProvider) TagExists(_ string) (bool, error) {
 }
 
 func (d *mockImageProvider) SetImageSpec(*mellanoxcomv1alpha1.ImageSpec) {}
+
+func setupDrainControllerWithManager(k8sManager manager.Manager,
+	migrationCompletionChan chan struct{}) {
+	t := GinkgoT()
+	mockCtrl := gomock.NewController(t)
+	platformHelper := mock_platforms.NewMockInterface(mockCtrl)
+	platformHelper.EXPECT().GetFlavor().Return(openshift.OpenshiftFlavorDefault).AnyTimes()
+	platformHelper.EXPECT().IsOpenshiftCluster().Return(false).AnyTimes()
+	platformHelper.EXPECT().IsHypershift().Return(false).AnyTimes()
+	platformHelper.EXPECT().OpenshiftBeforeDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	platformHelper.EXPECT().OpenshiftAfterCompleteDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+
+	drainKClient, err := client.New(k8sConfig, client.Options{
+		Scheme: scheme.Scheme,
+		Cache: &client.CacheOptions{
+			DisableFor: []client.Object{
+				&sriovnetworkv1.SriovNetworkNodeState{},
+				&corev1.Node{},
+				&mcfgv1.MachineConfigPool{},
+			},
+		},
+	})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sConfig).ToNot(BeNil())
+	drainController, err := NewDrainReconcileController(drainKClient,
+		k8sConfig,
+		k8sManager.GetScheme(),
+		k8sManager.GetEventRecorderFor("operator"),
+		platformHelper,
+		migrationCompletionChan,
+		k8sManager.GetLogger().WithValues("Function", "Drain"))
+	Expect(err).ToNot(HaveOccurred())
+	err = drainController.SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -84,12 +128,17 @@ var _ = BeforeSuite(func() {
 	er := os.Chdir("..")
 	Expect(er).NotTo(HaveOccurred())
 
+	Expect(os.Setenv("DRAIN_CONTROLLER_REQUESTOR_NAMESPACE", drainRequestorNS)).NotTo(HaveOccurred())
+	Expect(os.Setenv("DRAIN_CONTROLLER_REQUESTOR_ID", drainRequestorID)).NotTo(HaveOccurred())
+	Expect(os.Setenv("DRAIN_CONTROLLER_SRIOV_NODE_STATE_NAMESPACE", namespaceName)).NotTo(HaveOccurred())
+
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("config", "crd", "bases"),
 			filepath.Join("hack", "crds"),
 			filepath.Join("deployment", "network-operator", "charts", "maintenance-operator-chart", "crds"),
+			filepath.Join("deployment", "network-operator", "charts", "sriov-network-operator", "crds"),
 		},
 	}
 
@@ -108,9 +157,10 @@ var _ = BeforeSuite(func() {
 
 	err = maintenancev1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = sriovnetworkv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
-
 	k8sClient, err = client.New(k8sConfig, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
@@ -122,7 +172,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Start controllers
-	k8sManager, err := ctrl.NewManager(k8sConfig, ctrl.Options{
+	k8sManager, err = ctrl.NewManager(k8sConfig, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
@@ -165,9 +215,11 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
+	setupDrainControllerWithManager(k8sManager, migrationCompletionChan)
+
 	go func() {
 		defer GinkgoRecover()
-		var ctx context.Context
+
 		ctx, k8sManagerCancelFn = context.WithCancel(ctrl.SetupSignalHandler())
 		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
