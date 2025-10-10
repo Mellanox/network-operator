@@ -79,8 +79,6 @@ type ImageSpecWithConfig struct {
 
 // PodProbeSpec describes a pod probe.
 type PodProbeSpec struct {
-	// Disabled indicates if the probe should be disabled (ignored for startup probe)
-	Disabled bool `json:"disabled,omitempty"`
 	// Number of seconds after the container has started before the probe is initiated
 	InitialDelaySeconds int `json:"initialDelaySeconds"`
 	// How often (in seconds) to perform the probe

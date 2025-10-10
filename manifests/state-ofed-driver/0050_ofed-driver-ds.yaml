@@ -152,7 +152,6 @@ spec:
             successThreshold: 1
             timeoutSeconds: {{ .CrSpec.StartupProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
-          {{- if not .CrSpec.LivenessProbe.Disabled }}
           livenessProbe:
             exec:
               command:
@@ -162,8 +161,6 @@ spec:
             successThreshold: 1
             timeoutSeconds: {{ .CrSpec.LivenessProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.LivenessProbe.PeriodSeconds }}
-          {{- end }}
-          {{- if not .CrSpec.ReadinessProbe.Disabled }}
           readinessProbe:
             exec:
               command:
@@ -173,7 +170,6 @@ spec:
             successThreshold: 1
             timeoutSeconds: {{ .CrSpec.ReadinessProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
-          {{- end }}
         {{- if .RuntimeSpec.UseDtk }}
         - image: {{ .RuntimeSpec.DtkImageName }}
           imagePullPolicy: IfNotPresent

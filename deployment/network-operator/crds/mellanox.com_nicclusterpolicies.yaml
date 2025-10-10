@@ -1179,10 +1179,6 @@ spec:
                   livenessProbe:
                     description: Pod liveness probe settings
                     properties:
-                      disabled:
-                        description: Disabled indicates if the probe should be disabled
-                          (ignored for startup probe)
-                        type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
                           be considered failed after having succeeded
@@ -1205,10 +1201,6 @@ spec:
                   readinessProbe:
                     description: Pod readiness probe settings
                     properties:
-                      disabled:
-                        description: Disabled indicates if the probe should be disabled
-                          (ignored for startup probe)
-                        type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
                           be considered failed after having succeeded
@@ -1243,10 +1235,6 @@ spec:
                   startupProbe:
                     description: Pod startup probe settings
                     properties:
-                      disabled:
-                        description: Disabled indicates if the probe should be disabled
-                          (ignored for startup probe)
-                        type: boolean
                       failureThreshold:
                         description: Minimum consecutive failures for the probe to
                           be considered failed after having succeeded

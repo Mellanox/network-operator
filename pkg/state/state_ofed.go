@@ -118,7 +118,6 @@ const (
 
 var (
 	startupProbeSpec = mellanoxv1alpha1.PodProbeSpec{
-		Disabled:            false,
 		InitialDelaySeconds: startupInitialDelaySeconds,
 		PeriodSeconds:       startupPeriodSeconds,
 		FailureThreshold:    startupFailureThreshold,
@@ -126,7 +125,6 @@ var (
 	}
 
 	defaultProbeSpec = mellanoxv1alpha1.PodProbeSpec{
-		Disabled:            false,
 		InitialDelaySeconds: defaultInitialDelaySeconds,
 		PeriodSeconds:       defaultPeriodSeconds,
 		FailureThreshold:    defaultFailureThreshold,
