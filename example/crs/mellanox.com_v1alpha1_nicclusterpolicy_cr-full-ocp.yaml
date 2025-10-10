@@ -45,7 +45,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0
+    version: network-operator-v25.10.0-beta.1
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -64,7 +64,7 @@ spec:
   sriovDevicePlugin:
     image: sriov-network-device-plugin
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0
+    version: network-operator-v25.10.0-beta.1
     config: |
       {
         "resourceList": [
@@ -82,32 +82,32 @@ spec:
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0
+      version: network-operator-v25.10.0-beta.1
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0
+    version: network-operator-v25.10.0-beta.1
     enableWebhook: false
   ibKubernetes:
     image: ib-kubernetes
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0
+    version: network-operator-v25.10.0-beta.1
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: nic-feature-discovery
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.7.0
+    version: network-operator-v25.10.0-beta.1
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0
+      version: network-operator-v25.10.0-beta.1
     configurationDaemon:
       image: nic-configuration-operator-daemon
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.7.0
+      version: network-operator-v25.10.0-beta.1
     nicFirmwareStorage:
       create: true
       pvcName: nic-fw-storage-pvc
