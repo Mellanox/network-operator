@@ -82,7 +82,7 @@ func NewDrainReconcileController(client client.Client, k8sConfig *rest.Config, s
 }
 
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=sriovnetwork.openshift.io,resources=sriovnodestates,verbs=get;list;watch
+//+kubebuilder:rbac:groups=sriovnetwork.openshift.io,resources=sriovnetworknodestates,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=maintenance.nvidia.com,resources=nodemaintenances,verbs=get;list;watch
 //+kubebuilder:rbac:groups=maintenance.nvidia.com,resources=nodemaintenances/status,verbs=get;list;watch
