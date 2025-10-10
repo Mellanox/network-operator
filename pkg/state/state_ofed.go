@@ -105,10 +105,31 @@ const (
 )
 
 const (
-	defaultInitialDelaySeconds      = 10
-	defaultPeriodSeconds            = 30
-	startupProbePeriodSeconds       = 10
-	initialDelayStartupProbeSeconds = 30
+	startupInitialDelaySeconds = 30
+	startupPeriodSeconds       = 10
+	startupFailureThreshold    = 60
+	startupTimeoutSeconds      = 10
+
+	defaultInitialDelaySeconds = 10
+	defaultPeriodSeconds       = 30
+	defaultFailureThreshold    = 1
+	defaultTimeoutSeconds      = 10
+)
+
+var (
+	startupProbeSpec = mellanoxv1alpha1.PodProbeSpec{
+		InitialDelaySeconds: startupInitialDelaySeconds,
+		PeriodSeconds:       startupPeriodSeconds,
+		FailureThreshold:    startupFailureThreshold,
+		TimeoutSeconds:      startupTimeoutSeconds,
+	}
+
+	defaultProbeSpec = mellanoxv1alpha1.PodProbeSpec{
+		InitialDelaySeconds: defaultInitialDelaySeconds,
+		PeriodSeconds:       defaultPeriodSeconds,
+		FailureThreshold:    defaultFailureThreshold,
+		TimeoutSeconds:      defaultTimeoutSeconds,
+	}
 )
 
 // CertConfigPathMap indicates standard OS specific paths for ssl keys/certificates.
@@ -911,24 +932,37 @@ func (e envVarsWithGet) Get(name string) *v1.EnvVar {
 // if not provided by user
 func setProbesDefaults(cr *mellanoxv1alpha1.NicClusterPolicy) {
 	if cr.Spec.OFEDDriver.StartupProbe == nil {
-		cr.Spec.OFEDDriver.StartupProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: defaultInitialDelaySeconds,
-			PeriodSeconds:       startupProbePeriodSeconds,
-		}
+		probe := startupProbeSpec
+		cr.Spec.OFEDDriver.StartupProbe = &probe
 	}
+	sanitizeProbeSpec(cr.Spec.OFEDDriver.StartupProbe, startupProbeSpec)
 
 	if cr.Spec.OFEDDriver.LivenessProbe == nil {
-		cr.Spec.OFEDDriver.LivenessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: initialDelayStartupProbeSeconds,
-			PeriodSeconds:       defaultPeriodSeconds,
-		}
+		probe := defaultProbeSpec
+		cr.Spec.OFEDDriver.LivenessProbe = &probe
 	}
+	sanitizeProbeSpec(cr.Spec.OFEDDriver.LivenessProbe, defaultProbeSpec)
 
 	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
-		cr.Spec.OFEDDriver.ReadinessProbe = &mellanoxv1alpha1.PodProbeSpec{
-			InitialDelaySeconds: defaultInitialDelaySeconds,
-			PeriodSeconds:       defaultPeriodSeconds,
-		}
+		probe := defaultProbeSpec
+		cr.Spec.OFEDDriver.ReadinessProbe = &probe
+	}
+	sanitizeProbeSpec(cr.Spec.OFEDDriver.ReadinessProbe, defaultProbeSpec)
+}
+
+// sanitizeProbeSpec checks and adjusts probe spec values to meet Kubernetes requirements
+func sanitizeProbeSpec(probeSpec *mellanoxv1alpha1.PodProbeSpec, defaultProbeSpec mellanoxv1alpha1.PodProbeSpec) {
+	if probeSpec.InitialDelaySeconds < 1 {
+		probeSpec.InitialDelaySeconds = defaultProbeSpec.InitialDelaySeconds
+	}
+	if probeSpec.PeriodSeconds < 1 {
+		probeSpec.PeriodSeconds = defaultProbeSpec.PeriodSeconds
+	}
+	if probeSpec.FailureThreshold < 1 {
+		probeSpec.FailureThreshold = defaultProbeSpec.FailureThreshold
+	}
+	if probeSpec.TimeoutSeconds < 1 {
+		probeSpec.TimeoutSeconds = defaultProbeSpec.TimeoutSeconds
 	}
 }
 

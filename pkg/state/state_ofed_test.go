@@ -93,6 +93,7 @@ func (d *errorOfedImageProvider) TagExists(_ string) (bool, error) {
 
 func (d *errorOfedImageProvider) SetImageSpec(*v1alpha1.ImageSpec) {}
 
+// nolint:dupl
 var _ = Describe("MOFED state test", func() {
 	var stateOfed stateOFED
 	var ctx context.Context
@@ -855,11 +856,11 @@ var _ = Describe("MOFED state test", func() {
 
 			// Verify default values are set in the CR after GetManifestObjects
 			Expect(cr.Spec.OFEDDriver.StartupProbe).NotTo(BeNil())
-			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(10))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(30))
 			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(10))
 
 			Expect(cr.Spec.OFEDDriver.LivenessProbe).NotTo(BeNil())
-			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(10))
 			Expect(cr.Spec.OFEDDriver.LivenessProbe.PeriodSeconds).To(Equal(30))
 
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe).NotTo(BeNil())
@@ -958,14 +959,20 @@ var _ = Describe("MOFED state test", func() {
 						StartupProbe: &v1alpha1.PodProbeSpec{
 							InitialDelaySeconds: 15,
 							PeriodSeconds:       20,
+							FailureThreshold:    65,
+							TimeoutSeconds:      5,
 						},
 						LivenessProbe: &v1alpha1.PodProbeSpec{
 							InitialDelaySeconds: 45,
 							PeriodSeconds:       60,
+							FailureThreshold:    5,
+							TimeoutSeconds:      15,
 						},
 						ReadinessProbe: &v1alpha1.PodProbeSpec{
 							InitialDelaySeconds: 25,
 							PeriodSeconds:       40,
+							FailureThreshold:    3,
+							TimeoutSeconds:      20,
 						},
 					},
 				},
@@ -995,25 +1002,25 @@ var _ = Describe("MOFED state test", func() {
 					Expect(container.StartupProbe).NotTo(BeNil())
 					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(15)))
 					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(20)))
-					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(60)))
+					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(65)))
 					Expect(container.StartupProbe.SuccessThreshold).To(Equal(int32(1)))
-					Expect(container.StartupProbe.TimeoutSeconds).To(Equal(int32(10)))
+					Expect(container.StartupProbe.TimeoutSeconds).To(Equal(int32(5)))
 
 					// Verify LivenessProbe
 					Expect(container.LivenessProbe).NotTo(BeNil())
 					Expect(container.LivenessProbe.InitialDelaySeconds).To(Equal(int32(45)))
 					Expect(container.LivenessProbe.PeriodSeconds).To(Equal(int32(60)))
-					Expect(container.LivenessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.LivenessProbe.FailureThreshold).To(Equal(int32(5)))
 					Expect(container.LivenessProbe.SuccessThreshold).To(Equal(int32(1)))
-					Expect(container.LivenessProbe.TimeoutSeconds).To(Equal(int32(10)))
+					Expect(container.LivenessProbe.TimeoutSeconds).To(Equal(int32(15)))
 
 					// Verify ReadinessProbe
 					Expect(container.ReadinessProbe).NotTo(BeNil())
 					Expect(container.ReadinessProbe.InitialDelaySeconds).To(Equal(int32(25)))
 					Expect(container.ReadinessProbe.PeriodSeconds).To(Equal(int32(40)))
-					Expect(container.ReadinessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.ReadinessProbe.FailureThreshold).To(Equal(int32(3)))
 					Expect(container.ReadinessProbe.SuccessThreshold).To(Equal(int32(1)))
-					Expect(container.ReadinessProbe.TimeoutSeconds).To(Equal(int32(10)))
+					Expect(container.ReadinessProbe.TimeoutSeconds).To(Equal(int32(20)))
 
 					// Verify probe commands
 					Expect(container.StartupProbe.Exec.Command).To(
@@ -1077,18 +1084,27 @@ var _ = Describe("MOFED state test", func() {
 
 					// Verify StartupProbe defaults
 					Expect(container.StartupProbe).NotTo(BeNil())
-					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(10)))
+					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(30)))
 					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(10)))
+					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(60)))
+					Expect(container.StartupProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.StartupProbe.TimeoutSeconds).To(Equal(int32(10)))
 
 					// Verify LivenessProbe defaults
 					Expect(container.LivenessProbe).NotTo(BeNil())
-					Expect(container.LivenessProbe.InitialDelaySeconds).To(Equal(int32(30)))
+					Expect(container.LivenessProbe.InitialDelaySeconds).To(Equal(int32(10)))
 					Expect(container.LivenessProbe.PeriodSeconds).To(Equal(int32(30)))
+					Expect(container.LivenessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.LivenessProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.LivenessProbe.TimeoutSeconds).To(Equal(int32(10)))
 
 					// Verify ReadinessProbe defaults
 					Expect(container.ReadinessProbe).NotTo(BeNil())
 					Expect(container.ReadinessProbe.InitialDelaySeconds).To(Equal(int32(10)))
 					Expect(container.ReadinessProbe.PeriodSeconds).To(Equal(int32(30)))
+					Expect(container.ReadinessProbe.FailureThreshold).To(Equal(int32(1)))
+					Expect(container.ReadinessProbe.SuccessThreshold).To(Equal(int32(1)))
+					Expect(container.ReadinessProbe.TimeoutSeconds).To(Equal(int32(10)))
 
 					break
 				}
@@ -1120,10 +1136,13 @@ var _ = Describe("MOFED state test", func() {
 							Repository: "nvcr.io/mellanox",
 							Version:    "23.10-0.5.5.0",
 						},
-						// Only set StartupProbe, leave others nil
 						StartupProbe: &v1alpha1.PodProbeSpec{
 							InitialDelaySeconds: 20,
 							PeriodSeconds:       25,
+						},
+						LivenessProbe: &v1alpha1.PodProbeSpec{
+							FailureThreshold: 7,
+							TimeoutSeconds:   17,
 						},
 					},
 				},
@@ -1140,21 +1159,25 @@ var _ = Describe("MOFED state test", func() {
 			_, err = ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify custom StartupProbe is preserved
+			// Verify custom and default values are used for StartupProbe and LivenessProbe
 			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(20))
 			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(25))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.FailureThreshold).To(Equal(60))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.TimeoutSeconds).To(Equal(10))
 
-			// Verify defaults are set for LivenessProbe and ReadinessProbe
-			Expect(cr.Spec.OFEDDriver.LivenessProbe).NotTo(BeNil())
-			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(10))
 			Expect(cr.Spec.OFEDDriver.LivenessProbe.PeriodSeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.FailureThreshold).To(Equal(7))
+			Expect(cr.Spec.OFEDDriver.LivenessProbe.TimeoutSeconds).To(Equal(17))
 
+			// Verify defaults are set for ReadinessProbe
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe).NotTo(BeNil())
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe.InitialDelaySeconds).To(Equal(10))
 			Expect(cr.Spec.OFEDDriver.ReadinessProbe.PeriodSeconds).To(Equal(30))
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.FailureThreshold).To(Equal(1))
+			Expect(cr.Spec.OFEDDriver.ReadinessProbe.TimeoutSeconds).To(Equal(10))
 		})
 	})
-	//nolint:dupl
 	Context("TagExists error handling", func() {
 		It("Should return error when TagExists fails and ForcePrecompiled is enabled", func() {
 			client := mocks.ControllerRuntimeClient{}
