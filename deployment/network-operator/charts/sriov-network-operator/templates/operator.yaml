@@ -47,6 +47,14 @@ spec:
             requests:
               cpu: 100m
               memory: 100Mi
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -78,6 +86,8 @@ spec:
               value: {{ .Values.operator.metricsExporter.certificates.secretName }}
             - name: METRICS_EXPORTER_KUBE_RBAC_PROXY_IMAGE
               value: {{ .Values.images.metricsExporterKubeRbacProxy }}
+            - name: USE_MAINTENANCE_OPERATOR_DRAINER
+              value: {{ .Values.operator.maintenanceOperatorDrainer.enabled | quote }}
             {{- if .Values.operator.metricsExporter.prometheusOperator.enabled }}
             - name: METRICS_EXPORTER_PROMETHEUS_OPERATOR_ENABLED
               value: {{ .Values.operator.metricsExporter.prometheusOperator.enabled | quote}}
@@ -113,6 +123,10 @@ spec:
             - name: STALE_NODE_STATE_CLEANUP_DELAY_MINUTES
               value: "{{ .Values.operator.staleNodeStateCleanupDelayMinutes }}"
         {{- if .Values.operator.admissionControllers.enabled }}
+            - name: OPERATOR_WEBHOOK_NETWORK_POLICY_PORT
+              value: "{{ .Values.operator.admissionControllers.networkPolicy.operator.port }}"
+            - name: INJECTOR_WEBHOOK_NETWORK_POLICY_PORT
+              value: "{{ .Values.operator.admissionControllers.networkPolicy.injector.port }}"
             - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_SECRET_NAME
               value: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
             - name: ADMISSION_CONTROLLERS_CERTIFICATES_INJECTOR_SECRET_NAME

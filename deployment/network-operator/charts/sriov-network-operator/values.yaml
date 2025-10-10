@@ -40,8 +40,16 @@ operator:
       serviceAccount: "prometheus-k8s"
       namespace: "monitoring"
       deployRules: false
+  # use external drain controller, utilizing NVIDIA maintenance operator
+  maintenanceOperatorDrainer:
+    enabled: false
   admissionControllers:
     enabled: false
+    networkPolicy:
+      operator:
+        port: "6443"
+      injector:
+        port: "6443"
     certificates:
       secretNames:
         operator: "operator-webhook-cert"
