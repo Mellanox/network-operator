@@ -327,7 +327,7 @@ rules:
 - apiGroups:
   - sriovnetwork.openshift.io
   resources:
-  - sriovnodestates
+  - sriovnetworknodestates
   verbs:
   - get
   - list
