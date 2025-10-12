@@ -290,7 +290,7 @@ spec:
               docaTelemetryService:
                 description: |-
                   DOCATelemetryService exposes telemetry from NVIDIA networking components to prometheus.
-                  See: https://docs.nvidia.com/doca/sdk/nvidia+doca+telemetry+service+guide/index.html
+                  See: https://docs.nvidia.com/doca/sdk/doca+telemetry+service+guide/index.html
                 properties:
                   config:
                     description: |-
@@ -1401,77 +1401,10 @@ spec:
                   It consists of the following optionally deployed components:
                   - Multus-CNI: Delegate CNI plugin to support secondary networks in Kubernetes
                   - CNI plugins: Currently only containernetworking-plugins is supported
-                  - IPAM CNI: Currently only Whereabout IPAM CNI is supported as a part of the secondaryNetwork section.
                   - IPoIB CNI: Allows the user to create IPoIB child link and move it to the pod
                 properties:
                   cniPlugins:
                     description: Image information for CNI plugins
-                    properties:
-                      containerResources:
-                        description: ResourceRequirements describes the compute resource
-                          requirements
-                        items:
-                          description: ResourceRequirements describes the compute
-                            resource requirements.
-                          properties:
-                            limits:
-                              additionalProperties:
-                                anyOf:
-                                - type: integer
-                                - type: string
-                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                x-kubernetes-int-or-string: true
-                              description: |-
-                                Limits describes the maximum amount of compute resources allowed.
-                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                              type: object
-                            name:
-                              description: Name of the container the requirements
-                                are set for
-                              type: string
-                            requests:
-                              additionalProperties:
-                                anyOf:
-                                - type: integer
-                                - type: string
-                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                x-kubernetes-int-or-string: true
-                              description: |-
-                                Requests describes the minimum amount of compute resources required.
-                                If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
-                                otherwise to an implementation-defined value. Requests cannot exceed Limits.
-                                More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                              type: object
-                          required:
-                          - name
-                          type: object
-                        type: array
-                      image:
-                        description: Name of the image
-                        pattern: '[a-zA-Z0-9\-]+'
-                        type: string
-                      imagePullSecrets:
-                        default: []
-                        description: |-
-                          ImagePullSecrets is an optional list of references to secrets in the same
-                          namespace to use for pulling the image
-                        items:
-                          type: string
-                        type: array
-                      repository:
-                        description: Address of the registry that stores the image
-                        pattern: '[a-zA-Z0-9\.\-\/]+'
-                        type: string
-                      version:
-                        description: Version of the image to use
-                        type: string
-                    required:
-                    - image
-                    - repository
-                    - version
-                    type: object
-                  ipamPlugin:
-                    description: Image information for IPAM plugin
                     properties:
                       containerResources:
                         description: ResourceRequirements describes the compute resource
