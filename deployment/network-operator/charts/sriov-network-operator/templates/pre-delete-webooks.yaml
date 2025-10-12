@@ -23,6 +23,14 @@ spec:
       containers:
         - name: cleanup
           image: {{ .Values.images.operator }}
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           command:
             - sriov-network-operator-config-cleanup
           args:

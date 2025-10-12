@@ -74,6 +74,13 @@ spec:
                               description: IDs to inject to external_ids field in
                                 the Bridge table in OVSDB
                               type: object
+                            failMode:
+                              description: configure fail_mode field in the Bridge
+                                table in OVSDB (optional). 'secure' or 'standalone'.
+                              enum:
+                              - secure
+                              - standalone
+                              type: string
                             otherConfig:
                               additionalProperties:
                                 type: string
@@ -180,14 +187,6 @@ spec:
                 type: array
               system:
                 properties:
-                  ovsConfig:
-                    additionalProperties:
-                      type: string
-                    default:
-                      hw-offload: "true"
-                    description: OVS config. It will be provided for ovs-vswitchd
-                      service as other_config option
-                    type: object
                   rdmaMode:
                     description: RDMA subsystem. Allowed value "shared", "exclusive".
                     enum:
@@ -221,6 +220,13 @@ spec:
                               description: IDs to inject to external_ids field in
                                 the Bridge table in OVSDB
                               type: object
+                            failMode:
+                              description: configure fail_mode field in the Bridge
+                                table in OVSDB (optional). 'secure' or 'standalone'.
+                              enum:
+                              - secure
+                              - standalone
+                              type: string
                             otherConfig:
                               additionalProperties:
                                 type: string
@@ -362,14 +368,6 @@ spec:
                 type: string
               system:
                 properties:
-                  ovsConfig:
-                    additionalProperties:
-                      type: string
-                    default:
-                      hw-offload: "true"
-                    description: OVS config. It will be provided for ovs-vswitchd
-                      service as other_config option
-                    type: object
                   rdmaMode:
                     description: RDMA subsystem. Allowed value "shared", "exclusive".
                     enum:
