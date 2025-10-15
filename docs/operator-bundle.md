@@ -11,7 +11,7 @@ Build the bundle:
 
 **Note**:
 - `VERSION` should be a valid semantic version
-- `DEFAULT_CHANNEL` should be in the following format: `vMAJOR.MINOR`, without the patch version
+- `DEFAULT_CHANNEL` should be `stable`
 - `CHANNELS` should include the `DEFAULT_CHANNEL` value and `stable` seperated by a comma
 - `TAG` should use SHA256
 
@@ -23,7 +23,7 @@ skopeo inspect docker://nvcr.io/nvidia/cloud-native/network-operator:v1.1.0 | jq
 ```
 
 ```bash
-DEFAULT_CHANNEL=v1.1 CHANNELS=v1.1,stable VERSION=1.1.0 TAG=nvcr.io/nvidia/cloud-native/network-operator@sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251 make bundle
+DEFAULT_CHANNEL=stable CHANNELS=v1.1,stable VERSION=1.1.0 TAG=nvcr.io/nvidia/cloud-native/network-operator@sha256:17afa53f1cf3733c8d0cd282c565975ed5de3124dfc2b7c485ad12c97e51c251 make bundle
 ```
 
 Build the bundle image:

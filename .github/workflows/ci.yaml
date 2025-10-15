@@ -128,11 +128,11 @@ jobs:
         if [[ "${{ github.ref_type }}" == "tag" ]]; then
           version_major_minor=$(echo $VERSION_WITH_PREFIX | grep -Eo 'v[0-9]+\.[0-9]+')
           export CHANNELS=stable,$version_major_minor
-          export DEFAULT_CHANNEL=$version_major_minor
+          export DEFAULT_CHANNEL=stable
           export VERSION=${{ env.VERSION_WITHOUT_PREFIX }}
         elif [[ "${{ github.ref_type }}" == "branch" ]]; then
           export CHANNELS=stable,v1.1  # hard coded
-          export DEFAULT_CHANNEL=v1.1  # hard coded
+          export DEFAULT_CHANNEL=stable  # hard coded
           export VERSION=1.1.0-${{ env.VERSION_WITH_PREFIX }}  # using the commit hash
           export NETWORK_OPERATOR_VERSION=${{ env.VERSION_WITH_PREFIX }} #  for push use commit sha
         fi
