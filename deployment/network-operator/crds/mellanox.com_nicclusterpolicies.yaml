@@ -1179,12 +1179,20 @@ spec:
                   livenessProbe:
                     description: Pod liveness probe settings
                     properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
                         type: integer
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
                         type: integer
                     required:
                     - initialDelaySeconds
@@ -1193,12 +1201,20 @@ spec:
                   readinessProbe:
                     description: Pod readiness probe settings
                     properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
                         type: integer
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
                         type: integer
                     required:
                     - initialDelaySeconds
@@ -1219,12 +1235,20 @@ spec:
                   startupProbe:
                     description: Pod startup probe settings
                     properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
                       initialDelaySeconds:
                         description: Number of seconds after the container has started
                           before the probe is initiated
                         type: integer
                       periodSeconds:
                         description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
                         type: integer
                     required:
                     - initialDelaySeconds

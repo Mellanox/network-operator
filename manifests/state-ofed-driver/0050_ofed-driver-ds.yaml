@@ -148,27 +148,27 @@ spec:
               command:
                 [sh, -c, 'ls /run/mellanox/drivers/.driver-ready']
             initialDelaySeconds: {{ .CrSpec.StartupProbe.InitialDelaySeconds }}
-            failureThreshold: 60
+            failureThreshold: {{ .CrSpec.StartupProbe.FailureThreshold }}
             successThreshold: 1
-            timeoutSeconds: 10
+            timeoutSeconds: {{ .CrSpec.StartupProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.StartupProbe.PeriodSeconds }}
           livenessProbe:
             exec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
             initialDelaySeconds: {{ .CrSpec.LivenessProbe.InitialDelaySeconds }}
-            failureThreshold: 1
+            failureThreshold: {{ .CrSpec.LivenessProbe.FailureThreshold }}
             successThreshold: 1
-            timeoutSeconds: 10
+            timeoutSeconds: {{ .CrSpec.LivenessProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.LivenessProbe.PeriodSeconds }}
           readinessProbe:
             exec:
               command:
                 [sh, -c, 'lsmod | grep mlx5_core']
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
-            failureThreshold: 1
+            failureThreshold: {{ .CrSpec.ReadinessProbe.FailureThreshold }}
             successThreshold: 1
-            timeoutSeconds: 10
+            timeoutSeconds: {{ .CrSpec.ReadinessProbe.TimeoutSeconds }}
             periodSeconds: {{ .CrSpec.ReadinessProbe.PeriodSeconds }}
         {{- if .RuntimeSpec.UseDtk }}
         - image: {{ .RuntimeSpec.DtkImageName }}
