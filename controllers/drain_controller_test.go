@@ -18,6 +18,7 @@ package controllers //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -38,13 +39,16 @@ import (
 	sriovnetworkv1 "github.com/k8snetworkplumbingwg/sriov-network-operator/api/v1"
 	constants "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/consts"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/utils"
+
+	"github.com/Mellanox/network-operator/pkg/drain"
 )
 
 var (
-	testRequestorID       = "secondary.requestor.com"
-	drainRequestorID      = "primary-drain.requestor.com"
-	drainRequestorNS      = "default"
-	maxParallelOperations = atomic.Int32{}
+	testRequestorID           = "secondary.requestor.com"
+	drainRequestorID          = "primary-drain.requestor.com"
+	drainRequestorNS          = "default"
+	testNodeMaintenancePrefix = drain.DefaultNodeMaintenanceNamePrefix
+	maxParallelOperations     = atomic.Int32{}
 )
 
 var _ = Describe("Drain Controller", Ordered, func() {
@@ -97,9 +101,19 @@ var _ = Describe("Drain Controller", Ordered, func() {
 	})
 
 	Context("when there is only one node", func() {
+		It("should not drain node on drain require while use-external-drainer annotation is not set",
+			func(ctx context.Context) {
+				node, nodeState := createNode(ctx, "node1", false)
+
+				simulateDaemonSetAnnotation(node, constants.DrainRequired)
+
+				expectNodeStateAnnotation(nodeState, constants.DrainIdle)
+				expectNodeIsSchedulable(node)
+
+			})
 
 		It("should drain single node on drain require", func(ctx context.Context) {
-			node, nodeState := createNode(ctx, "node1")
+			node, nodeState := createNode(ctx, "node1", true)
 
 			simulateDaemonSetAnnotation(node, constants.DrainRequired)
 
@@ -114,7 +128,7 @@ var _ = Describe("Drain Controller", Ordered, func() {
 		})
 
 		It("should not drain on reboot for single node", func(ctx context.Context) {
-			node, nodeState := createNode(ctx, "node1")
+			node, nodeState := createNode(ctx, "node1", true)
 
 			simulateDaemonSetAnnotation(node, constants.RebootRequired)
 
@@ -127,8 +141,8 @@ var _ = Describe("Drain Controller", Ordered, func() {
 		})
 
 		It("should drain on reboot for multiple node", func(ctx context.Context) {
-			node, nodeState := createNode(ctx, "node1")
-			createNode(ctx, "node2")
+			node, nodeState := createNode(ctx, "node1", true)
+			createNode(ctx, "node2", true)
 
 			simulateDaemonSetAnnotation(node, constants.RebootRequired)
 
@@ -141,25 +155,26 @@ var _ = Describe("Drain Controller", Ordered, func() {
 		})
 
 		It("should drain single node on drain require, with additional requestor", func(ctx context.Context) {
-			node, nodeState := createNode(ctx, "node1")
-			_ = newNodeMaintenance(ctx, k8sClient, "node1", drainRequestorNS)
+			node, nodeState := createNode(ctx, "node1", true)
+			nmName := fmt.Sprintf("%s-%s", testNodeMaintenancePrefix, node.Name)
+			_ = newNodeMaintenance(ctx, k8sClient, node.Name, drainRequestorNS)
 
 			simulateDaemonSetAnnotation(node, constants.DrainRequired)
 			expectNodeStateAnnotation(nodeState, constants.DrainComplete)
 			expectNodeIsNotSchedulable(node)
 
 			nm := maintenancev1alpha1.NodeMaintenance{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: node.Name, Namespace: drainRequestorNS},
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nmName, Namespace: drainRequestorNS},
 				&nm)).ToNot(HaveOccurred())
-			expectNodeMaintenanceUpdate(node.Name, []string{drainRequestorID})
+			expectNodeMaintenanceUpdate(nmName, []string{drainRequestorID})
 
 			expectNodeStateAnnotation(nodeState, constants.DrainComplete)
 			simulateDaemonSetAnnotation(node, constants.DrainIdle)
-			expectNodeMaintenanceUpdate(node.Name, nil)
+			expectNodeMaintenanceUpdate(nmName, nil)
 			// expect node to be unschedulable
 			expectNodeIsNotSchedulable(node)
 
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: node.Name, Namespace: drainRequestorNS},
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nmName, Namespace: drainRequestorNS},
 				&nm)).ToNot(HaveOccurred())
 			Eventually(k8sClient.Delete(ctx, &nm)).ToNot(HaveOccurred())
 			expectNodeStateAnnotation(nodeState, constants.DrainIdle)
@@ -170,9 +185,9 @@ var _ = Describe("Drain Controller", Ordered, func() {
 	Context("when there are multiple nodes", func() {
 
 		It("should drain nodes serially", func(ctx context.Context) {
-			node1, nodeState1 := createNode(ctx, "node1")
-			node2, nodeState2 := createNode(ctx, "node2")
-			node3, nodeState3 := createNode(ctx, "node3")
+			node1, nodeState1 := createNode(ctx, "node1", true)
+			node2, nodeState2 := createNode(ctx, "node2", true)
+			node3, nodeState3 := createNode(ctx, "node3", true)
 
 			// Two nodes require to drain at the same time
 			maxParallelOperations.Store(1)
@@ -211,9 +226,9 @@ var _ = Describe("Drain Controller", Ordered, func() {
 		})
 
 		It("should drain nodes in parallel", func(ctx context.Context) {
-			node1, nodeState1 := createNode(ctx, "node1")
-			node2, nodeState2 := createNode(ctx, "node2")
-			node3, nodeState3 := createNode(ctx, "node3")
+			node1, nodeState1 := createNode(ctx, "node1", true)
+			node2, nodeState2 := createNode(ctx, "node2", true)
+			node3, nodeState3 := createNode(ctx, "node3", true)
 
 			// two nodes require to drain at the same time
 			maxParallelOperations.Store(2)
@@ -309,7 +324,8 @@ func simulateDaemonSetAnnotation(node *corev1.Node, drainAnnotationValue string)
 		ToNot(HaveOccurred())
 }
 
-func createNode(ctx context.Context, nodeName string) (*corev1.Node, *sriovnetworkv1.SriovNetworkNodeState) {
+func createNode(ctx context.Context, nodeName string, useExternalDrainer bool) (*corev1.Node,
+	*sriovnetworkv1.SriovNetworkNodeState) {
 	node := corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nodeName,
@@ -327,10 +343,14 @@ func createNode(ctx context.Context, nodeName string) (*corev1.Node, *sriovnetwo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nodeName,
 			Namespace: namespaceName,
-			Labels: map[string]string{
+			Annotations: map[string]string{
 				constants.NodeStateDrainAnnotationCurrent: constants.DrainIdle,
 			},
 		},
+	}
+	if useExternalDrainer {
+		// TODO: change annotation name to constants.NodeExternalDrainerAnnotation once SRIOV PR is merged
+		nodeState.Annotations["sriovnetwork.openshift.io/use-external-drainer"] = "true"
 	}
 
 	Expect(k8sClient.Create(ctx, &node)).ToNot(HaveOccurred())
@@ -403,7 +423,7 @@ func processItems(ctx context.Context, c client.Client, maxParallel *atomic.Int3
 
 		// Handle deletion case
 		if !nm.DeletionTimestamp.IsZero() {
-			By("maintenance operator: remove finalizer")
+			By("maintenance operator: remove node-maintenance finalizer")
 			if controllerutil.ContainsFinalizer(&nm, maintenancev1alpha1.MaintenanceFinalizerName) {
 				original := nm.DeepCopy()
 				nm.SetFinalizers([]string{})
@@ -414,7 +434,7 @@ func processItems(ctx context.Context, c client.Client, maxParallel *atomic.Int3
 			// uncordon node
 			By("maintenance operator: uncordon node")
 			node := &corev1.Node{}
-			Expect(c.Get(ctx, types.NamespacedName{Name: nm.Name}, node)).ToNot(HaveOccurred())
+			Expect(c.Get(ctx, types.NamespacedName{Name: nm.Spec.NodeName}, node)).ToNot(HaveOccurred())
 			node.Spec.Unschedulable = false
 			Expect(c.Update(ctx, node)).To(Succeed())
 			continue
@@ -422,7 +442,7 @@ func processItems(ctx context.Context, c client.Client, maxParallel *atomic.Int3
 
 		// Handle creation/update case
 		if !controllerutil.ContainsFinalizer(&nm, maintenancev1alpha1.MaintenanceFinalizerName) {
-			By("maintenance operator: add finalizer")
+			By("maintenance operator: add node-maintenance finalizer")
 			nm.Finalizers = append(nm.Finalizers, maintenancev1alpha1.MaintenanceFinalizerName)
 			Expect(c.Update(ctx, &nm)).To(Succeed())
 			continue
@@ -430,6 +450,7 @@ func processItems(ctx context.Context, c client.Client, maxParallel *atomic.Int3
 
 		// Update status conditions
 		if nm.Status.Conditions == nil {
+			By("maintenance operator: add node-maintenance conditions")
 			Expect(nm.Finalizers).To(ContainElement(maintenancev1alpha1.MaintenanceFinalizerName))
 			// Update status conditions
 			meta.SetStatusCondition(&nm.Status.Conditions, desiredCondition)
@@ -439,7 +460,7 @@ func processItems(ctx context.Context, c client.Client, maxParallel *atomic.Int3
 			// cordon node
 			By("maintenance operator: cordon node")
 			node := &corev1.Node{}
-			Expect(c.Get(ctx, types.NamespacedName{Name: nm.Name}, node)).ToNot(HaveOccurred())
+			Expect(c.Get(ctx, types.NamespacedName{Name: nm.Spec.NodeName}, node)).ToNot(HaveOccurred())
 			node.Spec.Unschedulable = true
 			Expect(c.Update(ctx, node)).To(Succeed())
 		}
@@ -450,7 +471,7 @@ func newNodeMaintenance(ctx context.Context, c client.Client,
 	name, namespace string) *maintenancev1alpha1.NodeMaintenance {
 	nm := &maintenancev1alpha1.NodeMaintenance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      fmt.Sprintf("%s-%s", testNodeMaintenancePrefix, name),
 			Namespace: namespace,
 		},
 		Spec: maintenancev1alpha1.NodeMaintenanceSpec{

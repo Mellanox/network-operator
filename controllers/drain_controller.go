@@ -124,6 +124,14 @@ func (r *DrainReconcile) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
+	// check if nodestate has annotation
+	// TODO: Replace "sriovnetwork.openshift.io/use-external-drainer" with SRIOV constants.NodeExternalDrainerAnnotation
+	if !utils.ObjectHasAnnotation(nodeNetworkState, "sriovnetwork.openshift.io/use-external-drainer", "true") {
+		reqLogger.Info(`nodestate is not set with external drainer annotation, don't requeue the request. Make sure that 
+		SRIOV operator is configured to use external drainer`, "nodeState", req.Name)
+		return ctrl.Result{}, nil
+	}
+
 	// create the drain state annotation if it doesn't exist in the sriovNetworkNodeState object
 	nodeStateDrainAnnotationCurrent, currentNodeStateExist,
 		err := r.ensureAnnotationExists(ctx, nodeNetworkState, constants.NodeStateDrainAnnotationCurrent)
@@ -344,7 +352,7 @@ func (d DrainAnnotationPredicate) Update(e event.UpdateEvent) bool {
 	oldAnno, hasOldAnno := e.ObjectOld.GetAnnotations()[constants.NodeDrainAnnotation]
 	newAnno, hasNewAnno := e.ObjectNew.GetAnnotations()[constants.NodeDrainAnnotation]
 
-	d.log.V(consts.LogLevelDebug).Info("Update", "oldAnno", oldAnno, "newAnno", newAnno)
+	d.log.V(consts.LogLevelDebug).Info("Update node state drain annotation", "oldAnno", oldAnno, "newAnno", newAnno)
 	if !hasOldAnno && hasNewAnno {
 		return true
 	}
@@ -378,6 +386,16 @@ func (d DrainStateAnnotationPredicate) Update(e event.UpdateEvent) bool {
 
 	d.log.V(consts.LogLevelDebug).Info("Update", "oldAnno", oldAnno, "newAnno", newAnno)
 	if !hasOldAnno || !hasNewAnno {
+		return true
+	}
+
+	// Check if the external drainer annotation has been added
+	// TODO: Replace "sriovnetwork.openshift.io/use-external-drainer" with SRIOV constants.NodeExternalDrainerAnnotation
+	_, hasOldAnno = e.ObjectOld.GetAnnotations()["sriovnetwork.openshift.io/use-external-drainer"]
+	_, hasNewAnno = e.ObjectNew.GetAnnotations()["sriovnetwork.openshift.io/use-external-drainer"]
+	if !hasOldAnno && hasNewAnno {
+		d.log.V(consts.LogLevelDebug).Info("Update nodestate external drainer annotation", "oldAnno",
+			oldAnno, "newAnno", newAnno)
 		return true
 	}
 
