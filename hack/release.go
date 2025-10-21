@@ -67,6 +67,7 @@ type Release struct {
 	SriovCni                     *ReleaseImageSpec
 	SriovIbCni                   *ReleaseImageSpec
 	Mofed                        *ReleaseImageSpec
+	MofedStig                    *ReleaseImageSpec
 	RdmaSharedDevicePlugin       *ReleaseImageSpec
 	SriovDevicePlugin            *ReleaseImageSpec
 	IbKubernetes                 *ReleaseImageSpec
@@ -185,19 +186,38 @@ func docaDriverTagsCheck(release *Release, docaDriverMatrix *string) {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
-	if err := validateTags(config, tags, release.Mofed.Version); err != nil {
+	tagsStig, err := listTags(release.MofedStig.Repository, release.MofedStig.Image)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	// validate all non-STIG compliant tags
+	if err := validateTags(config, tags, release.Mofed.Version, func(os string) bool {
+		return !strings.HasSuffix(os, "-stig")
+	}); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	// validate all STIG compliant tags
+	if err := validateTags(config, tagsStig, release.MofedStig.Version, func(os string) bool {
+		return strings.HasSuffix(os, "-stig")
+	}); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func validateTags(config DocaDriverMatrix, tags []string, version string) error {
+func validateTags(config DocaDriverMatrix, tags []string, version string,
+	shouldValidateOsFunction func(string) bool) error {
 	// Build expected OS-arch combinations
 	expectedCombinations := make(map[string]struct{})
 	for _, entry := range config.DynamicallyCompiled {
 		for _, arch := range entry.Arches {
-			key := fmt.Sprintf("%s-%s", entry.OS, arch)
-			expectedCombinations[key] = struct{}{}
+			shouldValidateCurrentEntry := shouldValidateOsFunction(entry.OS)
+			if shouldValidateCurrentEntry {
+				key := fmt.Sprintf("%s-%s", entry.OS, arch)
+				expectedCombinations[key] = struct{}{}
+			}
 		}
 	}
 
