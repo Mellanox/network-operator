@@ -599,7 +599,10 @@
                 },
                 "config": {
                     "description": "Configuration for the topology updater. See the [configuration reference](https://kubernetes-sigs.github.io/node-feature-discovery/master/reference/topology-updater-configuration-reference) for details.",
-                    "type": "null"
+                    "type": [
+                        "object",
+                        "null"
+                    ]
                 },
                 "createCRDs": {
                     "description": "Create CustomResourceDefinitions for the TopologyUpdater.",
