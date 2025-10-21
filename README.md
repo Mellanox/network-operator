@@ -259,6 +259,8 @@ Setting above environment variables can be used in values.yaml, in case network-
     # drain controller requestor ID to be used in nodeMaintenance objects
     drainControllerRequestorID: "nvidia.network-operator-drain-controller"
 ```
+> __Note__: in order to use network-operator drain-controller, make sure that `sriovnetwork.openshift.io/use-external-drainer=true`
+> exists under nodestate annotations. Is should be added by SRIOV operator
 
 Using requestor mode supports a `shared-requestor` flow where multiple operators can coordinate node maintenance operations:
 Assumptions:

@@ -130,6 +130,7 @@ var _ = BeforeSuite(func() {
 
 	Expect(os.Setenv("DRAIN_CONTROLLER_REQUESTOR_NAMESPACE", drainRequestorNS)).NotTo(HaveOccurred())
 	Expect(os.Setenv("DRAIN_CONTROLLER_REQUESTOR_ID", drainRequestorID)).NotTo(HaveOccurred())
+	Expect(os.Setenv("DRAIN_CONTROLLER_NODE_MAINTENANCE_PREFIX", testNodeMaintenancePrefix)).NotTo(HaveOccurred())
 	Expect(os.Setenv("DRAIN_CONTROLLER_SRIOV_NODE_STATE_NAMESPACE", namespaceName)).NotTo(HaveOccurred())
 
 	By("bootstrapping test environment")
