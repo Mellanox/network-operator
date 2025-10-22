@@ -177,11 +177,11 @@ spec:
           command: [bash, -xc]
           args:
             - |
-              until [ -f /mnt/shared-doca-driver-toolkit/dtk_start_compile ]; do
+              until [ -f /mnt/shared-doca-driver-toolkit/{{ .RuntimeSpec.Kernel }}/dtk_start_compile ]; do
                 echo Waiting for mofed-container container to prepare the shared directory
                 sleep 3
               done
-              exec /mnt/shared-doca-driver-toolkit/dtk_nic_driver_build.sh
+              exec /mnt/shared-doca-driver-toolkit/{{ .RuntimeSpec.Kernel }}/dtk_nic_driver_build.sh
           env:
             - name: DTK_OCP_NIC_SHARED_DIR
               value: "/mnt/shared-doca-driver-toolkit"
