@@ -468,7 +468,7 @@ func (ofedSpec *ofedDriverSpecWrapper) validateVersion(fldPath *field.Path) fiel
 	// Perform version validation logic here
 	if !isValidOFEDVersion(ofedSpec.Version) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), ofedSpec.Version,
-			`invalid OFED version, supported formats: "23.10-0.2.2.0", "24.01-0.3.3.1-0", "doca3.1-24.01-0.3.3.1-0", "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"`))
+			`invalid OFED version, supported formats: "23.10-0.2.2.0", "24.01-0.3.3.1-0", "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64", "doca3.1-24.01-0.3.3.1-0", "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64", "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"`))
 	}
 	return allErrs
 }
@@ -711,9 +711,11 @@ func isValidOFEDVersion(version string) bool {
 	// Support multiple OFED version formats:
 	// 1. Old scheme: "23.10-0.2.2.0" or "23.10-0.2.2.0.1"
 	// 2. New scheme: "24.01-0.3.3.1-0"
-	// 3. DOCA prefix: "doca3.1.0-25.07-0.6.6.0-0"
-	// 4. SHA256 format: "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"
-	versionPattern := `^(sha256:[a-fA-F0-9]{64}|doca\d+\.\d+\.\d+-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+|\d+\.\d+-\d+(\.\d+)*(-\d+)?)$`
+	// 3. New scheme with kernel-specific suffix: "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64"
+	// 4. DOCA prefix: "doca3.1.0-25.07-0.6.6.0-0"
+	// 5. DOCA prefix with kernel-specific suffix: "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64"
+	// 6. SHA256 format: "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"
+	versionPattern := `^(sha256:[a-fA-F0-9]{64}|doca\d+\.\d+(\.\d+)?-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+(-[\w\.\-]+)*|\d+\.\d+-\d+(\.\d+)*(-\d+)?(-[\w\.\-]+)*)$`
 	versionRegex := regexp.MustCompile(versionPattern)
 	return versionRegex.MatchString(version)
 }
