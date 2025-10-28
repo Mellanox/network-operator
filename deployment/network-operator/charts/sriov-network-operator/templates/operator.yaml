@@ -87,8 +87,8 @@ spec:
             - name: METRICS_EXPORTER_KUBE_RBAC_PROXY_IMAGE
               value: {{ .Values.images.metricsExporterKubeRbacProxy }}
             {{- if .Values.operator.externalDrainer.enabled }}
-              - name: USE_EXTERNAL_DRAINER
-                value: {{ .Values.operator.externalDrainer.enabled | quote }}
+            - name: USE_EXTERNAL_DRAINER
+              value: {{ .Values.operator.externalDrainer.enabled | quote }}
             {{- end }}
             {{- if .Values.operator.metricsExporter.prometheusOperator.enabled }}
             - name: METRICS_EXPORTER_PROMETHEUS_OPERATOR_ENABLED
