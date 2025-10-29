@@ -67,7 +67,7 @@ type Release struct {
 	SriovCni                     *ReleaseImageSpec
 	SriovIbCni                   *ReleaseImageSpec
 	Mofed                        *ReleaseImageSpec
-	MofedStig                    *ReleaseImageSpec
+	MofedStigFips                *ReleaseImageSpec
 	RdmaSharedDevicePlugin       *ReleaseImageSpec
 	SriovDevicePlugin            *ReleaseImageSpec
 	IbKubernetes                 *ReleaseImageSpec
@@ -186,7 +186,7 @@ func docaDriverTagsCheck(release *Release, docaDriverMatrix *string) {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
-	tagsStig, err := listTags(release.MofedStig.Repository, release.MofedStig.Image)
+	tagsStig, err := listTags(release.MofedStigFips.Repository, release.MofedStigFips.Image)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -199,7 +199,7 @@ func docaDriverTagsCheck(release *Release, docaDriverMatrix *string) {
 		os.Exit(1)
 	}
 	// validate all STIG compliant tags
-	if err := validateTags(config, tagsStig, release.MofedStig.Version, func(os string) bool {
+	if err := validateTags(config, tagsStig, release.MofedStigFips.Version, func(os string) bool {
 		return strings.HasSuffix(os, "-stig")
 	}); err != nil {
 		fmt.Printf("Error: %v\n", err)
