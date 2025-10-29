@@ -38,8 +38,8 @@ Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
   version: doca3.2.0-25.10-1.1.0.0-0
-MofedStig:
-  image: doca-driver-stig
+MofedStigFips:
+  image: doca-driver-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   version: doca3.2.0-25.10-1.1.0.0-0
 RdmaSharedDevicePlugin:
