@@ -28,7 +28,6 @@ jobs:
             nic_operator_helm CI
             nic_operator_kind CI
             image_scan CI
-            blackduck_scan CI
             Copy Right Validation
           WAIT_INTERVAL: 60
         run: |
