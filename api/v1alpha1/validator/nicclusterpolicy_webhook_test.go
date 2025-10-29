@@ -154,6 +154,42 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		It("Valid MOFED version (with doca prefix and kernel-specific suffix)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version (with doca prefix and kernel-specific suffix for Ubuntu)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.1.0-25.07-0.9.7.0-0-5.15.0-151-generic-ubuntu22.04-amd64",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
 		It("Valid MOFED version", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
@@ -164,6 +200,24 @@ var _ = Describe("Validate", func() {
 							Image:            "mofed",
 							Repository:       "ghcr.io/mellanox",
 							Version:          "24.01-0.3.3.1-0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version (with kernel-specific suffix for ARM64)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64",
 							ImagePullSecrets: []string{},
 						},
 					},
