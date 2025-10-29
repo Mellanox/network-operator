@@ -109,3 +109,6 @@ webhookService:
       protocol: TCP
       targetPort: 9443
   type: ClusterIP
+
+# -- Kubernetes cluster domain used for webhook certificate DNS names (defaults to cluster.local if not set)
+# kubernetesClusterDomain: cluster.local

@@ -26,6 +26,8 @@ data:
   Intel_ice_Columbiapark_E825C_SFP: "8086 579e 1889"
   Intel_ice_Connorsville_E830_QSFP: "8086 12d2 1889"
   Intel_ice_Connorsville_E830_SFP: "8086 12d3 1889"
+  Intel_ice_Connorsville_E835CC_QSFP: "8086 1249 1889"
+  Intel_ice_Connorsville_E835CC_SFP: "8086 124a 1889"
   Nvidia_mlx5_ConnectX-4: "15b3 1013 1014"
   Nvidia_mlx5_ConnectX-4LX: "15b3 1015 1016"
   Nvidia_mlx5_ConnectX-5: "15b3 1017 1018"
