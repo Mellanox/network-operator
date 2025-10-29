@@ -168,6 +168,15 @@ spec:
                           enabled:
                             description: Optimize Spectrum X
                             type: boolean
+                          overlay:
+                            default: none
+                            description: |-
+                              Overlay mode to be configured
+                              Can be "l3" or "none"
+                            enum:
+                            - l3
+                            - none
+                            type: string
                           version:
                             description: Version of the Spectrum-X architecture to
                               optimize for
