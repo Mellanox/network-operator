@@ -50,6 +50,7 @@ IMAGE_NAME?=network-operator
 CONTROLLER_IMAGE=$(REGISTRY)/$(IMAGE_NAME)
 IMAGE_BUILD_OPTS?=
 BUNDLE_IMG?=network-operator-bundle:$(VERSION)
+BUNDLE_OCP_VERSIONS?=v4.17-v4.20
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 BUILD_ARCH= amd64 arm64
@@ -406,7 +407,7 @@ bundle: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate bundle manifests and 
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	git checkout -- config/manager/kustomization.yaml
-	GO=$(GO) TAG=$(TAG) hack/scripts/ocp-bundle-postprocess.sh
+	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) TAG=$(TAG) hack/scripts/ocp-bundle-postprocess.sh
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build

@@ -35,3 +35,5 @@ rm hack/related_images.yaml
 # Escape the tag annotation value for sed
 ESCAPED_TAG=$(printf '%s\n' "$TAG" | sed -e 's/[]\/$*.^[]/\\&/g')
 sed -i "0,/annotations:/s/annotations:/annotations:\n    containerImage: $ESCAPED_TAG/" bundle/manifests/nvidia-network-operator.clusterserviceversion.yaml
+# Add OpenShift versions in metadata/annotations.yaml
+echo "  com.redhat.openshift.versions: $BUNDLE_OCP_VERSIONS" >> bundle/metadata/annotations.yaml
