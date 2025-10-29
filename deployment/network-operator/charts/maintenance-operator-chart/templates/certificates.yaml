@@ -23,7 +23,7 @@ spec:
   - '{{ include "maintenance-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
     }}.svc'
   - '{{ include "maintenance-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
-    }}.svc.{{ .Values.kubernetesClusterDomain }}'
+    }}.svc.{{ .Values.kubernetesClusterDomain | default "cluster.local" }}'
   issuerRef:
     kind: Issuer
     name: '{{ include "maintenance-operator.fullname" . }}-selfsigned-issuer'
