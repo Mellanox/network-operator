@@ -293,7 +293,7 @@ type DOCATelemetryServiceSpec struct {
 // NicFirmwareStorageSpec contains configuration for the NIC firmware storage
 type NicFirmwareStorageSpec struct {
 	// Create specifies whether to create a new PVC or use an existing one
-	// If create == false, the existing PVC should be located in the same namespace as the operator
+	// If create == false, the existing PVC with the name specified in pvcName should be located in the same namespace as the operator
 	// +kubebuilder:default:=true
 	Create bool `json:"create,omitempty"`
 	// PVCName is the name of the PVC to mount as NIC Firmware storage. Default value: "nic-fw-storage-pvc"
@@ -322,7 +322,7 @@ type NicConfigurationOperatorSpec struct {
 	Operator *ImageSpec `json:"operator"`
 	// Image information for nic-configuration-daemon
 	ConfigurationDaemon *ImageSpec `json:"configurationDaemon"`
-	// NicFirmwareStorage contains configuration for the NIC firmware storage
+	// NicFirmwareStorage contains configuration for the NIC firmware storage. If not provided, the NIC firmware storage will not be configured.
 	NicFirmwareStorage *NicFirmwareStorageSpec `json:"nicFirmwareStorage,omitempty"`
 	// LogLevel sets the verbosity level of the logs. info|debug
 	// +kubebuilder:validation:Enum={"info", "debug"}

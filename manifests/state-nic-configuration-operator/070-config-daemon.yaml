@@ -26,6 +26,9 @@ spec:
           operator: Exists
           effect: NoSchedule
       hostNetwork: true
+      nodeSelector:
+        # We need to run it after the DOCA driver is started to be able to successfully configure RoCE settings.
+        network.nvidia.com/operator.mofed.wait: "false"
       hostPID: true
       priorityClassName: system-node-critical
       {{- if .NodeAffinity }}
