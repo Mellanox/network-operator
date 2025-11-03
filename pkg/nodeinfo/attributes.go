@@ -32,6 +32,7 @@ const (
 	NodeLabelMlnxNIC          = "feature.node.kubernetes.io/pci-15b3.present"
 	NodeLabelNvGPU            = "nvidia.com/gpu.present"
 	NodeLabelWaitOFED         = "network.nvidia.com/operator.mofed.wait"
+	NodeLabelWaitNicConfig    = "network.nvidia.com/operator.nic-configuration.wait"
 	NodeLabelCudaVersionMajor = "nvidia.com/cuda.driver.major"
 	NodeLabelOSTreeVersion    = "feature.node.kubernetes.io/system-os_release.OSTREE_VERSION"
 )

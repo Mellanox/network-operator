@@ -108,6 +108,8 @@ type NicClusterPolicyReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+//
+//nolint:gocognit,funlen
 func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Wait for migration flow to finish
 	select {
@@ -126,9 +128,19 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			shouldRequeue, err := r.handleMOFEDWaitLabelsNoConfig(ctx)
+			shouldRequeue, err := r.handleWaitLabelsNoConfig(ctx, consts.OfedDriverLabel, nodeinfo.NodeLabelWaitOFED)
 			if err != nil {
 				reqLogger.V(consts.LogLevelError).Error(err, "Fail to clear Mofed label on CR deletion.")
+				return reconcile.Result{}, err
+			}
+			if shouldRequeue {
+				return r.requeue()
+			}
+
+			shouldRequeue, err = r.handleWaitLabelsNoConfig(
+				ctx, consts.NicConfigurationDaemonLabel, nodeinfo.NodeLabelWaitNicConfig)
+			if err != nil {
+				reqLogger.V(consts.LogLevelError).Error(err, "Fail to clear NIC Configuration wait label on CR deletion.")
 				return reconcile.Result{}, err
 			}
 			if shouldRequeue {
@@ -175,16 +187,27 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	} else {
 		r.DocaDriverImagesProvider.SetImageSpec(nil)
 	}
+
 	// Sync state and update status
 	managerStatus := r.stateManager.SyncState(ctx, instance, sc)
 	r.updateCrStatus(ctx, instance, managerStatus)
 
-	shouldRequeue, err := r.handleMOFEDWaitLabels(ctx, instance)
+	shouldRequeueMofed, err := r.handleMOFEDWaitLabels(ctx, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	if shouldRequeue || managerStatus.Status != state.SyncStateReady {
+	shouldRequeueNicConfig := false
+	// If NIC Configuration Operator is not configured, handle NIC Configuration wait labels
+	if instance.Spec.NicConfigurationOperator == nil {
+		shouldRequeueNicConfig, err = r.handleWaitLabelsNoConfig(
+			ctx, consts.NicConfigurationDaemonLabel, nodeinfo.NodeLabelWaitNicConfig)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	if shouldRequeueMofed || shouldRequeueNicConfig || managerStatus.Status != state.SyncStateReady {
 		return r.requeue()
 	}
 
@@ -206,7 +229,7 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 	reqLogger := log.FromContext(ctx)
 	if cr.Spec.OFEDDriver == nil {
 		reqLogger.V(consts.LogLevelDebug).Info("no OFED config in the policy, check OFED wait label on nodes")
-		return r.handleMOFEDWaitLabelsNoConfig(ctx)
+		return r.handleWaitLabelsNoConfig(ctx, consts.OfedDriverLabel, nodeinfo.NodeLabelWaitOFED)
 	}
 	pods := &corev1.PodList{}
 	_ = r.Client.List(ctx, pods, client.MatchingLabels{"nvidia.com/ofed-driver": ""})
@@ -224,31 +247,32 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 				"node", pod.Spec.NodeName)
 			labelValue = "false"
 		}
-		if err := setOFEDWaitLabel(ctx, r.Client, pod.Spec.NodeName, labelValue); err != nil {
+		if err := setNodeLabel(ctx, r.Client, pod.Spec.NodeName, nodeinfo.NodeLabelWaitOFED, labelValue); err != nil {
 			return false, err
 		}
 	}
 	return false, nil
 }
 
-// handleMOFEDWaitLabelsNoConfig handles MOFED wait label for scenarios when OFED is
-// not configured in NicClusterPolicy, do the following:
-// - set "network.nvidia.com/operator.mofed.wait" to false on Nodes with NVIDIA NICs
-// - remove "network.nvidia.com/operator.mofed.wait" which have no NVIDIA NICs anymore
-// - set "network.nvidia.com/operator.mofed.wait" to true if detects OFED Pod
-// on the node (probably in the terminating state).
+// handleWaitLabelsNoConfig handles wait labels for for scenarios when given component is
+// not configured in NicClusterPolicy and does the following:
+// - sets given label to false on Nodes with NVIDIA NICs
+// - removes given label from nodes which have no NVIDIA NICs anymore
+// - sets given label to true if detects a pod with a specific label on the node (probably in the terminating state).
 // returns true if requeue (resync) is required
-func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabelsNoConfig(ctx context.Context) (bool, error) {
+//
+//nolint:lll
+func (r *NicClusterPolicyReconciler) handleWaitLabelsNoConfig(ctx context.Context, podLabel, waitLabel string) (bool, error) {
 	reqLogger := log.FromContext(ctx)
-	nodesWithOFEDContainer := map[string]struct{}{}
+	nodesWithPod := map[string]struct{}{}
 	pods := &corev1.PodList{}
-	if err := r.Client.List(ctx, pods, client.MatchingLabels{consts.OfedDriverLabel: ""}); err != nil {
+	if err := r.Client.List(ctx, pods, client.MatchingLabels{podLabel: ""}); err != nil {
 		return false, errors.Wrap(err, "failed to list pods")
 	}
 	for i := range pods.Items {
 		pod := pods.Items[i]
 		if pod.Spec.NodeName != "" {
-			nodesWithOFEDContainer[pod.Spec.NodeName] = struct{}{}
+			nodesWithPod[pod.Spec.NodeName] = struct{}{}
 		}
 	}
 	nodes := &corev1.NodeList{}
@@ -258,40 +282,40 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabelsNoConfig(ctx context.C
 	for i := range nodes.Items {
 		node := nodes.Items[i]
 		labelValue := ""
-		if _, hasOFED := nodesWithOFEDContainer[node.Name]; hasOFED {
+		if _, hasPod := nodesWithPod[node.Name]; hasPod {
 			labelValue = "true"
 		} else if node.GetLabels()[nodeinfo.NodeLabelMlnxNIC] == "true" {
 			labelValue = "false"
 		}
-		if err := setOFEDWaitLabel(ctx, r.Client, node.Name, labelValue); err != nil {
+		if err := setNodeLabel(ctx, r.Client, node.Name, waitLabel, labelValue); err != nil {
 			return false, err
 		}
 	}
-	if len(nodesWithOFEDContainer) > 0 {
-		// There is no OFED spec in the NicClusterPolicy, but some OFED Pods are on nodes.
+	if len(nodesWithPod) > 0 {
+		// There is no given component spec in the NicClusterPolicy, but some pods are on nodes.
 		// These Pods should be eventually removed from the cluster,
-		// and we will need to update the OFED wait label for nodes.
+		// and we will need to update the given wait label for nodes.
 		// Here, we trigger resync explicitly to ensure that we will always handle the removal of the Pod.
-		// This explicit resync is required because we don't watch for Pods and can't rely on the OFED DaemonSet
-		// update in this case (cache with Pods can be outdated when we handle OFED DaemonSet removal event).
+		// This explicit resync is required because we don't watch for Pods and can't rely on the DaemonSet
+		// update in this case (cache with Pods can be outdated when we handle DaemonSet removal event).
 		reqLogger.V(consts.LogLevelDebug).Info(
-			"no OFED spec in NicClusterPolicy but there are OFED Pods on nodes, requeue")
+			"no given component spec in NicClusterPolicy but there are pods on nodes, requeue", "component", podLabel)
 		return true, nil
 	}
 	return false, nil
 }
 
-// set the value for the OFED wait label, remove the label if the value is ""
-func setOFEDWaitLabel(ctx context.Context, c client.Client, node, value string) error {
+// setNodeLabel sets the value for the given label, remove the label if the value is ""
+func setNodeLabel(ctx context.Context, c client.Client, node, label, value string) error {
 	reqLogger := log.FromContext(ctx)
 	var patch []byte
 	if value == "" {
-		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: null}}}`, nodeinfo.NodeLabelWaitOFED))
-		reqLogger.V(consts.LogLevelDebug).Info("remove OFED wait label from the node", "node", node)
+		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: null}}}`, label))
+		reqLogger.V(consts.LogLevelDebug).Info("remove given label from the node", "node", node, "label", label)
 	} else {
-		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: %q}}}`, nodeinfo.NodeLabelWaitOFED, value))
-		reqLogger.V(consts.LogLevelDebug).Info("update OFED wait label for the node",
-			"node", node, "value", value)
+		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: %q}}}`, label, value))
+		reqLogger.V(consts.LogLevelDebug).Info("update given label for the node",
+			"node", node, "label", label, "value", value)
 	}
 
 	err := c.Patch(ctx, &corev1.Node{
@@ -301,8 +325,7 @@ func setOFEDWaitLabel(ctx context.Context, c client.Client, node, value string) 
 	}, client.RawPatch(types.StrategicMergePatchType, patch))
 
 	if err != nil {
-		return errors.Wrapf(err, "unable to patch %s label for node %s", nodeinfo.NodeLabelWaitOFED,
-			node)
+		return errors.Wrapf(err, "unable to patch %s label for node %s", label, node)
 	}
 	return nil
 }

@@ -34,6 +34,8 @@ const (
 	NicClusterPolicyResourceName = "nic-cluster-policy"
 	// OfedDriverLabel is the label key for ofed driver Pods and DaemonSets.
 	OfedDriverLabel = "nvidia.com/ofed-driver"
+	// NicConfigurationDaemonLabel is the label key for nic-configuration-daemon Pods and DaemonSets.
+	NicConfigurationDaemonLabel = "nvidia.com/nic-configuration-daemon"
 	// StateLabel is the label key describing which state the operator created a Kubernetes object from.
 	StateLabel = "nvidia.network-operator.state"
 	// DefaultCniBinDirectory is the default location of the CNI binaries on a host.
