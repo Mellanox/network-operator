@@ -94,7 +94,7 @@ spec:
               value: "{{ .repository }}/{{ .image }}:{{ .version }}"
               {{- end }}
             {{- end }}
-            {{- if .Values.maintenanceOperator.enabled }}
+            {{- if .Values.operator.maintenanceOperator.useRequestor }}
             - name: MAINTENANCE_OPERATOR_ENABLED
               value: "{{ .Values.operator.maintenanceOperator.useRequestor }}"
             - name: MAINTENANCE_OPERATOR_REQUESTOR_ID
