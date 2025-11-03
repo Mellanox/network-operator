@@ -24,6 +24,11 @@ SriovConfigDaemon:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   version: network-operator-v25.10.0-beta.4
+SriovConfigDaemonStigFips:
+  image: sriov-network-operator-config-daemon-stig-fips
+  repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: sriov-network-operator
+  version: network-operator-v25.10.0-beta.4-stig-fips
 SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
