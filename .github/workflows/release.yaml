@@ -90,7 +90,7 @@ jobs:
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
 
-          # Extract image names with repository for components that have sourceRepository  
+          # Extract image names with repository for components that have sourceRepository
           images=$(yq 'to_entries | map(select(.value.sourceRepository != null) | .value.image) | join(" ")' hack/release.yaml)
           echo "Managed images: $images"
           echo "managed_images=$images" >> $GITHUB_OUTPUT
@@ -169,11 +169,17 @@ jobs:
           retry_count=0
 
           for image in "${IMAGE_ARRAY[@]}"; do
-            image_url="${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}"
+            if [[ "$image" == *stig-fips ]]; then
+              component_tag="${COMPONENT_TAG}-stig-fips"
+            else
+              component_tag="${COMPONENT_TAG}"
+            fi
+
+            image_url="${DOCKER_REGISTRY}/${image}:${component_tag}"
             echo "Checking availability of: ${image_url}"
 
             while [ $retry_count -lt $MAX_RETRIES ]; do
-              if docker manifest inspect "${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}" > /dev/null 2>&1; then
+              if docker manifest inspect "${DOCKER_REGISTRY}/${image}:${component_tag}" > /dev/null 2>&1; then
                 echo "Image available: ${image_url}"
                 break
               else
@@ -247,16 +253,18 @@ jobs:
             # We always need to add '-stig-fips' suffix for corresponding image version
             # TODO: do not DOCA Driver image for now because $SOURCE_REPO is null one Network Operator will support a new version format 
             if [[ "$component" == *StigFips ]]; then
-              COMPONENT_TAG="${COMPONENT_TAG}-stig-fips"
+              component_tag="${COMPONENT_TAG}-stig-fips"
+            else
+              component_tag="${COMPONENT_TAG}"
             fi
 
             echo "Updating component: $component"
             echo "  Setting repository to: $DOCKER_REGISTRY_MANAGED_COMPONENTS"
-            echo "  Setting version to: $COMPONENT_TAG"
+            echo "  Setting version to: $component_tag"
 
             # Update repository and version for components with sourceRepository
             yq -i ".${component}.repository = \"$DOCKER_REGISTRY_MANAGED_COMPONENTS\"" hack/release.yaml
-            yq -i ".${component}.version = \"$COMPONENT_TAG\"" hack/release.yaml
+            yq -i ".${component}.version = \"$component_tag\"" hack/release.yaml
 
             # Pull the component's helm chart
             CHART_LOCATION=$(yq ".${component}.chartLocation" hack/release.yaml)
