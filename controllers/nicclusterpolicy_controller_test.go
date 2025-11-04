@@ -228,7 +228,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 		})
 	})
 	Context("When NicClusterPolicy CR is deleted", func() {
-		It("should set mofed.wait to false", func() {
+		It("should set mofed.wait and nic-configuration.wait to false", func() {
 			By("Create Node")
 			node := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -251,6 +251,20 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 							Image:            "mofed",
 							Repository:       "nvcr.io/nvidia/mellanox",
 							Version:          "5.9-0.5.6.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+					NicConfigurationOperator: &mellanoxv1alpha1.NicConfigurationOperatorSpec{
+						Operator: &mellanoxv1alpha1.ImageSpec{
+							Image:            "nic-configuration-operator",
+							Repository:       "nvcr.io/nvidia/mellanox",
+							Version:          "1.0.0",
+							ImagePullSecrets: []string{},
+						},
+						ConfigurationDaemon: &mellanoxv1alpha1.ImageSpec{
+							Image:            "nic-configuration-daemon",
+							Repository:       "nvcr.io/nvidia/mellanox",
+							Version:          "1.0.0",
 							ImagePullSecrets: []string{},
 						},
 					},
@@ -277,8 +291,8 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: node.GetNamespace(), Name: node.GetName()}, n)
 			Expect(err).NotTo(HaveOccurred())
 
-			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"true", %q:"true"}}}`,
-				nodeinfo.NodeLabelWaitOFED, nodeinfo.NodeLabelMlnxNIC))
+			patch := []byte(fmt.Sprintf(`{"metadata":{"labels":{%q:"true", %q:"true", %q:"true"}}}`,
+				nodeinfo.NodeLabelWaitOFED, nodeinfo.NodeLabelMlnxNIC, nodeinfo.NodeLabelWaitNicConfig))
 			err = k8sClient.Patch(context.TODO(), n, client.RawPatch(types.StrategicMergePatchType, patch))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -288,7 +302,8 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				if err != nil {
 					return false
 				}
-				return n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitOFED] == "true"
+				return n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitOFED] == "true" &&
+					n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitNicConfig] == "true"
 			}, timeout, interval).Should(BeTrue())
 
 			By("Delete NicClusterPolicy")
@@ -303,6 +318,16 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 					return false
 				}
 				return n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitOFED] == "false"
+			}, timeout*3, interval).Should(BeTrue())
+
+			By("Verify Nic Configuration Wait Label is false")
+			Eventually(func() bool {
+				n := &corev1.Node{}
+				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: node.GetNamespace(), Name: node.GetName()}, n)
+				if err != nil {
+					return false
+				}
+				return n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitNicConfig] == "false"
 			}, timeout*3, interval).Should(BeTrue())
 
 			By("Delete Node")

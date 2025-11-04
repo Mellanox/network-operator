@@ -176,6 +176,9 @@ sriov-network-operator:
     configDaemonNodeSelector:
       beta.kubernetes.io/os: "linux"
       network.nvidia.com/operator.mofed.wait: "false"
+      # Enable when using together with NIC Configuration Operator to wait until
+      # all required FW parameters are successfully applied before configuring SR-IOV
+      # network.nvidia.com/operator.nic-configuration.wait: "false"
 
 # Maintenance Operator chart related values.
 maintenance-operator-chart:
