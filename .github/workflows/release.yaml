@@ -243,12 +243,6 @@ jobs:
             if [ "$SOURCE_REPO" = "null" ]; then
               continue
             fi
-          
-            # We always need to add '-stig-fips' suffix for corresponding image version
-            # TODO: do not DOCA Driver image for now because $SOURCE_REPO is null one Network Operator will support a new version format 
-            if [[ "$component" == *StigFips ]]; then
-              COMPONENT_TAG="${COMPONENT_TAG}-stig-fips"
-            fi 
             
             echo "Updating component: $component"
             echo "  Setting repository to: $DOCKER_REGISTRY_MANAGED_COMPONENTS"
