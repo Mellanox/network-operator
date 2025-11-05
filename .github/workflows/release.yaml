@@ -30,7 +30,7 @@ jobs:
           # name of the release branch for downstream components
           RELEASE_BRANCH=network-operator-${MAJOR_MINOR_X}
           echo "release_branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
-          
+
           # tag for components
           TAG="network-operator-${APP_VERSION}"
           echo "component_tag=${TAG}" >> $GITHUB_OUTPUT
@@ -89,8 +89,8 @@ jobs:
           repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null) | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
-          
-          # Extract image names with repository for components that have sourceRepository  
+
+          # Extract image names with repository for components that have sourceRepository
           images=$(yq 'to_entries | map(select(.value.sourceRepository != null) | .value.image) | join(" ")' hack/release.yaml)
           echo "Managed images: $images"
           echo "managed_images=$images" >> $GITHUB_OUTPUT
@@ -160,20 +160,26 @@ jobs:
       - name: Wait for images to be available
         run: |
           echo "Waiting for images to be pullable from registry..."
-          
+
           images='${{ needs.get-managed-components.outputs.managed_images }}'
           read -a IMAGE_ARRAY <<< "$images"
-          
+
           MAX_RETRIES=120
           SLEEP_INTERVAL=60
           retry_count=0
-          
+
           for image in "${IMAGE_ARRAY[@]}"; do
-            image_url="${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}"
+            if [[ "$image" == *stig-fips ]]; then
+              component_tag="${COMPONENT_TAG}-stig-fips"
+            else
+              component_tag="${COMPONENT_TAG}"
+            fi
+
+            image_url="${DOCKER_REGISTRY}/${image}:${component_tag}"
             echo "Checking availability of: ${image_url}"
 
             while [ $retry_count -lt $MAX_RETRIES ]; do
-              if docker manifest inspect "${DOCKER_REGISTRY}/${image}:${COMPONENT_TAG}" > /dev/null 2>&1; then
+              if docker manifest inspect "${image_url}" > /dev/null 2>&1; then
                 echo "Image available: ${image_url}"
                 break
               else
@@ -182,15 +188,15 @@ jobs:
                 retry_count=$((retry_count + 1))
               fi
             done
-            
+
             if [ $retry_count -eq $MAX_RETRIES ]; then
               echo "Failed to find image after $MAX_RETRIES attempts: ${image_url}"
               exit 1
             fi
           done
-          
+
           echo "All images are available"
-    
+
   create-release-pr:
     needs: [determine-versions, wait-for-images]
     runs-on: ubuntu-24.04
@@ -234,29 +240,31 @@ jobs:
           # Update Network Operator version
           yq -i '.NetworkOperator.version = "${{ env.APP_VERSION }}"' hack/release.yaml
           yq -i '.NetworkOperator.repository = "${{ env.DOCKER_REGISTRY_NETWORK_OPERATOR }}"' hack/release.yaml
-          
+
           # Update components with sourceRepository to use new registry and version
           for component in $(yq 'keys | .[]' hack/release.yaml); do
             SOURCE_REPO=$(yq ".${component}.sourceRepository" hack/release.yaml)
-            
+
             # Skip components without sourceRepository
             if [ "$SOURCE_REPO" = "null" ]; then
               continue
             fi
-          
+
             # We always need to add '-stig-fips' suffix for corresponding image version
             # TODO: do not DOCA Driver image for now because $SOURCE_REPO is null one Network Operator will support a new version format 
             if [[ "$component" == *StigFips ]]; then
-              COMPONENT_TAG="${COMPONENT_TAG}-stig-fips"
-            fi 
-            
+              component_tag="${COMPONENT_TAG}-stig-fips"
+            else
+              component_tag="${COMPONENT_TAG}"
+            fi
+
             echo "Updating component: $component"
             echo "  Setting repository to: $DOCKER_REGISTRY_MANAGED_COMPONENTS"
-            echo "  Setting version to: $COMPONENT_TAG"
-            
+            echo "  Setting version to: $component_tag"
+
             # Update repository and version for components with sourceRepository
             yq -i ".${component}.repository = \"$DOCKER_REGISTRY_MANAGED_COMPONENTS\"" hack/release.yaml
-            yq -i ".${component}.version = \"$COMPONENT_TAG\"" hack/release.yaml
+            yq -i ".${component}.version = \"$component_tag\"" hack/release.yaml
 
             # Pull the component's helm chart
             CHART_LOCATION=$(yq ".${component}.chartLocation" hack/release.yaml)
@@ -296,8 +304,8 @@ jobs:
 
           # Special handling for Mofed component (update registry only, not version, for all releases)
           echo "Updating Mofed components registry for release"
-          yq -i     '.Mofed.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
-          yq -i '.MofedStig.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
+          yq -i         '.Mofed.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
+          yq -i '.MofedStigFips.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
 
           # Update chart versions
           yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
