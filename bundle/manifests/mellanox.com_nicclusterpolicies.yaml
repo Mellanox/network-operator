@@ -535,7 +535,8 @@ spec:
                     type: string
                   nicFirmwareStorage:
                     description: NicFirmwareStorage contains configuration for the
-                      NIC firmware storage
+                      NIC firmware storage. If not provided, the NIC firmware storage
+                      will not be configured.
                     properties:
                       availableStorageSize:
                         default: 1Gi
@@ -552,7 +553,7 @@ spec:
                         default: true
                         description: |-
                           Create specifies whether to create a new PVC or use an existing one
-                          If create == false, the existing PVC should be located in the same namespace as the operator
+                          If create == false, the existing PVC with the name specified in pvcName should be located in the same namespace as the operator
                         type: boolean
                       pvcName:
                         default: nic-fw-storage-pvc
