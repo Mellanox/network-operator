@@ -179,7 +179,7 @@ jobs:
             echo "Checking availability of: ${image_url}"
 
             while [ $retry_count -lt $MAX_RETRIES ]; do
-              if docker manifest inspect "${DOCKER_REGISTRY}/${image}:${component_tag}" > /dev/null 2>&1; then
+              if docker manifest inspect "${image_url}" > /dev/null 2>&1; then
                 echo "Image available: ${image_url}"
                 break
               else
