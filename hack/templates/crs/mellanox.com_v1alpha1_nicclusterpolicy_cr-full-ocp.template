@@ -108,6 +108,11 @@ spec:
       image: {{ .NicConfigurationConfigDaemon.Image }}
       repository: {{ .NicConfigurationConfigDaemon.Repository }}
       version: {{ .NicConfigurationConfigDaemon.Version }}
+    # Uncomment to explicitely reset the NIC's Firmware before the reboot and after updating its non-volatile configuration.
+    # Might be required on DGX servers where configuration update is not successfully applied after the warm reboot.
+    # env:
+    # - name: "FW_RESET_AFTER_CONFIG_UPDATE"
+    #   value: "true"
     nicFirmwareStorage:
       create: true
       pvcName: nic-fw-storage-pvc

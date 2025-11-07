@@ -509,6 +509,41 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(expr.Key).To(Equal("deployment-specific-label"))
 			Expect(expr.Values).To(ContainElements("deployment-value"))
 		})
+
+		It("should pass env variables when specified in CR", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.NicConfigurationOperator.Env = []v1.EnvVar{
+				{Name: "TEST_ENV", Value: "test-value"},
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDeploymentFields(d, cr.Spec.NicConfigurationOperator.Operator)
+			By("Verify Env variables in Deployment")
+			Expect(d.Spec.Template.Spec.Containers[0].Env).Should(
+				ContainElement(v1.EnvVar{Name: "TEST_ENV", Value: "test-value"}))
+			By("Verify DaemonSet")
+			ds := &appsv1.DaemonSet{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: daemonSetName}, ds)
+			Expect(err).NotTo(HaveOccurred())
+			assertCommonDaemonSetFields(ds, cr.Spec.NicConfigurationOperator.ConfigurationDaemon, cr)
+			By("Verify Env variables in DaemonSet")
+			Expect(ds.Spec.Template.Spec.Containers[0].Env).Should(
+				ContainElements(
+					v1.EnvVar{Name: "TEST_ENV", Value: "test-value"},
+					v1.EnvVar{Name: "NODE_NAME",
+						ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}},
+					},
+					v1.EnvVar{Name: "NAMESPACE",
+						ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "metadata.namespace"}},
+					},
+				))
+		})
 	})
 	Context("Verify Sync flows", func() {
 		It("should create DaemonSet, update state to Ready", func() {

@@ -322,6 +322,8 @@ type NicConfigurationOperatorSpec struct {
 	Operator *ImageSpec `json:"operator"`
 	// Image information for nic-configuration-daemon
 	ConfigurationDaemon *ImageSpec `json:"configurationDaemon"`
+	// List of environment variables to set in the NIC Configuration Operator and NIC Configuration Daemon containers.
+	Env []v1.EnvVar `json:"env,omitempty"`
 	// NicFirmwareStorage contains configuration for the NIC firmware storage. If not provided, the NIC firmware storage will not be configured.
 	NicFirmwareStorage *NicFirmwareStorageSpec `json:"nicFirmwareStorage,omitempty"`
 	// LogLevel sets the verbosity level of the logs. info|debug

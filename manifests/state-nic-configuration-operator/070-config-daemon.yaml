@@ -80,6 +80,11 @@ spec:
                   fieldPath: metadata.namespace
             - name: LOG_LEVEL
               value: {{ .CrSpec.LogLevel }}
+            {{- if .CrSpec.Env }}
+            {{- range .CrSpec.Env }}
+              {{ . | yaml | nindentPrefix 14 "- " }}
+            {{- end }}
+            {{- end }}
           volumeMounts:
             - name: sys
               mountPath: /sys
