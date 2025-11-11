@@ -13,7 +13,7 @@ SriovNetworkOperator:
   sourceRepository: sriov-network-operator
   version: network-operator-v25.10.0-beta.5
   chartLocation: deployment/sriov-network-operator-chart
-  excludeChartFiles: ["Chart.yaml"]
+  excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
