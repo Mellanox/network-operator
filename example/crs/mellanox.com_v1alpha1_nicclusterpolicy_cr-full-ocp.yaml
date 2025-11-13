@@ -45,7 +45,7 @@ spec:
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0-beta.5
+    version: network-operator-v25.10.0-beta.6
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -64,7 +64,7 @@ spec:
   sriovDevicePlugin:
     image: sriov-network-device-plugin
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0-beta.5
+    version: network-operator-v25.10.0-beta.6
     config: |
       {
         "resourceList": [
@@ -82,32 +82,32 @@ spec:
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.10.0-beta.5
+      version: network-operator-v25.10.0-beta.6
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0-beta.5
+    version: network-operator-v25.10.0-beta.6
     enableWebhook: false
   ibKubernetes:
     image: ib-kubernetes
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0-beta.5
+    version: network-operator-v25.10.0-beta.6
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: nic-feature-discovery
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0-beta.5
+    version: network-operator-v25.10.0-beta.6
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.10.0-beta.5
+      version: network-operator-v25.10.0-beta.6
     configurationDaemon:
       image: nic-configuration-operator-daemon
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v25.10.0-beta.5
+      version: network-operator-v25.10.0-beta.6
     # Uncomment to explicitely reset the NIC's Firmware before the reboot and after updating its non-volatile configuration.
     # Might be required on DGX servers where configuration update is not successfully applied after the warm reboot.
     # env:
