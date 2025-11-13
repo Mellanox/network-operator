@@ -23,6 +23,7 @@
 # Helm charts
 deployment/network-operator/Chart.lock
 deployment/network-operator/charts/*.tgz
+deployment/network-operator/charts/sriov-network-operator/crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml
 
 # Folders
 bin
