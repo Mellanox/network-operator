@@ -129,3 +129,7 @@ nodeFeatureDiscovery:
   sourceRepository: node-feature-discovery
   version: network-operator-v25.10.0-rc.1
   chartLocation: deployment/helm/node-feature-discovery
+k8sLaunchKit:
+  image: k8s-launch-kit
+  repository: nvcr.io/nvstaging/mellanox
+  version: v25.10.0
