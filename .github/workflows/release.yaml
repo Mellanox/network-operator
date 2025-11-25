@@ -12,7 +12,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: set-version
         run: |
           # full release version, i.e. v25.4.0-rc.1
@@ -82,7 +82,7 @@ jobs:
     needs: determine-versions
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: set-components
         run: |
           # Extract unique sourceRepository names for tagging
@@ -111,7 +111,7 @@ jobs:
       RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
           repository: ${{ github.repository_owner }}/${{ matrix.repo }}
@@ -209,22 +209,22 @@ jobs:
       DOCKER_REGISTRY_MANAGED_COMPONENTS: ${{ needs.determine-versions.outputs.docker_registry_managed_components }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/sriov-network-operator
           path: sriov-network-operator
           ref: ${{ needs.determine-versions.outputs.release_branch }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/node-feature-discovery
           path: node-feature-discovery
           ref: ${{ needs.determine-versions.outputs.release_branch }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/maintenance-operator
           path: maintenance-operator
           ref: ${{ needs.determine-versions.outputs.release_branch }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/network-operator
           path: network-operator

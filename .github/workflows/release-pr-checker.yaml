@@ -15,7 +15,7 @@ jobs:
       statuses: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Wait for CI checks
         # We skip the checks for GA release PRs, as they refer to not yet available images and will fail the CI.
         # All the functionality was tested with the previous release candidate, so these checks are not mandatory.
@@ -76,7 +76,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       PR_NUMBER: ${{ github.event.number }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           sparse-checkout: .
       - run: |

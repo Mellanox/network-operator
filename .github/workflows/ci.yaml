@@ -18,7 +18,7 @@ jobs:
   docker-build-push:
     runs-on: linux-amd64-cpu4
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Determine docker tags
       run: |
         git_sha=$(git rev-parse --short=12 HEAD)                                  # short git commit hash
@@ -50,7 +50,7 @@ jobs:
     env:
       NGC_REPO: nvstaging/mellanox/network-operator
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: NGC setup and authentication
       run: |
         wget \
@@ -90,7 +90,7 @@ jobs:
       DOWNSTREAM_REPO_OWNER: nvidia-ci-cd
       UPSTREAM_REPO_OWNER: redhat-openshift-ecosystem
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}  # token must be explicitly set here for push to work in following step
     - name: Determine version, tag, and base branch
