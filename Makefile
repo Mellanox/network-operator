@@ -331,25 +331,15 @@ image-build-%:
 image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
 
 image-push-for-arch-%:
-	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)-$* 2>&1 | tee $(VERSION)-$*.push.log
-	@digest=$$(grep -o 'digest: sha256:[a-f0-9]*' $(VERSION)-$*.push.log | tail -1 | sed 's/digest: //' | awk '{print $$1}'); \
-	if [ -z "$$digest" ]; then \
-		digest=$$($(IMAGE_BUILDER) inspect $(CONTROLLER_IMAGE):$(VERSION)-$* --format '{{range .RepoDigests}}{{println .}}{{end}}' | head -n1 | cut -d@ -f2); \
-	fi; \
-	echo "$$digest" > $(VERSION)-$*.digest
+	$(IMAGE_BUILDER) tag $(CONTROLLER_IMAGE):$(VERSION)-$* $(CONTROLLER_IMAGE):$(VERSION)
+	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: image-push-multiarch
 image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
 	$(IMAGE_BUILDER) manifest rm $(CONTROLLER_IMAGE):$(VERSION) 2>/dev/null || true
-	@set -e; \
-	digests=""; \
-	for arch in $(BUILD_ARCH); do \
-		digest=$$(cat $(VERSION)-$$arch.digest); \
-		digests="$$digests $(CONTROLLER_IMAGE)@$$digest"; \
-	done; \
-	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) $$digests
-	$(IMAGE_BUILDER) manifest push  $(CONTROLLER_IMAGE):$(VERSION)
-	rm -f $(VERSION)-*.push.log $(VERSION)-*.digest
+	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) \
+		$(foreach arch,$(BUILD_ARCH),$(CONTROLLER_IMAGE):$(VERSION)-$(arch))
+	$(IMAGE_BUILDER) manifest push $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: chart-build
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
