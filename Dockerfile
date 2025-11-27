@@ -13,7 +13,10 @@
 # limitations under the License.
 
 # Ensure the final image uses the correct platform
-ARG ARCH
+# TARGETARCH is automatically provided by Docker Buildx (amd64, arm64, etc.)
+# ARCH is provided by Makefile for traditional builds (backward compatibility)
+ARG TARGETARCH
+ARG ARCH=${TARGETARCH}
 
 # Build the manager binary
 FROM golang:1.25@sha256:698183780de28062f4ef46f82a79ec0ae69d2d22f7b160cf69f71ea8d98bf25d AS builder
@@ -32,11 +35,15 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY ./ ./
 
 # Build
-ARG ARCH
 ARG LDFLAGS
 ARG GCFLAGS
 ARG GOPROXY=
 ENV GOPROXY=$GOPROXY
+
+# Use TARGETARCH provided by Docker Buildx for cross-compilation
+# Fall back to ARCH from Makefile for traditional builds (backward compatibility)
+ARG TARGETARCH
+ARG ARCH=${TARGETARCH}
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -52,6 +59,10 @@ RUN mkdir crds && \
     cp -r network-operator-chart/charts/node-feature-discovery/crds /workspace/crds/node-feature-discovery/ && \
     cp -r network-operator-chart/charts/maintenance-operator-chart/crds /workspace/crds/maintenance-operator/
 
+# Use TARGETARCH for the final stage platform (provided by Docker Buildx)
+# Fall back to ARCH from Makefile for traditional builds (backward compatibility)
+ARG TARGETARCH
+ARG ARCH=${TARGETARCH}
 FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v3.2.1
 
 WORKDIR /
