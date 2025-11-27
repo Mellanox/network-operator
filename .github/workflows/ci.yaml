@@ -18,27 +18,44 @@ jobs:
   docker-build-push:
     runs-on: linux-amd64-cpu4
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Determine docker tags
+      id: docker-tags
       run: |
         git_sha=$(git rev-parse --short=12 HEAD)                                  # short git commit hash
         git_tag=${{ github.ref_type == 'tag' && github.ref_name || '' }}       # git tag, if triggered by tag event
         latest=${{ github.ref_name == env.DEFAULT_BRANCH && 'latest' || '' }}  # 'latest', if branch is master
-        echo DOCKER_TAGS=""$git_sha $git_tag $latest"" | tee -a $GITHUB_ENV
+        
+        # Build comma-separated tags for docker/build-push-action
+        tags=""
+        for tag in $git_sha $git_tag $latest; do
+          if [ -n "$tag" ]; then
+            if [ -z "$tags" ]; then
+              tags="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$tag"
+            else
+              tags="$tags,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$tag"
+            fi
+          fi
+        done
+        echo "tags=$tags" | tee -a $GITHUB_OUTPUT
+    - uses: docker/setup-qemu-action@v3
+    - uses: docker/setup-buildx-action@v3
+      with:
+        buildkitd-config: /etc/buildkit/buildkitd.toml
     - uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
-    - name: Make build and push
-      env:
-        TAG: mellanox/${{ env.IMAGE_NAME }}
-        GOPROXY: ${{ secrets.GO_PROXY_URL }}
-      run: |
-        echo "Docker tags will be: $DOCKER_TAGS"
-        for docker_tag in $DOCKER_TAGS; do
-          make VERSION=$docker_tag image-build-multiarch image-push-multiarch
-        done
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        tags: ${{ steps.docker-tags.outputs.tags }}
+        push: true
+        build-args: |
+          GOPROXY=${{ secrets.GO_PROXY_URL || 'direct' }}
     outputs:
       default_branch: ${{ env.DEFAULT_BRANCH }}  # we output this here, to use in the following job's conditioning (due to github actions environment variable scope limitations).
 
@@ -50,7 +67,7 @@ jobs:
     env:
       NGC_REPO: nvstaging/mellanox/network-operator
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: NGC setup and authentication
       run: |
         wget \
@@ -90,7 +107,7 @@ jobs:
       DOWNSTREAM_REPO_OWNER: nvidia-ci-cd
       UPSTREAM_REPO_OWNER: redhat-openshift-ecosystem
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}  # token must be explicitly set here for push to work in following step
     - name: Determine version, tag, and base branch
