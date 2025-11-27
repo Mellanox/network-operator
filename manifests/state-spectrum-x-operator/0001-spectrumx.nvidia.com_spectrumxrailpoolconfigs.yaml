@@ -1,0 +1,84 @@
+# 2025 NVIDIA CORPORATION & AFFILIATES
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  name: spectrumxrailpoolconfigs.spectrumx.nvidia.com
+spec:
+  group: spectrumx.nvidia.com
+  names:
+    kind: SpectrumXRailPoolConfig
+    listKind: SpectrumXRailPoolConfigList
+    plural: spectrumxrailpoolconfigs
+    singular: spectrumxrailpoolconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SpectrumXRailPoolConfig is the Schema for the spectrumxrailpoolconfigs
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SpectrumXRailPoolConfigSpec defines the desired state of
+              SpectrumXRailPoolConfig.
+            properties:
+              cidrPoolRef:
+                description: Reference to a CIDR Pool resource
+                type: string
+              multiplaneMode:
+                description: Type of the pool config
+                enum:
+                - none
+                - swplb
+                - hwplb
+                - uniplane
+                type: string
+              sriovNetworkNodePolicyRef:
+                description: Reference to a SriovNetworkNodePolicy resource
+                type: string
+            required:
+            - cidrPoolRef
+            - multiplaneMode
+            - sriovNetworkNodePolicyRef
+            type: object
+          status:
+            description: SpectrumXRailPoolConfigStatus defines the observed state
+              of SpectrumXRailPoolConfig.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
