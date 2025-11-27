@@ -331,9 +331,7 @@ image-build-%:
 image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
 
 image-push-for-arch-%:
-	$(IMAGE_BUILDER) tag $(CONTROLLER_IMAGE):$(VERSION)-$* $(CONTROLLER_IMAGE):$(VERSION)
-	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)
-	$(IMAGE_BUILDER) rmi $(CONTROLLER_IMAGE):$(VERSION)
+	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)-$*
 
 .PHONY: image-push-multiarch
 image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
