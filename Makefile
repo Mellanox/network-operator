@@ -330,20 +330,16 @@ image-build-%:
 .PHONY: image-build-multiarch
 image-build-multiarch: $(addprefix image-build-,$(BUILD_ARCH))
 
-DOCKER_MANIFEST_CREATE_ARGS?="--amend"
-image-manifest-for-arch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
-	$(IMAGE_BUILDER) manifest create $(DOCKER_MANIFEST_CREATE_ARGS)  $(CONTROLLER_IMAGE):$(VERSION) $(shell $(IMAGE_BUILDER) inspect --format='{{index .RepoDigests 0}}' $(CONTROLLER_IMAGE):$(VERSION))
-
 image-push-for-arch-%:
-	$(IMAGE_BUILDER) tag $(CONTROLLER_IMAGE):$(VERSION)-$(ARCH) $(CONTROLLER_IMAGE):$(VERSION)
+	$(IMAGE_BUILDER) tag $(CONTROLLER_IMAGE):$(VERSION)-$* $(CONTROLLER_IMAGE):$(VERSION)
 	$(IMAGE_BUILDER) push $(CONTROLLER_IMAGE):$(VERSION)
 
-image-manifest-for-arch-%:
-	$(MAKE) ARCH=$* image-manifest-for-arch
-
 .PHONY: image-push-multiarch
-image-push-multiarch: $(addprefix image-manifest-for-arch-,$(BUILD_ARCH))
-	$(IMAGE_BUILDER) manifest push  $(CONTROLLER_IMAGE):$(VERSION)
+image-push-multiarch: $(addprefix image-push-for-arch-,$(BUILD_ARCH))
+	$(IMAGE_BUILDER) manifest rm $(CONTROLLER_IMAGE):$(VERSION) 2>/dev/null || true
+	$(IMAGE_BUILDER) manifest create $(CONTROLLER_IMAGE):$(VERSION) \
+		$(foreach arch,$(BUILD_ARCH),$(CONTROLLER_IMAGE):$(VERSION)-$(arch))
+	$(IMAGE_BUILDER) manifest push $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: chart-build
 chart-build: $(HELM) ; $(info Building Helm image...)  @ ## Build Helm Chart
