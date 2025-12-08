@@ -308,6 +308,32 @@ rules:
   verbs:
   - use
 - apiGroups:
+  - spectrumx.nvidia.com
+  resources:
+  - spectrumxrailpoolconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - spectrumx.nvidia.com
+  resources:
+  - spectrumxrailpoolconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - spectrumx.nvidia.com
+  resources:
+  - spectrumxrailpoolconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - sriovnetwork.openshift.io
   resources:
   - sriovnetworknodestates
