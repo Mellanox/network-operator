@@ -24,7 +24,7 @@ import (
 
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
+	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/orchestrator"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,6 +43,7 @@ import (
 
 	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	sriovnetworkv1 "github.com/k8snetworkplumbingwg/sriov-network-operator/api/v1"
+	consts "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/consts"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -210,7 +211,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = setupDrainController(mgr, migrationCompletionChan)
+	err = setupDrainController(stopCtx, mgr, migrationCompletionChan)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -268,7 +269,7 @@ func setupUpgradeController(mgr ctrl.Manager, migrationChan chan struct{}) error
 	return nil
 }
 
-func setupDrainController(mgr ctrl.Manager, migrationChan chan struct{}) error {
+func setupDrainController(ctx context.Context, mgr ctrl.Manager, migrationChan chan struct{}) error {
 	requestorOpts := drain.GetRequestorOptsFromEnvs()
 	if !requestorOpts.UseMaintenanceOperator {
 		return nil
@@ -289,8 +290,16 @@ func setupDrainController(mgr ctrl.Manager, migrationChan chan struct{}) error {
 		setupLog.Error(err, "unable to create drain kubernetes client")
 		return err
 	}
-
-	platformsHelper, err := platforms.NewDefaultPlatformHelper()
+	clusterTypeProvider, err := clustertype.NewProvider(ctx, drainKClient)
+	if err != nil {
+		setupLog.Error(err, "unable to create cluster type provider")
+		return err
+	}
+	clusterType := consts.ClusterTypeKubernetes
+	if clusterTypeProvider.IsOpenshift() {
+		clusterType = consts.ClusterTypeOpenshift
+	}
+	orch, err := orchestrator.New(clusterType)
 	if err != nil {
 		setupLog.Error(err, "unable to create platforms helper")
 		return err
@@ -300,7 +309,7 @@ func setupDrainController(mgr ctrl.Manager, migrationChan chan struct{}) error {
 		restConfig,
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("SR-IOV operator"),
-		platformsHelper,
+		orch,
 		migrationChan,
 		mgr.GetLogger().WithValues("Function", "Drain"))
 	if err != nil {

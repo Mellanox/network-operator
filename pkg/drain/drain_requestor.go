@@ -30,7 +30,7 @@ import (
 	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/drain"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
+	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/orchestrator"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -73,7 +73,7 @@ type DrainRequestor struct {
 	opts                   RequestorOptions
 	k8sClient              client.Client
 	kubeClient             kubernetes.Interface
-	platformHelpers        platforms.Interface
+	orchestrator           orchestrator.Interface
 	log                    logr.Logger
 	defaultNodeMaintenance *maintenancev1alpha1.NodeMaintenance
 }
@@ -191,7 +191,7 @@ func setDefaultNodeMaintenance(opts *RequestorOptions) *maintenancev1alpha1.Node
 
 // NewDrainRequestor creates a new DrainRequestor
 func NewDrainRequestor(k8sClient client.Client, k8sConfig *rest.Config, log logr.Logger,
-	platformHelpers platforms.Interface) (*DrainRequestor, error) {
+	orchestrator orchestrator.Interface) (*DrainRequestor, error) {
 	kclient, err := kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func NewDrainRequestor(k8sClient client.Client, k8sConfig *rest.Config, log logr
 		opts:                   opts,
 		k8sClient:              k8sClient,
 		kubeClient:             kclient,
-		platformHelpers:        platformHelpers,
+		orchestrator:           orchestrator,
 		log:                    log,
 		defaultNodeMaintenance: setDefaultNodeMaintenance(&opts),
 	}, nil
@@ -216,7 +216,7 @@ func (d *DrainRequestor) DrainNode(ctx context.Context, node *corev1.Node,
 	log := d.log.WithName("drainNode")
 	log.Info("Node drain requested")
 
-	completed, err := d.platformHelpers.OpenshiftBeforeDrainNode(ctx, node)
+	completed, err := d.orchestrator.BeforeDrainNode(ctx, node)
 	if err != nil {
 		log.Error(err, "error running OpenshiftDrainNode")
 		return false, err
@@ -270,7 +270,7 @@ func (d *DrainRequestor) CompleteDrainNode(ctx context.Context, node *corev1.Nod
 
 	// call the openshift complete drain to unpause the MCP
 	// only if we are the last draining node in the pool
-	completed, err := d.platformHelpers.OpenshiftAfterCompleteDrainNode(ctx, node)
+	completed, err := d.orchestrator.AfterCompleteDrainNode(ctx, node)
 	if err != nil {
 		log.Error(err, "failed to complete openshift draining")
 		return false, err
