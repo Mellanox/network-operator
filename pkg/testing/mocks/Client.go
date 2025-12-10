@@ -23,6 +23,27 @@ type ControllerRuntimeClient struct {
 	mock.Mock
 }
 
+// Apply provides a mock function with given fields: ctx, obj, opts
+func (_m *ControllerRuntimeClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, obj)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, runtime.ApplyConfiguration, ...client.ApplyOption) error); ok {
+		r0 = rf(ctx, obj, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Create provides a mock function with given fields: ctx, obj, opts
 func (_m *ControllerRuntimeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	_va := make([]interface{}, len(opts))

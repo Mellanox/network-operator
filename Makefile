@@ -135,7 +135,7 @@ $(GOLANGCI_LINT):
 # controller gen is used to generate manifests and code for Kubernetes controllers.
 CONTROLLER_GEN_PKG = sigs.k8s.io/controller-tools/cmd/controller-gen
 CONTROLLER_GEN_BIN = controller-gen
-CONTROLLER_GEN_VER = v0.16.4
+CONTROLLER_GEN_VER = v0.19.0
 CONTROLLER_GEN = $(TOOLSDIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
 $(CONTROLLER_GEN):
 	$(call go-install-tool,$(CONTROLLER_GEN_PKG),$(CONTROLLER_GEN_BIN),$(CONTROLLER_GEN_VER))
@@ -151,7 +151,7 @@ $(KUSTOMIZE):
 # setup-envtest is used to install test Kubernetes control plane components for envtest-based tests.
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 SETUP_ENVTEST_BIN := setup-envtest
-SETUP_ENVTEST_VER := v0.0.0-20240110160329-8f8247fdc1c3
+SETUP_ENVTEST_VER := release-0.20
 SETUP_ENVTEST := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 $(SETUP_ENVTEST):
 	$(call go-install-tool,$(SETUP_ENVTEST_PKG),$(SETUP_ENVTEST_BIN),$(SETUP_ENVTEST_VER))
