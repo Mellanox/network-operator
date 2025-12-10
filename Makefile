@@ -151,7 +151,7 @@ $(KUSTOMIZE):
 # setup-envtest is used to install test Kubernetes control plane components for envtest-based tests.
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 SETUP_ENVTEST_BIN := setup-envtest
-SETUP_ENVTEST_VER := release-0.20
+SETUP_ENVTEST_VER := release-0.22
 SETUP_ENVTEST := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 $(SETUP_ENVTEST):
 	$(call go-install-tool,$(SETUP_ENVTEST_PKG),$(SETUP_ENVTEST_BIN),$(SETUP_ENVTEST_VER))
