@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -51,10 +52,8 @@ var _ = Describe("NVIPAM Controller", func() {
 
 	BeforeEach(func() {
 		scheme := runtime.NewScheme()
+		Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(v1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(admv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 		manifestDir := "../../manifests/state-nv-ipam-cni"
 		s, r, err := state.NewStateNVIPAMCNI(client, manifestDir)
