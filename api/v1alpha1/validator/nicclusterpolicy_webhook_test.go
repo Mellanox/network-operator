@@ -968,7 +968,7 @@ var _ = Describe("Validate", func() {
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring(
-				"Unsupported value: ephemeral-storage: supported values: \"cpu\", \"memory\""))
+				"Unsupported value: \"ephemeral-storage\": supported values: \"cpu\", \"memory\""))
 		})
 		It("Invalid Resource Requests Container Name OFEDDriver", func() {
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{

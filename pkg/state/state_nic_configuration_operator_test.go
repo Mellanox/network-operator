@@ -21,11 +21,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -55,10 +55,8 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 		daemonSetName = "nic-configuration-daemon"
 
 		scheme := runtime.NewScheme()
+		Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(v1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		Expect(admv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 		manifestDir := "../../manifests/state-nic-configuration-operator"
 		s, r, err := state.NewStateNicConfigurationOperator(client, manifestDir)
