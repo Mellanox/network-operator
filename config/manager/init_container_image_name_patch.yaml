@@ -2,4 +2,4 @@
   path: "/spec/template/spec/containers/0/env/-"
   value:
     name: OFED_INIT_CONTAINER_IMAGE
-    value: "ghcr.io/mellanox/network-operator-init-container@sha256:67e93ccf3ecb61f17597567faf0f72e1b8ddcf73c5d7440baeadcc1cb6bb811b"
+    value: "nvcr.io/nvidia/mellanox/network-operator-init-container@sha256:8990b7fabb164d5c369964bca8bd0424acd6227d2cc8f0cbfc23b2e3cc732c8b"
