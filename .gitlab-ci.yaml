@@ -1,0 +1,13 @@
+stages:
+  - trigger-jenkins-nspect-on-tag
+
+trigger-jenkins-nspect-on-tag:
+  stage: trigger-jenkins-nspect-on-tag
+  image: curlimages/curl:8.5.0
+  rules:
+    - if: $CI_COMMIT_TAG
+    - when: manual  # TODO: after testing remove
+  variables:
+    JENKINS_JOB_NAME: test-mzeevi3  # TODO: after testing, change to nspect-release-version-automation
+  script:
+    - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?DRY_RUN=false"
