@@ -90,7 +90,7 @@ nicFeatureDiscovery:
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
-  version: 1.22.5-doca3.1.0-host
+  version: 1.23.4-doca3.2.0-host
 ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
