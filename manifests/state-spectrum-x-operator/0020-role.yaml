@@ -13,16 +13,12 @@ rules:
   - patch
   - update
 - apiGroups:
-  - coordination.k8s.io
+  - ""
   resources:
-  - leases
+  - nodes
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -51,6 +47,18 @@ rules:
   - patch
   - update
 - apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - spectrumx.nvidia.com
   resources:
   - spectrumxrailpoolconfigs
@@ -76,3 +84,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - sriovnetworknodepolicies
+  verbs:
+  - get
+  - list
+  - watch
