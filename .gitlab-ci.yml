@@ -12,4 +12,4 @@ trigger-jenkins-nspect-on-tag:
   variables:
     JENKINS_JOB_NAME: nspect-release-version-automation
   script:
-    - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?DRY_RUN=false"
+    - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?GIT_TAG=$CI_COMMIT_TAG"
