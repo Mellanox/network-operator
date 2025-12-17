@@ -11,19 +11,19 @@ SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v25.10.0
+  version: 26cfa03f
   chartLocation: deployment/sriov-network-operator-chart
   excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v25.10.0
+  version: 26cfa03f
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v25.10.0
+  version: 26cfa03f
 SriovConfigDaemonStigFips:
   image: sriov-network-operator-config-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
@@ -129,3 +129,5 @@ nodeFeatureDiscovery:
   sourceRepository: node-feature-discovery
   version: network-operator-v25.10.0
   chartLocation: deployment/helm/node-feature-discovery
+SriovConfigDaemonStig:
+  version: 26cfa03f
