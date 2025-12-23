@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: sriovoperatorconfigs.sriovnetwork.openshift.io
 spec:
   group: sriovnetwork.openshift.io
@@ -40,6 +40,13 @@ spec:
           spec:
             description: SriovOperatorConfigSpec defines the desired state of SriovOperatorConfig
             properties:
+              configDaemonEnvVars:
+                additionalProperties:
+                  type: string
+                description: |-
+                  ConfigDaemonEnvVars allows to specify custom environment variables
+                  for the sriov-network-config-daemon
+                type: object
               configDaemonNodeSelector:
                 additionalProperties:
                   type: string

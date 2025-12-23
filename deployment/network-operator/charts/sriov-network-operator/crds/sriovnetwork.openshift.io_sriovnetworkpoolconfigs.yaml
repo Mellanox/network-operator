@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: sriovnetworkpoolconfigs.sriovnetwork.openshift.io
 spec:
   group: sriovnetwork.openshift.io
@@ -47,7 +47,6 @@ spec:
                 description: |-
                   maxUnavailable defines either an integer number or percentage
                   of nodes in the pool that can go Unavailable during an update.
-
 
                   A value larger than 1 will mean multiple nodes going unavailable during
                   the update, which may affect your workload stress on the remaining nodes.

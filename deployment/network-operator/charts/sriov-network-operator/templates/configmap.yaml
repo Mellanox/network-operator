@@ -49,6 +49,7 @@ data:
   Marvell_OCTEON_Fusion_CNF95XX: "177d b600 b603"
   Marvell_OCTEON10_CN10XXX: "177d b900 b903"
   Marvell_OCTEON_Fusion_CNF105XX: "177d ba00 ba03"
+  Amazon_Elastic_Network_Adapter: "1d0f ec20 ec20"
   {{- range .Values.supportedExtraNICs }}
   {{ . }}
   {{- end }}

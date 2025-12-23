@@ -109,8 +109,12 @@ sriovOperatorConfig:
   disableDrain: false
   # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
   configurationMode: daemon
+  # list of sriov-network-config-daemon plugins to disable (e.g., ["mellanox"])
+  disablePlugins: []
   # feature gates to enable/disable
   featureGates: {}
+  # custom environment variables for sriov-network-config-daemon
+  configDaemonEnvVars: {}
 
 # Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
 supportedExtraNICs: []
