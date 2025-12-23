@@ -71,7 +71,7 @@ Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
-  version: network-operator-v25.10.0
+  version: 751d2a19
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
