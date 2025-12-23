@@ -127,5 +127,5 @@ nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
-  version: network-operator-v25.10.0
+  version: 9729a922
   chartLocation: deployment/helm/node-feature-discovery
