@@ -98,7 +98,7 @@ spec:
   nicFeatureDiscovery:
     image: nic-feature-discovery
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0
+    version: fa13c5e
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
