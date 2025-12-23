@@ -61,7 +61,7 @@ IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-kubernetes
-  version: network-operator-v25.10.0
+  version: 8b8e53b
 CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
