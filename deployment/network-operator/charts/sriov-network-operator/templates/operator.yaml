@@ -43,6 +43,9 @@ spec:
           image: {{ .Values.images.operator }}
           command:
             - sriov-network-operator
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
           resources:
             requests:
               cpu: 100m
