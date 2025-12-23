@@ -33,7 +33,7 @@ SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
-  version: network-operator-v25.10.0
+  version: 44da1bf
 SriovIbCni:
   image: ib-sriov-cni
   repository: nvcr.io/nvstaging/mellanox
