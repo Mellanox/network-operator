@@ -95,7 +95,7 @@ ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
-  version: network-operator-v25.10.0
+  version: 3cfdfbed
 rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
