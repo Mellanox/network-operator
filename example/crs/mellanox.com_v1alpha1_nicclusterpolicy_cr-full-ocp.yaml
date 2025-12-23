@@ -86,7 +86,7 @@ spec:
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v25.10.0
+    version: 3e55382
     enableWebhook: false
   ibKubernetes:
     image: ib-kubernetes
