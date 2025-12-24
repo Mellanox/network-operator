@@ -25,7 +25,7 @@ import (
 	sriovnetworkv1 "github.com/k8snetworkplumbingwg/sriov-network-operator/api/v1"
 	constants "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/consts"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/drain"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms"
+	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/orchestrator"
 	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,9 +65,9 @@ type DrainReconcile struct {
 
 // NewDrainReconcileController creates a new DrainReconcile controller
 func NewDrainReconcileController(client client.Client, k8sConfig *rest.Config, scheme *runtime.Scheme,
-	recorder record.EventRecorder, platformHelper platforms.Interface, migrationCh chan struct{},
+	recorder record.EventRecorder, orchestrator orchestrator.Interface, migrationCh chan struct{},
 	log logr.Logger) (*DrainReconcile, error) {
-	drainer, err := drainer.NewDrainRequestor(client, k8sConfig, log, platformHelper)
+	drainer, err := drainer.NewDrainRequestor(client, k8sConfig, log, orchestrator)
 	if err != nil {
 		return nil, err
 	}
