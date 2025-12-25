@@ -1,6 +1,6 @@
 module github.com/Mellanox/network-operator
 
-go 1.24.0
+go 1.24.11
 
 require (
 	github.com/Mellanox/maintenance-operator/api v0.2.3
