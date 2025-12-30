@@ -10,6 +10,6 @@ trigger-jenkins-nspect-on-tag:
     - os/linux
     - type/docker
   variables:  # additional variables defined at the gitlab group scope
-    JENKINS_JOB_NAME: nspect-release-version-automation
+    JENKINS_JOB_NAME: nspect-automation
   script:
     - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_JENKINS_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?GIT_TAG=$CI_COMMIT_TAG"
