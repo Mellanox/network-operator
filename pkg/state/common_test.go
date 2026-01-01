@@ -37,11 +37,13 @@ import (
 	apiimagev1 "github.com/openshift/api/image/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -73,13 +75,16 @@ func (t *testScope) New(fn clientBuilderFunc, dir string) testScope {
 	ctx := context.Background()
 	scheme := runtime.NewScheme()
 
-	Expect(corev1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(appsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	// Use the default Kubernetes scheme as a base
+	Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(apiextensionsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(apiimagev1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(netattdefv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
-	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		Build()
 	sstate, renderer, err := fn(c, dir)
 	Expect(err).NotTo(HaveOccurred())
 

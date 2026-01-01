@@ -26,8 +26,8 @@ import (
 	maintenancev1alpha1 "github.com/Mellanox/maintenance-operator/api/v1alpha1"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	sriovnetworkv1 "github.com/k8snetworkplumbingwg/sriov-network-operator/api/v1"
-	mock_platforms "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms/mock"
-	"github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/platforms/openshift"
+	consts "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/consts"
+	mock_orchestrator "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/orchestrator/mock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -82,12 +82,11 @@ func setupDrainControllerWithManager(k8sManager manager.Manager,
 	migrationCompletionChan chan struct{}) {
 	t := GinkgoT()
 	mockCtrl := gomock.NewController(t)
-	platformHelper := mock_platforms.NewMockInterface(mockCtrl)
-	platformHelper.EXPECT().GetFlavor().Return(openshift.OpenshiftFlavorDefault).AnyTimes()
-	platformHelper.EXPECT().IsOpenshiftCluster().Return(false).AnyTimes()
-	platformHelper.EXPECT().IsHypershift().Return(false).AnyTimes()
-	platformHelper.EXPECT().OpenshiftBeforeDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
-	platformHelper.EXPECT().OpenshiftAfterCompleteDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	orchestrator := mock_orchestrator.NewMockInterface(mockCtrl)
+	orchestrator.EXPECT().Flavor().Return(consts.ClusterFlavorDefault).AnyTimes()
+	orchestrator.EXPECT().ClusterType().Return(consts.ClusterTypeKubernetes).AnyTimes()
+	orchestrator.EXPECT().BeforeDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	orchestrator.EXPECT().AfterCompleteDrainNode(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 
 	drainKClient, err := client.New(k8sConfig, client.Options{
 		Scheme: scheme.Scheme,
@@ -105,7 +104,7 @@ func setupDrainControllerWithManager(k8sManager manager.Manager,
 		k8sConfig,
 		k8sManager.GetScheme(),
 		k8sManager.GetEventRecorderFor("operator"),
-		platformHelper,
+		orchestrator,
 		migrationCompletionChan,
 		k8sManager.GetLogger().WithValues("Function", "Drain"))
 	Expect(err).ToNot(HaveOccurred())
