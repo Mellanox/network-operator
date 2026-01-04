@@ -2,11 +2,13 @@ NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
   version: v26.1.0-beta.1
+  nSpectScope: gov-ready
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: network-operator-init-container
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
@@ -14,31 +16,37 @@ SriovNetworkOperator:
   version: network-operator-v26.1.0-beta.1
   chartLocation: deployment/sriov-network-operator-chart
   excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
+  nSpectScope: gov-ready
 SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: general
 SriovConfigDaemonStigFips:
   image: sriov-network-operator-config-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   version: network-operator-v26.1.0-beta.1-stig-fips
+  nSpectScope: fedramp
 SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 SriovIbCni:
   image: ib-sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-sriov-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
@@ -52,41 +60,49 @@ RdmaSharedDevicePlugin:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8s-rdma-shared-dev-plugin
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-kubernetes
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
@@ -96,21 +112,25 @@ ovsCni:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: gov-ready
 nicConfigurationOperator:
   image: nic-configuration-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: general
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: general
 maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
@@ -118,18 +138,23 @@ maintenanceOperator:
   version: network-operator-v26.1.0-beta.1
   chartLocation: deployment/maintenance-operator-chart
   chartName: maintenance-operator-chart
+  nSpectScope: gov-ready
 spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
   version: network-operator-v26.1.0-beta.1
+  nSpectScope: general
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
   version: network-operator-v26.1.0-beta.1
   chartLocation: deployment/helm/node-feature-discovery
+  nSpectScope: gov-ready
 k8sLaunchKit:
   image: k8s-launch-kit
   repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: NVIDIA/k8s-launch-kit
   version: v25.10.0
+  nSpectScope: general
