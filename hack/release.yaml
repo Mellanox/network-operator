@@ -1,6 +1,7 @@
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: network-operator
   version: v26.1.0-beta.1
   nSpectScope: gov-ready
 NetworkOperatorInitContainer:
