@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: sriovnetworknodepolicies.sriovnetwork.openshift.io
 spec:
   group: sriovnetwork.openshift.io
@@ -45,6 +45,13 @@ spec:
                   contains bridge configuration for matching PFs,
                   valid only for eSwitchMode==switchdev
                 properties:
+                  groupingPolicy:
+                    description: contains OVS bridges grouping configuration
+                    enum:
+                    - perPF
+                    - perNIC
+                    - all
+                    type: string
                   ovs:
                     description: contains configuration for the OVS bridge,
                     properties:
@@ -120,6 +127,41 @@ spec:
                 - netdevice
                 - vfio-pci
                 type: string
+              devlinkParams:
+                description: contains devlink params for NIC devices
+                properties:
+                  params:
+                    items:
+                      description: DevlinkParam defines the parameter for devlink
+                        configuration
+                      properties:
+                        applyOn:
+                          description: 'Device to apply devlink parameter: PF (default)|VF|SF'
+                          enum:
+                          - PF
+                          - pf
+                          - VF
+                          - vf
+                          - SF
+                          - sf
+                          type: string
+                        cmode:
+                          description: 'cmode option: runtime (default) | driverinit
+                            | permanent (runtime is only supported now)'
+                          enum:
+                          - runtime
+                          - driverinit
+                          - permanent
+                          type: string
+                        name:
+                          description: Param name
+                          type: string
+                        value:
+                          description: Param value
+                          type: string
+                      type: object
+                    type: array
+                type: object
               eSwitchMode:
                 description: NIC Device Mode. Allowed value "legacy","switchdev".
                 enum:

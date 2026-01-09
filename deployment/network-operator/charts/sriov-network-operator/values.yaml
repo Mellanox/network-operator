@@ -7,6 +7,8 @@ operator:
       operator: "Exists"
       effect: "NoSchedule"
   nodeSelector: {}
+  # custom extra environment variables for the operator container
+  extraEnv: {}
   affinity:
     nodeAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
