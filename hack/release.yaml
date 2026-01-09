@@ -101,7 +101,7 @@ nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: network-operator-v26.1.0-beta.1
+  version: "1390573"
   nSpectScope: gov-ready
 docaTelemetryService:
   image: doca_telemetry
