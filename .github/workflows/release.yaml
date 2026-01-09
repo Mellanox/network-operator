@@ -170,7 +170,7 @@ jobs:
 
           for image in "${IMAGE_ARRAY[@]}"; do
             if [[ "$image" == *stig-fips ]]; then
-              component_tag="${COMPONENT_TAG}-stig-fips"
+              continue
             else
               component_tag="${COMPONENT_TAG}"
             fi
