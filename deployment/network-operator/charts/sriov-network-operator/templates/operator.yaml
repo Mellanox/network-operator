@@ -127,6 +127,10 @@ spec:
               value: {{ .Values.operator.clusterType }}
             - name: STALE_NODE_STATE_CLEANUP_DELAY_MINUTES
               value: "{{ .Values.operator.staleNodeStateCleanupDelayMinutes }}"
+            {{- range $k, $v := .Values.operator.extraEnv }}
+            - name: {{ $k }}
+              value: {{ $v | toString | quote }}
+            {{- end }}
         {{- if .Values.operator.admissionControllers.enabled }}
             - name: OPERATOR_WEBHOOK_NETWORK_POLICY_PORT
               value: "{{ .Values.operator.admissionControllers.networkPolicy.operator.port }}"

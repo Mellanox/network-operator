@@ -77,7 +77,8 @@ We have introduced the following Chart parameters.
 | Name | Type | Default | description |
 | ---- | ---- | ------- | ----------- |
 | `operator.tolerations` | list | `[{"key":"node-role.kubernetes.io/master","operator":"Exists","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/control-plane","operator":"Exists","effect":"NoSchedule"}]` | Operator's tolerations |
-| `operator.nodeSelector` | object | {} | Operator's node selector |
+| `operator.nodeSelector` | object | `{}` | Operator's node selector |
+| `operator.extraEnv` | map[string]string | `{}` | Custom extra environment variables for the operator container |
 | `operator.affinity` | object | `{"nodeAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":1,"preference":{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"In","values":[""]}]}},{"weight":1,"preference":{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"In","values":[""]}]}}]}}` | Operator's afffinity configuration |
 | `operator.nameOverride` | string | `` | Operator's resource name override |
 | `operator.fullnameOverride` | string | `` | Operator's resource full name override |
