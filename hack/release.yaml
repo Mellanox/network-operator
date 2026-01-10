@@ -13,7 +13,7 @@ SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v26.1.0-beta.1
+  version: 0e3647d0
   chartLocation: deployment/sriov-network-operator-chart
   excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
   nSpectScope: gov-ready
@@ -21,13 +21,13 @@ SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v26.1.0-beta.1
+  version: 0e3647d0
   nSpectScope: gov-ready
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
-  version: network-operator-v26.1.0-beta.1
+  version: 0e3647d0
   nSpectScope: general
 SriovConfigDaemonStigFips:
   image: sriov-network-operator-config-daemon-stig-fips
