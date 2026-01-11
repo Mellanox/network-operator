@@ -156,5 +156,5 @@ k8sLaunchKit:
   image: k8s-launch-kit
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: NVIDIA/k8s-launch-kit
-  version: network-operator-v26.1.0-beta.2
+  version: v25.10.0
   nSpectScope: general
