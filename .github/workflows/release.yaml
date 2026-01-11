@@ -245,8 +245,8 @@ jobs:
           for component in $(yq 'keys | .[]' hack/release.yaml); do
             SOURCE_REPO=$(yq ".${component}.sourceRepository" hack/release.yaml)
 
-            # Skip components without sourceRepository
-            if [ "$SOURCE_REPO" = "null" ]; then
+            # Skip components without sourceRepository or k8sLaunchKit (its updates are managed manually for now)
+            if [ "$SOURCE_REPO" = "null" ] || [ "$SOURCE_REPO" = "k8sLaunchKit" ]; then
               continue
             fi
 
