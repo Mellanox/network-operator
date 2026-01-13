@@ -107,6 +107,8 @@ jobs:
       fail-fast: false  # allow all jobs to run independently
       matrix:
         repo: ${{ fromJson(needs.get-managed-components.outputs.managed_repos) }}
+        include:
+          - repo: doca-driver-build
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
