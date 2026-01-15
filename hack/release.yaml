@@ -145,6 +145,12 @@ spectrumXOperator:
   sourceRepository: spectrum-x-operator
   version: network-operator-v26.1.0-beta.2
   nSpectScope: general
+spectrumXOperatorStigFips:
+  image: spectrum-x-operator
+  repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: spectrum-x-operator-stig-fips
+  version: network-operator-v26.1.0-beta.2
+  nSpectScope: gov-ready
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
