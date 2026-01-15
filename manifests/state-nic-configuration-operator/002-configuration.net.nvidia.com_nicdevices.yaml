@@ -168,6 +168,25 @@ spec:
                           enabled:
                             description: Optimize Spectrum X
                             type: boolean
+                          multiplaneMode:
+                            default: none
+                            description: |-
+                              Multiplane mode to be configured
+                              Can be "none", "swplb", "hwplb", or "uniplane"
+                            enum:
+                            - none
+                            - swplb
+                            - hwplb
+                            - uniplane
+                            type: string
+                          numberOfPlanes:
+                            default: 1
+                            description: Number of planes to be configured
+                            enum:
+                            - 1
+                            - 2
+                            - 4
+                            type: integer
                           overlay:
                             default: none
                             description: |-
@@ -183,11 +202,29 @@ spec:
                             enum:
                             - RA1.3
                             - RA2.0
+                            - RA2.1
                             type: string
                         required:
                         - enabled
                         - version
                         type: object
+                        x-kubernetes-validations:
+                        - message: when MultiplaneMode is none, numberOfPlanes must
+                            be 1
+                          rule: '!has(self.multiplaneMode) || !has(self.numberOfPlanes)
+                            || self.multiplaneMode != ''none'' || self.numberOfPlanes
+                            == 1'
+                        - message: when MultiplaneMode is not none, numberOfPlanes
+                            must not be 1
+                          rule: '!has(self.multiplaneMode) || !has(self.numberOfPlanes)
+                            || self.multiplaneMode == ''none'' || self.numberOfPlanes
+                            != 1'
+                        - message: when Version is RA1.3 or RA2.0, MultiplaneMode
+                            must be none and numberOfPlanes must be 1
+                          rule: '!has(self.version) || !has(self.multiplaneMode) ||
+                            !has(self.numberOfPlanes) || !(self.version == ''RA1.3''
+                            || self.version == ''RA2.0'') || (self.multiplaneMode
+                            == ''none'' && self.numberOfPlanes == 1)'
                     required:
                     - linkType
                     - numVfs
@@ -224,6 +261,40 @@ spec:
                 required:
                 - nicFirmwareSourceRef
                 - updatePolicy
+                type: object
+              interfaceNameTemplate:
+                description: InterfaceNameTemplate specifies the interface name template
+                  to be applied to the NIC
+                properties:
+                  netDevicePrefix:
+                    description: NetDevicePrefix specifies the prefix for the net
+                      device name
+                    type: string
+                  nicIndex:
+                    description: NicIndex is the index of the NIC in the flattened
+                      list of NICs based on the Template
+                    type: integer
+                  planeIndices:
+                    description: PlaneIndices is the indices of the planes for the
+                      given NIC based on the Template
+                    items:
+                      type: integer
+                    type: array
+                  railIndex:
+                    description: RailIndex is the index of the rail where the given
+                      NIC belongs to based on the Template
+                    type: integer
+                  rdmaDevicePrefix:
+                    description: |-
+                      --- Parameters from the NicInterfaceNameTemplate CR ---
+                      RdmaDevicePrefix specifies the prefix for the rdma device name
+                    type: string
+                required:
+                - netDevicePrefix
+                - nicIndex
+                - planeIndices
+                - railIndex
+                - rdmaDevicePrefix
                 type: object
             type: object
           status:
