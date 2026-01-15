@@ -42,7 +42,6 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-      {{- if hasPrefix .CrSpec.Version "v4" }}
       priorityClassName: "system-node-critical"
       terminationGracePeriodSeconds: 10
       initContainers:
@@ -64,11 +63,9 @@ spec:
             - name: cnibin
               mountPath: /host/opt/cni/bin
               mountPropagation: Bidirectional
-      {{- end }}
       containers:
         - name: kube-multus
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
-          {{- if (or (hasPrefix .CrSpec.Version "v4") (hasPrefix .CrSpec.Version "network-operator")) }}
           command: ["/thin_entrypoint"]
           args:
             # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
@@ -80,20 +77,6 @@ spec:
             - "--skip-config-watch"
             - "--cni-bin-dir=/host/opt/cni/bin"
             - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
-          {{- else }}
-          command: ["/entrypoint.sh"]
-          args:
-            - "--cni-version=0.3.1"
-            - "--cni-conf-dir=/host/etc/cni/net.d"
-            - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
-            - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
-          # Remove multus config file to prevent failing of creating/deleting pods since multus will fail due to
-          # permission issue, https://github.com/intel/multus-cni/issues/592
-          lifecycle:
-            preStop:
-              exec:
-                command: ["/bin/sh", "-c", "rm -f /host/etc/cni/net.d/00-multus.conf"]
-          {{- end }}
           {{- with .RuntimeSpec.ContainerResources }}
           {{- with index . "kube-multus" }}
           resources:
