@@ -103,6 +103,8 @@ type NicClusterPolicyReconciler struct {
 // +kubebuilder:rbac:groups=configuration.net.nvidia.com,resources=nicfirmwaresources/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=configuration.net.nvidia.com,resources=nicfirmwaresources,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=configuration.net.nvidia.com,resources=nicfirmwaresources/finalizers,verbs=update
+//+kubebuilder:rbac:groups=configuration.net.nvidia.com,resources=nicinterfacenametemplates,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=configuration.net.nvidia.com,resources=nicinterfacenametemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=maintenance.nvidia.com,resources=nodemaintenances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=maintenance.nvidia.com,resources=nodemaintenances/status,verbs=get
 // +kubebuilder:rbac:groups=spectrumx.nvidia.com,resources=spectrumxrailpoolconfigs,verbs=get;list;watch;create;update;patch;delete

@@ -131,6 +131,7 @@ rules:
   - nicdevices
   - nicfirmwaresources
   - nicfirmwaretemplates
+  - nicinterfacenametemplates
   verbs:
   - create
   - delete
@@ -155,6 +156,7 @@ rules:
   - nicdevices/status
   - nicfirmwaresources/status
   - nicfirmwaretemplates/status
+  - nicinterfacenametemplates/status
   verbs:
   - get
   - patch
