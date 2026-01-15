@@ -190,6 +190,25 @@ spec:
                       enabled:
                         description: Optimize Spectrum X
                         type: boolean
+                      multiplaneMode:
+                        default: none
+                        description: |-
+                          Multiplane mode to be configured
+                          Can be "none", "swplb", "hwplb", or "uniplane"
+                        enum:
+                        - none
+                        - swplb
+                        - hwplb
+                        - uniplane
+                        type: string
+                      numberOfPlanes:
+                        default: 1
+                        description: Number of planes to be configured
+                        enum:
+                        - 1
+                        - 2
+                        - 4
+                        type: integer
                       overlay:
                         default: none
                         description: |-
@@ -205,11 +224,29 @@ spec:
                         enum:
                         - RA1.3
                         - RA2.0
+                        - RA2.1
                         type: string
                     required:
                     - enabled
                     - version
                     type: object
+                    x-kubernetes-validations:
+                    - message: when MultiplaneMode is none, numberOfPlanes must be
+                        1
+                      rule: '!has(self.multiplaneMode) || !has(self.numberOfPlanes)
+                        || self.multiplaneMode != ''none'' || self.numberOfPlanes
+                        == 1'
+                    - message: when MultiplaneMode is not none, numberOfPlanes must
+                        not be 1
+                      rule: '!has(self.multiplaneMode) || !has(self.numberOfPlanes)
+                        || self.multiplaneMode == ''none'' || self.numberOfPlanes
+                        != 1'
+                    - message: when Version is RA1.3 or RA2.0, MultiplaneMode must
+                        be none and numberOfPlanes must be 1
+                      rule: '!has(self.version) || !has(self.multiplaneMode) || !has(self.numberOfPlanes)
+                        || !(self.version == ''RA1.3'' || self.version == ''RA2.0'')
+                        || (self.multiplaneMode == ''none'' && self.numberOfPlanes
+                        == 1)'
                 required:
                 - linkType
                 - numVfs
@@ -237,6 +274,11 @@ spec:
               rule: '!(has(self.template.spectrumXOptimized) && self.template.spectrumXOptimized.enabled)
                 || (self.nicSelector.nicType == ''1023'' || self.nicSelector.nicType
                 == ''a2dc'')'
+            - message: hwplb MultiplaneMode can only be enabled for ConnectX-8 (NicType
+                1023)
+              rule: '!has(self.template.spectrumXOptimized) || !has(self.template.spectrumXOptimized.multiplaneMode)
+                || self.template.spectrumXOptimized.multiplaneMode != ''hwplb'' ||
+                self.nicSelector.nicType == ''1023'''
           status:
             description: Defines the observed state of NicConfigurationTemplate
             properties:
