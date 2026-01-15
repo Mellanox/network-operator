@@ -111,7 +111,7 @@ ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
-  version: network-operator-v26.1.0-beta.2
+  version: ef991cd9
   nSpectScope: gov-ready
 rdmaCni:
   image: rdma-cni
