@@ -161,7 +161,7 @@ nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
-  version: network-operator-v26.1.0-beta.2
+  version: 0a5545f1
   chartLocation: deployment/helm/node-feature-discovery
   nSpectScope: gov-ready
 k8sLaunchKit:
