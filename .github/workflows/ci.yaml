@@ -1,4 +1,4 @@
-name: Docker, Helm and OCP CI
+name: Docker, Helm, and OCP CI
 
 on:
   push:
@@ -17,15 +17,21 @@ env:
 jobs:
   docker-build-push:
     runs-on: linux-amd64-cpu4
+    permissions:
+      contents: read
+      id-token: write
     steps:
     - uses: actions/checkout@v6
+    - name: Setup Go Proxy
+      id: setup-go-proxy
+      uses: nv-gha-runners/setup-artifactory-go-proxy@main
     - name: Determine docker tags
       id: docker-tags
       run: |
-        git_sha=$(git rev-parse --short=12 HEAD)                                  # short git commit hash
+        git_sha=$(git rev-parse --short=12 HEAD)                               # short git commit hash
         git_tag=${{ github.ref_type == 'tag' && github.ref_name || '' }}       # git tag, if triggered by tag event
         latest=${{ github.ref_name == env.DEFAULT_BRANCH && 'latest' || '' }}  # 'latest', if branch is master
-        
+
         # Build comma-separated tags for docker/build-push-action
         tags=""
         for tag in $git_sha $git_tag $latest; do
@@ -48,6 +54,8 @@ jobs:
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
     - uses: docker/build-push-action@v6
+      env:
+        GOPROXY: ${{ steps.setup-go-proxy.outputs.goproxy-url || 'direct' }}
       with:
         context: .
         file: ./Dockerfile
@@ -55,7 +63,7 @@ jobs:
         tags: ${{ steps.docker-tags.outputs.tags }}
         push: true
         build-args: |
-          GOPROXY=${{ secrets.GO_PROXY_URL || 'direct' }}
+          GOPROXY=${{ env.GOPROXY }}
     outputs:
       default_branch: ${{ env.DEFAULT_BRANCH }}  # we output this here, to use in the following job's conditioning (due to github actions environment variable scope limitations).
 

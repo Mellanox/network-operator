@@ -37,7 +37,7 @@ COPY ./ ./
 # Build
 ARG LDFLAGS
 ARG GCFLAGS
-ARG GOPROXY=
+ARG GOPROXY
 ENV GOPROXY=$GOPROXY
 
 # Use TARGETARCH provided by Docker Buildx for cross-compilation
