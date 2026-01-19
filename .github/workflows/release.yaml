@@ -250,7 +250,7 @@ jobs:
             SOURCE_REPO=$(yq ".${component}.sourceRepository" hack/release.yaml)
 
             # Skip components without sourceRepository or k8sLaunchKit (its updates are managed manually for now)
-            if [ "$SOURCE_REPO" = "null" ] || [ "$SOURCE_REPO" = "k8sLaunchKit" ]; then
+            if [ "$SOURCE_REPO" = "null" ] || [ "$SOURCE_REPO" = "NVIDIA/k8s-launch-kit" ]; then
               continue
             fi
 
