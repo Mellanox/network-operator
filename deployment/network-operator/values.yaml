@@ -160,7 +160,7 @@ sriov-network-operator:
     operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-v26.1.0-beta.2
     sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-v26.1.0-beta.2
     sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v26.1.0-beta.2
-    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v26.1.0-beta.2
+    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:486d635
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.1.0-beta.2
     rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v26.1.0-beta.2
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.1.0-beta.2
