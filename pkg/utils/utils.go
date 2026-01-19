@@ -18,6 +18,8 @@ limitations under the License.
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -90,4 +92,9 @@ func GetCniNetworkDirectory(staticInfo staticconfig.Provider, _ clustertype.Prov
 		return userSetDirectory
 	}
 	return consts.DefaultCniNetworkDirectory
+}
+
+func GetStringHash(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return base64.StdEncoding.EncodeToString(hash[:])
 }

@@ -147,6 +147,7 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+
 	renderData := &stateRDMASharedDevicePluginManifestRenderData{
 		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
 		Tolerations:         cr.Spec.Tolerations,
@@ -164,6 +165,14 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
+
+	if cr.Spec.RdmaSharedDevicePlugin.Config != nil {
+		configHash := utils.GetStringHash(*cr.Spec.RdmaSharedDevicePlugin.Config)
+		if err := SetConfigHashAnnotation(objs, configHash); err != nil {
+			return nil, errors.Wrap(err, "failed to set config hash annotation")
+		}
+	}
+
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }

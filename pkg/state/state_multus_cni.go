@@ -165,6 +165,13 @@ func (s *stateMultusCNI) GetManifestObjects(
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
 
+	if cr.Spec.SecondaryNetwork.Multus.Config != nil {
+		configHash := utils.GetStringHash(*cr.Spec.SecondaryNetwork.Multus.Config)
+		if err := SetConfigHashAnnotation(objs, configHash); err != nil {
+			return nil, errors.Wrap(err, "failed to set config hash annotation")
+		}
+	}
+
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
