@@ -84,7 +84,7 @@ var _ = Describe("stateSkel", func() {
 var _ = Describe("SetConfigHashAnnotation", func() {
 	Context("when configHash is empty", func() {
 		It("should not modify any objects", func() {
-			ds := createTestDaemonSet("test-ds", "test-ns")
+			ds := createTestDaemonSet("test-ds")
 			objs := []*unstructured.Unstructured{ds}
 			err := SetConfigHashAnnotation(objs, "")
 			Expect(err).NotTo(HaveOccurred())
@@ -99,7 +99,7 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 
 	Context("when configHash is provided", func() {
 		It("should add annotation to DaemonSet pod template", func() {
-			ds := createTestDaemonSet("test-ds", "test-ns")
+			ds := createTestDaemonSet("test-ds")
 			objs := []*unstructured.Unstructured{ds}
 			configHash := "abc123hash"
 
@@ -114,7 +114,7 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 		})
 
 		It("should preserve existing annotations", func() {
-			ds := createTestDaemonSet("test-ds", "test-ns")
+			ds := createTestDaemonSet("test-ds")
 			// Add existing annotation
 			err := unstructured.SetNestedStringMap(ds.Object,
 				map[string]string{"existing": "annotation"},
@@ -159,8 +159,8 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 		})
 
 		It("should handle multiple DaemonSets", func() {
-			ds1 := createTestDaemonSet("test-ds-1", "test-ns")
-			ds2 := createTestDaemonSet("test-ds-2", "test-ns")
+			ds1 := createTestDaemonSet("test-ds-1")
+			ds2 := createTestDaemonSet("test-ds-2")
 			objs := []*unstructured.Unstructured{ds1, ds2}
 			configHash := "abc123hash"
 
@@ -178,14 +178,14 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 	})
 })
 
-func createTestDaemonSet(name, namespace string) *unstructured.Unstructured {
+func createTestDaemonSet(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "apps/v1",
 			"kind":       "DaemonSet",
 			"metadata": map[string]interface{}{
 				"name":      name,
-				"namespace": namespace,
+				"namespace": "test-ns",
 			},
 			"spec": map[string]interface{}{
 				"selector": map[string]interface{}{

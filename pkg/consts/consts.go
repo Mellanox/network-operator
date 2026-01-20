@@ -50,5 +50,6 @@ const (
 	OfedDriverSkipDrainLabelSelector = "nvidia.com/ofed-driver-upgrade-drain.skip!=true"
 	// ControllerRevisionAnnotation is the key for annotations used to store revision information on Kubernetes objects.
 	ControllerRevisionAnnotation = "nvidia.network-operator.revision"
+	// ConfigHashAnnotation is the key for annotations used to store config hash on pod templates.
 	ConfigHashAnnotation = "nvidia.network-operator.config-hash"
 )

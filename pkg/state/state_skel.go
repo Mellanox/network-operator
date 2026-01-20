@@ -472,6 +472,7 @@ func (s *stateSkel) SetRenderer(renderer render.Renderer) {
 	s.renderer = renderer
 }
 
+// SetConfigHashAnnotation sets config hash annotation on DaemonSet pod templates.
 func SetConfigHashAnnotation(objs []*unstructured.Unstructured, configHash string) error {
 	if configHash == "" {
 		return nil
