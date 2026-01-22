@@ -80,3 +80,135 @@ var _ = Describe("stateSkel", func() {
 		})
 	})
 })
+
+var _ = Describe("SetConfigHashAnnotation", func() {
+	Context("when configHash is empty", func() {
+		It("should not modify any objects", func() {
+			ds := createTestDaemonSet("test-ds")
+			objs := []*unstructured.Unstructured{ds}
+			err := SetConfigHashAnnotation(objs, "")
+			Expect(err).NotTo(HaveOccurred())
+
+			annotations, found, err := unstructured.NestedStringMap(ds.Object,
+				"spec", "template", "metadata", "annotations")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(annotations).To(BeNil())
+		})
+	})
+
+	Context("when configHash is provided", func() {
+		It("should add annotation to DaemonSet pod template", func() {
+			ds := createTestDaemonSet("test-ds")
+			objs := []*unstructured.Unstructured{ds}
+			configHash := "abc123hash"
+
+			err := SetConfigHashAnnotation(objs, configHash)
+			Expect(err).NotTo(HaveOccurred())
+
+			annotations, found, err := unstructured.NestedStringMap(ds.Object,
+				"spec", "template", "metadata", "annotations")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(annotations[consts.ConfigHashAnnotation]).To(Equal(configHash))
+		})
+
+		It("should preserve existing annotations", func() {
+			ds := createTestDaemonSet("test-ds")
+			// Add existing annotation
+			err := unstructured.SetNestedStringMap(ds.Object,
+				map[string]string{"existing": "annotation"},
+				"spec", "template", "metadata", "annotations")
+			Expect(err).NotTo(HaveOccurred())
+
+			objs := []*unstructured.Unstructured{ds}
+			configHash := "abc123hash"
+
+			err = SetConfigHashAnnotation(objs, configHash)
+			Expect(err).NotTo(HaveOccurred())
+
+			annotations, found, err := unstructured.NestedStringMap(ds.Object,
+				"spec", "template", "metadata", "annotations")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(annotations["existing"]).To(Equal("annotation"))
+			Expect(annotations[consts.ConfigHashAnnotation]).To(Equal(configHash))
+		})
+
+		It("should not modify non-DaemonSet objects", func() {
+			configMap := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "test-cm",
+						"namespace": "test-ns",
+					},
+				},
+			}
+			objs := []*unstructured.Unstructured{configMap}
+			configHash := "abc123hash"
+
+			err := SetConfigHashAnnotation(objs, configHash)
+			Expect(err).NotTo(HaveOccurred())
+
+			// ConfigMap should not have the annotation path
+			_, found, _ := unstructured.NestedStringMap(configMap.Object,
+				"spec", "template", "metadata", "annotations")
+			Expect(found).To(BeFalse())
+		})
+
+		It("should handle multiple DaemonSets", func() {
+			ds1 := createTestDaemonSet("test-ds-1")
+			ds2 := createTestDaemonSet("test-ds-2")
+			objs := []*unstructured.Unstructured{ds1, ds2}
+			configHash := "abc123hash"
+
+			err := SetConfigHashAnnotation(objs, configHash)
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, ds := range objs {
+				annotations, found, err := unstructured.NestedStringMap(ds.Object,
+					"spec", "template", "metadata", "annotations")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(annotations[consts.ConfigHashAnnotation]).To(Equal(configHash))
+			}
+		})
+	})
+})
+
+func createTestDaemonSet(name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "DaemonSet",
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": "test-ns",
+			},
+			"spec": map[string]interface{}{
+				"selector": map[string]interface{}{
+					"matchLabels": map[string]interface{}{
+						"app": name,
+					},
+				},
+				"template": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{
+							"app": name,
+						},
+					},
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":  "test-container",
+								"image": "test-image",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}

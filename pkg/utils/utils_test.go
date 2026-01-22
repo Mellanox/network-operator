@@ -83,4 +83,33 @@ var _ = Describe("Utils tests", func() {
 			Expect(result).To(Equal(consts.DefaultCniNetworkDirectory))
 		})
 	})
+
+	Context("Testing GetStringHash", func() {
+		It("Should return consistent hash for same input", func() {
+			input := `{"resourceName": "rdma_shared_device_a"}`
+			hash1 := GetStringHash(input)
+			hash2 := GetStringHash(input)
+			Expect(hash1).To(Equal(hash2))
+		})
+
+		It("Should return different hash for different input", func() {
+			input1 := `{"resourceName": "rdma_shared_device_a"}`
+			input2 := `{"resourceName": "rdma_shared_device_b"}`
+			hash1 := GetStringHash(input1)
+			hash2 := GetStringHash(input2)
+			Expect(hash1).NotTo(Equal(hash2))
+		})
+
+		It("Should return non-empty hash for empty string", func() {
+			hash := GetStringHash("")
+			Expect(hash).NotTo(BeEmpty())
+		})
+
+		It("Should return valid base64 encoded string", func() {
+			input := `{"config": "test"}`
+			hash := GetStringHash(input)
+			// Base64 encoded SHA256 hash should be 44 characters
+			Expect(len(hash)).To(Equal(44))
+		})
+	})
 })

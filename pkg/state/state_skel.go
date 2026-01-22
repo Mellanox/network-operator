@@ -471,3 +471,33 @@ func (s *stateSkel) isDaemonSetReady(uds *unstructured.Unstructured, reqLogger l
 func (s *stateSkel) SetRenderer(renderer render.Renderer) {
 	s.renderer = renderer
 }
+
+// SetConfigHashAnnotation sets config hash annotation on DaemonSet pod templates.
+func SetConfigHashAnnotation(objs []*unstructured.Unstructured, configHash string) error {
+	if configHash == "" {
+		return nil
+	}
+
+	for _, obj := range objs {
+		if obj.GetKind() != "DaemonSet" {
+			continue
+		}
+
+		annotations, found, err := unstructured.NestedStringMap(obj.Object,
+			"spec", "template", "metadata", "annotations")
+		if err != nil {
+			return errors.Wrap(err, "failed to get pod template annotations")
+		}
+		if !found || annotations == nil {
+			annotations = make(map[string]string)
+		}
+
+		annotations[consts.ConfigHashAnnotation] = configHash
+
+		if err := unstructured.SetNestedStringMap(obj.Object, annotations,
+			"spec", "template", "metadata", "annotations"); err != nil {
+			return errors.Wrap(err, "failed to set pod template annotations")
+		}
+	}
+	return nil
+}

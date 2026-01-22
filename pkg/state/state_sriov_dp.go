@@ -149,6 +149,7 @@ func (s *stateSriovDp) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+
 	renderData := &sriovDpManifestRenderData{
 		CrSpec:              cr.Spec.SriovDevicePlugin,
 		Tolerations:         cr.Spec.Tolerations,
@@ -166,6 +167,14 @@ func (s *stateSriovDp) GetManifestObjects(
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
+
+	if cr.Spec.SriovDevicePlugin.Config != nil {
+		configHash := utils.GetStringHash(*cr.Spec.SriovDevicePlugin.Config)
+		if err := SetConfigHashAnnotation(objs, configHash); err != nil {
+			return nil, errors.Wrap(err, "failed to set config hash annotation")
+		}
+	}
+
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
 }
