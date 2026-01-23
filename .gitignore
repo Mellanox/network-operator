@@ -32,3 +32,5 @@ test
 build
 hack/manifests
 hack/tmp
+
+Claude.md
