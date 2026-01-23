@@ -123,13 +123,13 @@ nicConfigurationOperator:
   image: nic-configuration-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.1.0-beta.3
+  version: a78d93f
   nSpectScope: general
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.1.0-beta.3
+  version: a78d93f
   nSpectScope: general
 nicConfigurationOperatorStigFips:
   image: nic-configuration-operator-stig-fips
