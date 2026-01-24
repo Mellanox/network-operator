@@ -140,6 +140,8 @@ func (s *stateIPoIBCNI) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.SecondaryNetwork.IPoIB.ApplyGlobalConfig(cr.Spec.Global)
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

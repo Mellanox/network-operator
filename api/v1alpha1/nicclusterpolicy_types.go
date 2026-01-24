@@ -48,10 +48,12 @@ type ImageSpec struct {
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\-]+
 	Image string `json:"image"`
 	// Address of the registry that stores the image
+	// +optional
 	// +kubebuilder:validation:Pattern=[a-zA-Z0-9\.\-\/]+
-	Repository string `json:"repository"`
+	Repository string `json:"repository,omitempty"`
 	// Version of the image to use
-	Version string `json:"version"`
+	// +optional
+	Version string `json:"version,omitempty"`
 	// ImagePullSecrets is an optional list of references to secrets in the same
 	// namespace to use for pulling the image
 	// +optional
@@ -67,6 +69,35 @@ func (is *ImageSpec) GetContainerResources() []ResourceRequirements {
 		return nil
 	}
 	return is.ContainerResources
+}
+
+// GlobalConfig contains global configuration for all components
+type GlobalConfig struct {
+	// Repository is the default container image repository for all components
+	// +optional
+	Repository string `json:"repository,omitempty"`
+	// Version is the default version tag for all component images
+	// +optional
+	Version string `json:"version,omitempty"`
+	// ImagePullSecrets is a list of secret names for pulling component images
+	// +optional
+	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+}
+
+// ApplyGlobalConfig applies global config values to ImageSpec if not already set
+func (is *ImageSpec) ApplyGlobalConfig(global *GlobalConfig) {
+	if global == nil {
+		return
+	}
+	if is.Repository == "" {
+		is.Repository = global.Repository
+	}
+	if is.Version == "" {
+		is.Version = global.Version
+	}
+	if len(is.ImagePullSecrets) == 0 {
+		is.ImagePullSecrets = global.ImagePullSecrets
+	}
 }
 
 // ImageSpecWithConfig Contains ImageSpec and optional configuration
@@ -340,6 +371,9 @@ type SpectrumXOperatorSpec struct {
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
 type NicClusterPolicySpec struct {
+	// Global contains global configuration for all components
+	// +optional
+	Global *GlobalConfig `json:"global,omitempty"`
 	// OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
 	// See https://network.nvidia.com/support/mlnx-ofed-matrix/
 	OFEDDriver *OFEDDriverSpec `json:"ofedDriver,omitempty"`

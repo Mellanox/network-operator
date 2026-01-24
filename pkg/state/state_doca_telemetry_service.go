@@ -118,6 +118,9 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 	if cr == nil || cr.Spec.DOCATelemetryService == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
+
+	cr.Spec.DOCATelemetryService.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+
 	dts := cr.Spec.DOCATelemetryService
 
 	configMapName := docaTelemetryServiceDefaultConfigMapName

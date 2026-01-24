@@ -152,6 +152,13 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	if cr.Spec.NicConfigurationOperator.Operator != nil {
+		cr.Spec.NicConfigurationOperator.Operator.ApplyGlobalConfig(cr.Spec.Global)
+	}
+	if cr.Spec.NicConfigurationOperator.ConfigurationDaemon != nil {
+		cr.Spec.NicConfigurationOperator.ConfigurationDaemon.ApplyGlobalConfig(cr.Spec.Global)
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

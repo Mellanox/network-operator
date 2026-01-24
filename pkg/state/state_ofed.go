@@ -566,6 +566,8 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.OFEDDriver.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+
 	nodeInfo, clusterInfo, docaProvider, err := getProviders(catalog)
 	if err != nil {
 		return nil, err
