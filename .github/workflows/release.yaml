@@ -292,15 +292,16 @@ jobs:
 
             # Exclude chart files from update if specified in hack/release.yaml
             EXCLUDE_CHART_FILES=$(yq ".${component}.excludeChartFiles" hack/release.yaml)
-            if [ -n "$EXCLUDE_CHART_FILES" ]; then
-              git diff --cached --name-only | while read -r file; do
-                REL_PATH=$(realpath -m --relative-to="$CHART_LOCATION_IN_NETWORK_OPERATOR" "$file")
-                if echo "$EXCLUDE_CHART_FILES" | jq -e --arg value "$REL_PATH" 'index($value) != null' > /dev/null; then
-                  echo "Exclude chart file $file from update"
-                  git restore --staged $file
-                  git checkout $file || true
+            if [ -n "$EXCLUDE_CHART_FILES" ] && [ "$EXCLUDE_CHART_FILES" != "null" ]; then
+              echo "$EXCLUDE_CHART_FILES" | jq -r '.[]' | while read -r file_rel; do
+                file="$CHART_LOCATION_IN_NETWORK_OPERATOR/$file_rel"
+                echo "Processing excluded file: $file"
+                git restore --staged "$file" 2>/dev/null || true
+                if ! git checkout HEAD -- "$file" 2>/dev/null; then
+                  echo "File $file not found in HEAD, deleting it."
+                  rm -f "$file"
                 else
-                  echo "Update chart file $file"
+                  echo "Restored $file from HEAD."
                 fi
               done
             fi
