@@ -32,7 +32,7 @@ jobs:
         IMAGE="docker://${{ env.REGISTRY }}/${{ env.REPO }}:${GIT_TAG}"
         echo "Waiting for image: $IMAGE"
 
-        MAX_RETRIES=90
+        MAX_RETRIES=180
         SLEEP_SECONDS=10
         COUNT=0
 
