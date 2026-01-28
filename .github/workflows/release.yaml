@@ -91,14 +91,8 @@ jobs:
           repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
-
-          # Extract image names with repository for components that have sourceRepository
-          images=$(yq 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.image) | join(" ")' hack/release.yaml)
-          echo "Managed images: $images"
-          echo "managed_images=$images" >> $GITHUB_OUTPUT
     outputs:
       managed_repos: ${{ steps.set-components.outputs.managed_repos }}
-      managed_images: ${{ steps.set-components.outputs.managed_images }}
 
   create-tags-for-components:
     runs-on: ubuntu-24.04
@@ -154,6 +148,7 @@ jobs:
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
       DOCKER_REGISTRY: ${{ needs.determine-versions.outputs.docker_registry_staging }}
     steps:
+      - uses: actions/checkout@v6
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -165,36 +160,41 @@ jobs:
         run: |
           echo "Waiting for images to be pullable from registry..."
 
-          images='${{ needs.get-managed-components.outputs.managed_images }}'
-          read -a IMAGE_ARRAY <<< "$images"
-
           MAX_RETRIES=120
           SLEEP_INTERVAL=60
           retry_count=0
 
-          for image in "${IMAGE_ARRAY[@]}"; do
-            if [[ "$image" == *stig-fips ]]; then
+          components_to_parse=$(yq 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .key) | join(" ")' hack/release.yaml)
+          for component in $components_to_parse; do
+            # parse image
+            component_image=$(yq ".${component}.image" hack/release.yaml)  # example: nic-configuration-operator-daemon-stig-fips
+            # determine docker tag by component name
+            if [[ "$component" == *StigFips?* ]]; then
+              component_flavor=$(echo "$component" | sed -E 's/.+StigFips//' | tr [:upper:] [:lower:])  # extracts "ubuntu" (lowercase) from "spectrumXOperatorStigFipsUbuntu" (camelcase)
+              component_tag="${COMPONENT_TAG}-stig-fips-${component_flavor}"  # example: network-operator-v26.1.0-beta.5-stig-fips-rhel
+            elif [[ "$component" == *StigFips ]]; then
               component_tag="${COMPONENT_TAG}-stig-fips"
             else
               component_tag="${COMPONENT_TAG}"
             fi
 
-            image_url="${DOCKER_REGISTRY}/${image}:${component_tag}"
-            echo "Checking availability of: ${image_url}"
+            # image to check
+            image_url="${DOCKER_REGISTRY}/${component_image}:${component_tag}"
 
+            echo "Checking availability of: ${image_url}"
             while [ $retry_count -lt $MAX_RETRIES ]; do
               if docker manifest inspect "${image_url}" > /dev/null 2>&1; then
-                echo "Image available: ${image_url}"
+                echo "  Image available: ${image_url}"
                 break
               else
-                echo "Image not yet available: ${image_url} (attempt $((retry_count + 1))/$MAX_RETRIES)"
+                echo "  Image not yet available: ${image_url} (attempt $((retry_count + 1))/$MAX_RETRIES)"
                 sleep $SLEEP_INTERVAL
                 retry_count=$((retry_count + 1))
               fi
             done
 
             if [ $retry_count -eq $MAX_RETRIES ]; then
-              echo "Failed to find image after $MAX_RETRIES attempts: ${image_url}"
+              echo "      Failed to find image after $MAX_RETRIES attempts: ${image_url}"
               exit 1
             fi
           done
@@ -256,7 +256,10 @@ jobs:
 
             # We always need to add '-stig-fips' suffix for corresponding image version
             # TODO: do not DOCA Driver image for now because $SOURCE_REPO is null one Network Operator will support a new version format
-            if [[ "$component" == *StigFips ]]; then
+            if [[ "$component" == *StigFips?* ]]; then
+              component_flavor=$(echo "$component" | sed -E 's/.+StigFips//' | tr [:upper:] [:lower:])  # extracts "ubuntu" (lowercase) from "spectrumXOperatorStigFipsUbuntu" (camelcase)
+              component_tag="${COMPONENT_TAG}-stig-fips-${component_flavor}"
+            elif [[ "$component" == *StigFips ]]; then
               component_tag="${COMPONENT_TAG}-stig-fips"
             else
               component_tag="${COMPONENT_TAG}"
