@@ -173,13 +173,13 @@ spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.1.0-beta.4-stig-fips-rhel
+  version: 71d188c-rhel
   nSpectScope: fedramp
 spectrumXOperatorStigFipsUbuntu:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.1.0-beta.4-stig-fips-ubuntu
+  version: 71d188c-ubuntu
   nSpectScope: fedramp
 nodeFeatureDiscovery:
   image: node-feature-discovery
