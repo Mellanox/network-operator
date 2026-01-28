@@ -144,6 +144,8 @@ func (s *stateNICFeatureDiscovery) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.NicFeatureDiscovery.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterType provider required")

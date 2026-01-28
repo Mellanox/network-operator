@@ -143,6 +143,8 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.RdmaSharedDevicePlugin.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

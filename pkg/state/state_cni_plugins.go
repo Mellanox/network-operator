@@ -140,6 +140,8 @@ func (s *stateCNIPlugins) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.SecondaryNetwork.CniPlugins.ApplyGlobalConfig(cr.Spec.Global)
+
 	staticConfig := catalog.GetStaticConfigProvider()
 	if staticConfig == nil {
 		return nil, errors.New("staticConfig provider required")
