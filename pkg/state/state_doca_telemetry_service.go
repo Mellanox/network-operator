@@ -120,6 +120,9 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 	}
 
 	cr.Spec.DOCATelemetryService.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.DOCATelemetryService.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate docaTelemetryService image spec")
+	}
 
 	dts := cr.Spec.DOCATelemetryService
 

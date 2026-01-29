@@ -145,6 +145,9 @@ func (s *stateSpectrumXOperator) GetManifestObjects(
 	}
 
 	cr.Spec.SpectrumXOperator.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SpectrumXOperator.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate spectrumXOperator image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

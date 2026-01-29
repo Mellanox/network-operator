@@ -147,6 +147,9 @@ func (s *stateNVIPAMCNI) GetManifestObjects(
 	}
 
 	cr.Spec.NvIpam.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.NvIpam.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate nvIpam image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

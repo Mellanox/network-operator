@@ -138,6 +138,9 @@ func (s *stateMultusCNI) GetManifestObjects(
 	}
 
 	cr.Spec.SecondaryNetwork.Multus.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SecondaryNetwork.Multus.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate multus image spec")
+	}
 
 	staticConfig := catalog.GetStaticConfigProvider()
 	if staticConfig == nil {
