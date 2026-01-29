@@ -141,6 +141,9 @@ func (s *stateCNIPlugins) GetManifestObjects(
 	}
 
 	cr.Spec.SecondaryNetwork.CniPlugins.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SecondaryNetwork.CniPlugins.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate cniPlugins image spec")
+	}
 
 	staticConfig := catalog.GetStaticConfigProvider()
 	if staticConfig == nil {

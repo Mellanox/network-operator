@@ -145,6 +145,9 @@ func (s *stateNICFeatureDiscovery) GetManifestObjects(
 	}
 
 	cr.Spec.NicFeatureDiscovery.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.NicFeatureDiscovery.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate nicFeatureDiscovery image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

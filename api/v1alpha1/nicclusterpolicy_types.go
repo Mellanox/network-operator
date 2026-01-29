@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -95,9 +97,20 @@ func (is *ImageSpec) ApplyGlobalConfig(global *GlobalConfig) {
 	if is.Version == "" {
 		is.Version = global.Version
 	}
-	if len(is.ImagePullSecrets) == 0 {
-		is.ImagePullSecrets = global.ImagePullSecrets
+	if len(is.ImagePullSecrets) == 0 && len(global.ImagePullSecrets) > 0 {
+		is.ImagePullSecrets = append([]string(nil), global.ImagePullSecrets...)
 	}
+}
+
+// ValidateRequiredFields checks that repository and version are set
+func (is *ImageSpec) ValidateRequiredFields() error {
+	if is.Repository == "" {
+		return fmt.Errorf("repository is required")
+	}
+	if is.Version == "" {
+		return fmt.Errorf("version is required")
+	}
+	return nil
 }
 
 // ImageSpecWithConfig Contains ImageSpec and optional configuration

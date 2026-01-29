@@ -146,6 +146,9 @@ func (s *stateSriovDp) GetManifestObjects(
 	}
 
 	cr.Spec.SriovDevicePlugin.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SriovDevicePlugin.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate sriovDevicePlugin image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

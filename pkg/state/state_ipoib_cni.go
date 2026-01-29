@@ -141,6 +141,9 @@ func (s *stateIPoIBCNI) GetManifestObjects(
 	}
 
 	cr.Spec.SecondaryNetwork.IPoIB.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SecondaryNetwork.IPoIB.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate ipoib image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

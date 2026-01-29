@@ -146,6 +146,9 @@ func (s *stateIBKubernetes) GetManifestObjects(
 	}
 
 	cr.Spec.IBKubernetes.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.IBKubernetes.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate ibKubernetes image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {

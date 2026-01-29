@@ -144,6 +144,9 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	}
 
 	cr.Spec.RdmaSharedDevicePlugin.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.RdmaSharedDevicePlugin.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate rdmaSharedDevicePlugin image spec")
+	}
 
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
