@@ -9,7 +9,34 @@ trigger-jenkins-nspect-on-tag:
   tags:
     - os/linux
     - type/docker
+  timeout: 1h  # network-operator CI usually takes ~30 minutes, after the git tag is pushed
   variables:  # additional variables defined at the gitlab group scope
     JENKINS_JOB_NAME: nspect-automation
+    SLEEP_INTERVAL: 120s
   script:
+    # init
+    - apk add --no-cache jq yq
+    - retry_counter=0
+    - gh_workflow_name=$(yq ".name" .github/workflows/ci.yaml)
+    # await github actions CI completion
+    - |
+      echo "Waiting for $gh_workflow_name to complete... "
+      until curl \
+        -fsSL \
+        -H "Accept: application/vnd.github.v3+json" \
+        https://api.github.com/repos/Mellanox/network-operator/actions/runs \
+          | jq \
+            -r \
+            --arg GH_WORKFLOW_NAME "$gh_workflow_name" \
+            '.workflow_runs[] | select(.name == $GH_WORKFLOW_NAME) | .status' \
+          | head -n 1 \
+          | grep "completed";
+      do
+        retry_counter=$((retry_counter + 1))
+        echo "  attempt $retry_counter "
+        sleep $SLEEP_INTERVAL
+      done
+      echo "    Workflow $gh_workflow_name complete!"
+    # trigger jenkins job
+    - echo "Triggering Jenkins job $JENKINS_JOB_NAME for tag $CI_COMMIT_TAG ..."
     - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_JENKINS_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?GIT_TAG=$CI_COMMIT_TAG"
