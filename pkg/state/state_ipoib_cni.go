@@ -140,6 +140,11 @@ func (s *stateIPoIBCNI) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.SecondaryNetwork.IPoIB.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SecondaryNetwork.IPoIB.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate ipoib image spec")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

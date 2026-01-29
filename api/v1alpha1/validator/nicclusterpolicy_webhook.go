@@ -494,41 +494,61 @@ func (ofedSpec *ofedDriverSpecWrapper) validateSafeLoad(fldPath *field.Path) fie
 func (w *nicClusterPolicyValidator) validateRepositories(
 	in *v1alpha1.NicClusterPolicy, allErrs field.ErrorList) field.ErrorList {
 	fp := field.NewPath("spec")
+	globalRepo := ""
+	if in.Spec.Global != nil {
+		globalRepo = in.Spec.Global.Repository
+	}
 	if in.Spec.OFEDDriver != nil {
-		allErrs = validateRepository(in.Spec.OFEDDriver.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.OFEDDriver.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "ofedDriver")
 	}
 	if in.Spec.RdmaSharedDevicePlugin != nil {
-		allErrs = validateRepository(in.Spec.RdmaSharedDevicePlugin.ImageSpec.Repository,
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.RdmaSharedDevicePlugin.ImageSpec.Repository, globalRepo),
 			allErrs, fp, "rdmaSharedDevicePlugin")
 	}
 	if in.Spec.SriovDevicePlugin != nil {
-		allErrs = validateRepository(in.Spec.SriovDevicePlugin.ImageSpec.Repository, allErrs, fp, "sriovDevicePlugin")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.SriovDevicePlugin.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "sriovDevicePlugin")
 	}
 	if in.Spec.IBKubernetes != nil {
-		allErrs = validateRepository(in.Spec.IBKubernetes.ImageSpec.Repository, allErrs, fp, "ibKubernetes")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.IBKubernetes.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "ibKubernetes")
 	}
 	if in.Spec.NvIpam != nil {
-		allErrs = validateRepository(in.Spec.NvIpam.ImageSpec.Repository, allErrs, fp, "nvIpam")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.NvIpam.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "nvIpam")
 	}
 	if in.Spec.NicFeatureDiscovery != nil {
-		allErrs = validateRepository(in.Spec.NicFeatureDiscovery.ImageSpec.Repository, allErrs, fp, "nicFeatureDiscovery")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.NicFeatureDiscovery.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "nicFeatureDiscovery")
 	}
 	if in.Spec.DOCATelemetryService != nil {
-		allErrs = validateRepository(in.Spec.DOCATelemetryService.ImageSpec.Repository, allErrs, fp, "docaTelemetryService")
+		allErrs = validateRepository(getEffectiveRepository(in.Spec.DOCATelemetryService.ImageSpec.Repository, globalRepo),
+			allErrs, fp, "docaTelemetryService")
 	}
 	if in.Spec.SecondaryNetwork != nil {
 		snfp := fp.Child("secondaryNetwork")
 		if in.Spec.SecondaryNetwork.CniPlugins != nil {
-			allErrs = validateRepository(in.Spec.SecondaryNetwork.CniPlugins.Repository, allErrs, snfp, "cniPlugins")
+			allErrs = validateRepository(getEffectiveRepository(in.Spec.SecondaryNetwork.CniPlugins.Repository, globalRepo),
+				allErrs, snfp, "cniPlugins")
 		}
 		if in.Spec.SecondaryNetwork.IPoIB != nil {
-			allErrs = validateRepository(in.Spec.SecondaryNetwork.IPoIB.Repository, allErrs, snfp, "ipoib")
+			allErrs = validateRepository(getEffectiveRepository(in.Spec.SecondaryNetwork.IPoIB.Repository, globalRepo),
+				allErrs, snfp, "ipoib")
 		}
 		if in.Spec.SecondaryNetwork.Multus != nil {
-			allErrs = validateRepository(in.Spec.SecondaryNetwork.Multus.Repository, allErrs, snfp, "multus")
+			allErrs = validateRepository(getEffectiveRepository(in.Spec.SecondaryNetwork.Multus.Repository, globalRepo),
+				allErrs, snfp, "multus")
 		}
 	}
 	return allErrs
+}
+
+func getEffectiveRepository(componentRepo, globalRepo string) string {
+	if componentRepo != "" {
+		return componentRepo
+	}
+	return globalRepo
 }
 
 func validateRepository(repo string, allErrs field.ErrorList, fp *field.Path, child string) field.ErrorList {
