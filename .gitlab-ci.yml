@@ -3,7 +3,7 @@ stages:
 
 trigger-jenkins-nspect-on-tag:
   stage: trigger-jenkins-nspect-on-tag
-  image: curlimages/curl:8.5.0
+  image: alpine:3.23
   rules:
     - if: $CI_COMMIT_TAG
   tags:
@@ -15,7 +15,7 @@ trigger-jenkins-nspect-on-tag:
     SLEEP_INTERVAL: 120s
   script:
     # init
-    - apk add --no-cache jq yq
+    - apk add --no-cache curl jq yq
     - retry_counter=0
     - gh_workflow_name=$(yq ".name" .github/workflows/ci.yaml)
     # await github actions CI completion
