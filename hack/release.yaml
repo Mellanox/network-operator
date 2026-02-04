@@ -65,7 +65,7 @@ SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
-  version: network-operator-v26.1.0-beta.6
+  version: 5f100588
   nSpectScope: gov-ready
 IbKubernetes:
   image: ib-kubernetes
