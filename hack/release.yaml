@@ -117,7 +117,7 @@ rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
-  version: network-operator-v26.1.0-beta.6
+  version: f4c30aa
   nSpectScope: gov-ready
 nicConfigurationOperator:
   image: nic-configuration-operator
