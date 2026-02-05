@@ -69,6 +69,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			ibKubernetesSpec.PKeyGUIDPoolRangeEnd = envValues["GUID_POOL_RANGE_END"]
 			ibKubernetesSpec.UfmSecret = ufmSecret
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 
@@ -124,6 +125,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 				},
 			}}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -175,6 +177,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 				},
 			}}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -218,6 +221,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 				},
 			}}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -295,6 +299,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -367,6 +372,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -442,6 +448,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -528,6 +535,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{"secret1", "secret2", "secret3"}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -581,6 +589,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
@@ -619,6 +628,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 
 			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
 			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
 			ibKubernetesSpec.ImagePullSecrets = []string{"my-secret"}
 			ibKubernetesSpec.Version = "version"
 			cr := &mellanoxv1alpha1.NicClusterPolicy{}
