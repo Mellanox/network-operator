@@ -59,7 +59,7 @@ RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8s-rdma-shared-dev-plugin
-  version: network-operator-v26.1.0-beta.6
+  version: "41007e3"
   nSpectScope: gov-ready
 SriovDevicePlugin:
   image: sriov-network-device-plugin
