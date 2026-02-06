@@ -65,7 +65,7 @@ spec:
     cniPlugins:
       image: plugins
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-beta.6
+      version: 0b67dab
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvstaging/mellanox
