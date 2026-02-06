@@ -1760,6 +1760,12 @@ spec:
                   multus:
                     description: Image and configuration information for multus
                     properties:
+                      cliArgs:
+                        description: CliArgs is a list of command line arguments to
+                          pass to the Multus CNI
+                        items:
+                          type: string
+                        type: array
                       config:
                         description: Configuration for the component as a string
                         type: string

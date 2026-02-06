@@ -211,6 +211,9 @@ type DevicePluginSpec struct {
 type MultusSpec struct {
 	// Image information for Multus and optional configuration
 	ImageSpecWithConfig `json:""`
+	// CliArgs is a list of command line arguments to pass to the Multus CNI
+	// +optional
+	CliArgs []string `json:"cliArgs,omitempty"`
 }
 
 // SecondaryNetworkSpec describes configuration options for secondary network
