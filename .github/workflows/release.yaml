@@ -319,10 +319,13 @@ jobs:
           yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
           yq -i '.appVersion = "${{ env.APP_VERSION }}"' deployment/network-operator/Chart.yaml
           make release-build
+          make generate-sosreport-maps
 
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
             git add hack/release.yaml
+            git add scripts/sosreport/network-operator-sosreport.sh
+            git add scripts/sosreport/kubectl-netop_sosreport
             git commit -sam "cicd: release Network Operator $APP_VERSION"
             git push -u origin staging-${APP_VERSION}
           fi

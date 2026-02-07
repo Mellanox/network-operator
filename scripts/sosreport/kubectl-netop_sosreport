@@ -1,0 +1,1095 @@
+#!/bin/bash
+
+#  2026 NVIDIA CORPORATION & AFFILIATES
+#
+#  Licensed under the Apache License, Version 2.0 (the License);
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an AS IS BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+# NVIDIA Network Operator SOS-Report Collection Script
+#
+# This script collects comprehensive diagnostic data from a Kubernetes cluster
+# running the NVIDIA Network Operator for troubleshooting purposes.
+#
+# Can be used standalone or as a kubectl plugin:
+#   Standalone: ./kubectl-netop_sosreport [OPTIONS]
+#   As plugin:  kubectl netop-sosreport [OPTIONS]
+
+set -o pipefail
+
+# Script version
+SCRIPT_VERSION="v26.1.0"
+
+# Default values
+KUBECONFIG_PATH=""
+OPERATOR_NAMESPACE=""
+OUTPUT_DIR=""
+NO_COMPRESS=false
+LOG_LINES=5000
+SKIP_DIAGNOSTICS=false
+KUBECTL_BIN="kubectl"
+VERBOSE=false
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+ERROR_LOG=""
+NODE_SELECTOR=""
+
+# Collection statistics
+declare -A STATS=(
+    [crds_definitions]=0
+    [crds_instances]=0
+    [operator_pods]=0
+    [components_found]=0
+    [components_skipped]=0
+    [component_pods]=0
+    [nodes]=0
+    [diagnostic_commands]=0
+    [errors]=0
+    [warnings]=0
+)
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Usage information
+usage() {
+    cat <<EOF
+NVIDIA Network Operator SOS-Report Collection Script v${SCRIPT_VERSION}
+
+Collects comprehensive diagnostic data from a Kubernetes cluster running
+the NVIDIA Network Operator for troubleshooting purposes.
+
+Usage:
+  kubectl netop-sosreport [OPTIONS]
+  $0 [OPTIONS]
+
+Options:
+  --kubeconfig PATH           Path to kubeconfig file (default: \$KUBECONFIG or ~/.kube/config)
+  --namespace NAMESPACE       Network operator namespace (default: auto-detect)
+  --output-dir PATH          Output directory (default: ./network-operator-sosreport-<timestamp>)
+  --no-compress              Don't create tarball, leave as directory
+  --log-lines N              Number of log lines to collect per pod (default: 5000)
+  --skip-diagnostics         Skip running diagnostic commands in OFED pods (lsmod, ibstat, ibv_devinfo, mst, dmesg, ip)
+  --node-selector SELECTOR   Only collect from nodes matching label selector (default: all nodes)
+                             Example: feature.node.kubernetes.io/pci-15b3.present=true
+  --kubectl-path PATH        Path to kubectl binary (default: kubectl from PATH)
+  --verbose                  Verbose output during collection
+  --version                  Show script version
+  --help                     Show this help message
+
+Exit Codes:
+  0: Success
+  1: Critical error (no kubectl, no cluster access)
+  2: Partial success (some resources failed to collect)
+
+Examples:
+  # Basic usage (auto-detects namespace)
+  kubectl netop-sosreport
+
+  # With specific namespace and verbose output
+  kubectl netop-sosreport --namespace nvidia-network-operator --verbose
+
+  # Fast collection without diagnostics
+  kubectl netop-sosreport --skip-diagnostics --log-lines 1000
+
+For more information, see: scripts/README.md
+
+EOF
+    exit 0
+}
+
+# Logging functions
+log_info() {
+    if [ "$VERBOSE" = true ]; then
+        echo -e "${BLUE}[INFO]${NC} $1"
+    fi
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo "[WARN] $(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$ERROR_LOG" 2>/dev/null || true
+    STATS[warnings]=$((STATS[warnings] + 1))
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+    echo "[ERROR] $(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$ERROR_LOG" 2>/dev/null || true
+    STATS[errors]=$((STATS[errors] + 1))
+}
+
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --kubeconfig)
+                KUBECONFIG_PATH="$2"
+                shift 2
+                ;;
+            --namespace)
+                OPERATOR_NAMESPACE="$2"
+                shift 2
+                ;;
+            --output-dir)
+                OUTPUT_DIR="$2"
+                shift 2
+                ;;
+            --no-compress)
+                NO_COMPRESS=true
+                shift
+                ;;
+            --log-lines)
+                LOG_LINES="$2"
+                shift 2
+                ;;
+            --skip-diagnostics)
+                SKIP_DIAGNOSTICS=true
+                shift
+                ;;
+            --node-selector)
+                NODE_SELECTOR="$2"
+                shift 2
+                ;;
+            --kubectl-path)
+                KUBECTL_BIN="$2"
+                shift 2
+                ;;
+            --verbose)
+                VERBOSE=true
+                shift
+                ;;
+            --version)
+                echo "NVIDIA Network Operator SOS-Report v${SCRIPT_VERSION}"
+                exit 0
+                ;;
+            --help|-h)
+                usage
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                usage
+                ;;
+        esac
+    done
+}
+
+# Check prerequisites
+check_prerequisites() {
+    log_info "Checking prerequisites..."
+
+    # Check kubectl binary
+    if ! command -v "$KUBECTL_BIN" &> /dev/null; then
+        log_error "kubectl not found at: $KUBECTL_BIN"
+        log_error "Please install kubectl or specify path with --kubectl-path"
+        exit 1
+    fi
+
+    # Check kubectl version
+    local kubectl_version
+    kubectl_version=$("$KUBECTL_BIN" version --client --short 2>/dev/null | grep -oP 'v\d+\.\d+' || echo "v0.0")
+    log_info "kubectl version: $kubectl_version"
+
+    # Set kubeconfig
+    if [ -n "$KUBECONFIG_PATH" ]; then
+        export KUBECONFIG="$KUBECONFIG_PATH"
+    elif [ -z "$KUBECONFIG" ]; then
+        export KUBECONFIG="$HOME/.kube/config"
+    fi
+
+    # Check kubeconfig exists
+    if [ ! -f "$KUBECONFIG" ]; then
+        log_error "Kubeconfig file not found: $KUBECONFIG"
+        exit 1
+    fi
+
+    # Test cluster connectivity
+    log_info "Testing cluster connectivity..."
+    if ! "$KUBECTL_BIN" cluster-info &> /dev/null; then
+        log_error "Cannot connect to Kubernetes cluster"
+        log_error "Please check your kubeconfig and cluster connectivity"
+        exit 1
+    fi
+
+    # Get current context
+    local context
+    context=$("$KUBECTL_BIN" config current-context 2>/dev/null || echo "unknown")
+    log_info "Current context: $context"
+
+    # Check basic permissions
+    if ! "$KUBECTL_BIN" auth can-i get pods --all-namespaces &> /dev/null; then
+        log_warn "Limited permissions detected. Some resources may not be collected."
+        log_warn "Consider running with cluster-admin privileges for complete collection."
+    fi
+
+    log_success "Prerequisites check completed"
+}
+
+# Collect resource with content validation
+# This function attempts to collect a Kubernetes resource and only creates
+# the output file if the resource exists and has meaningful content.
+collect_resource() {
+    local output_file="$1"
+    shift
+    local temp_file
+    temp_file=$(mktemp)
+
+    # Execute kubectl command
+    if $KUBECTL_BIN "$@" > "$temp_file" 2>> "$ERROR_LOG"; then
+        # Check if file has meaningful content
+        local line_count
+        line_count=$(wc -l < "$temp_file")
+        local has_items
+        has_items=$(grep -c "^  - " "$temp_file" 2>/dev/null || echo 0)
+
+        # Detect empty YAML structures
+        local is_empty=false
+        if grep -qE "^items: \[\]$" "$temp_file" 2>/dev/null; then
+            is_empty=true
+        elif grep -qE "^resources: null$" "$temp_file" 2>/dev/null; then
+            is_empty=true
+        elif [ "$line_count" -lt 6 ] && [ "$has_items" -eq 0 ]; then
+            is_empty=true
+        fi
+
+        # Only create file if it has content
+        if [ -s "$temp_file" ] && [ "$is_empty" = false ]; then
+            mkdir -p "$(dirname "$output_file")"
+            mv "$temp_file" "$output_file"
+            log_info "  Collected: $(basename "$output_file")"
+            return 0
+        else
+            rm "$temp_file"
+            log_info "  Skipped (empty): $(basename "$output_file")"
+            return 1
+        fi
+    else
+        rm "$temp_file"
+        log_info "  Failed: $*"
+        return 1
+    fi
+}
+
+# Detect operator namespace
+detect_operator_namespace() {
+    if [ -n "$OPERATOR_NAMESPACE" ]; then
+        log_info "Using specified namespace: $OPERATOR_NAMESPACE"
+        return 0
+    fi
+
+    log_info "Auto-detecting Network Operator namespace..."
+
+    local ns
+
+    # Method 1: Look for deployment with label app.kubernetes.io/name=network-operator
+    ns=$("$KUBECTL_BIN" get deployment -A -l app.kubernetes.io/name=network-operator -o jsonpath='{.items[0].metadata.namespace}' 2>/dev/null)
+    if [ -n "$ns" ]; then
+        OPERATOR_NAMESPACE="$ns"
+        log_success "Detected operator namespace via label: $OPERATOR_NAMESPACE"
+        return 0
+    fi
+
+    # Method 2: Look for deployment containing "network-operator" in name (handles Helm nameOverride)
+    ns=$("$KUBECTL_BIN" get deployment -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' 2>/dev/null | grep -i "network-operator" | head -1 | awk '{print $1}')
+    if [ -n "$ns" ]; then
+        OPERATOR_NAMESPACE="$ns"
+        log_success "Detected operator namespace via deployment name: $OPERATOR_NAMESPACE"
+        return 0
+    fi
+
+    # Method 3: Find via NicClusterPolicy - look for namespace that owns the operator
+    if "$KUBECTL_BIN" get crd nicclusterpolicies.mellanox.com &> /dev/null; then
+        # Get the controller namespace from NicClusterPolicy status or annotations
+        ns=$("$KUBECTL_BIN" get nicclusterpolicy -o jsonpath='{.items[0].metadata.annotations.meta\.helm\.sh/release-namespace}' 2>/dev/null)
+        if [ -n "$ns" ]; then
+            OPERATOR_NAMESPACE="$ns"
+            log_success "Detected operator namespace via NicClusterPolicy: $OPERATOR_NAMESPACE"
+            return 0
+        fi
+    fi
+
+    # Method 4: Check common namespaces for any network operator deployment
+    for ns in network-operator nvidia-network-operator kube-system; do
+        if "$KUBECTL_BIN" get namespace "$ns" &> /dev/null; then
+            # Check for labeled deployment first
+            if "$KUBECTL_BIN" get deployment -n "$ns" -l app.kubernetes.io/name=network-operator --no-headers 2>/dev/null | grep -q .; then
+                OPERATOR_NAMESPACE="$ns"
+                log_success "Found operator in namespace: $OPERATOR_NAMESPACE"
+                return 0
+            fi
+            # Check for deployment by name pattern
+            if "$KUBECTL_BIN" get deployment -n "$ns" 2>/dev/null | grep -qi "network-operator"; then
+                OPERATOR_NAMESPACE="$ns"
+                log_success "Found operator in namespace (by name): $OPERATOR_NAMESPACE"
+                return 0
+            fi
+        fi
+    done
+
+    log_error "Could not detect Network Operator namespace"
+    log_error "Please specify with --namespace flag"
+    exit 1
+}
+
+# Setup output directory (minimal - subdirs created on-demand)
+setup_output_dir() {
+    if [ -z "$OUTPUT_DIR" ]; then
+        OUTPUT_DIR="./network-operator-sosreport-${TIMESTAMP}"
+    fi
+
+    log_info "Creating output directory: $OUTPUT_DIR"
+
+    # Only create base directory - everything else created on-demand
+    mkdir -p "$OUTPUT_DIR"
+
+    ERROR_LOG="$OUTPUT_DIR/collection-errors.log"
+    touch "$ERROR_LOG"
+
+    log_success "Output directory created: $OUTPUT_DIR"
+}
+
+# Collect metadata
+collect_metadata() {
+    log_info "Collecting cluster metadata..."
+
+    local metadata_dir="$OUTPUT_DIR/metadata"
+    mkdir -p "$metadata_dir"
+
+    # Collection info
+    cat > "$metadata_dir/collection-info.txt" <<EOF
+NVIDIA Network Operator SOS-Report
+====================================
+Script Version: $SCRIPT_VERSION
+Collection Time: $(date)
+Collection Hostname: $(hostname)
+Kubeconfig: $KUBECONFIG
+Operator Namespace: $OPERATOR_NAMESPACE
+EOF
+
+    # Cluster version
+    "$KUBECTL_BIN" version --output=yaml > "$metadata_dir/cluster-version.yaml" 2>> "$ERROR_LOG" || true
+
+    # All namespaces
+    "$KUBECTL_BIN" get namespaces -o wide > "$metadata_dir/namespaces.txt" 2>> "$ERROR_LOG" || true
+
+    # API resources
+    "$KUBECTL_BIN" api-resources > "$metadata_dir/api-resources.txt" 2>> "$ERROR_LOG" || true
+
+    # Detect platform
+    if "$KUBECTL_BIN" get apiservices.apiregistration.k8s.io -o name 2>/dev/null | grep -q "machineconfiguration.openshift.io"; then
+        echo "Platform: OpenShift" >> "$metadata_dir/collection-info.txt"
+    else
+        echo "Platform: Kubernetes" >> "$metadata_dir/collection-info.txt"
+    fi
+
+    log_success "Metadata collection completed"
+}
+
+# Collect CRD definitions
+collect_crd_definitions() {
+    log_info "Collecting CRD definitions..."
+
+    local crd_dir="$OUTPUT_DIR/crds/definitions"
+
+    # [GENERATED-CRDS-START] - Auto-generated, do not edit manually
+    # Generated at: 2026-01-28T10:56:17Z
+    # All CRDs we want to collect
+    local all_crds=(
+        # Main Network Operator CRDs
+        "hostdevicenetworks.mellanox.com"
+        "ipoibnetworks.mellanox.com"
+        "macvlannetworks.mellanox.com"
+        "nicclusterpolicies.mellanox.com"
+        # NV-IPAM CRDs
+        "cidrpools.nv-ipam.nvidia.com"
+        "ippools.nv-ipam.nvidia.com"
+        # NIC Configuration Operator CRDs
+        "nicconfigurationtemplates.configuration.net.nvidia.com"
+        "nicdevices.configuration.net.nvidia.com"
+        "nicfirmwaresources.configuration.net.nvidia.com"
+        "nicfirmwaretemplates.configuration.net.nvidia.com"
+        "nicinterfacenametemplates.configuration.net.nvidia.com"
+        # Spectrum-X CRDs
+        "spectrumxrailpoolconfigs.spectrumx.nvidia.com"
+        # Multus CRDs
+        "network-attachment-definitions.k8s.cni.cncf.io"
+        # SR-IOV Operator CRDs (optional sub-chart)
+        "sriovnetworknodepolicies.sriovnetwork.openshift.io"
+        "sriovnetworknodestates.sriovnetwork.openshift.io"
+        "sriovnetworks.sriovnetwork.openshift.io"
+        "sriovibnetworks.sriovnetwork.openshift.io"
+        "ovsnetworks.sriovnetwork.openshift.io"
+        "sriovoperatorconfigs.sriovnetwork.openshift.io"
+        "sriovnetworkpoolconfigs.sriovnetwork.openshift.io"
+        # Maintenance Operator CRDs (optional sub-chart)
+        "nodemaintenances.maintenance.nvidia.com"
+        "maintenanceoperatorconfigs.maintenance.nvidia.com"
+        # Node Feature Discovery CRDs (optional sub-chart)
+        "nodefeatures.nfd.k8s-sigs.io"
+        "nodefeaturerules.nfd.k8s-sigs.io"
+    )
+    # [GENERATED-CRDS-END]
+
+    for crd in "${all_crds[@]}"; do
+        if "$KUBECTL_BIN" get crd "$crd" &> /dev/null; then
+            if collect_resource "$crd_dir/${crd}.yaml" get crd "$crd" -o yaml; then
+                STATS[crds_definitions]=$((STATS[crds_definitions] + 1))
+            fi
+        else
+            log_info "  CRD not installed: $crd"
+        fi
+    done
+
+    log_success "Collected ${STATS[crds_definitions]} CRD definitions"
+}
+
+# Collect CRD instances
+collect_crd_instances() {
+    log_info "Collecting CRD instances..."
+
+    local instances_dir="$OUTPUT_DIR/crds/instances"
+    local collected=0
+
+    # Helper to collect CR instances
+    collect_cr_instances() {
+        local crd_name="$1"
+        local resource_name="$2"
+
+        if ! "$KUBECTL_BIN" get "$crd_name" -A &> /dev/null; then
+            return 0
+        fi
+
+        # Check if any instances exist
+        local count
+        count=$("$KUBECTL_BIN" get "$crd_name" -A --no-headers 2>/dev/null | wc -l)
+        if [ "$count" -eq 0 ]; then
+            log_info "  No instances of $crd_name"
+            return 0
+        fi
+
+        log_info "  Collecting $count instance(s) of $crd_name"
+        if collect_resource "$instances_dir/${resource_name}/all.yaml" get "$crd_name" -A -o yaml; then
+            ((collected++))
+        fi
+    }
+
+    # Collect all CR types
+    # Main Network Operator CRs
+    collect_cr_instances "nicclusterpolicies.mellanox.com" "nicclusterpolicies"
+    collect_cr_instances "macvlannetworks.mellanox.com" "macvlannetworks"
+    collect_cr_instances "hostdevicenetworks.mellanox.com" "hostdevicenetworks"
+    collect_cr_instances "ipoibnetworks.mellanox.com" "ipoibnetworks"
+    # NV-IPAM CRs
+    collect_cr_instances "ippools.nv-ipam.nvidia.com" "ippools"
+    collect_cr_instances "cidrpools.nv-ipam.nvidia.com" "cidrpools"
+    # NIC Configuration Operator CRs
+    collect_cr_instances "nicdevices.configuration.net.nvidia.com" "nicdevices"
+    collect_cr_instances "nicconfigurationtemplates.configuration.net.nvidia.com" "nicconfigurationtemplates"
+    collect_cr_instances "nicinterfacenametemplates.configuration.net.nvidia.com" "nicinterfacenametemplates"
+    collect_cr_instances "nicfirmwaresources.configuration.net.nvidia.com" "nicfirmwaresources"
+    collect_cr_instances "nicfirmwaretemplates.configuration.net.nvidia.com" "nicfirmwaretemplates"
+    # Spectrum-X CRs
+    collect_cr_instances "spectrumxrailpoolconfigs.spectrumx.nvidia.com" "spectrumxrailpoolconfigs"
+    # Multus CRs
+    collect_cr_instances "network-attachment-definitions.k8s.cni.cncf.io" "network-attachment-definitions"
+    # SR-IOV Operator CRs (optional sub-chart)
+    collect_cr_instances "sriovnetworknodepolicies.sriovnetwork.openshift.io" "sriovnetworknodepolicies"
+    collect_cr_instances "sriovnetworknodestates.sriovnetwork.openshift.io" "sriovnetworknodestates"
+    collect_cr_instances "sriovnetworks.sriovnetwork.openshift.io" "sriovnetworks"
+    collect_cr_instances "sriovibnetworks.sriovnetwork.openshift.io" "sriovibnetworks"
+    collect_cr_instances "ovsnetworks.sriovnetwork.openshift.io" "ovsnetworks"
+    collect_cr_instances "sriovoperatorconfigs.sriovnetwork.openshift.io" "sriovoperatorconfigs"
+    collect_cr_instances "sriovnetworkpoolconfigs.sriovnetwork.openshift.io" "sriovnetworkpoolconfigs"
+    # Maintenance Operator CRs (optional sub-chart)
+    collect_cr_instances "nodemaintenances.maintenance.nvidia.com" "nodemaintenances"
+    collect_cr_instances "maintenanceoperatorconfigs.maintenance.nvidia.com" "maintenanceoperatorconfigs"
+    # Node Feature Discovery CRs (optional sub-chart)
+    collect_cr_instances "nodefeatures.nfd.k8s-sigs.io" "nodefeatures"
+    collect_cr_instances "nodefeaturerules.nfd.k8s-sigs.io" "nodefeaturerules"
+
+    STATS[crds_instances]=$collected
+    log_success "Collected $collected types of CR instances"
+}
+
+# Collect operator resources
+collect_operator_resources() {
+    log_info "Collecting Network Operator resources..."
+
+    local operator_dir="$OUTPUT_DIR/operator"
+
+    # Namespace
+    collect_resource "$operator_dir/namespace.yaml" get namespace "$OPERATOR_NAMESPACE" -o yaml
+
+    # Operator controller as a component
+    local controller_dir="$operator_dir/components/network-operator"
+
+    # Deployment
+    collect_resource "$controller_dir/deployment.yaml" get deployment -n "$OPERATOR_NAMESPACE" -l app.kubernetes.io/name=network-operator -o yaml
+
+    # Pods
+    local pods
+    pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l app.kubernetes.io/name=network-operator -o name 2>/dev/null)
+
+    for pod in $pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+        log_info "  Collecting operator pod: $pod_name"
+
+        collect_resource "$controller_dir/pods/${pod_name}.yaml" get -n "$OPERATOR_NAMESPACE" "$pod" -o yaml
+
+        # Pod logs
+        mkdir -p "$controller_dir/pods"
+        if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" --tail="$LOG_LINES" > "$controller_dir/pods/${pod_name}.log" 2>> "$ERROR_LOG"; then
+            STATS[operator_pods]=$((STATS[operator_pods] + 1))
+        fi
+
+        # Previous logs if pod restarted
+        if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" --previous --tail="$LOG_LINES" > "$controller_dir/pods/${pod_name}-previous.log" 2>/dev/null; then
+            log_info "    Collected previous logs"
+        else
+            rm -f "$controller_dir/pods/${pod_name}-previous.log"
+        fi
+    done
+
+    # ConfigMaps
+    collect_resource "$operator_dir/configmaps.yaml" get configmaps -n "$OPERATOR_NAMESPACE" -o yaml
+
+    # Secrets (metadata only - no data)
+    mkdir -p "$operator_dir"
+    "$KUBECTL_BIN" get secrets -n "$OPERATOR_NAMESPACE" -o custom-columns=NAME:.metadata.name,TYPE:.type,AGE:.metadata.creationTimestamp > "$operator_dir/secrets-metadata.txt" 2>> "$ERROR_LOG" || true
+
+    # RBAC
+    collect_resource "$operator_dir/rbac/serviceaccounts.yaml" get serviceaccounts -n "$OPERATOR_NAMESPACE" -o yaml
+    collect_resource "$operator_dir/rbac/roles.yaml" get roles -n "$OPERATOR_NAMESPACE" -o yaml
+    collect_resource "$operator_dir/rbac/rolebindings.yaml" get rolebindings -n "$OPERATOR_NAMESPACE" -o yaml
+    collect_resource "$operator_dir/rbac/clusterroles.yaml" get clusterroles -l app.kubernetes.io/name=network-operator -o yaml
+    collect_resource "$operator_dir/rbac/clusterrolebindings.yaml" get clusterrolebindings -l app.kubernetes.io/name=network-operator -o yaml
+
+    # Events
+    collect_resource "$operator_dir/events.yaml" get events -n "$OPERATOR_NAMESPACE" --sort-by='.lastTimestamp' -o yaml
+
+    # Webhooks
+    collect_resource "$operator_dir/validatingwebhookconfigurations.yaml" get validatingwebhookconfigurations -o yaml
+    collect_resource "$operator_dir/mutatingwebhookconfigurations.yaml" get mutatingwebhookconfigurations -o yaml
+
+    log_success "Operator resources collection completed"
+}
+
+# Collect component workloads
+collect_component() {
+    local component_name="$1"
+    local label_selector="$2"
+    local resource_type="$3"  # daemonset, deployment, or both
+
+    log_info "Checking component: $component_name"
+
+    # Check if component exists before creating directories
+    local exists=false
+
+    if [ "$resource_type" = "daemonset" ] || [ "$resource_type" = "both" ]; then
+        if "$KUBECTL_BIN" get daemonsets -n "$OPERATOR_NAMESPACE" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
+            exists=true
+        fi
+    fi
+
+    if [ "$resource_type" = "deployment" ] || [ "$resource_type" = "both" ]; then
+        if "$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
+            exists=true
+        fi
+    fi
+
+    if [ "$exists" = false ]; then
+        log_info "  Component not deployed: $component_name (skipping)"
+        STATS[components_skipped]=$((STATS[components_skipped] + 1))
+        return 0
+    fi
+
+    log_info "  Collecting component: $component_name"
+    STATS[components_found]=$((STATS[components_found] + 1))
+
+    local component_dir="$OUTPUT_DIR/operator/components/$component_name"
+
+    # Collect DaemonSet or Deployment
+    if [ "$resource_type" = "daemonset" ] || [ "$resource_type" = "both" ]; then
+        collect_resource "$component_dir/daemonset.yaml" get daemonsets -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+    fi
+
+    if [ "$resource_type" = "deployment" ] || [ "$resource_type" = "both" ]; then
+        collect_resource "$component_dir/deployment.yaml" get deployments -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+    fi
+
+    # Collect pods
+    local pods
+    pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o name 2>/dev/null)
+
+    # Get list of selected nodes if node selector is specified
+    local selected_nodes=""
+    if [ -n "$NODE_SELECTOR" ]; then
+        selected_nodes=$("$KUBECTL_BIN" get nodes -l "$NODE_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+    fi
+
+    for pod in $pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+
+        # Skip pod if node selector is set and pod is not on selected node
+        if [ -n "$NODE_SELECTOR" ] && [ -n "$selected_nodes" ]; then
+            local pod_node
+            pod_node=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
+            if ! echo "$selected_nodes" | grep -qw "$pod_node"; then
+                log_info "    Skipping pod $pod_name (not on selected node)"
+                continue
+            fi
+        fi
+
+        collect_resource "$component_dir/pods/${pod_name}.yaml" get -n "$OPERATOR_NAMESPACE" "$pod" -o yaml
+
+        # Pod logs (all containers)
+        local containers
+        containers=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null)
+        for container in $containers; do
+            mkdir -p "$component_dir/pods"
+            if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" -c "$container" --tail="$LOG_LINES" > "$component_dir/pods/${pod_name}-${container}.log" 2>> "$ERROR_LOG"; then
+                STATS[component_pods]=$((STATS[component_pods] + 1))
+            else
+                rm -f "$component_dir/pods/${pod_name}-${container}.log"
+            fi
+
+            # Previous logs if available
+            if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" -c "$container" --previous --tail="$LOG_LINES" > "$component_dir/pods/${pod_name}-${container}-previous.log" 2>/dev/null; then
+                log_info "      Collected previous logs for container: $container"
+            else
+                rm -f "$component_dir/pods/${pod_name}-${container}-previous.log"
+            fi
+        done
+    done
+
+    # Collect Services
+    collect_resource "$component_dir/services.yaml" get services -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+}
+
+# Collect all components
+collect_all_components() {
+    log_info "Collecting all component workloads..."
+
+    # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually
+    # Generated at: 2026-01-28T10:56:17Z
+    # Component definitions: name, label, type
+    declare -A components=(
+        # Main Network Operator components
+        ["cni-plugins-ds"]="name=cni-plugins|daemonset"
+        ["doca-telemetry-service"]="app.kubernetes.io/name=doca-telemetry|daemonset"
+        ["ib-kubernetes"]="name=ib-kubernetes|deployment"
+        ["kube-ipoib-cni-ds"]="name=ipoib-cni|daemonset"
+        ["kube-multus-ds"]="name=multus|daemonset"
+        ["network-operator-sriov-device-plugin"]="name=network-operator-sriov-device-plugin|daemonset"
+        ["nic-configuration-daemon"]="app.kubernetes.io/name=nic-configuration-daemon|daemonset"
+        ["nic-configuration-operator"]="app.kubernetes.io/component=nic-configuration-operator|deployment"
+        ["nic-feature-discovery-ds"]="name=nic-feature-discovery|daemonset"
+        ["nv-ipam-controller"]="name=nv-ipam-controller|deployment"
+        ["nv-ipam-node"]="name=nv-ipam-node|daemonset"
+        ["ofed-driver"]="nvidia.com/ofed-driver=|daemonset"
+        ["rdma-shared-dp-ds"]="app=rdma-shared-dp|daemonset"
+        ["spectrum-x-flowcontroller"]="control-plane=spectrum-x-flowcontroller|daemonset"
+        # Node Feature Discovery (sub-chart)
+        ["nfd-master"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=master|deployment"
+        ["nfd-worker"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=worker|daemonset"
+        ["nfd-gc"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=gc|deployment"
+        # SR-IOV Network Operator (sub-chart)
+        ["sriov-network-operator"]="app=sriov-network-operator|deployment"
+        ["sriov-network-config-daemon"]="app=sriov-network-config-daemon|daemonset"
+        ["sriov-network-resources-injector"]="app=network-resources-injector|deployment"
+        # Maintenance Operator (sub-chart)
+        ["maintenance-operator"]="app.kubernetes.io/name=maintenance-operator|deployment"
+    )
+    # [GENERATED-COMPONENTS-END]
+
+    for component in "${!components[@]}"; do
+        IFS='|' read -r label type <<< "${components[$component]}"
+        collect_component "$component" "$label" "$type"
+    done
+
+    log_success "Found ${STATS[components_found]} components, skipped ${STATS[components_skipped]}"
+}
+
+# Run diagnostic commands in OFED pods
+collect_diagnostic_commands() {
+    if [ "$SKIP_DIAGNOSTICS" = true ]; then
+        log_info "Skipping diagnostic commands (--skip-diagnostics specified)"
+        return 0
+    fi
+
+    log_info "Collecting diagnostic commands from OFED pods..."
+
+    local ofed_pods
+    ofed_pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l "nvidia.com/ofed-driver=" -o name 2>/dev/null)
+
+    if [ -z "$ofed_pods" ]; then
+        log_info "  No OFED pods found, skipping diagnostics"
+        return 0
+    fi
+
+    # Filter OFED pods by node selector if specified
+    if [ -n "$NODE_SELECTOR" ]; then
+        local selected_nodes
+        selected_nodes=$("$KUBECTL_BIN" get nodes -l "$NODE_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+
+        local filtered_pods=""
+        for pod in $ofed_pods; do
+            local pod_node
+            pod_node=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
+            if echo "$selected_nodes" | grep -qw "$pod_node"; then
+                filtered_pods="$filtered_pods $pod"
+            fi
+        done
+        ofed_pods="$filtered_pods"
+
+        if [ -z "$ofed_pods" ]; then
+            log_info "  No OFED pods on selected nodes, skipping diagnostics"
+            return 0
+        fi
+    fi
+
+    local diagnostics_dir="$OUTPUT_DIR/operator/components/ofed-driver/diagnostics"
+
+    for pod in $ofed_pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+        local node_name
+        node_name=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
+
+        if [ -z "$node_name" ]; then
+            node_name="unknown"
+        fi
+
+        log_info "  Collecting diagnostics from pod $pod_name on node $node_name"
+
+        mkdir -p "$diagnostics_dir"
+
+        # Run diagnostic commands
+        local commands=(
+            "lsmod | grep mlx:${node_name}-lsmod.txt"
+            "ibstat:${node_name}-ibstat.txt"
+            "ibv_devinfo:${node_name}-ibv_devinfo.txt"
+            "mst status:${node_name}-mst_status.txt"
+            "cat /proc/version:${node_name}-kernel_version.txt"
+            "dmesg | tail -500:${node_name}-dmesg.txt"
+            "ip link show:${node_name}-ip_link.txt"
+            "ip addr show:${node_name}-ip_addr.txt"
+        )
+
+        for cmd_spec in "${commands[@]}"; do
+            IFS=':' read -r cmd output_file <<< "$cmd_spec"
+            if "$KUBECTL_BIN" exec -n "$OPERATOR_NAMESPACE" "$pod" -- sh -c "$cmd" > "$diagnostics_dir/$output_file" 2>> "$ERROR_LOG"; then
+                STATS[diagnostic_commands]=$((STATS[diagnostic_commands] + 1))
+            else
+                rm -f "$diagnostics_dir/$output_file"
+            fi
+        done
+    done
+
+    log_success "Collected ${STATS[diagnostic_commands]} diagnostic command outputs"
+}
+
+# Collect node information
+collect_node_info() {
+    log_info "Collecting node information..."
+
+    local nodes_dir="$OUTPUT_DIR/nodes"
+    local selector_arg=""
+
+    if [ -n "$NODE_SELECTOR" ]; then
+        selector_arg="-l $NODE_SELECTOR"
+        log_info "  Filtering nodes with selector: $NODE_SELECTOR"
+    fi
+
+    # All nodes (full YAML)
+    # shellcheck disable=SC2086
+    collect_resource "$nodes_dir/all-nodes.yaml" get nodes $selector_arg -o yaml
+
+    # Node summary
+    mkdir -p "$nodes_dir"
+    # shellcheck disable=SC2086
+    "$KUBECTL_BIN" get nodes $selector_arg -o wide > "$nodes_dir/nodes-summary.txt" 2>> "$ERROR_LOG" || true
+
+    # Extract node labels
+    # shellcheck disable=SC2086
+    "$KUBECTL_BIN" get nodes $selector_arg --show-labels > "$nodes_dir/node-labels.txt" 2>> "$ERROR_LOG" || true
+
+    # Node allocatable resources
+    {
+        echo "Node Allocatable Resources:"
+        echo "==========================="
+        echo ""
+        # shellcheck disable=SC2086
+        "$KUBECTL_BIN" get nodes $selector_arg -o custom-columns='NAME:.metadata.name,RDMA:.status.allocatable.nvidia\.com/rdma_shared_device_a,SRIOV:.status.allocatable.nvidia\.com/sriov_rdma_vf,GPU:.status.allocatable.nvidia\.com/gpu'
+    } > "$nodes_dir/node-resources.txt" 2>> "$ERROR_LOG" || true
+
+    # Count nodes
+    # shellcheck disable=SC2086
+    STATS[nodes]=$("$KUBECTL_BIN" get nodes $selector_arg --no-headers 2>/dev/null | wc -l)
+
+    log_success "Collected information for ${STATS[nodes]} nodes"
+}
+
+# Collect network information
+collect_network_info() {
+    log_info "Collecting network information..."
+
+    local network_dir="$OUTPUT_DIR/network"
+
+    # Services
+    collect_resource "$network_dir/services.yaml" get services -n "$OPERATOR_NAMESPACE" -o yaml
+
+    log_success "Network information collection completed"
+}
+
+# Collect related operators
+collect_related_operators() {
+    log_info "Checking for related operators..."
+
+    # Check for SR-IOV Network Operator
+    if "$KUBECTL_BIN" get namespace openshift-sriov-network-operator &> /dev/null; then
+        log_info "  Found SR-IOV Network Operator"
+        local sriov_dir="$OUTPUT_DIR/related-operators/sriov-network-operator"
+
+        collect_resource "$sriov_dir/namespace.yaml" get namespace openshift-sriov-network-operator -o yaml
+        collect_resource "$sriov_dir/deployments.yaml" get deployments -n openshift-sriov-network-operator -o yaml
+        collect_resource "$sriov_dir/daemonsets.yaml" get daemonsets -n openshift-sriov-network-operator -o yaml
+    fi
+
+    log_success "Related operators collection completed"
+}
+
+# Cleanup empty files and directories
+cleanup_empty_artifacts() {
+    log_info "Cleaning up empty files and directories..."
+
+    local cleaned_files=0
+    local cleaned_dirs=0
+
+    # Remove empty files
+    while IFS= read -r -d '' file; do
+        rm "$file"
+        ((cleaned_files++))
+    done < <(find "$OUTPUT_DIR" -type f -empty -print0 2>/dev/null)
+
+    # Remove files with only empty YAML structures (multiple patterns)
+    while IFS= read -r file; do
+        local should_remove=false
+
+        # Check various empty patterns
+        if grep -qE "^items: \[\]$" "$file" 2>/dev/null && [ "$(wc -l < "$file")" -lt 6 ]; then
+            should_remove=true
+        elif grep -qE "^kind: List$" "$file" 2>/dev/null && [ "$(wc -l < "$file")" -lt 6 ]; then
+            should_remove=true
+        elif [ "$(wc -l < "$file")" -lt 4 ]; then
+            # Very short YAML files are likely empty
+            should_remove=true
+        fi
+
+        if [ "$should_remove" = true ]; then
+            rm "$file"
+            ((cleaned_files++))
+        fi
+    done < <(find "$OUTPUT_DIR" -type f \( -name "*.yaml" -o -name "*.yml" \) 2>/dev/null)
+
+    # Remove empty directories (multiple passes for nested empties)
+    for _ in {1..5}; do
+        local pass_removed=0
+        while IFS= read -r -d '' dir; do
+            if rmdir "$dir" 2>/dev/null; then
+                ((pass_removed++))
+            fi
+        done < <(find "$OUTPUT_DIR" -type d -empty -print0 2>/dev/null)
+
+        ((cleaned_dirs+=pass_removed))
+        [ "$pass_removed" -eq 0 ] && break
+    done
+
+    if [ "$cleaned_files" -gt 0 ] || [ "$cleaned_dirs" -gt 0 ]; then
+        log_info "  Removed $cleaned_files empty files and $cleaned_dirs empty directories"
+    else
+        log_info "  No empty artifacts to clean"
+    fi
+}
+
+# Generate diagnostic summary
+generate_summary() {
+    log_info "Generating diagnostic summary..."
+
+    local summary_file="$OUTPUT_DIR/diagnostic-summary.txt"
+    mkdir -p "$(dirname "$summary_file")"
+
+    {
+        echo "NVIDIA Network Operator Diagnostic Summary"
+        echo "===================================="
+        echo ""
+        echo "Collection Time: $(date)"
+        echo "Script Version: $SCRIPT_VERSION"
+        echo "Operator Namespace: $OPERATOR_NAMESPACE"
+        echo ""
+
+        echo "Cluster Information:"
+        echo "-------------------"
+        "$KUBECTL_BIN" version --short 2>/dev/null || echo "Version: Unknown"
+        echo ""
+
+        echo "Nodes: ${STATS[nodes]}"
+        echo ""
+
+        echo "Network Operator Status:"
+        echo "------------------------"
+        "$KUBECTL_BIN" get deployment -n "$OPERATOR_NAMESPACE" -l app.kubernetes.io/name=network-operator 2>/dev/null || echo "Deployment not found"
+        echo ""
+
+        echo "NicClusterPolicy:"
+        "$KUBECTL_BIN" get nicclusterpolicies.mellanox.com 2>/dev/null || echo "No NicClusterPolicy found"
+        echo ""
+
+        echo "Component Pods Status:"
+        echo "---------------------"
+        "$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" --no-headers 2>/dev/null | awk '{print $1, $3}' | sort
+        echo ""
+
+        echo "Collection Statistics:"
+        echo "---------------------"
+        echo "CRD Definitions: ${STATS[crds_definitions]}"
+        echo "CRD Instances: ${STATS[crds_instances]}"
+        echo "Operator Pods: ${STATS[operator_pods]}"
+        echo "Components Found: ${STATS[components_found]}"
+        echo "Components Skipped: ${STATS[components_skipped]}"
+        echo "Component Pods: ${STATS[component_pods]}"
+        echo "Nodes: ${STATS[nodes]}"
+        echo "Diagnostic Commands: ${STATS[diagnostic_commands]}"
+        echo "Warnings: ${STATS[warnings]}"
+        echo "Errors: ${STATS[errors]}"
+        echo ""
+
+        echo "Recent Events (Last 20):"
+        echo "-----------------------"
+        "$KUBECTL_BIN" get events -n "$OPERATOR_NAMESPACE" --sort-by='.lastTimestamp' 2>/dev/null | tail -20
+        echo ""
+
+        if [ -f "$ERROR_LOG" ] && [ -s "$ERROR_LOG" ]; then
+            echo "Collection Errors/Warnings:"
+            echo "---------------------------"
+            cat "$ERROR_LOG"
+        fi
+
+    } > "$summary_file" 2>&1
+
+    log_success "Diagnostic summary generated"
+}
+
+# Create archive
+create_archive() {
+    if [ "$NO_COMPRESS" = true ]; then
+        log_info "Skipping archive creation (--no-compress specified)"
+        log_success "Collection directory: $OUTPUT_DIR"
+        return 0
+    fi
+
+    log_info "Creating tarball..."
+
+    local archive_name="${OUTPUT_DIR}.tar.gz"
+    local parent_dir
+    parent_dir=$(dirname "$OUTPUT_DIR")
+    local dir_name
+    dir_name=$(basename "$OUTPUT_DIR")
+
+    if tar -czf "$archive_name" -C "$parent_dir" "$dir_name" 2>> "$ERROR_LOG"; then
+        log_success "Archive created: $archive_name"
+
+        # Generate checksum
+        if command -v sha256sum &> /dev/null; then
+            sha256sum "$archive_name" > "${archive_name}.sha256"
+            log_success "Checksum file created: ${archive_name}.sha256"
+        fi
+
+        # Show archive size
+        local size
+        size=$(du -h "$archive_name" | cut -f1)
+        log_info "Archive size: $size"
+
+        # Remove the directory (with safety check)
+        log_info "Removing temporary directory"
+        if [ -n "$OUTPUT_DIR" ] && [ -d "$OUTPUT_DIR" ]; then
+            rm -rf "$OUTPUT_DIR"
+        fi
+
+        return 0
+    else
+        log_error "Failed to create archive"
+        return 1
+    fi
+}
+
+# Main function
+main() {
+    echo "========================================"
+    echo "NVIDIA Network Operator SOS-Report Collection"
+    echo "Version: $SCRIPT_VERSION"
+    echo "========================================"
+    echo ""
+
+    parse_args "$@"
+    check_prerequisites
+    detect_operator_namespace
+    setup_output_dir
+
+    # Collection phases
+    collect_metadata
+    collect_crd_definitions
+    collect_crd_instances
+    collect_operator_resources
+    collect_all_components
+    collect_diagnostic_commands
+    collect_node_info
+    collect_network_info
+    collect_related_operators
+
+    # Cleanup and finalize
+    cleanup_empty_artifacts
+    generate_summary
+    create_archive
+
+    echo ""
+    echo "========================================"
+    echo "Collection completed successfully!"
+    echo "========================================"
+    echo ""
+    echo "Statistics:"
+    echo "  CRDs: ${STATS[crds_definitions]} definitions, ${STATS[crds_instances]} instances"
+    echo "  Components: ${STATS[components_found]} found, ${STATS[components_skipped]} skipped"
+    echo "  Pods: ${STATS[operator_pods]} operator, ${STATS[component_pods]} component"
+    echo "  Nodes: ${STATS[nodes]}"
+    echo "  Diagnostics: ${STATS[diagnostic_commands]} commands"
+    echo "  Issues: ${STATS[warnings]} warnings, ${STATS[errors]} errors"
+    echo ""
+
+    # Return appropriate exit code
+    if [ "${STATS[errors]}" -gt 0 ]; then
+        log_warn "Collection completed with errors. Check the error log for details."
+        return 2
+    fi
+
+    return 0
+}
+
+# Run main function
+main "$@"
+exit $?
