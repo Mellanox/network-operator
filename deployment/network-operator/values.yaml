@@ -256,14 +256,14 @@ operator:
   # -- Network Operator image repository.
   repository: nvcr.io/nvstaging/mellanox
   # -- Network Operator image name
-  image: network-operator
+  image: network-operator-init-container
   # imagePullSecrets: []
   # -- Name to be used as part of objects name generation.
   nameOverride: ""
   # -- Name to be used to replace generated names.
   fullnameOverride: ""
   # tag, if defined will use the given image tag, else Chart. AppVersion will be used.
-  # tag
+  tag: network-operator-v26.1.0-beta.6
   # -- Directory, where CNI binaries will be deployed on the nodes. Setting for
   # the sriov-network-operator is set with ``sriov-network-operator.cniBinPath``
   # parameter. Note that the CNI bin directory should be aligned with the CNI bin
