@@ -18,11 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"strconv"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
 // ControllerRevision is the data to be stored as checkpoint
@@ -35,27 +31,6 @@ func CalculateRevision(o client.Object) (ControllerRevision, error) {
 		return 0, fmt.Errorf("failed to compute controller revision for the object: %v", err)
 	}
 	return ControllerRevision(rev), nil
-}
-
-// GetRevision returns controller revision which is saved in the object.
-// returns 0 if revision is not set for the object
-func GetRevision(o client.Object) ControllerRevision {
-	val := o.GetAnnotations()[consts.ControllerRevisionAnnotation]
-	rev, err := strconv.ParseUint(val, 10, 32)
-	if err != nil {
-		return 0
-	}
-	return ControllerRevision(rev)
-}
-
-// SetRevision saves controller revision to the object.
-func SetRevision(o client.Object, rev ControllerRevision) {
-	annotations := o.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	annotations[consts.ControllerRevisionAnnotation] = strconv.FormatUint(uint64(rev), 10)
-	o.SetAnnotations(annotations)
 }
 
 // Get returns calculated checksum for the object

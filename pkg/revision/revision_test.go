@@ -43,16 +43,4 @@ var _ = Describe("Revision", func() {
 			Expect(rev1).NotTo(Equal(rev2))
 		})
 	})
-	Context("Set/Get Revision", func() {
-		It("Should get revision set by setter", func() {
-			o := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "obj1", Namespace: "ns1"}}
-			testRev := revision.ControllerRevision(1000)
-			revision.SetRevision(o, testRev)
-			Expect(revision.GetRevision(o)).To(Equal(testRev))
-		})
-		It("Should return zero if revision not set", func() {
-			o := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "obj1", Namespace: "ns1"}}
-			Expect(revision.GetRevision(o)).To(Equal(revision.ControllerRevision(0)))
-		})
-	})
 })
