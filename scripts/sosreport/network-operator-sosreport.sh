@@ -1,0 +1,1 @@
+kubectl-netop_sosreport

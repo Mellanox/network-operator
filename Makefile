@@ -277,8 +277,20 @@ setup-envtest: $(SETUP_ENVTEST)  ## Install envtest binaries
 clean-envtest: setup-envtest ;## Clean up assets installed by setup-envtest
 	$Q $(SETUP_ENVTEST) cleanup
 
-check test tests: setup-envtest ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
+check test tests: setup-envtest test-sosreport ; $(info  running $(NAME:%=% )tests...) @ ## Run tests
 	KUBEBUILDER_ASSETS=`$(SETUP_ENVTEST) use --use-env -p path $(ENVTEST_K8S_VERSION)` $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
+
+.PHONY: test-sosreport
+test-sosreport: ; $(info  running sosreport tests...) @ ## Run sosreport script tests
+	$Q $(CURDIR)/scripts/sosreport/test-sosreport.sh
+
+.PHONY: generate-sosreport-maps
+generate-sosreport-maps: ; $(info  generating sosreport CRD/component maps...) @ ## Generate CRD/component maps for sosreport (embeds in script)
+	$Q $(CURDIR)/scripts/sosreport/generate-maps.sh
+
+.PHONY: verify-sosreport-maps
+verify-sosreport-maps: ; $(info  verifying sosreport maps are current...) @ ## Verify sosreport CRD/component maps are current
+	$Q $(CURDIR)/scripts/sosreport/generate-maps.sh --verify
 
 COVERAGE_MODE = count
 .PHONY: test-coverage
