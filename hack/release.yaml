@@ -50,11 +50,11 @@ SriovIbCni:
 Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
-  version: doca3.3.0-26.01-0.8.8.0-0
+  version: doca3.3.0-26.01-0.8.9.0-0
 MofedStigFips:
   image: doca-driver-stig-fips
   repository: nvcr.io/nvstaging/mellanox
-  version: doca3.3.0-26.01-0.8.8.0-0
+  version: doca3.3.0-26.01-0.8.9.0-0
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
