@@ -10,8 +10,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
-github.com/Mellanox/maintenance-operator/api v0.2.3 h1:FWv2/klChDwygRajx3SrVQYzbHGBPs3sEfnnescLUiw=
-github.com/Mellanox/maintenance-operator/api v0.2.3/go.mod h1:pkd4TxjMFItohSXT0D1JhXB/E3d8jE5asBzxNATwT2s=
+github.com/Mellanox/maintenance-operator/api v0.3.0 h1:TX+QflSZSOzinodbFdDK+2avEE5OAreajLbB33hubjg=
+github.com/Mellanox/maintenance-operator/api v0.3.0/go.mod h1:hJ+3RfMK82wT9BstT81bWA+6ZUy/zG6UzO5VzmkQfXg=
 github.com/NVIDIA/k8s-operator-libs v0.0.0-20250708070119-9dc24ccc10ee h1:IW3URIejZ85qDFoMXV1EzuHjjerGd8h0I5BvLGiuqa0=
 github.com/NVIDIA/k8s-operator-libs v0.0.0-20250708070119-9dc24ccc10ee/go.mod h1:8skFe7Dyub0FRpk5ysCM88ysFqJpIcw/4ZqLBWcevw8=
 github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083/go.mod h1:otnto4/Icqn88WCcM4bhIJNSgsh9VLBuspyyCfvof9c=
