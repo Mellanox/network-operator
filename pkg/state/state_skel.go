@@ -229,7 +229,6 @@ func (s *stateSkel) createOrUpdateObjs(
 		if err != nil {
 			return err
 		}
-		revision.SetRevision(desiredObj, desiredRev)
 
 		alreadyExist := true
 		currentObj := desiredObj.NewEmptyInstance().(*unstructured.Unstructured)
@@ -249,7 +248,10 @@ func (s *stateSkel) createOrUpdateObjs(
 			}
 			continue
 		}
-		currRev := revision.GetRevision(currentObj)
+		currRev, err := revision.CalculateRevision(currentObj)
+		if err != nil {
+			return errors.Wrap(err, "failed to calculate current object revision")
+		}
 		if currRev != 0 && currRev == desiredRev {
 			reqLogger.V(consts.LogLevelInfo).Info("Object is already in sync")
 			continue
