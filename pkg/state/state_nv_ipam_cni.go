@@ -146,6 +146,11 @@ func (s *stateNVIPAMCNI) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.NvIpam.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.NvIpam.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate nvIpam image spec")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
