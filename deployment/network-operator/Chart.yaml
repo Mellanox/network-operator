@@ -1,7 +1,7 @@
 apiVersion: v2
 name: network-operator
 version: 26.1.0-beta.7
-kubeVersion: '>= 1.21.0'
+kubeVersion: '>= 1.21.0-0'
 appVersion: v26.1.0-beta.7
 description: Nvidia network operator
 type: application
