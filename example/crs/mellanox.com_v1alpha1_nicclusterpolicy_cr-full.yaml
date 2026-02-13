@@ -115,11 +115,11 @@ spec:
     operator:
       image: nic-configuration-operator
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-beta.7
+      version: 709c747
     configurationDaemon:
       image: nic-configuration-operator-daemon
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-beta.7
+      version: 709c747
     # Uncomment to explicitely reset the NIC's Firmware before the reboot and after updating its non-volatile configuration.
     # Might be required on DGX servers where configuration update is not successfully applied after the warm reboot.
     # env:
