@@ -95,6 +95,7 @@ rules:
       - "list"
       - "watch"
       - "delete"
+      - "patch"
   - apiGroups:
       - sriovnetwork.openshift.io
     resources:
