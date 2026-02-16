@@ -382,6 +382,61 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
+	It("should render Daemonset with CliArgs extending defaults", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.CliArgs = []string{
+			"--additional-arg=value",
+		}
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify custom arg is present
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--additional-arg=value"))
+
+			// Verify default args are still present
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--multus-conf-file=auto"))
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--cleanup-config-on-exit"))
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--skip-config-watch"))
+		})).To(BeTrue())
+	})
+
+	It("should render Daemonset with CliArgs overriding defaults", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.CliArgs = []string{
+			"--cni-conf-dir=/custom/cni/conf",
+			"--additional-arg=value",
+		}
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			args := daemonSet.Spec.Template.Spec.Containers[0].Args
+
+			// Verify the custom arg overrides the default
+			Expect(args).To(ContainElement("--cni-conf-dir=/custom/cni/conf"))
+			// Verify default value is not present
+			Expect(args).NotTo(ContainElement("--cni-conf-dir=/host/etc/cni/net.d"))
+
+			// Verify additional arg is present
+			Expect(args).To(ContainElement("--additional-arg=value"))
+
+			// Verify other defaults are still present
+			Expect(args).To(ContainElement("--cleanup-config-on-exit"))
+			Expect(args).To(ContainElement("--skip-config-watch"))
+		})).To(BeTrue())
+	})
+
 })
 
 func getMinimalNicClusterPolicyWithMultus() *mellanoxv1alpha1.NicClusterPolicy {
