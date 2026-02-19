@@ -1,0 +1,634 @@
+<!--
+ Copyright 2026 NVIDIA CORPORATION & AFFILIATES
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NVIDIA Network Operator SOS-Report</title>
+  <style>
+:root {
+    --nvidia-green: #76B900;
+    --nvidia-green-dark: #5A8F00;
+    --status-ready: #16A34A;
+    --status-warn: #D97706;
+    --status-error: #DC2626;
+    --status-ignore: #6B7280;
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8FAFC;
+    --bg-sidebar: #1A1A2E;
+    --text-primary: #1E293B;
+    --text-secondary: #64748B;
+    --text-sidebar: #CBD5E1;
+    --border: #E2E8F0;
+    --code-bg: #1E1E2E;
+    --code-text: #CDD6F4;
+    --sidebar-width: 220px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    line-height: 1.6;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-sidebar);
+    color: var(--text-sidebar);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 16px 0;
+}
+
+.sidebar-header {
+    padding: 8px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 8px;
+}
+
+.sidebar-header h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--nvidia-green);
+    letter-spacing: 0.5px;
+}
+
+.sidebar-header .subtitle {
+    font-size: 11px;
+    color: var(--text-sidebar);
+    opacity: 0.7;
+}
+
+.sidebar nav a {
+    display: block;
+    padding: 6px 16px;
+    color: var(--text-sidebar);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    border-left-color: var(--nvidia-green);
+}
+
+.sidebar nav .nav-group {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-sidebar);
+    opacity: 0.5;
+    padding: 12px 16px 4px;
+    font-weight: 600;
+}
+
+/* Main content */
+.main {
+    margin-left: var(--sidebar-width);
+    padding: 24px 32px;
+    max-width: 1200px;
+}
+
+.page-header {
+    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+    color: #fff;
+    padding: 24px 32px;
+    margin: -24px -32px 24px;
+    border-bottom: 3px solid var(--nvidia-green);
+}
+
+.page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.page-header .meta {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 4px;
+}
+
+/* Dashboard cards */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.card .card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.card .card-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 4px 0;
+}
+
+.card .card-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.card-ready .card-value { color: var(--status-ready); }
+.card-warn .card-value { color: var(--status-warn); }
+.card-error .card-value { color: var(--status-error); }
+
+/* Section */
+.section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.section-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.section-body {
+    padding: 16px 20px;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+tr:hover td {
+    background: var(--bg-secondary);
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.badge-ready { background: #DCFCE7; color: #166534; }
+.badge-warn { background: #FEF3C7; color: #92400E; }
+.badge-error { background: #FEE2E2; color: #991B1B; }
+.badge-ignore { background: #F1F5F9; color: #475569; }
+
+/* Collapsible */
+.collapsible {
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.collapsible summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.collapsible[open] summary {
+    border-bottom: 1px solid var(--border);
+    border-radius: 6px 6px 0 0;
+}
+
+.collapsible summary:hover {
+    background: #EFF6FF;
+}
+
+.collapsible .line-count {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: auto;
+}
+
+.collapsible-content {
+    max-height: 600px;
+    overflow: auto;
+}
+
+.collapsible-content pre {
+    margin: 0;
+    padding: 12px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.collapsible-content pre code {
+    font-family: inherit;
+}
+
+/* Log highlighting */
+.log-error { background: rgba(220, 38, 38, 0.15); display: block; }
+.log-warn { background: rgba(217, 119, 6, 0.1); display: block; }
+
+/* Component grid rows */
+.comp-grid-header {
+    display: grid;
+    grid-template-columns: 20px 2fr 1fr 0.7fr 0.7fr 0.7fr 0.8fr 0.8fr;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.comp-row {
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+}
+
+.comp-row summary {
+    list-style: none;
+}
+
+.comp-row summary::-webkit-details-marker {
+    display: none;
+}
+
+.comp-row-summary {
+    display: grid;
+    grid-template-columns: 20px 2fr 1fr 0.7fr 0.7fr 0.7fr 0.8fr 0.8fr;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    align-items: center;
+    background: var(--bg-primary);
+    border-radius: 0;
+    transition: background 0.1s;
+}
+
+.comp-row-summary:hover {
+    background: #F1F5F9;
+}
+
+.comp-row[open] .comp-row-summary {
+    background: #EFF6FF;
+    border-bottom: 1px solid var(--border);
+}
+
+.comp-row-summary .comp-name {
+    font-weight: 600;
+}
+
+.comp-row-detail {
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 0;
+}
+
+/* Expand chevron (shared by comp-row and crd-row) */
+.expand-chevron {
+    display: inline-block;
+    width: 16px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+}
+details[open] > summary .expand-chevron {
+    transform: rotate(90deg);
+}
+
+/* CRD expandable rows */
+.crd-row {
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+}
+.crd-row summary {
+    list-style: none;
+}
+.crd-row summary::-webkit-details-marker {
+    display: none;
+}
+.crd-row-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    background: var(--bg-primary);
+    transition: background 0.1s;
+}
+.crd-row-summary:hover {
+    background: #F1F5F9;
+}
+.crd-row[open] > .crd-row-summary {
+    background: #EFF6FF;
+    border-bottom: 1px solid var(--border);
+}
+.crd-row-summary .crd-name {
+    font-weight: 600;
+    font-family: monospace;
+    font-size: 12px;
+}
+.crd-row-summary .crd-count {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.crd-row-detail {
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+}
+
+/* Pod grid */
+.pod-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    background: var(--bg-primary);
+}
+
+.pod-card .pod-name {
+    font-weight: 600;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.pod-card .pod-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Diagnostics */
+.node-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 12px 0;
+    overflow: hidden;
+}
+
+.node-card-header {
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.node-card-body {
+    padding: 12px 16px;
+}
+
+/* Events */
+.event-item {
+    padding: 8px 12px;
+    border-left: 3px solid var(--border);
+    margin: 6px 0;
+    font-size: 13px;
+}
+
+.event-item.event-warning {
+    border-left-color: var(--status-warn);
+    background: rgba(217, 119, 6, 0.05);
+}
+
+.event-item .event-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.event-item .event-reason {
+    font-weight: 600;
+}
+
+/* Expand/Collapse all */
+.expand-controls {
+    font-size: 12px;
+}
+
+.expand-controls button {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.expand-controls button:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 16px; }
+    .page-header { margin: -16px -16px 16px; padding: 16px; }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Print */
+@media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .collapsible[open] .collapsible-content { max-height: none; }
+    details { break-inside: avoid; }
+    .section { break-inside: avoid; box-shadow: none; }
+    .badge { border: 1px solid currentColor; }
+}
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+        <h2>NVIDIA Network Operator</h2>
+        <div class="subtitle">SOS-Report</div>
+    </div>
+    <nav>
+        <div class="nav-group">Overview</div>
+        <a href="#ncp-status">NicClusterPolicy</a>
+        <a href="#components">Components</a>
+        <a href="#diagnostics">OFED Diagnostics</a>
+
+        <div class="nav-group">Cluster</div>
+        <a href="#nodes">Nodes</a>
+        <a href="#events">Events</a>
+        <a href="#metadata">Metadata</a>
+
+        <div class="nav-group">Resources</div>
+        <a href="#crds">CRDs</a>
+        <a href="#rbac">RBAC</a>
+        <a href="#network">Network &amp; Webhooks</a>
+        <a href="#config">Configuration</a>
+        <a href="#related">Related Operators</a>
+
+        <div class="nav-group">Issues</div>
+        <a href="#errors">Errors &amp; Warnings</a>
+    </nav>
+  </div>
+
+  <div class="main">
+    ${SECTION_DASHBOARD}
+    ${SECTION_NCP_STATUS}
+    ${SECTION_COMPONENTS}
+    ${SECTION_DIAGNOSTICS}
+    ${SECTION_NODES}
+    ${SECTION_EVENTS}
+    ${SECTION_METADATA}
+    ${SECTION_CRDS}
+    ${SECTION_RBAC}
+    ${SECTION_NETWORK}
+    ${SECTION_CONFIG}
+    ${SECTION_RELATED}
+    ${SECTION_ERRORS}
+  </div>
+
+  <script>
+(function() {
+    // Active sidebar link tracking
+    var sections = document.querySelectorAll('.section[id]');
+    var navLinks = document.querySelectorAll('.sidebar nav a');
+    var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                navLinks.forEach(function(link) { link.classList.remove('active'); });
+                var active = document.querySelector('.sidebar nav a[href="#' + entry.target.id + '"]');
+                if (active) active.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s) { observer.observe(s); });
+
+    // Expand/Collapse all within a section
+    window.toggleAll = function(btn, sectionId, open) {
+        var section = document.getElementById(sectionId);
+        if (!section) return;
+        section.querySelectorAll('details').forEach(function(d) {
+            d.open = open;
+        });
+    };
+
+    // Copy code block to clipboard
+    window.copyBlock = function(btn) {
+        var pre = btn.closest('.collapsible-content').querySelector('pre');
+        if (!pre) return;
+        navigator.clipboard.writeText(pre.textContent).then(function() {
+            var orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = orig; }, 1500);
+        });
+    };
+
+    // Simple log filter
+    window.filterLog = function(input, targetId) {
+        var pre = document.getElementById(targetId);
+        if (!pre) return;
+        var lines = pre.querySelectorAll('span, code');
+        var query = input.value.toLowerCase();
+        if (!query) {
+            pre.style.display = '';
+            return;
+        }
+        // For plain pre blocks, we can't filter line by line without spans
+        // This is a best-effort text search highlight
+    };
+})();
+  </script>
+</body>
+</html>

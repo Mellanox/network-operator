@@ -13,17 +13,19 @@ The script can be used in two ways:
 #### 1. As a kubectl Plugin (Recommended)
 
 ```bash
-# Install system-wide
-sudo cp kubectl-netop_sosreport /usr/local/bin/
+# Install system-wide (include report generator and template for HTML report support)
+sudo cp kubectl-netop_sosreport generate-report.py report-template.html /usr/local/bin/
 
 # Or user-only
 mkdir -p ~/.local/bin
-cp kubectl-netop_sosreport ~/.local/bin/
+cp kubectl-netop_sosreport generate-report.py report-template.html ~/.local/bin/
 export PATH="$HOME/.local/bin:$PATH"
 
 # Use as kubectl command
 kubectl netop-sosreport --help
 ```
+
+> **Note:** `generate-report.py` and `report-template.html` must be in the same directory as `kubectl-netop_sosreport` for HTML report generation. If these files are not present locally, the script will attempt to download them from GitHub. If download fails, the collection still works but the HTML report is skipped.
 
 #### 2. As a Standalone Script
 
@@ -42,6 +44,38 @@ kubectl netop-sosreport --help
 - **Graceful Error Handling**: Continues collection even if some resources fail
 - **Configurable**: Multiple options to customize the collection behavior
 - **Platform Aware**: Detects OpenShift vs vanilla Kubernetes
+
+### HTML Report
+
+The collection script automatically generates a self-contained HTML report (`report.html`) that provides an interactive, navigable view of all collected data. The report is included in the output archive alongside the raw files.
+
+**Features:**
+- Executive dashboard with overall NicClusterPolicy status, node count, pod health, and error summary
+- NicClusterPolicy applied states table with color-coded status badges
+- Component health grid showing all 22 components with desired/ready replicas, pod counts, and restart counts
+- Per-component detail panels with workload YAML, pod status, and log viewers with error/warning highlighting
+- OFED diagnostics per node (lsmod, ibstat, ibv_devinfo, mst status, dmesg, ip link/addr)
+- Node overview with summary table, resource allocation, and labels
+- Events timeline with warning highlighting
+- CRD inventory with definitions and instances
+- RBAC overview, network/webhook configuration, and operator configuration
+- Collection errors and warnings
+- Sidebar navigation for quick access to any section
+- Collapsible sections for large YAML/log content
+
+**Standalone usage** (generate a report from an existing sosreport directory):
+```bash
+# From an uncompressed sosreport directory
+python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --template report-template.html
+
+# Custom output path
+python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --template report-template.html --output /tmp/report.html
+```
+
+**Skip report generation** during collection:
+```bash
+./network-operator-sosreport.sh --skip-report
+```
 
 ### What's Collected
 
@@ -153,6 +187,7 @@ Options:
   --skip-diagnostics         Skip running diagnostic commands in OFED pods
                              (lsmod, ibstat, ibv_devinfo, mst, dmesg, ip commands)
                              Use this for faster collection when driver-level diagnostics are not needed
+  --skip-report              Skip HTML report generation
   --kubectl-path PATH        Path to kubectl binary (default: kubectl from PATH)
   --verbose                  Verbose output during collection
   --help                     Show help message
@@ -212,6 +247,7 @@ network-operator-sosreport-<timestamp>/
 ├── related-operators/
 │   └── sriov-network-operator/       # If present
 ├── diagnostic-summary.txt            # Quick summary and issues
+├── report.html                       # Interactive HTML report
 └── collection-errors.log             # Any errors during collection
 ```
 
@@ -227,6 +263,7 @@ By default, the script creates a compressed tarball:
 - Valid kubeconfig with cluster access
 - Permissions to read resources (cluster-admin recommended)
 - Bash 4.0 or later
+- Python 3.6+ (for HTML report generation)
 - Standard Unix utilities (tar, gzip, sha256sum)
 
 ### Exit Codes

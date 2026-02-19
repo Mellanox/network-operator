@@ -35,6 +35,7 @@ OUTPUT_DIR=""
 NO_COMPRESS=false
 LOG_LINES=5000
 SKIP_DIAGNOSTICS=false
+SKIP_REPORT=false
 KUBECTL_BIN="kubectl"
 VERBOSE=false
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -81,6 +82,7 @@ Options:
   --no-compress              Don't create tarball, leave as directory
   --log-lines N              Number of log lines to collect per pod (default: 5000)
   --skip-diagnostics         Skip running diagnostic commands in OFED pods (lsmod, ibstat, ibv_devinfo, mst, dmesg, ip)
+  --skip-report              Skip HTML report generation
   --node-selector SELECTOR   Only collect from nodes matching label selector (default: all nodes)
                              Example: feature.node.kubernetes.io/pci-15b3.present=true
   --kubectl-path PATH        Path to kubectl binary (default: kubectl from PATH)
@@ -158,6 +160,10 @@ parse_args() {
                 ;;
             --skip-diagnostics)
                 SKIP_DIAGNOSTICS=true
+                shift
+                ;;
+            --skip-report)
+                SKIP_REPORT=true
                 shift
                 ;;
             --node-selector)
@@ -995,6 +1001,76 @@ generate_summary() {
     log_success "Diagnostic summary generated"
 }
 
+# Download a file from a URL using curl or wget
+download_file() {
+    local url="$1"
+    local dest="$2"
+    if command -v curl &>/dev/null; then
+        curl -fsSL --connect-timeout 10 "$url" -o "$dest" 2>/dev/null
+    elif command -v wget &>/dev/null; then
+        wget -q --timeout=10 "$url" -O "$dest" 2>/dev/null
+    else
+        log_warn "Neither curl nor wget found, cannot download report files"
+        return 1
+    fi
+}
+
+# Generate HTML report from collected data
+generate_html_report() {
+    if [ "$SKIP_REPORT" = true ]; then
+        log_info "Skipping HTML report generation (--skip-report)"
+        return 0
+    fi
+
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local report_script="$script_dir/generate-report.py"
+    local report_template="$script_dir/report-template.html"
+
+    # Download if not present locally
+    local base_url="https://raw.githubusercontent.com/Mellanox/network-operator/master/scripts/sosreport"
+    if [ ! -f "$report_script" ]; then
+        log_info "Report generator not found locally, downloading..."
+        download_file "$base_url/generate-report.py" "$report_script" || true
+    fi
+    if [ ! -f "$report_template" ]; then
+        log_info "Report template not found locally, downloading..."
+        download_file "$base_url/report-template.html" "$report_template" || true
+    fi
+
+    # Check if files are available (local or downloaded)
+    if [ ! -f "$report_script" ]; then
+        log_warn "Report generator not available, skipping HTML report"
+        return 0
+    fi
+    if [ ! -f "$report_template" ]; then
+        log_warn "Report template not available, skipping HTML report"
+        return 0
+    fi
+
+    # Check Python availability
+    local python_bin=""
+    for cmd in python3 python; do
+        if command -v "$cmd" &>/dev/null; then
+            python_bin="$cmd"
+            break
+        fi
+    done
+    if [ -z "$python_bin" ]; then
+        log_warn "Python not found, skipping HTML report"
+        return 0
+    fi
+
+    log_info "Generating HTML report..."
+    if "$python_bin" "$report_script" "$OUTPUT_DIR" \
+        --output "$OUTPUT_DIR/report.html" \
+        --template "$report_template" 2>> "$ERROR_LOG"; then
+        log_success "HTML report generated: $OUTPUT_DIR/report.html"
+    else
+        log_warn "HTML report generation failed (non-critical)"
+    fi
+}
+
 # Create archive
 create_archive() {
     if [ "$NO_COMPRESS" = true ]; then
@@ -1065,6 +1141,7 @@ main() {
     # Cleanup and finalize
     cleanup_empty_artifacts
     generate_summary
+    generate_html_report
     create_archive
 
     echo ""
