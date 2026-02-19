@@ -21,6 +21,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOSREPORT_SCRIPT="$SCRIPT_DIR/kubectl-netop_sosreport"
+REPORT_SCRIPT="$SCRIPT_DIR/generate-report.py"
+REPORT_TEMPLATE="$SCRIPT_DIR/report-template.html"
 LEGACY_SYMLINK="$SCRIPT_DIR/network-operator-sosreport.sh"
 
 echo "========================================"
@@ -84,6 +86,7 @@ required_functions=(
     "collect_related_operators"
     "cleanup_empty_artifacts"
     "generate_summary"
+    "generate_html_report"
     "create_archive"
 )
 
@@ -288,6 +291,229 @@ if [ "$all_commands_found" = true ]; then
     echo "PASS: All diagnostic commands present"
 else
     echo "FAIL: Some diagnostic commands are missing"
+    exit 1
+fi
+
+# Test 11: HTML report generator exists and is executable
+echo ""
+echo "[Test 11] Checking HTML report generator..."
+if [ -x "$REPORT_SCRIPT" ]; then
+    echo "PASS: generate-report.py exists and is executable"
+else
+    echo "FAIL: generate-report.py is not executable or doesn't exist"
+    exit 1
+fi
+
+# Test 11b: HTML report template exists
+echo ""
+echo "[Test 11b] Checking HTML report template..."
+if [ -f "$REPORT_TEMPLATE" ]; then
+    echo "  Template file exists"
+    # Check for required placeholders
+    missing_placeholders=false
+    for placeholder in 'SECTION_DASHBOARD' 'SECTION_NCP_STATUS' 'SECTION_COMPONENTS' 'SECTION_DIAGNOSTICS' 'SECTION_NODES' 'SECTION_EVENTS' 'SECTION_METADATA' 'SECTION_CRDS' 'SECTION_RBAC' 'SECTION_NETWORK' 'SECTION_CONFIG' 'SECTION_ERRORS'; do
+        if grep -q "\${${placeholder}}" "$REPORT_TEMPLATE"; then
+            echo "  Found placeholder: \${${placeholder}}"
+        else
+            echo "  Missing placeholder: \${${placeholder}}"
+            missing_placeholders=true
+        fi
+    done
+    if [ "$missing_placeholders" = false ]; then
+        echo "PASS: Report template exists with all required placeholders"
+    else
+        echo "FAIL: Report template is missing placeholders"
+        exit 1
+    fi
+else
+    echo "FAIL: report-template.html doesn't exist"
+    exit 1
+fi
+
+# Test 12: HTML report generator Python syntax
+echo ""
+echo "[Test 12] Checking HTML report generator syntax..."
+if python3 -m py_compile "$REPORT_SCRIPT"; then
+    echo "PASS: generate-report.py syntax is valid"
+else
+    echo "FAIL: generate-report.py syntax errors detected"
+    exit 1
+fi
+
+# Test 13: HTML report generator contains required functions
+echo ""
+echo "[Test 13] Checking report generator functions..."
+report_functions=(
+    "render_dashboard"
+    "render_ncp_status"
+    "render_components"
+    "render_diagnostics"
+    "render_nodes"
+    "render_events"
+    "render_crds"
+    "render_rbac"
+    "render_network"
+    "render_config"
+    "render_errors"
+    "render_metadata"
+    "render_related_operators"
+)
+
+all_report_funcs=true
+for func in "${report_functions[@]}"; do
+    if grep -q "^def ${func}" "$REPORT_SCRIPT"; then
+        echo "  Found: $func"
+    else
+        echo "  Missing: $func"
+        all_report_funcs=false
+    fi
+done
+
+if [ "$all_report_funcs" = true ]; then
+    echo "PASS: All report generator functions present"
+else
+    echo "FAIL: Some report generator functions are missing"
+    exit 1
+fi
+
+# Test 14: HTML report generator works with synthetic data
+echo ""
+echo "[Test 14] Testing report generator with synthetic sosreport data..."
+FIXTURE_DIR="${SCRIPT_DIR}/.test-fixture-$$"
+mkdir -p "$FIXTURE_DIR"
+trap 'rm -rf "$FIXTURE_DIR"' EXIT
+
+# Create minimal sosreport directory structure
+mkdir -p "$FIXTURE_DIR/metadata"
+mkdir -p "$FIXTURE_DIR/crds/definitions"
+mkdir -p "$FIXTURE_DIR/crds/instances/nicclusterpolicies"
+mkdir -p "$FIXTURE_DIR/operator/components/network-operator/pods"
+mkdir -p "$FIXTURE_DIR/operator/rbac"
+mkdir -p "$FIXTURE_DIR/nodes"
+mkdir -p "$FIXTURE_DIR/network"
+
+cat > "$FIXTURE_DIR/metadata/collection-info.txt" <<FIXTURE_EOF
+Collection Time: 2026-02-18 14:30:00 UTC
+Script Version: v26.1.0
+Operator Namespace: nvidia-network-operator
+Platform: Kubernetes
+FIXTURE_EOF
+
+cat > "$FIXTURE_DIR/crds/instances/nicclusterpolicies/all.yaml" <<FIXTURE_EOF
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
+metadata:
+  name: nic-cluster-policy
+spec:
+  ofedDriver:
+    image: mofed
+status:
+  state: ready
+  appliedStates:
+  - name: state-OFED
+    state: ready
+  - name: state-Multus
+    state: ready
+FIXTURE_EOF
+
+cat > "$FIXTURE_DIR/operator/components/network-operator/deployment.yaml" <<FIXTURE_EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-operator
+spec:
+  replicas: 1
+status:
+  replicas: 1
+  readyReplicas: 1
+FIXTURE_EOF
+
+cat > "$FIXTURE_DIR/operator/components/network-operator/pods/network-operator-abc123.yaml" <<FIXTURE_EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-operator-abc123
+spec:
+  nodeName: node-1
+status:
+  phase: Running
+  containerStatuses:
+  - name: network-operator
+    restartCount: 0
+    ready: true
+FIXTURE_EOF
+
+echo "test log line" > "$FIXTURE_DIR/operator/components/network-operator/pods/network-operator-abc123.log"
+
+cat > "$FIXTURE_DIR/nodes/nodes-summary.txt" <<FIXTURE_EOF
+NAME     STATUS   ROLES    AGE   VERSION
+node-1   Ready    master   10d   v1.28.0
+FIXTURE_EOF
+
+cat > "$FIXTURE_DIR/diagnostic-summary.txt" <<FIXTURE_EOF
+NVIDIA Network Operator Diagnostic Summary
+====================================
+
+Nodes: 1
+
+Collection Statistics:
+---------------------
+CRD Definitions: 2
+CRD Instances: 1
+Component Pods: 1
+Components Found: 1
+Components Skipped: 0
+Warnings: 0
+Errors: 0
+FIXTURE_EOF
+
+touch "$FIXTURE_DIR/collection-errors.log"
+
+# Run the report generator
+REPORT_OUTPUT="$FIXTURE_DIR/report.html"
+if python3 "$REPORT_SCRIPT" "$FIXTURE_DIR" --output "$REPORT_OUTPUT" --template "$REPORT_TEMPLATE" > /dev/null 2>&1; then
+    echo "  Report generated successfully"
+else
+    echo "FAIL: Report generation failed"
+    exit 1
+fi
+
+# Verify the output file exists and contains expected content
+if [ -f "$REPORT_OUTPUT" ] && [ -s "$REPORT_OUTPUT" ]; then
+    echo "  Report file exists and is non-empty"
+else
+    echo "FAIL: Report file missing or empty"
+    exit 1
+fi
+
+# Check for key HTML elements
+missing_elements=false
+for element in "<!DOCTYPE html>" "NicClusterPolicy" "Component Health" "OFED Diagnostics" "Node Overview" "Events" "RBAC" "sidebar"; do
+    if grep -q "$element" "$REPORT_OUTPUT"; then
+        echo "  Found element: $element"
+    else
+        echo "  Missing element: $element"
+        missing_elements=true
+    fi
+done
+
+if [ "$missing_elements" = false ]; then
+    echo "PASS: HTML report generated correctly with all sections"
+else
+    echo "FAIL: HTML report is missing expected content"
+    exit 1
+fi
+
+# Test 15: Collection script references report generator
+echo ""
+echo "[Test 15] Checking collection script references report generator..."
+if grep -q "generate_html_report" "$SOSREPORT_SCRIPT" && \
+   grep -q "generate-report.py" "$SOSREPORT_SCRIPT" && \
+   grep -q "report-template.html" "$SOSREPORT_SCRIPT" && \
+   grep -q "skip-report" "$SOSREPORT_SCRIPT"; then
+    echo "PASS: Collection script properly references report generator"
+else
+    echo "FAIL: Collection script missing report generator integration"
     exit 1
 fi
 
