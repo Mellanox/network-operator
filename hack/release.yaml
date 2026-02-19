@@ -192,5 +192,5 @@ k8sLaunchKit:
   image: k8s-launch-kit
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: NVIDIA/k8s-launch-kit
-  version: v25.10.0
+  version: v26.1.0
   nSpectScope: general
