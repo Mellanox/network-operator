@@ -23,7 +23,7 @@ metadata:
 spec:
   ofedDriver:
     image: doca-driver
-    repository: nvcr.io/nvstaging/mellanox
+    repository: nvcr.io/nvidia/mellanox
     version: doca3.3.0-26.01-1.0.0.0-0
     upgradePolicy:
       autoUpgrade: true
@@ -44,8 +44,8 @@ spec:
       periodSeconds: 30
   rdmaSharedDevicePlugin:
     image: k8s-rdma-shared-dev-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.1.0
     # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
     # Replace 'devices' with your (RDMA capable) netdevice name.
     config: |
@@ -63,8 +63,8 @@ spec:
       }
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.1.0
     config: |
       {
         "resourceList": [
@@ -81,32 +81,32 @@ spec:
   secondaryNetwork:
     cniPlugins:
       image: plugins
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-rc.2
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v26.1.0
     ipoib:
       image: ipoib-cni
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-rc.2
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v26.1.0
     multus:
       image: multus-cni
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-rc.2
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v26.1.0
   nvIpam:
     image: nvidia-k8s-ipam
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.1.0
     enableWebhook: false
   ibKubernetes:
     image: ib-kubernetes
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.1.0
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
   nicFeatureDiscovery:
     image: nic-feature-discovery
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.1.0
   docaTelemetryService:
     image: doca_telemetry
     repository: nvcr.io/nvidia/doca
@@ -114,12 +114,12 @@ spec:
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-rc.2
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v26.1.0
     configurationDaemon:
       image: nic-configuration-operator-daemon
-      repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.1.0-rc.2
+      repository: nvcr.io/nvidia/mellanox
+      version: network-operator-v26.1.0
     # Uncomment to explicitely reset the NIC's Firmware before the reboot and after updating its non-volatile configuration.
     # Might be required on DGX servers where configuration update is not successfully applied after the warm reboot.
     # env:

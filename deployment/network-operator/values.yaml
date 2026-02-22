@@ -44,8 +44,8 @@ node-feature-discovery:
   postDeleteCleanup: false
 
   image:
-    repository: nvcr.io/nvstaging/mellanox/node-feature-discovery
-    tag: network-operator-v26.1.0-rc.2
+    repository: nvcr.io/nvidia/mellanox/node-feature-discovery
+    tag: network-operator-v26.1.0
     pullPolicy: IfNotPresent
   # imagePullSecrest for node-feature-discovery Network Operator related images
   #imagePullSecrets: []
@@ -157,15 +157,15 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components.
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-v26.1.0-rc.2
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-v26.1.0-rc.2
-    sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v26.1.0-rc.2
-    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v26.1.0-rc.2
-    ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.1.0-rc.2
-    rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v26.1.0-rc.2
-    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.1.0-rc.2
+    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-v26.1.0
+    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-v26.1.0
+    sriovCni: nvcr.io/nvidia/mellanox/sriov-cni:network-operator-v26.1.0
+    ibSriovCni: nvcr.io/nvidia/mellanox/ib-sriov-cni:network-operator-v26.1.0
+    ovsCni: nvcr.io/nvidia/mellanox/ovs-cni-plugin:network-operator-v26.1.0
+    rdmaCni: nvcr.io/nvidia/mellanox/rdma-cni:network-operator-v26.1.0
+    sriovDevicePlugin: nvcr.io/nvidia/mellanox/sriov-network-device-plugin:network-operator-v26.1.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
-    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-v26.1.0-rc.2
+    webhook: nvcr.io/nvidia/mellanox/sriov-network-operator-webhook:network-operator-v26.1.0
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
   sriovOperatorConfig:
@@ -191,9 +191,9 @@ maintenance-operator-chart:
   #imagePullSecrets: []
   operator:
     image:
-      repository: nvcr.io/nvstaging/mellanox
+      repository: nvcr.io/nvidia/mellanox
       name: maintenance-operator
-      tag: network-operator-v26.1.0-rc.2
+      tag: network-operator-v26.1.0
     admissionController:
       # -- enable admission controller of the operator
       enable: false
@@ -254,7 +254,7 @@ operator:
                 operator: In
                 values: [ "" ]
   # -- Network Operator image repository.
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
   # -- Network Operator image name
   image: network-operator
   # imagePullSecrets: []
@@ -315,11 +315,11 @@ operator:
       # -- Deploy init container.
       enable: true
       # -- Init container image repository.
-      repository: nvcr.io/nvstaging/mellanox
+      repository: nvcr.io/nvidia/mellanox
       # -- Init container image name.
       image: network-operator-init-container
       # -- Init container image version.
-      version: network-operator-v26.1.0-rc.2
+      version: network-operator-v26.1.0
 
 # -- An optional list of references to secrets to use for pulling any of the
 # Network Operator images.
