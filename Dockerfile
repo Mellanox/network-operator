@@ -63,7 +63,7 @@ RUN mkdir crds && \
 # Fall back to ARCH from Makefile for traditional builds (backward compatibility)
 ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
-FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v4.0.1
+FROM --platform=linux/${ARCH} nvcr.io/nvidia/distroless/go:v4.0.2
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
