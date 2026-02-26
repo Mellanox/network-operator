@@ -152,6 +152,19 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	if cr.Spec.NicConfigurationOperator.Operator != nil {
+		cr.Spec.NicConfigurationOperator.Operator.ApplyGlobalConfig(cr.Spec.Global)
+		if err := cr.Spec.NicConfigurationOperator.Operator.ValidateRequiredFields(); err != nil {
+			return nil, errors.Wrap(err, "failed to validate nicConfigurationOperator.operator image spec")
+		}
+	}
+	if cr.Spec.NicConfigurationOperator.ConfigurationDaemon != nil {
+		cr.Spec.NicConfigurationOperator.ConfigurationDaemon.ApplyGlobalConfig(cr.Spec.Global)
+		if err := cr.Spec.NicConfigurationOperator.ConfigurationDaemon.ValidateRequiredFields(); err != nil {
+			return nil, errors.Wrap(err, "failed to validate nicConfigurationOperator.configurationDaemon image spec")
+		}
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

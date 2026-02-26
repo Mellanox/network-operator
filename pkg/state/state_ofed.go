@@ -566,6 +566,11 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.OFEDDriver.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.OFEDDriver.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate ofedDriver image spec")
+	}
+
 	nodeInfo, clusterInfo, docaProvider, err := getProviders(catalog)
 	if err != nil {
 		return nil, err

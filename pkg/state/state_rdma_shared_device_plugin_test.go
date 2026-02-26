@@ -19,6 +19,7 @@ package state_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -70,7 +71,128 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})
 	})
+	Context("Global config", func() {
+		It("should use global repository and version when component values are empty", func() {
+			cr := getTestClusterPolicyWithBaseFields()
+			cr.Name = "nic-cluster-policy"
+			// Set global config
+			cr.Spec.Global = &mellanoxv1alpha1.GlobalConfig{
+				Repository: "global-repo",
+				Version:    "global-version",
+			}
+			// Component has only image, no repository/version
+			cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: mellanoxv1alpha1.ImageSpec{
+						Image: "test-image",
+					},
+				},
+			}
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(BeNumerically(">=", 1))
+			// Verify the image uses global values
+			ds := objs[0]
+			Expect(ds.GetKind()).To(Equal("DaemonSet"))
+			containers := getContainers(ds)
+			Expect(containers[0].(map[string]interface{})["image"]).To(Equal("global-repo/test-image:global-version"))
+		})
+		It("should use component values when both global and component values exist", func() {
+			cr := getTestClusterPolicyWithBaseFields()
+			cr.Name = "nic-cluster-policy"
+			// Set global config
+			cr.Spec.Global = &mellanoxv1alpha1.GlobalConfig{
+				Repository: "global-repo",
+				Version:    "global-version",
+			}
+			// Component has its own repository and version
+			cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: mellanoxv1alpha1.ImageSpec{
+						Image:      "test-image",
+						Repository: "component-repo",
+						Version:    "component-version",
+					},
+				},
+			}
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(BeNumerically(">=", 1))
+			// Verify the image uses component values (not global)
+			ds := objs[0]
+			Expect(ds.GetKind()).To(Equal("DaemonSet"))
+			containers := getContainers(ds)
+			Expect(containers[0].(map[string]interface{})["image"]).To(Equal("component-repo/test-image:component-version"))
+		})
+		It("should return error when repository is missing and no global config", func() {
+			cr := getTestClusterPolicyWithBaseFields()
+			cr.Name = "nic-cluster-policy"
+			// No global config, component missing repository
+			cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: mellanoxv1alpha1.ImageSpec{
+						Image:   "test-image",
+						Version: "v1.0.0",
+					},
+				},
+			}
+			_, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("repository is required"))
+		})
+		It("should return error when version is missing and no global config", func() {
+			cr := getTestClusterPolicyWithBaseFields()
+			cr.Name = "nic-cluster-policy"
+			// No global config, component missing version
+			cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: mellanoxv1alpha1.ImageSpec{
+						Image:      "test-image",
+						Repository: "test-repo",
+					},
+				},
+			}
+			_, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("version is required"))
+		})
+		It("should use global imagePullSecrets when component has none", func() {
+			cr := getTestClusterPolicyWithBaseFields()
+			cr.Name = "nic-cluster-policy"
+			// Set global config with imagePullSecrets
+			cr.Spec.Global = &mellanoxv1alpha1.GlobalConfig{
+				Repository:       "global-repo",
+				Version:          "global-version",
+				ImagePullSecrets: []string{"global-secret"},
+			}
+			// Component has no imagePullSecrets
+			cr.Spec.RdmaSharedDevicePlugin = &mellanoxv1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: mellanoxv1alpha1.ImageSpecWithConfig{
+					ImageSpec: mellanoxv1alpha1.ImageSpec{
+						Image: "test-image",
+					},
+				},
+			}
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(BeNumerically(">=", 1))
+			ds := objs[0]
+			spec := ds.Object["spec"].(map[string]interface{})
+			template := spec["template"].(map[string]interface{})
+			templateSpec := template["spec"].(map[string]interface{})
+			imagePullSecrets := templateSpec["imagePullSecrets"].([]interface{})
+			Expect(len(imagePullSecrets)).To(Equal(1))
+			Expect(imagePullSecrets[0].(map[string]interface{})["name"]).To(Equal("global-secret"))
+		})
+	})
 })
+
+func getContainers(obj *unstructured.Unstructured) []interface{} {
+	spec := obj.Object["spec"].(map[string]interface{})
+	template := spec["template"].(map[string]interface{})
+	templateSpec := template["spec"].(map[string]interface{})
+	return templateSpec["containers"].([]interface{})
+}
 
 func getRDMASharedDevicePlugin() *mellanoxv1alpha1.NicClusterPolicy {
 	cr := getTestClusterPolicyWithBaseFields()

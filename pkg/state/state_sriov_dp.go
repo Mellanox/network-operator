@@ -145,6 +145,11 @@ func (s *stateSriovDp) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.SriovDevicePlugin.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SriovDevicePlugin.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate sriovDevicePlugin image spec")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")

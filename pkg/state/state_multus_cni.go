@@ -137,6 +137,11 @@ func (s *stateMultusCNI) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.SecondaryNetwork.Multus.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.SecondaryNetwork.Multus.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate multus image spec")
+	}
+
 	staticConfig := catalog.GetStaticConfigProvider()
 	if staticConfig == nil {
 		return nil, errors.New("staticConfig provider required")

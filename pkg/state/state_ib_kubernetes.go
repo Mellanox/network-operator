@@ -145,6 +145,11 @@ func (s *stateIBKubernetes) GetManifestObjects(
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
+	cr.Spec.IBKubernetes.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
+	if err := cr.Spec.IBKubernetes.ImageSpec.ValidateRequiredFields(); err != nil {
+		return nil, errors.Wrap(err, "failed to validate ibKubernetes image spec")
+	}
+
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterType provider required")
