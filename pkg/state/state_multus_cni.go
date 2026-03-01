@@ -18,6 +18,7 @@ package state //nolint:dupl
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -64,6 +65,7 @@ type MultusManifestRenderData struct {
 	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
 	RuntimeSpec  *cniRuntimeSpec
+	MergedArgs   []string
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -129,6 +131,41 @@ func (s *stateMultusCNI) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
+// extractArgKey extracts the key from a command-line argument.
+// For args like "--key=value", it returns "--key".
+// For args like "--key", it returns "--key".
+func extractArgKey(arg string) string {
+	if idx := strings.Index(arg, "="); idx != -1 {
+		return arg[:idx]
+	}
+	return arg
+}
+
+// mergeMultusArgs merges default args with custom CliArgs, allowing CliArgs to override defaults.
+// If a CliArg has the same key as a default arg, the CliArg takes precedence.
+func mergeMultusArgs(defaultArgs, cliArgs []string) []string {
+	// Build a map of keys from cliArgs for quick lookup
+	cliArgKeys := make(map[string]bool)
+	for _, arg := range cliArgs {
+		key := extractArgKey(arg)
+		cliArgKeys[key] = true
+	}
+
+	// Start with all cliArgs
+	merged := make([]string, 0, len(defaultArgs)+len(cliArgs))
+	merged = append(merged, cliArgs...)
+
+	// Add default args that are not overridden by cliArgs
+	for _, arg := range defaultArgs {
+		key := extractArgKey(arg)
+		if !cliArgKeys[key] {
+			merged = append(merged, arg)
+		}
+	}
+
+	return merged
+}
+
 //nolint:dupl
 func (s *stateMultusCNI) GetManifestObjects(
 	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
@@ -145,6 +182,30 @@ func (s *stateMultusCNI) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+
+	cniNetworkDir := utils.GetCniNetworkDirectory(staticConfig, clusterInfo)
+
+	// Build default args for Multus
+	multusConfFile := "auto"
+	if cr.Spec.SecondaryNetwork.Multus.Config != nil {
+		multusConfFile = "/tmp/multus-conf/00-multus.conf"
+	}
+	defaultArgs := []string{
+		"--multus-conf-file=" + multusConfFile,
+		"--multus-autoconfig-dir=/host/etc/cni/net.d",
+		"--cni-conf-dir=/host/etc/cni/net.d",
+		"--cleanup-config-on-exit",
+		"--skip-config-watch",
+		"--cni-bin-dir=/host/opt/cni/bin",
+		"--multus-kubeconfig-file-host=" + cniNetworkDir + "/multus.d/multus.kubeconfig",
+	}
+
+	// Merge default args with user-provided CliArgs
+	mergedArgs := defaultArgs
+	if len(cr.Spec.SecondaryNetwork.Multus.CliArgs) > 0 {
+		mergedArgs = mergeMultusArgs(defaultArgs, cr.Spec.SecondaryNetwork.Multus.CliArgs)
+	}
+
 	renderData := &MultusManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
 		Tolerations:  cr.Spec.Tolerations,
@@ -155,6 +216,7 @@ func (s *stateMultusCNI) GetManifestObjects(
 			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
 			ContainerResources:  createContainerResourcesMap(cr.Spec.SecondaryNetwork.Multus.ContainerResources),
 		},
+		MergedArgs: mergedArgs,
 	}
 
 	// render objects
