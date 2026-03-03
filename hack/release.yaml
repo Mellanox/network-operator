@@ -194,3 +194,9 @@ k8sLaunchKit:
   sourceRepository: NVIDIA/k8s-launch-kit
   version: v25.10.0
   nSpectScope: general
+DraDriverSriov:
+  image: dra-driver-sriov
+  repository: nvcr.io/nvstaging/mellanox
+  sourceRepository: dra-driver-sriov
+  version: network-operator-v26.1.0
+  nSpectScope: gov-ready
