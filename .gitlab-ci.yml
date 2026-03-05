@@ -24,7 +24,8 @@ trigger-jenkins-nspect-on-tag:
       until curl \
         -fsSL \
         -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/Mellanox/network-operator/actions/runs \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        "https://api.github.com/repos/Mellanox/network-operator/actions/runs?head_sha=$CI_COMMIT_SHA" \
           | jq \
             -r \
             --arg GH_WORKFLOW_NAME "$gh_workflow_name" \
