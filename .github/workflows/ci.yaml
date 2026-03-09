@@ -53,7 +53,7 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
-    - uses: docker/build-push-action@v6
+    - uses: docker/build-push-action@v7
       env:
         GOPROXY: ${{ steps.setup-go-proxy.outputs.goproxy-url || 'direct' }}
       with:
