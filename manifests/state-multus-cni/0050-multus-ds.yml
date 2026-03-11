@@ -68,15 +68,9 @@ spec:
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
           command: ["/thin_entrypoint"]
           args:
-            # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
-            # /host/etc/cni/net.d/00-multus.conf
-            - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
-            - "--multus-autoconfig-dir=/host/etc/cni/net.d"
-            - "--cni-conf-dir=/host/etc/cni/net.d"
-            - "--cleanup-config-on-exit"
-            - "--skip-config-watch"
-            - "--cni-bin-dir=/host/opt/cni/bin"
-            - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
+            {{- range .MergedArgs }}
+            - {{ . | quote }}
+            {{- end }}
           {{- with .RuntimeSpec.ContainerResources }}
           {{- with index . "kube-multus" }}
           resources:
