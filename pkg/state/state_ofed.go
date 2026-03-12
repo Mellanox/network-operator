@@ -240,10 +240,13 @@ type additionalVolumeMounts struct {
 }
 
 type initContainerConfig struct {
-	InitContainerEnable    bool
-	InitContainerImageName string
-	SafeLoadEnable         bool
-	SafeLoadAnnotation     string
+	InitContainerEnable       bool
+	InitContainerImageName    string
+	SafeLoadEnable            bool
+	SafeLoadAnnotation        string
+	ModuleDepCheckEnable      bool
+	ModuleDepCheckModulesJSON string
+	AllowedModulesJSON        string
 }
 
 type ofedRuntimeSpec struct {
@@ -734,12 +737,34 @@ func (s *stateOFED) getInitContainerConfig(
 	safeLoadEnable := cr.Spec.OFEDDriver.OfedUpgradePolicy != nil &&
 		cr.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade &&
 		cr.Spec.OFEDDriver.OfedUpgradePolicy.SafeLoad
+
+	// Extract UNLOAD_CUSTOM_MODULES from driver container env vars
+	allowedModules := ""
+	if cr.Spec.OFEDDriver.Env != nil {
+		for _, env := range cr.Spec.OFEDDriver.Env {
+			if env.Name != "UNLOAD_CUSTOM_MODULES" || env.Value == "" {
+				continue
+			}
+			parts := strings.Fields(env.Value)
+			quoted := make([]string, len(parts))
+			for i, p := range parts {
+				quoted[i] = fmt.Sprintf("%q", p)
+			}
+			allowedModules = strings.Join(quoted, ", ")
+			break
+		}
+	}
+
 	if image != "" {
 		initContCfg = initContainerConfig{
 			InitContainerEnable:    true,
 			InitContainerImageName: image,
 			SafeLoadEnable:         safeLoadEnable,
 			SafeLoadAnnotation:     upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
+			ModuleDepCheckEnable:   true,
+			ModuleDepCheckModulesJSON: `"mlx5_core", "mlx5_ib", "ib_umad", "ib_uverbs",` +
+				` "ib_ipoib", "rdma_cm", "rdma_ucm", "ib_core", "ib_cm"`,
+			AllowedModulesJSON: allowedModules,
 		}
 	}
 
