@@ -23,6 +23,12 @@ data:
       "safeDriverLoad": {
         "enable": {{ .RuntimeSpec.InitContainerConfig.SafeLoadEnable }},
         "annotation": "{{ .RuntimeSpec.InitContainerConfig.SafeLoadAnnotation }}"
+      },
+      "moduleDependencyCheck": {
+        "enable": {{ .RuntimeSpec.InitContainerConfig.ModuleDepCheckEnable }},
+        "modules": [{{ .RuntimeSpec.InitContainerConfig.ModuleDepCheckModulesJSON }}],
+        "hostProcPath": "/host/proc",
+        "hostSysPath": "/host/sys"
       }
     }
 {{end}}

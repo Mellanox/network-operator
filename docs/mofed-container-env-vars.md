@@ -24,6 +24,7 @@ In most deployments its expected to not require setting those.
 | ENABLE_NFSRDMA |N|`"false"`| enable loading of nfs relates storage modules from mofed container|
 | RESTORE_DRIVER_ON_POD_TERMINATION |N|`"true"`| restore host drivers when container is gracefully stopped |
 | NVIDIA_NIC_DRIVERS_INVENTORY_PATH | N | `"/mnt/drivers-inventory"` | enable use of a persistent directory to store drivers' build artifacts to avoid recompilation between runs. Keep the default value or set to "" to disable. |
+| OFED_BLACKLIST_MODULES | N | `""` | Colon-separated list of additional kernel modules to add to the modprobe blacklist. These are appended to the built-in default list that is always blacklisted. For example, setting `"my_custom_mod:another_mod"` will blacklist those modules in addition to the defaults. |
 
 In addition, the user can specify essentially any environment variables to be exposed to the MOFED container such as
 the standard `"HTTP_PROXY"`, `"HTTPS_PROXY"`, `"NO_PROXY"`

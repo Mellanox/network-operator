@@ -240,10 +240,12 @@ type additionalVolumeMounts struct {
 }
 
 type initContainerConfig struct {
-	InitContainerEnable    bool
-	InitContainerImageName string
-	SafeLoadEnable         bool
-	SafeLoadAnnotation     string
+	InitContainerEnable      bool
+	InitContainerImageName   string
+	SafeLoadEnable           bool
+	SafeLoadAnnotation       string
+	ModuleDepCheckEnable     bool
+	ModuleDepCheckModulesJSON string
 }
 
 type ofedRuntimeSpec struct {
@@ -736,10 +738,12 @@ func (s *stateOFED) getInitContainerConfig(
 		cr.Spec.OFEDDriver.OfedUpgradePolicy.SafeLoad
 	if image != "" {
 		initContCfg = initContainerConfig{
-			InitContainerEnable:    true,
-			InitContainerImageName: image,
-			SafeLoadEnable:         safeLoadEnable,
-			SafeLoadAnnotation:     upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
+			InitContainerEnable:       true,
+			InitContainerImageName:    image,
+			SafeLoadEnable:            safeLoadEnable,
+			SafeLoadAnnotation:        upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
+			ModuleDepCheckEnable:      true,
+			ModuleDepCheckModulesJSON: `"mlx5_core", "mlx5_ib", "ib_umad", "ib_uverbs", "ib_ipoib", "rdma_cm", "rdma_ucm", "ib_core", "ib_cm"`,
 		}
 	}
 
