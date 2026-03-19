@@ -225,6 +225,7 @@ spec:
                         - RA1.3
                         - RA2.0
                         - RA2.1
+                        - RA3.0
                         type: string
                     required:
                     - enabled
