@@ -493,6 +493,47 @@ type NicClusterPolicyList struct {
 	Items           []NicClusterPolicy `json:"items"`
 }
 
+// GetOFEDDriverSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetOFEDDriverSpec() *OFEDDriverSpec {
+	return n.Spec.OFEDDriver
+}
+
+// GetRdmaSharedDevicePluginSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetRdmaSharedDevicePluginSpec() *DevicePluginSpec {
+	return n.Spec.RdmaSharedDevicePlugin
+}
+
+// GetSriovDevicePluginSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetSriovDevicePluginSpec() *DevicePluginSpec {
+	return n.Spec.SriovDevicePlugin
+}
+
+// GetTolerations implements NicPolicy.
+func (n *NicClusterPolicy) GetTolerations() []v1.Toleration {
+	return n.Spec.Tolerations
+}
+
+// GetNodeAffinity implements NicPolicy.
+func (n *NicClusterPolicy) GetNodeAffinity() *v1.NodeAffinity {
+	return n.Spec.NodeAffinity
+}
+
+// GetNodeSelector implements NicPolicy.
+// NicClusterPolicy does not have a NodeSelector field; returns nil.
+func (n *NicClusterPolicy) GetNodeSelector() map[string]string {
+	return nil
+}
+
+// GetCRDName implements NicPolicy.
+func (n *NicClusterPolicy) GetCRDName() string {
+	return NicClusterPolicyCRDName
+}
+
+// GetGlobalConfig implements NicPolicy.
+func (n *NicClusterPolicy) GetGlobalConfig() *GlobalConfig {
+	return n.Spec.Global
+}
+
 func init() {
 	SchemeBuilder.Register(&NicClusterPolicy{}, &NicClusterPolicyList{})
 }

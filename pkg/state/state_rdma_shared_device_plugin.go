@@ -18,6 +18,7 @@ package state //nolint:dupl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -68,6 +69,8 @@ type stateRDMASharedDevicePluginManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
 	Tolerations         []v1.Toleration
 	NodeAffinity        *v1.NodeAffinity
+	NodeSelector        map[string]string
+	DSOwner             string
 	DeployInitContainer bool
 	RuntimeSpec         *stateRDMASharedDevicePluginSpec
 }
@@ -79,11 +82,15 @@ type stateRDMASharedDevicePluginManifestRenderData struct {
 func (s *stateRDMASharedDevicePlugin) Sync(
 	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	reqLogger := log.FromContext(ctx)
-	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
+	cr, ok := customResource.(mellanoxv1alpha1.NicPolicyCR)
+	if !ok {
+		return SyncStateError, fmt.Errorf("unsupported CR type: %T", customResource)
+	}
+	s.dsOwner = cr.GetCRDName()
 	reqLogger.V(consts.LogLevelInfo).Info(
-		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
+		"Sync Custom resource", "State:", s.name, "Name:", cr.GetName(), "Namespace:", cr.GetNamespace())
 
-	if cr.Spec.RdmaSharedDevicePlugin == nil {
+	if cr.GetRdmaSharedDevicePluginSpec() == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		return s.handleStateObjectsDeletion(ctx)
@@ -137,14 +144,14 @@ func (s *stateRDMASharedDevicePlugin) GetWatchSources() map[string]client.Object
 
 //nolint:dupl
 func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
-	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	_ context.Context, cr mellanoxv1alpha1.NicPolicyCR,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
-	if cr == nil || cr.Spec.RdmaSharedDevicePlugin == nil {
+	if cr == nil || cr.GetRdmaSharedDevicePluginSpec() == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
-	cr.Spec.RdmaSharedDevicePlugin.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
-	if err := cr.Spec.RdmaSharedDevicePlugin.ImageSpec.ValidateRequiredFields(); err != nil {
+	cr.GetRdmaSharedDevicePluginSpec().ImageSpec.ApplyGlobalConfig(cr.GetGlobalConfig())
+	if err := cr.GetRdmaSharedDevicePluginSpec().ImageSpec.ValidateRequiredFields(); err != nil {
 		return nil, errors.Wrap(err, "failed to validate rdmaSharedDevicePlugin image spec")
 	}
 
@@ -154,14 +161,16 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	}
 
 	renderData := &stateRDMASharedDevicePluginManifestRenderData{
-		CrSpec:              cr.Spec.RdmaSharedDevicePlugin,
-		Tolerations:         cr.Spec.Tolerations,
-		NodeAffinity:        cr.Spec.NodeAffinity,
-		DeployInitContainer: cr.Spec.OFEDDriver != nil,
+		CrSpec:              cr.GetRdmaSharedDevicePluginSpec(),
+		Tolerations:         cr.GetTolerations(),
+		NodeAffinity:        cr.GetNodeAffinity(),
+		NodeSelector:        cr.GetNodeSelector(),
+		DSOwner:             cr.GetCRDName(),
+		DeployInitContainer: cr.GetOFEDDriverSpec() != nil,
 		RuntimeSpec: &stateRDMASharedDevicePluginSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
-			ContainerResources: createContainerResourcesMap(cr.Spec.RdmaSharedDevicePlugin.ContainerResources),
+			ContainerResources: createContainerResourcesMap(cr.GetRdmaSharedDevicePluginSpec().ContainerResources),
 		},
 	}
 	// render objects
@@ -171,8 +180,8 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 		return nil, errors.Wrap(err, "failed to render objects")
 	}
 
-	if cr.Spec.RdmaSharedDevicePlugin.Config != nil {
-		configHash := utils.GetStringHash(*cr.Spec.RdmaSharedDevicePlugin.Config)
+	if cr.GetRdmaSharedDevicePluginSpec().Config != nil {
+		configHash := utils.GetStringHash(*cr.GetRdmaSharedDevicePluginSpec().Config)
 		if err := SetConfigHashAnnotation(objs, configHash); err != nil {
 			return nil, errors.Wrap(err, "failed to set config hash annotation")
 		}
