@@ -86,6 +86,7 @@ type Release struct {
 	NicConfigurationConfigDaemon *ReleaseImageSpec
 	MaintenanceOperator          *ReleaseImageSpec
 	SpectrumXOperator            *ReleaseImageSpec
+	DraDriverSriov               *ReleaseImageSpec
 }
 
 // DocaDriverMatrix represent the expected DOCA-Driver OS/arch combinations
@@ -151,6 +152,7 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("NIC_CONFIGURATION_CONFIG_DAEMON", release.NicConfigurationConfigDaemon)
 	initWithEnvVariale("MAINTENANCE_OPERATOR", release.MaintenanceOperator)
 	initWithEnvVariale("SPECTRUM_X_OPERATOR", release.SpectrumXOperator)
+	initWithEnvVariale("DRA_DRIVER_SRIOV", release.DraDriverSriov)
 }
 
 func main() {

@@ -44,3 +44,12 @@ rules:
       - create
       - patch
       - update
+  - apiGroups:
+      - "resource.k8s.io"
+    resources:
+      - resourceclaims
+      - resourceclaims/status
+      - resourceslices
+    verbs:
+      - get
+      - list
