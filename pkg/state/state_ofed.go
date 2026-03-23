@@ -269,6 +269,7 @@ type ofedManifestRenderData struct {
 	NodeAffinity           *v1.NodeAffinity
 	NodeSelector           map[string]string
 	DSOwner                string
+	NameSuffix             string
 	RuntimeSpec            *ofedRuntimeSpec
 	AdditionalVolumeMounts additionalVolumeMounts
 }
@@ -360,7 +361,7 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	if !ok {
 		return SyncStateError, fmt.Errorf("unsupported CR type: %T", customResource)
 	}
-	s.dsOwner = cr.GetCRDName()
+	s.dsOwner = dsOwnerValue(cr)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.GetName(), "Namespace:", cr.GetNamespace())
 
@@ -709,7 +710,8 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 		Tolerations:            cr.GetTolerations(),
 		NodeAffinity:           cr.GetNodeAffinity(),
 		NodeSelector:           cr.GetNodeSelector(),
-		DSOwner:                cr.GetCRDName(),
+		DSOwner:                dsOwnerValue(cr),
+		NameSuffix:             nameSuffix(cr),
 		AdditionalVolumeMounts: additionalVolMounts,
 	}
 

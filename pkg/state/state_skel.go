@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/revision"
@@ -67,6 +68,26 @@ func (s *stateSkel) Name() string {
 // Description provides the State description
 func (s *stateSkel) Description() string {
 	return s.description
+}
+
+// dsOwnerValue returns the ds-owner label value for the given CR.
+// For NicClusterPolicy, it returns just the CRD name (preserving backwards compatibility).
+// For other CR types (e.g. NicNodePolicy), it includes the CR name to allow multiple instances.
+func dsOwnerValue(cr mellanoxv1alpha1.NicPolicyCR) string {
+	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
+		return cr.GetCRDName()
+	}
+	return cr.GetCRDName() + "-" + cr.GetName()
+}
+
+// nameSuffix returns the resource name suffix for the given CR.
+// For NicClusterPolicy, it returns an empty string (preserving backwards compatibility).
+// For other CR types, it returns "-<cr-name>" to ensure unique resource names.
+func nameSuffix(cr mellanoxv1alpha1.NicPolicyCR) string {
+	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
+		return ""
+	}
+	return "-" + cr.GetName()
 }
 
 // GetSupportedGVKs returns a list of GetSupportedGVKs managed by Network Operator

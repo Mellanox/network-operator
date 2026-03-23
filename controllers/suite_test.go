@@ -215,6 +215,14 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&NicNodePolicyReconciler{
+		Client:                   k8sManager.GetClient(),
+		Scheme:                   k8sManager.GetScheme(),
+		ClusterTypeProvider:      clusterTypeProvider,
+		DocaDriverImagesProvider: &mockImageProvider{},
+	}).SetupWithManager(k8sManager, testSetupLog)
+	Expect(err).ToNot(HaveOccurred())
+
 	setupDrainControllerWithManager(k8sManager, migrationCompletionChan)
 
 	go func() {

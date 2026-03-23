@@ -1,5 +1,5 @@
 /*
-Copyright 2026 NVIDIA
+Copyright 2026 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ import (
 // +kubebuilder:object:generate=false
 type NicPolicyCR interface {
 	client.Object
+	// GetOFEDDriverSpec returns a pointer to the internal OFEDDriverSpec.
+	// Callers may mutate the returned value directly (e.g., to inject proxy env vars
+	// or default probe settings during manifest rendering). This is by design.
 	GetOFEDDriverSpec() *OFEDDriverSpec
 	GetRdmaSharedDevicePluginSpec() *DevicePluginSpec
 	GetSriovDevicePluginSpec() *DevicePluginSpec
@@ -36,4 +39,10 @@ type NicPolicyCR interface {
 	GetNodeSelector() map[string]string
 	GetGlobalConfig() *GlobalConfig
 	GetCRDName() string
+	// Status accessors for shared controller helpers.
+	GetAppliedStates() []AppliedState
+	SetAppliedStates([]AppliedState)
+	GetPolicyState() State
+	SetPolicyState(State)
+	SetReason(string)
 }

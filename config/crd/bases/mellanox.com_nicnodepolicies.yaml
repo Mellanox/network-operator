@@ -13,7 +13,7 @@ spec:
     plural: nicnodepolicies
     shortNames:
     - nicnode
-    - ndp
+    - nnp
     singular: nicnodepolicy
   scope: Cluster
   versions:
@@ -68,8 +68,8 @@ spec:
               nodeSelector:
                 additionalProperties:
                   type: string
-                description: NodeSelector specifies a selector for installation of
-                  NVIDIA driver
+                description: NodeSelector specifies a selector for the nodes this
+                  policy applies to
                 type: object
               ofedDriver:
                 description: |-
