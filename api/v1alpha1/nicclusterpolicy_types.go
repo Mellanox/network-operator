@@ -453,9 +453,6 @@ type AppliedState struct {
 
 // NicClusterPolicyStatus defines the observed state of NicClusterPolicy
 type NicClusterPolicyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// Reflects the current state of the cluster policy
 	// +kubebuilder:validation:Enum={"ignore", "notReady", "ready", "error"}
 	State State `json:"state"`
@@ -532,6 +529,31 @@ func (n *NicClusterPolicy) GetCRDName() string {
 // GetGlobalConfig implements NicPolicy.
 func (n *NicClusterPolicy) GetGlobalConfig() *GlobalConfig {
 	return n.Spec.Global
+}
+
+// GetAppliedStates implements NicPolicyCR.
+func (n *NicClusterPolicy) GetAppliedStates() []AppliedState {
+	return n.Status.AppliedStates
+}
+
+// SetAppliedStates implements NicPolicyCR.
+func (n *NicClusterPolicy) SetAppliedStates(states []AppliedState) {
+	n.Status.AppliedStates = states
+}
+
+// GetPolicyState implements NicPolicyCR.
+func (n *NicClusterPolicy) GetPolicyState() State {
+	return n.Status.State
+}
+
+// SetPolicyState implements NicPolicyCR.
+func (n *NicClusterPolicy) SetPolicyState(state State) {
+	n.Status.State = state
+}
+
+// SetReason implements NicPolicyCR.
+func (n *NicClusterPolicy) SetReason(reason string) {
+	n.Status.Reason = reason
 }
 
 func init() {

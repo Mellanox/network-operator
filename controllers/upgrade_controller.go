@@ -52,6 +52,14 @@ type UpgradeReconciler struct {
 	Scheme       *runtime.Scheme
 	StateManager upgrade.ClusterUpgradeStateManager
 	MigrationCh  chan struct{}
+
+	// NodePolicyStateManagers holds per-NicNodePolicy upgrade state managers.
+	// Keyed by "NicNodePolicy-<name>".
+	NodePolicyStateManagers map[string]upgrade.ClusterUpgradeStateManager
+
+	// newStateManagerFn creates a ClusterUpgradeStateManager for a given requestor ID.
+	// Injected for testability; defaults to newNodePolicyStateManager.
+	newStateManagerFn func(requestorID string) (upgrade.ClusterUpgradeStateManager, error)
 }
 
 const plannedRequeueInterval = time.Minute * 2
@@ -61,6 +69,7 @@ const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
 
 //nolint:lll
 // +kubebuilder:rbac:groups=mellanox.com,resources=nicclusterpolicies;nicclusterpolicies/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mellanox.com,resources=nicnodepolicies;nicnodepolicies/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list
 // +kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;replicasets;statefulsets;controllerrevisions,verbs=get;list;watch;create;update;patch;delete
@@ -78,72 +87,185 @@ func (r *UpgradeReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Reconciling Upgrade")
 
+	// Cleanup old annotations, leftover from the old versions of network-operator
+	// TODO drop in 2 releases
+	if err := r.removeNodeUpgradeStateAnnotations(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	needsRequeue := false
+
+	// Handle NicClusterPolicy upgrade
+	if err := r.reconcileClusterPolicyUpgrade(ctx, reqLogger); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Handle NicNodePolicy upgrades
+	requeue, err := r.reconcileNodePolicyUpgrades(ctx, reqLogger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if requeue {
+		needsRequeue = true
+	}
+
+	if needsRequeue {
+		return ctrl.Result{Requeue: true, RequeueAfter: plannedRequeueInterval}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+// reconcileClusterPolicyUpgrade handles the NicClusterPolicy OFED upgrade flow.
+func (r *UpgradeReconciler) reconcileClusterPolicyUpgrade(ctx context.Context, reqLogger logr.Logger) error {
 	nicClusterPolicy := &mellanoxv1alpha1.NicClusterPolicy{}
 	err := r.Get(ctx, types.NamespacedName{Name: consts.NicClusterPolicyResourceName}, nicClusterPolicy)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Cleanup existing upgrade related resources
-			if err := r.cleanupUpgradeResources(ctx); err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
+			return r.cleanupUpgradeResources(ctx)
 		}
-		return ctrl.Result{}, err
-	}
-
-	// Cleanup old annotations, leftover from the old versions of network-operator
-	// TODO drop in 2 releases
-	err = r.removeNodeUpgradeStateAnnotations(ctx)
-	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	if nicClusterPolicy.Spec.OFEDDriver == nil ||
 		nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy == nil ||
 		!nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade {
-		reqLogger.V(consts.LogLevelInfo).Info("OFED Upgrade Policy is disabled, skipping driver upgrade")
-		// Cleanup existing upgrade related resources
-		if err := r.cleanupUpgradeResources(ctx); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
+		reqLogger.V(consts.LogLevelInfo).Info("OFED Upgrade Policy is disabled for NicClusterPolicy, skipping")
+		return r.cleanupUpgradeResources(ctx)
 	}
 
 	upgradePolicy := nicClusterPolicy.Spec.OFEDDriver.OfedUpgradePolicy
-
 	state, err := r.StateManager.BuildState(ctx,
 		config.FromEnv().State.NetworkOperatorResourceNamespace,
-		map[string]string{consts.OfedDriverLabel: ""})
+		map[string]string{consts.OfedDriverLabel: "", consts.DSOwnerLabel: mellanoxv1alpha1.NicClusterPolicyCRDName})
 	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state")
-		return ctrl.Result{}, err
+		reqLogger.V(consts.LogLevelError).Error(err, "Failed to build cluster upgrade state for NicClusterPolicy")
+		return err
 	}
 
-	reqLogger.V(consts.LogLevelInfo).Info("Propagate state to state manager")
-	reqLogger.V(consts.LogLevelDebug).Info("Current cluster upgrade state", "state", state)
+	reqLogger.V(consts.LogLevelInfo).Info("Applying upgrade state for NicClusterPolicy")
 	driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(upgradePolicy)
-	err = r.StateManager.ApplyState(ctx, state, driverUpgradePolicy)
-	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to apply cluster upgrade state")
-		return ctrl.Result{}, err
+	return r.StateManager.ApplyState(ctx, state, driverUpgradePolicy)
+}
+
+// reconcileNodePolicyUpgrades handles OFED upgrade for all NicNodePolicies independently.
+// Returns true if any policy needs requeueing.
+func (r *UpgradeReconciler) reconcileNodePolicyUpgrades(ctx context.Context,
+	reqLogger logr.Logger) (bool, error) {
+	nodePolicyList := &mellanoxv1alpha1.NicNodePolicyList{}
+	if err := r.List(ctx, nodePolicyList); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
 	}
 
-	// In some cases if node state changes fail to apply, upgrade process
-	// might become stuck until the new reconcile loop is scheduled.
-	// Since node/ds/nicclusterpolicy updates from outside of the upgrade flow
-	// are not guaranteed, for safety reconcile loop should be requeued every few minutes.
-	return ctrl.Result{Requeue: true, RequeueAfter: plannedRequeueInterval}, nil
+	if r.NodePolicyStateManagers == nil {
+		r.NodePolicyStateManagers = make(map[string]upgrade.ClusterUpgradeStateManager)
+	}
+
+	// Track active policy keys to clean up stale managers
+	activePolicyKeys := make(map[string]bool)
+	needsRequeue := false
+
+	for i := range nodePolicyList.Items {
+		np := &nodePolicyList.Items[i]
+		policyKey := mellanoxv1alpha1.NicNodePolicyCRDName + "-" + np.Name
+
+		if np.Spec.OFEDDriver == nil ||
+			np.Spec.OFEDDriver.OfedUpgradePolicy == nil ||
+			!np.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade {
+			reqLogger.V(consts.LogLevelInfo).Info("OFED Upgrade Policy disabled for NicNodePolicy",
+				"policy", np.Name)
+			// Clean up this policy's state manager if it exists
+			delete(r.NodePolicyStateManagers, policyKey)
+			continue
+		}
+
+		activePolicyKeys[policyKey] = true
+		needsRequeue = true
+
+		// Get or create state manager for this policy
+		sm, ok := r.NodePolicyStateManagers[policyKey]
+		if !ok {
+			var err error
+			sm, err = r.getOrCreateNodePolicyStateManager(policyKey)
+			if err != nil {
+				reqLogger.V(consts.LogLevelError).Error(err,
+					"Failed to create state manager for NicNodePolicy", "policy", np.Name)
+				return false, err
+			}
+			r.NodePolicyStateManagers[policyKey] = sm
+		}
+
+		state, err := sm.BuildState(ctx,
+			config.FromEnv().State.NetworkOperatorResourceNamespace,
+			map[string]string{consts.OfedDriverLabel: "", consts.DSOwnerLabel: policyKey})
+		if err != nil {
+			reqLogger.V(consts.LogLevelError).Error(err,
+				"Failed to build upgrade state for NicNodePolicy", "policy", np.Name)
+			return false, err
+		}
+
+		reqLogger.V(consts.LogLevelInfo).Info("Applying upgrade state for NicNodePolicy",
+			"policy", np.Name)
+		driverUpgradePolicy := mellanoxv1alpha1.GetDriverUpgradePolicy(np.Spec.OFEDDriver.OfedUpgradePolicy)
+		if err := sm.ApplyState(ctx, state, driverUpgradePolicy); err != nil {
+			reqLogger.V(consts.LogLevelError).Error(err,
+				"Failed to apply upgrade state for NicNodePolicy", "policy", np.Name)
+			return false, err
+		}
+	}
+
+	// Clean up stale state managers for deleted policies
+	for key := range r.NodePolicyStateManagers {
+		if !activePolicyKeys[key] {
+			delete(r.NodePolicyStateManagers, key)
+		}
+	}
+
+	return needsRequeue, nil
+}
+
+// getOrCreateNodePolicyStateManager creates a new ClusterUpgradeStateManager for a NicNodePolicy.
+func (r *UpgradeReconciler) getOrCreateNodePolicyStateManager(
+	policyKey string) (upgrade.ClusterUpgradeStateManager, error) {
+	if r.newStateManagerFn != nil {
+		return r.newStateManagerFn(policyKey)
+	}
+	return newNodePolicyStateManager(policyKey)
+}
+
+// newNodePolicyStateManager creates a ClusterUpgradeStateManager with a policy-specific requestor ID.
+func newNodePolicyStateManager(policyKey string) (upgrade.ClusterUpgradeStateManager, error) {
+	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade").WithName(policyKey)
+	requestorOpts := upgrade.GetRequestorOptsFromEnvs()
+	// Create a policy-specific requestor ID
+	requestorOpts.MaintenanceOPRequestorID = requestorOpts.MaintenanceOPRequestorID + "-" + policyKey
+	return upgrade.NewClusterUpgradeStateManager(
+		upgradeLogger,
+		ctrl.GetConfigOrDie(),
+		nil,
+		upgrade.StateOptions{Requestor: requestorOpts})
 }
 
 // cleanupUpgradeResources cleans up existing nodeMaintenance and state label upgrade resources
-// upon NicClusterPolicy deletion, OfedUpgradePolicy removal or disabled autoUpgrade feature
+// upon NicClusterPolicy deletion, OfedUpgradePolicy removal or disabled autoUpgrade feature.
+// Nodes managed by NicNodePolicies with active OFED upgrades are excluded from cleanup.
 func (r *UpgradeReconciler) cleanupUpgradeResources(ctx context.Context) error {
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Starting nodeMaintenance, state label upgrade resources cleanup")
 
-	// Clean up node upgrade state labels
-	if err := r.removeNodeUpgradeStateLabels(ctx); err != nil {
+	// Get nodes managed by NNPs with OFED — don't clean their upgrade labels
+	nnpNodes, err := getNodesManagedByNNPsWithOFED(ctx, r.Client)
+	if err != nil {
+		reqLogger.V(consts.LogLevelError).Error(err,
+			"Failed to get NNP-managed nodes for upgrade cleanup, proceeding without exclusion")
+		nnpNodes = nil
+	}
+
+	// Clean up node upgrade state labels (excluding NNP-managed nodes)
+	if err := r.removeNodeUpgradeStateLabels(ctx, nnpNodes); err != nil {
 		reqLogger.V(consts.LogLevelError).Error(err, "Failed to remove node upgrade state labels")
 		return err
 	}
@@ -157,9 +279,11 @@ func (r *UpgradeReconciler) cleanupUpgradeResources(ctx context.Context) error {
 	return nil
 }
 
-// removeNodeUpgradeStateLabels loops over nodes in the cluster and removes upgrade.UpgradeStateLabel
-// It is used for cleanup when autoUpgrade feature gets disabled
-func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) error {
+// removeNodeUpgradeStateLabels loops over nodes in the cluster and removes upgrade.UpgradeStateLabel.
+// Nodes in excludeNodes are skipped (managed by NNP upgrade controllers).
+// It is used for cleanup when NCP autoUpgrade feature gets disabled.
+func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(
+	ctx context.Context, excludeNodes map[string]bool) error {
 	reqLogger := log.FromContext(ctx)
 	reqLogger.Info("Resetting node upgrade labels from all nodes")
 
@@ -174,6 +298,9 @@ func (r *UpgradeReconciler) removeNodeUpgradeStateLabels(ctx context.Context) er
 
 	for i := range nodeList.Items {
 		node := &nodeList.Items[i]
+		if excludeNodes[node.Name] {
+			continue
+		}
 		_, present := node.Labels[upgradeStateLabel]
 		if present {
 			delete(node.Labels, upgradeStateLabel)
@@ -331,6 +458,7 @@ func (r *UpgradeReconciler) SetupWithManager(log logr.Logger, mgr ctrl.Manager) 
 		// UpgradeReconciler contains logic which is not concurrent friendly
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Watches(&mellanoxv1alpha1.NicClusterPolicy{}, createUpdateDeleteEnqueue).
+		Watches(&mellanoxv1alpha1.NicNodePolicy{}, createUpdateDeleteEnqueue).
 		Watches(&corev1.Node{}, createUpdateEnqueue, nodePredicates).
 		Watches(&appsv1.DaemonSet{}, createUpdateDeleteEnqueue, daemonSetPredicates)
 

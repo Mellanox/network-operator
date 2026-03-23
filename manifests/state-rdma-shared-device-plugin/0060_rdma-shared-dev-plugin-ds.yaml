@@ -14,18 +14,19 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: rdma-shared-dp-ds
+  name: rdma-shared-dp-ds{{ .NameSuffix }}
   namespace: {{ .RuntimeSpec.Namespace }}
   labels:
     ds-owner: {{ .DSOwner }}
 spec:
   selector:
     matchLabels:
-      app: rdma-shared-dp
+      app: rdma-shared-dp{{ .NameSuffix }}
   template:
     metadata:
       labels:
-        app: rdma-shared-dp
+        app: rdma-shared-dp{{ .NameSuffix }}
+        ds-owner: {{ .DSOwner }}
     spec:
       priorityClassName: system-node-critical
       hostNetwork: true
@@ -102,7 +103,7 @@ spec:
             path: /var/lib/kubelet/plugins_registry
         - name: config
           configMap:
-            name: rdma-devices
+            name: rdma-devices{{ .NameSuffix }}
             items:
             - key: config.json
               path: config.json

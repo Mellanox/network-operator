@@ -36,4 +36,10 @@ type NicPolicyCR interface {
 	GetNodeSelector() map[string]string
 	GetGlobalConfig() *GlobalConfig
 	GetCRDName() string
+	// Status accessors for shared controller helpers.
+	GetAppliedStates() []AppliedState
+	SetAppliedStates([]AppliedState)
+	GetPolicyState() State
+	SetPolicyState(State)
+	SetReason(string)
 }

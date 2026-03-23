@@ -71,6 +71,7 @@ type stateRDMASharedDevicePluginManifestRenderData struct {
 	NodeAffinity        *v1.NodeAffinity
 	NodeSelector        map[string]string
 	DSOwner             string
+	NameSuffix          string
 	DeployInitContainer bool
 	RuntimeSpec         *stateRDMASharedDevicePluginSpec
 }
@@ -86,7 +87,7 @@ func (s *stateRDMASharedDevicePlugin) Sync(
 	if !ok {
 		return SyncStateError, fmt.Errorf("unsupported CR type: %T", customResource)
 	}
-	s.dsOwner = cr.GetCRDName()
+	s.dsOwner = dsOwnerValue(cr)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.GetName(), "Namespace:", cr.GetNamespace())
 
@@ -165,7 +166,8 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 		Tolerations:         cr.GetTolerations(),
 		NodeAffinity:        cr.GetNodeAffinity(),
 		NodeSelector:        cr.GetNodeSelector(),
-		DSOwner:             cr.GetCRDName(),
+		DSOwner:             dsOwnerValue(cr),
+		NameSuffix:          nameSuffix(cr),
 		DeployInitContainer: cr.GetOFEDDriverSpec() != nil,
 		RuntimeSpec: &stateRDMASharedDevicePluginSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},

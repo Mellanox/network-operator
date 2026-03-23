@@ -79,7 +79,7 @@ type NicNodePolicyStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:object:generate=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,shortName={nicnode,ndp}
+// +kubebuilder:resource:scope=Cluster,shortName={nicnode,nnp}
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
 
@@ -144,6 +144,31 @@ func (n *NicNodePolicy) GetCRDName() string {
 // NicNodePolicy does not have a Global config field; returns nil.
 func (n *NicNodePolicy) GetGlobalConfig() *GlobalConfig {
 	return nil
+}
+
+// GetAppliedStates implements NicPolicyCR.
+func (n *NicNodePolicy) GetAppliedStates() []AppliedState {
+	return n.Status.AppliedStates
+}
+
+// SetAppliedStates implements NicPolicyCR.
+func (n *NicNodePolicy) SetAppliedStates(states []AppliedState) {
+	n.Status.AppliedStates = states
+}
+
+// GetPolicyState implements NicPolicyCR.
+func (n *NicNodePolicy) GetPolicyState() State {
+	return n.Status.State
+}
+
+// SetPolicyState implements NicPolicyCR.
+func (n *NicNodePolicy) SetPolicyState(state State) {
+	n.Status.State = state
+}
+
+// SetReason implements NicPolicyCR.
+func (n *NicNodePolicy) SetReason(reason string) {
+	n.Status.Reason = reason
 }
 
 func init() {

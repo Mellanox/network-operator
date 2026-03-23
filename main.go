@@ -87,7 +87,10 @@ func setupWebhookControllers(mgr ctrl.Manager) error {
 	}
 	if err := validator.SetupNicClusterPolicyWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "NicClusterPolicy")
-
+		return err
+	}
+	if err := validator.SetupNicNodePolicyWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "NicNodePolicy")
 		return err
 	}
 	return nil
