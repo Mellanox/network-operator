@@ -44,6 +44,54 @@ const (
 	StateError = "error"
 )
 
+// Aggregate condition type constants — one set per NicClusterPolicy object.
+const (
+	// ConditionTypeReady is True when all configured components are ready.
+	ConditionTypeReady = "Ready"
+	// ConditionTypeDegraded is True when one or more components are in an error state.
+	ConditionTypeDegraded = "Degraded"
+	// ConditionTypeProgressing is True when one or more components are still deploying.
+	ConditionTypeProgressing = "Progressing"
+)
+
+// Per-component condition type constants — one condition per component, named <Component>Ready.
+const (
+	ConditionTypeOFEDDriverReady               = "OFEDDriverReady"
+	ConditionTypeRDMASharedDevicePluginReady   = "RDMASharedDevicePluginReady"
+	ConditionTypeSRIOVDevicePluginReady        = "SRIOVDevicePluginReady"
+	ConditionTypeIBKubernetesReady             = "IBKubernetesReady"
+	ConditionTypeMultusCNIReady                = "MultusCNIReady"
+	ConditionTypeCNIPluginsReady               = "CNIPluginsReady"
+	ConditionTypeIPoIBCNIReady                 = "IPoIBCNIReady"
+	ConditionTypeNVIPAMReady                   = "NVIPAMReady"
+	ConditionTypeNICFeatureDiscoveryReady      = "NICFeatureDiscoveryReady"
+	ConditionTypeDOCATelemetryServiceReady     = "DOCATelemetryServiceReady"
+	ConditionTypeNICConfigurationOperatorReady = "NICConfigurationOperatorReady"
+	ConditionTypeSpectrumXOperatorReady        = "SpectrumXOperatorReady"
+)
+
+// Condition reason constants used across per-component and aggregate conditions.
+const (
+	// ConditionReasonComponentReady is used when a component's workloads are fully available.
+	ConditionReasonComponentReady = "ComponentReady"
+	// ConditionReasonComponentNotReady is used while a component is still deploying.
+	ConditionReasonComponentNotReady = "ComponentNotReady"
+	// ConditionReasonComponentError is used when a component encountered a reconcile error.
+	ConditionReasonComponentError = "ComponentError"
+	// ConditionReasonComponentNotRequired is used when a component is not configured in the spec.
+	ConditionReasonComponentNotRequired = "ComponentNotRequired"
+	// ConditionReasonAllComponentsReady is used on the aggregate Ready condition when everything is healthy.
+	ConditionReasonAllComponentsReady = "AllComponentsReady"
+	// ConditionReasonComponentsNotReady is used on aggregate conditions when some components are not yet ready.
+	ConditionReasonComponentsNotReady = "ComponentsNotReady"
+	// ConditionReasonIdle is used on the Progressing condition when no component is actively deploying.
+	ConditionReasonIdle = "Idle"
+	// ConditionReasonHealthy is used on the Degraded condition when no component is in error.
+	ConditionReasonHealthy = "Healthy"
+	// ConditionReasonPolicyNotSupported is used when the NicClusterPolicy instance name is not supported.
+	ConditionReasonPolicyNotSupported = "PolicyNotSupported"
+)
+
 // ImageSpec Contains container image specifications
 type ImageSpec struct {
 	// Name of the image
@@ -463,14 +511,26 @@ type NicClusterPolicyStatus struct {
 	Reason string `json:"reason,omitempty"`
 	// AppliedStates provide a finer view of the observed state
 	AppliedStates []AppliedState `json:"appliedStates,omitempty"`
+	// Conditions is a list of conditions representing the NicClusterPolicy's current state.
+	// Aggregate condition types: Ready, Progressing, Degraded.
+	// Per-component condition types: OFEDDriverReady, RDMASharedDevicePluginReady, etc.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:object:generate=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,shortName="ncp"
+// Default columns (kubectl get ncp)
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=string,JSONPath=`.metadata.creationTimestamp`,priority=0
+// Wide columns (kubectl get ncp -o wide)
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`,priority=1
+// +kubebuilder:printcolumn:name="Progressing",type=string,JSONPath=`.status.conditions[?(@.type=="Progressing")].status`,priority=1
+// +kubebuilder:printcolumn:name="Degraded",type=string,JSONPath=`.status.conditions[?(@.type=="Degraded")].status`,priority=1
 
 // NicClusterPolicy is the Schema for the nicclusterpolicies API
 type NicClusterPolicy struct {

@@ -40,6 +40,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
+	"github.com/Mellanox/network-operator/pkg/conditions"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/docadriverimages"
@@ -364,6 +365,9 @@ NextResult:
 	// Update global State
 	cr.Status.State = mellanoxv1alpha1.State(status.Status)
 
+	// Update standard Kubernetes conditions (per-component + aggregate).
+	conditions.UpdateConditions(&cr.Status.Conditions, status, cr.Generation)
+
 	// send status update request to k8s API
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
@@ -380,9 +384,13 @@ func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(
 	reqLogger.V(consts.LogLevelWarning).Info("NicClusterPolicy supports instance with predefined name",
 		"supported instance name:", consts.NicClusterPolicyResourceName)
 
-	instance.Status.State = mellanoxv1alpha1.StateIgnore
-	instance.Status.Reason = fmt.Sprintf("Unsupported NicClusterPolicy instance %s. Only instance with name %s is"+
+	reason := fmt.Sprintf("Unsupported NicClusterPolicy instance %s. Only instance with name %s is"+
 		" supported", instance.Name, consts.NicClusterPolicyResourceName)
+
+	instance.Status.State = mellanoxv1alpha1.StateIgnore
+	instance.Status.Reason = reason
+
+	conditions.SetPolicyNotSupportedConditions(&instance.Status.Conditions, instance.Generation, reason)
 
 	err := r.Status().Update(ctx, instance)
 	if err != nil {
