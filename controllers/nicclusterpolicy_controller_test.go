@@ -23,6 +23,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -596,3 +597,227 @@ func getAppliedStateMessage(states []mellanoxv1alpha1.AppliedState, stateName st
 	}
 	return ""
 }
+
+var _ = Describe("NicClusterPolicyReconciler - Conditions", func() {
+	ctx := context.Background()
+
+	Context("when a NicClusterPolicy with an unsupported name is created", func() {
+		It("sets Ready=False and Degraded=True with PolicyNotSupported reason", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "unsupported-name"},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, cr)).To(Succeed()) }()
+
+			By("waiting for conditions to be set")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+				g.Expect(found.Status.Conditions).NotTo(BeEmpty())
+
+				ready := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeReady)
+				g.Expect(ready).NotTo(BeNil())
+				g.Expect(ready.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(ready.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonPolicyNotSupported))
+
+				degraded := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeDegraded)
+				g.Expect(degraded).NotTo(BeNil())
+				g.Expect(degraded.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(degraded.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonPolicyNotSupported))
+
+				progressing := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeProgressing)
+				g.Expect(progressing).NotTo(BeNil())
+				g.Expect(progressing.Status).To(Equal(metav1.ConditionFalse))
+			}, timeout*3, interval).Should(Succeed())
+		})
+	})
+
+	Context("when a NicClusterPolicy with nv-ipam is created", func() {
+		It("sets the NVIPAMReady per-component condition and the aggregate conditions", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+					NvIpam: &mellanoxv1alpha1.NVIPAMSpec{
+						ImageSpec: mellanoxv1alpha1.ImageSpec{
+							Image:            "nvidia-k8s-ipam",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "v0.3.7",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, cr)).To(Succeed()) }()
+
+			By("waiting for the NVIPAMReady per-component condition to appear")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				nvipam := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeNVIPAMReady)
+				g.Expect(nvipam).NotTo(BeNil(), "NVIPAMReady condition should be present")
+			}, timeout*3, interval).Should(Succeed())
+
+			By("verifying all three aggregate conditions are always present together")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				g.Expect(apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeReady)).NotTo(BeNil())
+				g.Expect(apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeProgressing)).NotTo(BeNil())
+				g.Expect(apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeDegraded)).NotTo(BeNil())
+			}, timeout*3, interval).Should(Succeed())
+
+			By("verifying components not in spec have True/ComponentNotRequired condition")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				// OFED is not in spec, so it must be True/ComponentNotRequired
+				ofed := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeOFEDDriverReady)
+				g.Expect(ofed).NotTo(BeNil())
+				g.Expect(ofed.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(ofed.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonComponentNotRequired))
+			}, timeout*3, interval).Should(Succeed())
+
+			By("verifying the NVIPAMReady condition has a correct status and reason (not ready since no real nodes)")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				nvipam := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeNVIPAMReady)
+				g.Expect(nvipam).NotTo(BeNil())
+				// In the test environment there are no real nodes/pods so the DaemonSet
+				// will not become available — the component stays notReady or error.
+				// We assert the reason is one of the two valid "not True" reasons.
+				g.Expect(nvipam.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(nvipam.Reason).To(BeElementOf(
+					mellanoxv1alpha1.ConditionReasonComponentNotReady,
+					mellanoxv1alpha1.ConditionReasonComponentError,
+				))
+			}, timeout*3, interval).Should(Succeed())
+		})
+	})
+
+	Context("when nv-ipam is removed from the spec", func() {
+		It("transitions NVIPAMReady from False to True/ComponentNotRequired", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+					NvIpam: &mellanoxv1alpha1.NVIPAMSpec{
+						ImageSpec: mellanoxv1alpha1.ImageSpec{
+							Image:            "nvidia-k8s-ipam",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "v0.3.7",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, cr)).To(Succeed()) }()
+
+			By("waiting for NVIPAMReady to appear as False (component deployed but not ready)")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+				nvipam := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeNVIPAMReady)
+				g.Expect(nvipam).NotTo(BeNil())
+				g.Expect(nvipam.Status).To(Equal(metav1.ConditionFalse))
+			}, timeout*3, interval).Should(Succeed())
+
+			By("removing nv-ipam from the spec")
+			patch := []byte(`{"spec":{"nvIpam":null}}`)
+			Expect(k8sClient.Patch(ctx, cr, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+
+			By("verifying NVIPAMReady transitions to True/ComponentNotRequired")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+				nvipam := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeNVIPAMReady)
+				g.Expect(nvipam).NotTo(BeNil())
+				g.Expect(nvipam.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(nvipam.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonComponentNotRequired))
+			}, timeout*3, interval).Should(Succeed())
+		})
+	})
+
+	Context("when OFED ForcePrecompiled fails", func() {
+		It("sets OFEDDriverReady to False/ComponentError and Degraded=True", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "condition-test-node",
+					Labels: map[string]string{
+						nodeinfo.NodeLabelMlnxNIC:       "true",
+						nodeinfo.NodeLabelOSName:        "ubuntu",
+						nodeinfo.NodeLabelCPUArch:       "amd64",
+						nodeinfo.NodeLabelKernelVerFull: "5.15.0-conditions-test",
+						nodeinfo.NodeLabelOSVer:         "20.04",
+					},
+					Annotations: make(map[string]string),
+				},
+			}
+			Expect(k8sClient.Create(ctx, node)).To(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, node)).To(Succeed()) }()
+
+			cr := &mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &mellanoxv1alpha1.OFEDDriverSpec{
+						ForcePrecompiled: true,
+						ImageSpec: mellanoxv1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "acme.buzz",
+							Version:          "5.9-0.5.6.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+					Tolerations: []corev1.Toleration{
+						{Key: "node.kubernetes.io/not-ready", Operator: corev1.TolerationOpExists,
+							Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			defer func() { Expect(k8sClient.Delete(ctx, cr)).To(Succeed()) }()
+
+			By("waiting for OFEDDriverReady=False with ComponentError reason")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				ofed := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeOFEDDriverReady)
+				g.Expect(ofed).NotTo(BeNil())
+				g.Expect(ofed.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(ofed.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonComponentError))
+				g.Expect(ofed.Message).To(ContainSubstring("ForcePrecompiled"))
+			}, timeout*10, interval).Should(Succeed())
+
+			By("verifying aggregate Degraded=True and Ready=False")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				degraded := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeDegraded)
+				g.Expect(degraded).NotTo(BeNil(), "Degraded condition should be present")
+				g.Expect(degraded.Status).To(Equal(metav1.ConditionTrue))
+
+				ready := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeReady)
+				g.Expect(ready).NotTo(BeNil(), "Ready condition should be present")
+				g.Expect(ready.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(ready.Reason).To(Equal(mellanoxv1alpha1.ConditionReasonComponentError))
+			}, timeout*10, interval).Should(Succeed())
+
+			By("verifying Degraded condition message contains the OFED error detail")
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.NicClusterPolicy{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name}, found)).To(Succeed())
+
+				degraded := apimeta.FindStatusCondition(found.Status.Conditions, mellanoxv1alpha1.ConditionTypeDegraded)
+				g.Expect(degraded).NotTo(BeNil(), "Degraded condition should be present")
+				g.Expect(degraded.Message).To(ContainSubstring("ForcePrecompiled"))
+			}, timeout*10, interval).Should(Succeed())
+		})
+	})
+})
