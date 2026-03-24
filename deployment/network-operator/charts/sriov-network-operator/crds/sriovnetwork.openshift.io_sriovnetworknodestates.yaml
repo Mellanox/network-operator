@@ -425,6 +425,10 @@ spec:
                         - vfID
                         type: object
                       type: array
+                    altNames:
+                      items:
+                        type: string
+                      type: array
                     deviceID:
                       type: string
                     devlinkParams:
