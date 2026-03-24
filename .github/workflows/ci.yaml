@@ -5,8 +5,13 @@ on:
     branches:
     - "master"
     - "v*.x"
+    - "pull-request/[0-9]+"  # utilizes nvidia copy-pr-bot: https://github.com/nv-gha-runners/docs/blob/main/docs/platform/apps/copy-pr-bot/index.md
     tags:
     - "v*"
+  pull_request:
+    branches:
+    - "master"
+    - "v*.x"
 
 # note: various environment variable names are set to match expectation from the Makefile; do not change without comparing
 env:
@@ -44,6 +49,24 @@ jobs:
           fi
         done
         echo "tags=$tags" | tee -a $GITHUB_OUTPUT
+
+        # determine if image shall be pushed
+        if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+          push=true  # images shall be pushed regularly by CI rules
+        elif [[ "${{ github.event.pull_request.author_association }}" =~ ^(OWNER|MEMBER|COLLABORATOR)$ ]]; then
+          push=true  # images shall be pushed if their PRs' authors are trusted users
+        else
+          push=false
+        fi
+        echo "push=$push" | tee -a $GITHUB_OUTPUT
+
+        # determine if chart & bundle shall be published
+        if [[ "$push" == "true" && ("${{ github.ref_type }}" == "tag" || "${{ github.ref_name }}" == "${{ env.DEFAULT_BRANCH }}") ]]; then
+          publish=true
+        else
+          publish=false
+        fi
+        echo "publish=$publish" | tee -a $GITHUB_OUTPUT
     - uses: docker/setup-qemu-action@v4
     - uses: docker/setup-buildx-action@v4
       with:
@@ -61,14 +84,15 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm64
         tags: ${{ steps.docker-tags.outputs.tags }}
-        push: true
+        push: ${{ steps.docker-tags.outputs.push }}
         build-args: |
           GOPROXY=${{ env.GOPROXY }}
     outputs:
       default_branch: ${{ env.DEFAULT_BRANCH }}  # we output this here, to use in the following job's conditioning (due to github actions environment variable scope limitations).
+      publish: ${{ steps.docker-tags.outputs.publish }}
 
   helm-package-publish:
-    if:  github.ref_type == 'tag' || github.ref_name == ${{ needs.docker-build-push.outputs.default_branch }}
+    if: needs.docker-build-push.outputs.publish == 'true'
     needs:
     - docker-build-push
     runs-on: linux-amd64-cpu4
@@ -107,6 +131,7 @@ jobs:
         APP_VERSION=$git_tag VERSION=${git_tag:1} make chart-build chart-push  # VERSION as 'v' prefix removed
 
   ocp-bundle:
+    if: needs.docker-build-push.outputs.publish == 'true'
     needs:
     - docker-build-push
     runs-on: ubuntu-24.04
