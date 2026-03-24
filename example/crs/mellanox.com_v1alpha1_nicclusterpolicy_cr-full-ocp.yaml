@@ -64,7 +64,7 @@ spec:
   sriovDevicePlugin:
     image: sriov-network-device-plugin
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.1.0
+    version: 2ed096b4
     config: |
       {
         "resourceList": [
