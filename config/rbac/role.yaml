@@ -338,10 +338,16 @@ rules:
 - apiGroups:
   - sriovnetwork.openshift.io
   resources:
+  - ovsnetworks
   - sriovnetworknodepolicies
+  - sriovnetworkpoolconfigs
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - sriovnetwork.openshift.io
