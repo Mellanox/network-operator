@@ -87,7 +87,10 @@ func setupWebhookControllers(mgr ctrl.Manager) error {
 	}
 	if err := validator.SetupNicClusterPolicyWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "NicClusterPolicy")
-
+		return err
+	}
+	if err := validator.SetupNicNodePolicyWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "NicNodePolicy")
 		return err
 	}
 	return nil
@@ -119,6 +122,15 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 		DocaDriverImagesProvider: docaImagesProvider,
 	}).SetupWithManager(mgr, ctrLog.WithName("NicClusterPolicy")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
+		return err
+	}
+	if err := (&controllers.NicNodePolicyReconciler{
+		Client:                   mgr.GetClient(),
+		Scheme:                   mgr.GetScheme(),
+		ClusterTypeProvider:      clusterTypeProvider,
+		DocaDriverImagesProvider: docaImagesProvider,
+	}).SetupWithManager(mgr, ctrLog.WithName("NicNodePolicy")); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NicNodePolicy")
 		return err
 	}
 	if err := (&controllers.MacvlanNetworkReconciler{

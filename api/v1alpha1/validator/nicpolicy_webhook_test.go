@@ -17,12 +17,15 @@ package validator //nolint:dupl
 
 import (
 	"context"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
 	env "github.com/Mellanox/network-operator/pkg/config"
@@ -1091,6 +1094,379 @@ var _ = Describe("Validate", func() {
 			validator := nicClusterPolicyValidator{}
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("a lowercase RFC 1123 subdomain must consist of"))
+		})
+	})
+	Context("NicNodePolicy field validation tests", func() {
+		It("Valid OFED version in NicNodePolicy", func() {
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Invalid OFED version in NicNodePolicy", func() {
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23-10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
+		It("Valid RDMA DP config in NicNodePolicy", func() {
+			rdmaConfig := `{
+				"configList": [{
+					"resourceName": "rdma_shared_device_a",
+					"rdmaHcaMax": 63,
+					"selectors": {
+						"vendors": ["15b3"],
+						"deviceIDs": ["101b"]}}]}`
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					RdmaSharedDevicePlugin: &v1alpha1.DevicePluginSpec{
+						ImageSpecWithConfig: v1alpha1.ImageSpecWithConfig{
+							Config: &rdmaConfig,
+							ImageSpec: v1alpha1.ImageSpec{
+								Image:            "k8s-rdma-shared-dev-plugin",
+								Repository:       "ghcr.io/mellanox",
+								Version:          "v1.0.0",
+								ImagePullSecrets: []string{},
+							},
+						},
+					},
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Invalid RDMA DP config in NicNodePolicy", func() {
+			invalidRdmaConfig := `{
+				"configList": [{
+					"resourceName": "rdma-shared-device-a!!",
+					"rdmaHcaMax": 63,
+					"selectors": {
+						"vendors": ["15b3"],
+						"deviceIDs": ["101b"]}}]}`
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					RdmaSharedDevicePlugin: &v1alpha1.DevicePluginSpec{
+						ImageSpecWithConfig: v1alpha1.ImageSpecWithConfig{
+							Config: &invalidRdmaConfig,
+							ImageSpec: v1alpha1.ImageSpec{
+								Image:            "k8s-rdma-shared-dev-plugin",
+								Repository:       "ghcr.io/mellanox",
+								Version:          "v1.0.0",
+								ImagePullSecrets: []string{},
+							},
+						},
+					},
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Invalid Resource name"))
+		})
+		It("Name too long in NicNodePolicy", func() {
+			longName := strings.Repeat("a", 51)
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: longName},
+				Spec:       v1alpha1.NicNodePolicySpec{},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("NicNodePolicy name must be at most 50 characters"))
+		})
+	})
+	Context("Overlap validation tests", func() {
+		var scheme *runtime.Scheme
+
+		BeforeEach(func() {
+			scheme = runtime.NewScheme()
+			Expect(v1alpha1.AddToScheme(scheme)).To(Succeed())
+			Expect(v1.SchemeBuilder.AddToScheme(scheme)).To(Succeed())
+		})
+		It("Rule 1: NicClusterPolicy with OFED defined, create NicNodePolicy with OFED - rejected", func() {
+			existingClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(existingClusterPolicy).
+				Build()
+			validator := nicNodePolicyValidator{k8sClient: fakeClient}
+
+			newNodePolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newNodePolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("ofedDriver"))
+			Expect(err.Error()).To(ContainSubstring("NicClusterPolicy already defines"))
+		})
+		It("Rule 1: NicClusterPolicy with OFED defined, create NicNodePolicy without OFED - accepted", func() {
+			existingClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(existingClusterPolicy).
+				Build()
+			validator := nicNodePolicyValidator{k8sClient: fakeClient}
+
+			newNodePolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newNodePolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Rule 2: NicNodePolicy with OFED exists, create NicClusterPolicy with OFED - rejected", func() {
+			existingNodePolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(existingNodePolicy).
+				Build()
+			validator := nicClusterPolicyValidator{k8sClient: fakeClient}
+
+			newClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("ofedDriver"))
+			Expect(err.Error()).To(ContainSubstring("NicNodePolicy"))
+		})
+		It("Rule 2: NicNodePolicy with OFED exists, create NicClusterPolicy without OFED - accepted", func() {
+			existingNodePolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(existingNodePolicy).
+				Build()
+			validator := nicClusterPolicyValidator{k8sClient: fakeClient}
+
+			newClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "nic-cluster-policy"},
+				Spec:       v1alpha1.NicClusterPolicySpec{},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Rule 3: Two NicNodePolicies with overlapping selectors - rejected with node names", func() {
+			node1 := &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "node1",
+					Labels: map[string]string{"rack": "rack-1"},
+				},
+			}
+			existingPolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(node1, existingPolicy).
+				Build()
+			validator := nicNodePolicyValidator{k8sClient: fakeClient}
+
+			newPolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-b"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("node1"))
+			Expect(err.Error()).To(ContainSubstring("policy-a"))
+			Expect(err.Error()).To(ContainSubstring("policy-b"))
+		})
+		It("Rule 3: Two NicNodePolicies with non-overlapping selectors - accepted", func() {
+			node1 := &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "node1",
+					Labels: map[string]string{"rack": "rack-1"},
+				},
+			}
+			node2 := &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "node2",
+					Labels: map[string]string{"rack": "rack-2"},
+				},
+			}
+			existingPolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(node1, node2, existingPolicy).
+				Build()
+			validator := nicNodePolicyValidator{k8sClient: fakeClient}
+
+			newPolicy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-b"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-2"},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), newPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Rule 3: Update changes selector to create overlap - rejected", func() {
+			node1 := &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "node1",
+					Labels: map[string]string{"rack": "rack-1"},
+				},
+			}
+			existingPolicyA := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-a"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			existingPolicyB := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-b"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-2"},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(node1, existingPolicyA, existingPolicyB).
+				Build()
+			validator := nicNodePolicyValidator{k8sClient: fakeClient}
+
+			// Update policy-b to select rack-1, which overlaps with policy-a
+			updatedPolicyB := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "policy-b"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					NodeSelector: map[string]string{"rack": "rack-1"},
+				},
+			}
+			_, err := validator.ValidateUpdate(context.TODO(), existingPolicyB, updatedPolicyB)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("node1"))
+			Expect(err.Error()).To(ContainSubstring("policy-a"))
+			Expect(err.Error()).To(ContainSubstring("policy-b"))
 		})
 	})
 })

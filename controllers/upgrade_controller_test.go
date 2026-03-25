@@ -122,7 +122,7 @@ var _ = Describe("Upgrade Controller", func() {
 
 		It("removeNodeStateUpgradeLabels cleans up the node state upgrade labels", func() {
 			// Call removeNodeUpgradeStateLabels function
-			err := upgradeReconciler.removeNodeUpgradeStateLabels(testCtx)
+			err := upgradeReconciler.removeNodeUpgradeStateLabels(testCtx, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify that upgrade state labels were removed

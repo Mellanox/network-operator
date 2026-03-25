@@ -58,6 +58,8 @@ func newStates(crdKind string, k8sAPIClient client.Client) ([]State, error) {
 	switch crdKind {
 	case mellanoxv1alpha1.NicClusterPolicyCRDName:
 		return newNicClusterPolicyStates(k8sAPIClient)
+	case mellanoxv1alpha1.NicNodePolicyCRDName:
+		return newNicNodePolicyStates(k8sAPIClient)
 	case mellanoxv1alpha1.MacvlanNetworkCRDName:
 		return newMacvlanNetworkStates(k8sAPIClient)
 	case mellanoxv1alpha1.HostDeviceNetworkCRDName:
@@ -139,6 +141,27 @@ func newNicClusterPolicyStates(k8sAPIClient client.Client) ([]State, error) {
 		multusState, cniPluginsState, ipoibState,
 		ofedState, sriovDpState, sharedDpState, ibKubernetesState, nvIpamCniState,
 		nicFeatureDiscoveryState, docaTelemetryServiceState, nicConfigurationOperatorState, specrumXOperatorState}, nil
+}
+
+// newNicNodePolicyStates creates states that reconcile NicNodePolicy CRD
+func newNicNodePolicyStates(k8sAPIClient client.Client) ([]State, error) {
+	manifestBaseDir := envConfig.State.ManifestBaseDir
+	ofedState, _, err := NewStateOFED(
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-ofed-driver"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create OFED driver State")
+	}
+	sharedDpState, _, err := NewStateRDMASharedDevicePlugin(
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-rdma-shared-device-plugin"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create Shared Device plugin State")
+	}
+	sriovDpState, _, err := NewStateSriovDp(
+		k8sAPIClient, filepath.Join(manifestBaseDir, "state-sriov-device-plugin"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create SR-IOV Device plugin State")
+	}
+	return []State{ofedState, sharedDpState, sriovDpState}, nil
 }
 
 // newMacvlanNetworkStates creates states that reconcile MacvlanNetwork CRD

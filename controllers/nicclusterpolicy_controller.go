@@ -19,13 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -40,7 +38,6 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
-	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
@@ -135,7 +132,7 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			shouldRequeue, err := r.handleWaitLabelsNoConfig(ctx, consts.OfedDriverLabel, nodeinfo.NodeLabelWaitOFED)
+			shouldRequeue, err := r.handleMOFEDWaitLabelsNoConfig(ctx)
 			if err != nil {
 				reqLogger.V(consts.LogLevelError).Error(err, "Fail to clear Mofed label on CR deletion.")
 				return reconcile.Result{}, err
@@ -171,26 +168,10 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	sc.Add(state.InfoTypeStaticConfig, r.StaticConfigProvider)
 
 	if instance.Spec.OFEDDriver != nil {
-		// Create node infoProvider and add to the service catalog
-		reqLogger.V(consts.LogLevelInfo).Info("Creating Node info provider")
-		nodeList := &corev1.NodeList{}
-		err = r.List(ctx, nodeList, nodeinfo.MellanoxNICListOptions...)
-		if err != nil {
-			// Failed to get node list
-			reqLogger.V(consts.LogLevelError).Error(err, "Error occurred on LIST nodes request from API server.")
+		if err := setupOFEDCatalog(ctx, r.Client, instance.Spec.OFEDDriver,
+			r.DocaDriverImagesProvider, sc, nil); err != nil {
 			return reconcile.Result{}, err
 		}
-		nodePtrList := make([]*corev1.Node, len(nodeList.Items))
-		nodeNames := make([]*string, len(nodeList.Items))
-		for i := range nodePtrList {
-			nodePtrList[i] = &nodeList.Items[i]
-			nodeNames[i] = &nodeList.Items[i].Name
-		}
-		reqLogger.V(consts.LogLevelDebug).Info("Node info provider with", "Nodes:", nodeNames)
-		infoProvider := nodeinfo.NewProvider(nodePtrList)
-		sc.Add(state.InfoTypeNodeInfo, infoProvider)
-		r.DocaDriverImagesProvider.SetImageSpec(&instance.Spec.OFEDDriver.ImageSpec)
-		sc.Add(state.InfoTypeDocaDriverImage, r.DocaDriverImagesProvider)
 	} else {
 		r.DocaDriverImagesProvider.SetImageSpec(nil)
 	}
@@ -221,42 +202,90 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return ctrl.Result{}, nil
 }
 
-// triggers resync with configured requeue delay
+// requeue triggers resync with configured requeue delay.
 func (r *NicClusterPolicyReconciler) requeue() (reconcile.Result, error) {
-	return reconcile.Result{
-		RequeueAfter: time.Duration(config.FromEnv().Controller.RequeueTimeSeconds) * time.Second,
-	}, nil
+	return requeueWithDelay()
 }
 
-// handleMOFEDWaitLabels updates nodes labels to mark device plugins should wait for OFED pod
-// Set nvidia.com/ofed.wait=false if OFED is not deployed.
-// returns true if requeue (resync) is required
+// handleMOFEDWaitLabels updates node labels to mark whether device plugins should wait for OFED.
+// If OFED is not configured in NCP, delegates to the NNP-aware fallback.
+// Returns true if requeue is required.
 func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) (bool, error) {
 	reqLogger := log.FromContext(ctx)
 	if cr.Spec.OFEDDriver == nil {
 		reqLogger.V(consts.LogLevelDebug).Info("no OFED config in the policy, check OFED wait label on nodes")
-		return r.handleWaitLabelsNoConfig(ctx, consts.OfedDriverLabel, nodeinfo.NodeLabelWaitOFED)
+		return r.handleMOFEDWaitLabelsNoConfig(ctx)
 	}
+	if err := handleOFEDWaitLabelsForPods(ctx, r.Client,
+		map[string]string{consts.OfedDriverLabel: ""}); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// handleMOFEDWaitLabelsNoConfig handles mofed.wait labels when OFED is NOT configured in NCP.
+// It is NNP-aware: nodes managed by NicNodePolicies with ofedDriver are skipped
+// (the NNP controller owns their mofed.wait label).
+// For remaining nodes:
+//   - nodes with a leftover OFED pod → mofed.wait=true (pod is terminating)
+//   - nodes with Mellanox NIC but no pod → mofed.wait=false
+//   - nodes without Mellanox NIC → label removed
+//
+// Returns true if requeue is required (leftover pods still terminating).
+func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabelsNoConfig(ctx context.Context) (bool, error) {
+	reqLogger := log.FromContext(ctx)
+
+	// Get nodes managed by NNPs with OFED — we must not touch their mofed.wait label
+	nnpNodes, err := getNodesManagedByNNPsWithOFED(ctx, r.Client)
+	if err != nil {
+		reqLogger.V(consts.LogLevelError).Error(err, "failed to get NNP-managed nodes, proceeding without exclusion")
+		// Don't fail — proceed without exclusion to avoid blocking label cleanup
+		nnpNodes = nil
+	}
+
+	// List all OFED pods regardless of owner
+	nodesWithPod := map[string]struct{}{}
 	pods := &corev1.PodList{}
-	_ = r.Client.List(ctx, pods, client.MatchingLabels{"nvidia.com/ofed-driver": ""})
+	if err := r.Client.List(ctx, pods, client.MatchingLabels{consts.OfedDriverLabel: ""}); err != nil {
+		return false, errors.Wrap(err, "failed to list OFED pods")
+	}
 	for i := range pods.Items {
-		pod := pods.Items[i]
-		if pod.Spec.NodeName == "" {
-			// In case that Pod is in Pending state
+		if pods.Items[i].Spec.NodeName != "" {
+			nodesWithPod[pods.Items[i].Spec.NodeName] = struct{}{}
+		}
+	}
+
+	nodes := &corev1.NodeList{}
+	if err := r.Client.List(ctx, nodes); err != nil {
+		return false, errors.Wrap(err, "failed to list nodes")
+	}
+
+	ncpNodesWithPod := 0
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+
+		// Skip nodes managed by NNP — their mofed.wait is handled by the NNP controller
+		if nnpNodes[node.Name] {
 			continue
 		}
-		labelValue := "true"
-		// We assume that OFED pod contains only one container to simplify the logic.
-		// We can revisit this logic in the future if needed
-		if len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].Ready {
-			reqLogger.V(consts.LogLevelDebug).Info("OFED Pod is ready on the node",
-				"node", pod.Spec.NodeName)
+
+		labelValue := ""
+		if _, hasPod := nodesWithPod[node.Name]; hasPod {
+			labelValue = "true"
+			ncpNodesWithPod++
+		} else if node.GetLabels()[nodeinfo.NodeLabelMlnxNIC] == "true" {
 			labelValue = "false"
 		}
-		if err := setNodeLabel(ctx, r.Client, pod.Spec.NodeName, nodeinfo.NodeLabelWaitOFED, labelValue); err != nil {
+		if err := setNodeLabel(ctx, r.Client, node.Name, nodeinfo.NodeLabelWaitOFED, labelValue); err != nil {
 			return false, err
 		}
+	}
+
+	if ncpNodesWithPod > 0 {
+		reqLogger.V(consts.LogLevelDebug).Info(
+			"no OFED spec in NicClusterPolicy but there are OFED pods on non-NNP nodes, requeue")
+		return true, nil
 	}
 	return false, nil
 }
@@ -312,64 +341,11 @@ func (r *NicClusterPolicyReconciler) handleWaitLabelsNoConfig(ctx context.Contex
 	return false, nil
 }
 
-// setNodeLabel sets the value for the given label, remove the label if the value is ""
-func setNodeLabel(ctx context.Context, c client.Client, node, label, value string) error {
-	reqLogger := log.FromContext(ctx)
-	var patch []byte
-	if value == "" {
-		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: null}}}`, label))
-		reqLogger.V(consts.LogLevelDebug).Info("remove given label from the node", "node", node, "label", label)
-	} else {
-		patch = []byte(fmt.Sprintf(`{"metadata":{"labels":{%q: %q}}}`, label, value))
-		reqLogger.V(consts.LogLevelDebug).Info("update given label for the node",
-			"node", node, "label", label, "value", value)
-	}
-
-	err := c.Patch(ctx, &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: node,
-		},
-	}, client.RawPatch(types.StrategicMergePatchType, patch))
-
-	if err != nil {
-		return errors.Wrapf(err, "unable to patch %s label for node %s", label, node)
-	}
-	return nil
-}
 
 //nolint:dupl
 func (r *NicClusterPolicyReconciler) updateCrStatus(
 	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, status state.Results) {
-	reqLogger := log.FromContext(ctx)
-NextResult:
-	for _, stateStatus := range status.StatesStatus {
-		// basically iterate over results and add/update crStatus.AppliedStates
-		for i := range cr.Status.AppliedStates {
-			if cr.Status.AppliedStates[i].Name == stateStatus.StateName {
-				cr.Status.AppliedStates[i].State = mellanoxv1alpha1.State(stateStatus.Status)
-				if stateStatus.ErrInfo != nil {
-					cr.Status.AppliedStates[i].Message = stateStatus.ErrInfo.Error()
-				} else {
-					cr.Status.AppliedStates[i].Message = ""
-				}
-				continue NextResult
-			}
-		}
-		cr.Status.AppliedStates = append(cr.Status.AppliedStates, mellanoxv1alpha1.AppliedState{
-			Name:  stateStatus.StateName,
-			State: mellanoxv1alpha1.State(stateStatus.Status),
-		})
-	}
-	// Update global State
-	cr.Status.State = mellanoxv1alpha1.State(status.Status)
-
-	// send status update request to k8s API
-	reqLogger.V(consts.LogLevelInfo).Info(
-		"Updating status", "Custom resource name", cr.Name, "namespace", cr.Namespace, "Result:", cr.Status)
-	err := r.Status().Update(ctx, cr)
-	if err != nil {
-		reqLogger.V(consts.LogLevelError).Error(err, "Failed to update CR status")
-	}
+	updatePolicyCRStatus(ctx, r, cr, status)
 }
 
 func (r *NicClusterPolicyReconciler) handleUnsupportedInstance(
@@ -435,16 +411,14 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 		builder.WithPredicates(nodeEventPredicates), // Wrap predicates for WatchesOption
 	)
 
-	ws := stateManager.GetWatchSources()
+	bld = watchStateSources(bld, mgr, setupLog, stateManager, &mellanoxv1alpha1.NicClusterPolicy{})
 
-	for kindName := range ws {
-		setupLog.V(consts.LogLevelInfo).Info("Watching", "Kind", kindName)
-		// For secondary resources, EnqueueRequestForOwner is typical.
-		// The IgnoreSameContentPredicate is also wrapped with builder.WithPredicates.
-		bld = bld.Watches(ws[kindName], handler.EnqueueRequestForOwner(
-			mgr.GetScheme(), mgr.GetRESTMapper(), &mellanoxv1alpha1.NicClusterPolicy{}, handler.OnlyControllerOwner()),
-			builder.WithPredicates(IgnoreSameContentPredicate{}))
-	}
+	// Watch NicNodePolicy changes so we recalculate NNP-managed node exclusions for mofed.wait
+	bld = bld.Watches(
+		&mellanoxv1alpha1.NicNodePolicy{},
+		updateEnqueue,
+		builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+	)
 
 	return bld.Complete(r)
 }

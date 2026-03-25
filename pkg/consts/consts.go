@@ -38,6 +38,8 @@ const (
 	NicConfigurationDaemonLabel = "nvidia.com/nic-configuration-daemon"
 	// StateLabel is the label key describing which state the operator created a Kubernetes object from.
 	StateLabel = "nvidia.network-operator.state"
+	// DSOwnerLabel is the label key identifying which CRD type owns a DaemonSet.
+	DSOwnerLabel = "ds-owner"
 	// DefaultCniBinDirectory is the default location of the CNI binaries on a host.
 	DefaultCniBinDirectory = "/opt/cni/bin"
 	// DefaultCniNetworkDirectory is the default location of the CNI network configuration on a host.

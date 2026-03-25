@@ -124,3 +124,28 @@ func (p NodeTaintChangedPredicate) Update(e event.UpdateEvent) bool {
 
 	return !equality.Semantic.DeepEqual(oldNode.Spec.Taints, newNode.Spec.Taints)
 }
+
+// NodeLabelChangePredicate filters if node labels have changed.
+// Used to trigger NicNodePolicy re-reconciliation when node labels change,
+// which may affect node selector overlap detection.
+type NodeLabelChangePredicate struct {
+	predicate.Funcs
+}
+
+// Update returns true if the node labels have been changed.
+func (p NodeLabelChangePredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil || e.ObjectNew == nil {
+		return false
+	}
+	return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
+}
+
+// Create returns false — existing nodes are already accounted for at startup.
+func (p NodeLabelChangePredicate) Create(_ event.CreateEvent) bool {
+	return true
+}
+
+// Delete returns true — node deletion may resolve overlap.
+func (p NodeLabelChangePredicate) Delete(_ event.DeleteEvent) bool {
+	return true
+}
