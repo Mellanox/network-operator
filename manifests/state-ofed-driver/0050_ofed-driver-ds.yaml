@@ -18,6 +18,7 @@ metadata:
     app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
     nvidia.com/ofed-driver: ""
     mofed-ds-format-version: "1"
+    ds-owner: {{ .DSOwner }}
   name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
@@ -271,6 +272,9 @@ spec:
         feature.node.kubernetes.io/kernel-version.full: "{{ .RuntimeSpec.Kernel }}"
         {{- if .RuntimeSpec.UseDtk }}
         feature.node.kubernetes.io/system-os_release.OSTREE_VERSION: "{{ .RuntimeSpec.RhcosVersion }}"
+        {{- end }}
+        {{- range $k, $v := .NodeSelector }}
+        {{ $k }}: {{ $v | quote }}
         {{- end }}
       {{- if .NodeAffinity }}
       affinity:

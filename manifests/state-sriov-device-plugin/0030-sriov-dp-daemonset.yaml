@@ -19,6 +19,7 @@ metadata:
   labels:
     tier: node
     app: sriovdp
+    ds-owner: {{ .DSOwner }}
 spec:
   selector:
     matchLabels:
@@ -35,6 +36,9 @@ spec:
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         network.nvidia.com/operator.mofed.wait: "false"
+        {{- range $k, $v := .NodeSelector }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:

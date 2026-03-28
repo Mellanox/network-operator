@@ -267,6 +267,8 @@ type ofedManifestRenderData struct {
 	CrSpec                 *mellanoxv1alpha1.OFEDDriverSpec
 	Tolerations            []v1.Toleration
 	NodeAffinity           *v1.NodeAffinity
+	NodeSelector           map[string]string
+	DSOwner                string
 	RuntimeSpec            *ofedRuntimeSpec
 	AdditionalVolumeMounts additionalVolumeMounts
 }
@@ -354,11 +356,15 @@ func (a *additionalVolumeMounts) createConfigMapVolume(configMapName string, ite
 //nolint:dupl
 func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	reqLogger := log.FromContext(ctx)
-	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
+	cr, ok := customResource.(mellanoxv1alpha1.NicPolicyCR)
+	if !ok {
+		return SyncStateError, fmt.Errorf("unsupported CR type: %T", customResource)
+	}
+	s.dsOwner = cr.GetCRDName()
 	reqLogger.V(consts.LogLevelInfo).Info(
-		"Sync Custom resource", "State:", s.name, "Name:", cr.Name, "Namespace:", cr.Namespace)
+		"Sync Custom resource", "State:", s.name, "Name:", cr.GetName(), "Namespace:", cr.GetNamespace())
 
-	if cr.Spec.OFEDDriver == nil {
+	if cr.GetOFEDDriverSpec() == nil {
 		// Either this state was not required to run or an update occurred and we need to remove
 		// the resources that where created.
 		return s.handleStateObjectsDeletion(ctx)
@@ -430,7 +436,7 @@ func (s *stateOFED) GetWatchSources() map[string]client.Object {
 // populates CA an ENV configs in NicClusterPolicy with dynamic configuration from osconfigv1.Proxy object if
 // these settings were not explicitly set in NicClusterPolicy by admin
 func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(
-	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) error {
+	ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR) error {
 	reqLogger := log.FromContext(ctx)
 	// read ClusterWide Proxy configuration for Openshift
 	clusterWideProxyConfig, err := s.readOpenshiftProxyConfig(ctx)
@@ -443,11 +449,11 @@ func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(
 
 	s.setEnvFromClusterWideProxy(cr, clusterWideProxyConfig)
 
-	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
+	if cr.GetOFEDDriverSpec().CertConfig != nil && cr.GetOFEDDriverSpec().CertConfig.Name != "" {
 		// CA certificate configMap explicitly set in NicClusterPolicy, ignore CA settings
 		// in cluster-wide proxy
 		reqLogger.V(consts.LogLevelDebug).Info("use trusted certificate configuration from NicClusterPolicy",
-			"ConfigMap", cr.Spec.OFEDDriver.CertConfig.Name)
+			"ConfigMap", cr.GetOFEDDriverSpec().CertConfig.Name)
 		return nil
 	}
 
@@ -460,7 +466,7 @@ func (s *stateOFED) handleOpenshiftClusterWideProxyConfig(
 	if err != nil {
 		return err
 	}
-	cr.Spec.OFEDDriver.CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{Name: ocpTrustedCAConfigMap.GetName()}
+	cr.GetOFEDDriverSpec().CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{Name: ocpTrustedCAConfigMap.GetName()}
 	reqLogger.V(consts.LogLevelDebug).Info("use trusted certificate configuration from Openshift cluster-Wide proxy",
 		"ConfigMap", ocpTrustedCAConfigMap.GetName())
 	return nil
@@ -560,14 +566,14 @@ func addDefaultDaemonSetTolerations(tolerations []v1.Toleration) []v1.Toleration
 
 //nolint:funlen
 func (s *stateOFED) GetManifestObjects(
-	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
-	if cr == nil || cr.Spec.OFEDDriver == nil {
+	if cr == nil || cr.GetOFEDDriverSpec() == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
 
-	cr.Spec.OFEDDriver.ImageSpec.ApplyGlobalConfig(cr.Spec.Global)
-	if err := cr.Spec.OFEDDriver.ImageSpec.ValidateRequiredFields(); err != nil {
+	cr.GetOFEDDriverSpec().ImageSpec.ApplyGlobalConfig(cr.GetGlobalConfig())
+	if err := cr.GetOFEDDriverSpec().ImageSpec.ValidateRequiredFields(); err != nil {
 		return nil, errors.Wrap(err, "failed to validate ofedDriver image spec")
 	}
 
@@ -579,7 +585,7 @@ func (s *stateOFED) GetManifestObjects(
 	// Add default DaemonSet tolerations to the list of tolerations from CR for filtering purposes.
 	// The DaemonSet controller automatically adds these tolerations at runtime, so we need to include
 	// them in our node filtering logic to avoid incorrectly filtering out eligible nodes.
-	tolerationsForFiltering := addDefaultDaemonSetTolerations(cr.Spec.Tolerations)
+	tolerationsForFiltering := addDefaultDaemonSetTolerations(cr.GetTolerations())
 
 	// Create filters for labels and taints
 	labelFilter := nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build()
@@ -594,7 +600,7 @@ func (s *stateOFED) GetManifestObjects(
 
 	setProbesDefaults(cr)
 	// Update MOFED Env variables with defaults for the cluster
-	cr.Spec.OFEDDriver.Env = s.mergeWithDefaultEnvs(cr.Spec.OFEDDriver.Env)
+	cr.GetOFEDDriverSpec().Env = s.mergeWithDefaultEnvs(cr.GetOFEDDriverSpec().Env)
 
 	objs := make([]*unstructured.Unstructured, 0)
 	renderedObjsMap := stateObjects{}
@@ -622,21 +628,21 @@ func (s *stateOFED) GetManifestObjects(
 }
 
 func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool, s *stateOFED,
-	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger,
+	cr mellanoxv1alpha1.NicPolicyCR, reqLogger logr.Logger,
 	clusterInfo clustertype.Provider, docaProvider docadriverimages.Provider) ([]*unstructured.Unstructured, error) {
-	isSha256 := strings.HasPrefix(cr.Spec.OFEDDriver.Version, "sha256")
+	isSha256 := strings.HasPrefix(cr.GetOFEDDriverSpec().Version, "sha256")
 	if isSha256 {
 		reqLogger.V(consts.LogLevelInfo).Info("DOCA OFED Driver is using sha256 tag",
-			"tag", cr.Spec.OFEDDriver.Version)
+			"tag", cr.GetOFEDDriverSpec().Version)
 	}
-	precompiledTag := fmt.Sprintf(precompiledTagFormat, cr.Spec.OFEDDriver.Version, nodePool.Kernel,
+	precompiledTag := fmt.Sprintf(precompiledTagFormat, cr.GetOFEDDriverSpec().Version, nodePool.Kernel,
 		nodePool.OsName, nodePool.OsVersion, nodePool.Arch)
 	precompiledExists, tagErr := docaProvider.TagExists(precompiledTag)
 	reqLogger.V(consts.LogLevelDebug).Info("Precompiled tag",
 		"tag", precompiledTag,
 		"found", precompiledExists,
 		"error", tagErr)
-	if !isSha256 && !precompiledExists && cr.Spec.OFEDDriver.ForcePrecompiled {
+	if !isSha256 && !precompiledExists && cr.GetOFEDDriverSpec().ForcePrecompiled {
 		if tagErr != nil {
 			return nil, fmt.Errorf(
 				"ForcePrecompiled is enabled, but failed to verify existence of precompiled tag: %s, %w", precompiledTag, tagErr)
@@ -683,7 +689,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 	}
 
 	renderData := &ofedManifestRenderData{
-		CrSpec: cr.Spec.OFEDDriver,
+		CrSpec: cr.GetOFEDDriverSpec(),
 		RuntimeSpec: &ofedRuntimeSpec{
 			runtimeSpec:    runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			CPUArch:        nodePool.Arch,
@@ -695,13 +701,15 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 			InitContainerConfig: s.getInitContainerConfig(cr, reqLogger,
 				config.FromEnv().State.OFEDState.InitContainerImage),
 			IsOpenshift:        clusterInfo.IsOpenshift(),
-			ContainerResources: createContainerResourcesMap(cr.Spec.OFEDDriver.ContainerResources),
+			ContainerResources: createContainerResourcesMap(cr.GetOFEDDriverSpec().ContainerResources),
 			UseDtk:             useDtk,
 			DtkImageName:       dtkImageName,
 			RhcosVersion:       rhcosVersion,
 		},
-		Tolerations:            cr.Spec.Tolerations,
-		NodeAffinity:           cr.Spec.NodeAffinity,
+		Tolerations:            cr.GetTolerations(),
+		NodeAffinity:           cr.GetNodeAffinity(),
+		NodeSelector:           cr.GetNodeSelector(),
+		DSOwner:                cr.GetCRDName(),
 		AdditionalVolumeMounts: additionalVolMounts,
 	}
 
@@ -729,11 +737,11 @@ func getProviders(catalog InfoCatalog) (nodeinfo.Provider, clustertype.Provider,
 // prepare configuration for the init container,
 // the init container will be disabled if the image is empty
 func (s *stateOFED) getInitContainerConfig(
-	cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger, image string) initContainerConfig {
+	cr mellanoxv1alpha1.NicPolicyCR, reqLogger logr.Logger, image string) initContainerConfig {
 	var initContCfg initContainerConfig
-	safeLoadEnable := cr.Spec.OFEDDriver.OfedUpgradePolicy != nil &&
-		cr.Spec.OFEDDriver.OfedUpgradePolicy.AutoUpgrade &&
-		cr.Spec.OFEDDriver.OfedUpgradePolicy.SafeLoad
+	safeLoadEnable := cr.GetOFEDDriverSpec().OfedUpgradePolicy != nil &&
+		cr.GetOFEDDriverSpec().OfedUpgradePolicy.AutoUpgrade &&
+		cr.GetOFEDDriverSpec().OfedUpgradePolicy.SafeLoad
 	if image != "" {
 		initContCfg = initContainerConfig{
 			InitContainerEnable:    true,
@@ -751,25 +759,25 @@ func (s *stateOFED) getInitContainerConfig(
 }
 
 // getMofedDriverImageName generates MOFED driver image name based on the driver version specified in CR
-func (s *stateOFED) getMofedDriverImageName(cr *mellanoxv1alpha1.NicClusterPolicy,
+func (s *stateOFED) getMofedDriverImageName(cr mellanoxv1alpha1.NicPolicyCR,
 	pool *nodeinfo.NodePool, precompiledExists bool, isSha256 bool, reqLogger logr.Logger) string {
 	reqLogger.V(consts.LogLevelDebug).Info("Generating ofed driver image name for version: %v",
-		"version", cr.Spec.OFEDDriver.Version)
+		"version", cr.GetOFEDDriverSpec().Version)
 
 	if isSha256 {
 		return fmt.Sprintf(sha256ImageFormat,
-			cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
-			cr.Spec.OFEDDriver.Version)
+			cr.GetOFEDDriverSpec().Repository, cr.GetOFEDDriverSpec().Image,
+			cr.GetOFEDDriverSpec().Version)
 	}
 	if precompiledExists {
 		return fmt.Sprintf(precompiledImageFormat,
-			cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
-			cr.Spec.OFEDDriver.Version, pool.Kernel,
+			cr.GetOFEDDriverSpec().Repository, cr.GetOFEDDriverSpec().Image,
+			cr.GetOFEDDriverSpec().Version, pool.Kernel,
 			pool.OsName, pool.OsVersion, pool.Arch)
 	}
 	return fmt.Sprintf(mofedImageFormat,
-		cr.Spec.OFEDDriver.Repository, cr.Spec.OFEDDriver.Image,
-		cr.Spec.OFEDDriver.Version,
+		cr.GetOFEDDriverSpec().Repository, cr.GetOFEDDriverSpec().Image,
+		cr.GetOFEDDriverSpec().Version,
 		pool.OsName,
 		pool.OsVersion,
 		pool.Arch)
@@ -797,7 +805,7 @@ func (s *stateOFED) readOpenshiftProxyConfig(ctx context.Context) (*osconfigv1.P
 // getOrCreateTrustedCAConfigMap creates or returns an existing Trusted CA Bundle ConfigMap.
 // returns nil ConfigMap if trustedCA is not configured
 func (s *stateOFED) getOrCreateTrustedCAConfigMap(
-	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy) (*v1.ConfigMap, error) {
+	ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR) (*v1.ConfigMap, error) {
 	var (
 		cmName      = ocpTrustedCAConfigMapName
 		cmNamespace = config.FromEnv().State.NetworkOperatorResourceNamespace
@@ -872,7 +880,7 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(
 
 // setEnvFromClusterWideProxy set proxy env variables from cluster wide proxy in OCP
 // values which already configured in NicClusterPolicy take precedence
-func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPolicy, proxyConfig *osconfigv1.Proxy) {
+func (s *stateOFED) setEnvFromClusterWideProxy(cr mellanoxv1alpha1.NicPolicyCR, proxyConfig *osconfigv1.Proxy) {
 	// use [][]string to preserve order of env variables
 	proxiesParams := [][]string{
 		{envVarNameHTTPSProxy, proxyConfig.Spec.HTTPSProxy},
@@ -880,7 +888,7 @@ func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPo
 		{envVarNameNoProxy, proxyConfig.Spec.NoProxy},
 	}
 	envsFromStaticCfg := map[string]v1.EnvVar{}
-	for _, e := range cr.Spec.OFEDDriver.Env {
+	for _, e := range cr.GetOFEDDriverSpec().Env {
 		envsFromStaticCfg[e.Name] = e
 	}
 	for _, param := range proxiesParams {
@@ -895,7 +903,7 @@ func (s *stateOFED) setEnvFromClusterWideProxy(cr *mellanoxv1alpha1.NicClusterPo
 			continue
 		}
 		// add proxy settings in both cases for compatibility
-		cr.Spec.OFEDDriver.Env = append(cr.Spec.OFEDDriver.Env,
+		cr.GetOFEDDriverSpec().Env = append(cr.GetOFEDDriverSpec().Env,
 			v1.EnvVar{Name: strings.ToUpper(envKey), Value: envValue},
 			v1.EnvVar{Name: strings.ToLower(envKey), Value: envValue},
 		)
@@ -935,24 +943,24 @@ func (e envVarsWithGet) Get(name string) *v1.EnvVar {
 
 // setProbesDefaults populates NicClusterPolicy CR with default Probe values
 // if not provided by user
-func setProbesDefaults(cr *mellanoxv1alpha1.NicClusterPolicy) {
-	if cr.Spec.OFEDDriver.StartupProbe == nil {
+func setProbesDefaults(cr mellanoxv1alpha1.NicPolicyCR) {
+	if cr.GetOFEDDriverSpec().StartupProbe == nil {
 		probe := startupProbeSpec
-		cr.Spec.OFEDDriver.StartupProbe = &probe
+		cr.GetOFEDDriverSpec().StartupProbe = &probe
 	}
-	sanitizeProbeSpec(cr.Spec.OFEDDriver.StartupProbe, startupProbeSpec)
+	sanitizeProbeSpec(cr.GetOFEDDriverSpec().StartupProbe, startupProbeSpec)
 
-	if cr.Spec.OFEDDriver.LivenessProbe == nil {
+	if cr.GetOFEDDriverSpec().LivenessProbe == nil {
 		probe := defaultProbeSpec
-		cr.Spec.OFEDDriver.LivenessProbe = &probe
+		cr.GetOFEDDriverSpec().LivenessProbe = &probe
 	}
-	sanitizeProbeSpec(cr.Spec.OFEDDriver.LivenessProbe, defaultProbeSpec)
+	sanitizeProbeSpec(cr.GetOFEDDriverSpec().LivenessProbe, defaultProbeSpec)
 
-	if cr.Spec.OFEDDriver.ReadinessProbe == nil {
+	if cr.GetOFEDDriverSpec().ReadinessProbe == nil {
 		probe := defaultProbeSpec
-		cr.Spec.OFEDDriver.ReadinessProbe = &probe
+		cr.GetOFEDDriverSpec().ReadinessProbe = &probe
 	}
-	sanitizeProbeSpec(cr.Spec.OFEDDriver.ReadinessProbe, defaultProbeSpec)
+	sanitizeProbeSpec(cr.GetOFEDDriverSpec().ReadinessProbe, defaultProbeSpec)
 }
 
 // sanitizeProbeSpec checks and adjusts probe spec values to meet Kubernetes requirements
@@ -973,14 +981,14 @@ func sanitizeProbeSpec(probeSpec *mellanoxv1alpha1.PodProbeSpec, defaultProbeSpe
 
 // handleCertConfig handles additional mounts required for Certificates if specified
 func (s *stateOFED) handleCertConfig(
-	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, osname string, mounts *additionalVolumeMounts) error {
-	if cr.Spec.OFEDDriver.CertConfig != nil && cr.Spec.OFEDDriver.CertConfig.Name != "" {
+	ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR, osname string, mounts *additionalVolumeMounts) error {
+	if cr.GetOFEDDriverSpec().CertConfig != nil && cr.GetOFEDDriverSpec().CertConfig.Name != "" {
 		destinationDir, err := getCertConfigPath(osname)
 		if err != nil {
 			return fmt.Errorf("failed to get destination directory for custom TLS certificates config: %v", err)
 		}
 
-		err = s.handleAdditionalMounts(ctx, mounts, cr.Spec.OFEDDriver.CertConfig.Name, destinationDir)
+		err = s.handleAdditionalMounts(ctx, mounts, cr.GetOFEDDriverSpec().CertConfig.Name, destinationDir)
 		if err != nil {
 			return fmt.Errorf("failed to mount volumes for custom TLS certificates: %v", err)
 		}
@@ -1024,14 +1032,14 @@ func (s *stateOFED) handleSubscriptionVolumes(
 
 // handleRepoConfig handles additional mounts required for custom repo if specified
 func (s *stateOFED) handleRepoConfig(
-	ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy, osname string, mounts *additionalVolumeMounts) error {
-	if cr.Spec.OFEDDriver.RepoConfig != nil && cr.Spec.OFEDDriver.RepoConfig.Name != "" {
+	ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR, osname string, mounts *additionalVolumeMounts) error {
+	if cr.GetOFEDDriverSpec().RepoConfig != nil && cr.GetOFEDDriverSpec().RepoConfig.Name != "" {
 		destinationDir, err := getRepoConfigPath(osname)
 		if err != nil {
 			return fmt.Errorf("failed to get destination directory for custom repo config: %v", err)
 		}
 
-		err = s.handleAdditionalMounts(ctx, mounts, cr.Spec.OFEDDriver.RepoConfig.Name, destinationDir)
+		err = s.handleAdditionalMounts(ctx, mounts, cr.GetOFEDDriverSpec().RepoConfig.Name, destinationDir)
 		if err != nil {
 			return fmt.Errorf("failed to mount volumes for custom repositories configuration: %v", err)
 		}

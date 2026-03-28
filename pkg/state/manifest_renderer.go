@@ -27,16 +27,16 @@ import (
 	"github.com/Mellanox/network-operator/pkg/render"
 )
 
-// ManifestRenderer is a common interface for states that render manifests based on NicClusterPolicy
+// ManifestRenderer is a common interface for states that render manifests based on a NicPolicy CR
 type ManifestRenderer interface {
-	GetManifestObjects(ctx context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	GetManifestObjects(ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR,
 		catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error)
 	SetRenderer(renderer render.Renderer)
 }
 
 // ParseContainerNames renders the manifests using ManifestRenderer and extracts container names out of them
 func ParseContainerNames(
-	renderer ManifestRenderer, cr *mellanoxv1alpha1.NicClusterPolicy, reqLogger logr.Logger) ([]string, error) {
+	renderer ManifestRenderer, cr mellanoxv1alpha1.NicPolicyCR, reqLogger logr.Logger) ([]string, error) {
 	catalog := getDummyCatalog()
 	ctx := context.TODO()
 

@@ -63,7 +63,7 @@ type DOCATelemetryServiceManifestRenderData struct {
 
 // Sync attempt to get the system to match the desired state which State represents.
 // a sync operation must be relatively short and must not block the execution thread.
-func (d docaTelemetryServiceState) Sync(
+func (d *docaTelemetryServiceState) Sync(
 	ctx context.Context, customResource interface{}, infoCatalog InfoCatalog) (SyncState, error) {
 	cr := customResource.(*mellanoxv1alpha1.NicClusterPolicy)
 
@@ -112,9 +112,10 @@ func (d docaTelemetryServiceState) Sync(
 }
 
 // GetManifestObjects returns the Unstructured objects to deploy for DOCA Telemetry Service.
-func (d docaTelemetryServiceState) GetManifestObjects(
-	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+func (d *docaTelemetryServiceState) GetManifestObjects(
+	_ context.Context, nicPolicy mellanoxv1alpha1.NicPolicyCR,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	cr := nicPolicy.(*mellanoxv1alpha1.NicClusterPolicy)
 	if cr == nil || cr.Spec.DOCATelemetryService == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}
@@ -161,12 +162,12 @@ func (d docaTelemetryServiceState) GetManifestObjects(
 }
 
 // Name returns the name of the DOCA Telemetry Service.
-func (d docaTelemetryServiceState) Name() string {
+func (d *docaTelemetryServiceState) Name() string {
 	return docaTelemetryServiceName
 }
 
 // Description returns the description of the DOCA Telemetry Service.
-func (d docaTelemetryServiceState) Description() string {
+func (d *docaTelemetryServiceState) Description() string {
 	return docaTelemetryServiceDescription
 }
 

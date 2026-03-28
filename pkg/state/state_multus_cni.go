@@ -131,8 +131,9 @@ func (s *stateMultusCNI) GetWatchSources() map[string]client.Object {
 
 //nolint:dupl
 func (s *stateMultusCNI) GetManifestObjects(
-	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	_ context.Context, nicPolicy mellanoxv1alpha1.NicPolicyCR,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	cr := nicPolicy.(*mellanoxv1alpha1.NicClusterPolicy)
 	if cr == nil || cr.Spec.SecondaryNetwork == nil || cr.Spec.SecondaryNetwork.Multus == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}

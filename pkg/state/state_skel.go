@@ -53,6 +53,7 @@ type cniRuntimeSpec struct {
 type stateSkel struct {
 	name        string
 	description string
+	dsOwner     string
 
 	client   client.Client
 	renderer render.Renderer
@@ -271,6 +272,9 @@ func (s *stateSkel) addStateSpecificLabels(obj *unstructured.Unstructured) {
 		labels = make(map[string]string)
 	}
 	labels[consts.StateLabel] = s.name
+	if s.dsOwner != "" {
+		labels[consts.DSOwnerLabel] = s.dsOwner
+	}
 	obj.SetLabels(labels)
 }
 
@@ -332,9 +336,13 @@ func (s *stateSkel) handleStaleStateObjects(ctx context.Context,
 	return false, nil
 }
 
-func (s *stateSkel) deleteStateRelatedObjects(ctx context.Context, stateObjectsToKeep stateObjects) (bool, error) {
+func (s *stateSkel) deleteStateRelatedObjects(
+	ctx context.Context, stateObjectsToKeep stateObjects) (bool, error) {
 	stateLabel := map[string]string{
 		consts.StateLabel: s.name,
+	}
+	if s.dsOwner != "" {
+		stateLabel[consts.DSOwnerLabel] = s.dsOwner
 	}
 	found := false
 	for _, gvk := range GetSupportedGVKs() {

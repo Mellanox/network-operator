@@ -121,6 +121,15 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 		setupLog.Error(err, "unable to create controller", "controller", "NicClusterPolicy")
 		return err
 	}
+	if err := (&controllers.NicNodePolicyReconciler{
+		Client:                   mgr.GetClient(),
+		Scheme:                   mgr.GetScheme(),
+		ClusterTypeProvider:      clusterTypeProvider,
+		DocaDriverImagesProvider: docaImagesProvider,
+	}).SetupWithManager(mgr, ctrLog.WithName("NicNodePolicy")); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NicNodePolicy")
+		return err
+	}
 	if err := (&controllers.MacvlanNetworkReconciler{
 		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
