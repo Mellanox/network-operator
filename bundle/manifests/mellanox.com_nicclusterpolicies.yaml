@@ -363,8 +363,24 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
+                type: object
+              global:
+                description: Global contains global configuration for all components
+                properties:
+                  imagePullSecrets:
+                    description: ImagePullSecrets is a list of secret names for pulling
+                      component images
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Repository is the default container image repository
+                      for all components
+                    type: string
+                  version:
+                    description: Version is the default version tag for all component
+                      images
+                    type: string
                 type: object
               ibKubernetes:
                 description: |-
@@ -451,9 +467,7 @@ spec:
                 - image
                 - pKeyGUIDPoolRangeEnd
                 - pKeyGUIDPoolRangeStart
-                - repository
                 - ufmSecret
-                - version
                 type: object
               nicConfigurationOperator:
                 description: |-
@@ -523,8 +537,6 @@ spec:
                         type: string
                     required:
                     - image
-                    - repository
-                    - version
                     type: object
                   env:
                     description: List of environment variables to set in the NIC Configuration
@@ -798,8 +810,6 @@ spec:
                         type: string
                     required:
                     - image
-                    - repository
-                    - version
                     type: object
                 required:
                 - configurationDaemon
@@ -870,8 +880,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               nodeAffinity:
                 description: NodeAffinity rules to inject to the DaemonSets objects
@@ -1141,8 +1149,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               ofedDriver:
                 description: |-
@@ -1537,8 +1543,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               rdmaSharedDevicePlugin:
                 description: |-
@@ -1614,8 +1618,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               secondaryNetwork:
                 description: |-
@@ -1688,8 +1690,6 @@ spec:
                         type: string
                     required:
                     - image
-                    - repository
-                    - version
                     type: object
                   ipoib:
                     description: Image information for IPoIB CNI
@@ -1754,8 +1754,6 @@ spec:
                         type: string
                     required:
                     - image
-                    - repository
-                    - version
                     type: object
                   multus:
                     description: Image and configuration information for multus
@@ -1823,8 +1821,6 @@ spec:
                         type: string
                     required:
                     - image
-                    - repository
-                    - version
                     type: object
                 type: object
               spectrumXOperator:
@@ -1892,8 +1888,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               sriovDevicePlugin:
                 description: |-
@@ -1969,8 +1963,6 @@ spec:
                     type: string
                 required:
                 - image
-                - repository
-                - version
                 type: object
               tolerations:
                 description: Tolerations to inject to the DaemonSets objects that
