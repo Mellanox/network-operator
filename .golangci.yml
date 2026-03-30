@@ -1,118 +1,116 @@
-linters-settings:
-  dupl:
-    threshold: 150
-  funlen:
-    lines: 100
-    statements: 50
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-      - unnamedResult
-  gocognit:
-    min-complexity: 30
-  goimports:
-    local-prefixes: github.com/Mellanox/network-operator
-  golint:
-    min-confidence: 0
-  mnd:
-    settings:
-      # don't include the "operation" and "assign"
-      checks: argument,case,condition,return
-  govet:
-    settings:
-      printf:
-        funcs:
-          - (github.com/rs/zerolog/zerolog.Event).Msgf
-  gosec:
-    excludes:
-      - G115
-  lll:
-    line-length: 120
-  misspell:
-    locale: US
-  prealloc:
-    # Report preallocation suggestions only on simple loops that have no returns/breaks/continues/gotos in them.
-    # True by default.
-    simple: true
-    range-loops: true # Report preallocation suggestions on range loops, true by default
-    for-loops: false # Report preallocation suggestions on for loops, false by default
+version: "2"
 
 linters:
-  # please, do not use `enable-all`: it's deprecated and will be removed soon.
-  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
-  disable-all: true
+  default: none
   enable:
     - bodyclose
+    - copyloopvar
     - dogsled
     - dupl
     - errcheck
-    - copyloopvar
     - funlen
-      #- gochecknoinits
-      #- goconst
     - gocritic
     - gocognit
-    - gofmt
-    - goimports
-    - mnd
     - goprintffuncname
     - gosec
-    - gosimple
-      #- govet
+    - govet
     - ineffassign
     - lll
     - misspell
+    - mnd
     - nakedret
     - prealloc
     - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
+  settings:
+    dupl:
+      threshold: 150
+    funlen:
+      lines: 100
+      statements: 50
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - dupImport # https://github.com/go-critic/go-critic/issues/845
+        - ifElseChain
+        - importShadow
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+        - unnamedResult
+    gocognit:
+      min-complexity: 30
+    mnd:
+      settings:
+        checks: argument,case,condition,return
+    govet:
+      settings:
+        printf:
+          funcs:
+            - (github.com/rs/zerolog/zerolog.Event).Msgf
+    gosec:
+      excludes:
+        - G115
+    staticcheck:
+      checks:
+        - "all"
+        - "-QF*"
+    lll:
+      line-length: 120
+    misspell:
+      locale: US
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - revive
+          - staticcheck
+        text: "should not use dot imports"
+      - path: _test\.go
+        linters:
+          - gosec
+          - mnd
+          - goconst
+      - text: "Magic number: 1"
+        linters:
+          - mnd
+      # controller-gen generates zz_generated.deepcopy.go that doesn't comply with some golangci-lint checks
+      - path: api/v1alpha1/zz_generated.deepcopy.go
+        linters:
+          - staticcheck
+      - path: api
+        linters:
+          - lll
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: github.com/Mellanox/network-operator
+  exclusions:
+    generated: lax
+    paths:
+      - api/v1alpha1/zz_generated.deepcopy.go
 
 issues:
-  # Disable default golangci exclusions.
-  exclude-use-default: false
-  # Don't deduplicate output.
   max-same-issues: 0
   max-issues-per-linter: 0
-
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-rules:
-    - path: _test\.go
-      linters:
-      - revive
-      - stylecheck
-      text: "should not use dot imports"
-    - path: _test\.go
-      linters:
-        - mnd
-        - goconst
-        - typecheck
-    - text: "Magic number: 1"
-      linters:
-        - mnd
-    # controller-gen generates zz_generated.deepcopy.go that doesn't comply with some golangci-lint checks
-    - path: api/v1alpha1/zz_generated.deepcopy.go
-      linters:
-        - stylecheck
-        - goimports
-    - path: api
-      linters:
-        - lll

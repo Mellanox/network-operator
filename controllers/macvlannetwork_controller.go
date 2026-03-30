@@ -85,9 +85,6 @@ func (r *MacvlanNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	managerStatus := r.stateManager.SyncState(ctx, instance, nil)
 	r.updateCrStatus(ctx, instance, managerStatus)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 
 	if managerStatus.Status != state.SyncStateReady {
 		return reconcile.Result{

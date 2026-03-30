@@ -405,7 +405,7 @@ func runFuncForObjectInSlice(objects []*unstructured.Unstructured, objectKind st
 // If multiple objects have the same kind it should be in the `kinds` list multiple times.
 func assertUnstructuredListHasExactKinds(objects []*unstructured.Unstructured, kinds ...string) {
 	Expect(len(objects)).To(Equal(len(kinds)))
-	actualKinds := []string{}
+	actualKinds := make([]string, 0, len(objects))
 	for _, obj := range objects {
 		actualKinds = append(actualKinds, obj.Object["kind"].(string))
 	}

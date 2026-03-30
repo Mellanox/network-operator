@@ -124,7 +124,7 @@ func (p *provider) GetNodePools(filters ...Filter) []NodePool {
 		}
 	}
 
-	nodePools := make([]NodePool, 0)
+	nodePools := make([]NodePool, 0, len(nodePoolMap))
 	for _, np := range nodePoolMap {
 		nodePools = append(nodePools, np)
 	}
