@@ -815,7 +815,7 @@ func (s *stateOFED) getOrCreateTrustedCAConfigMap(
 		}
 		return configMap, nil
 	}
-	if err != nil && !apiErrors.IsNotFound(err) {
+	if !apiErrors.IsNotFound(err) {
 		return nil, fmt.Errorf("failed to get trusted CA bundle config map %s: %s", cmName, err)
 	}
 

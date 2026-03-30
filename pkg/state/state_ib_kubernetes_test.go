@@ -562,7 +562,7 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 			Expect(len(imagePullSecretsSlice)).To(Equal(3))
 
 			// Check each secret name
-			secretNames := []string{}
+			secretNames := make([]string, 0, len(imagePullSecretsSlice))
 			for _, secret := range imagePullSecretsSlice {
 				secretMap := secret.(map[string]interface{})
 				name, exists := secretMap["name"]
