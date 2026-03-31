@@ -65,7 +65,7 @@ spec:
     cniPlugins:
       image: plugins
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.4.0-beta.1
+      version: c1d94f9f
     multus:
       image: multus-cni
       repository: nvcr.io/nvstaging/mellanox
