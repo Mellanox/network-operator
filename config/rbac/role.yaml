@@ -230,6 +230,8 @@ rules:
   - macvlannetworks
   - nicclusterpolicies
   - nicclusterpolicies/status
+  - nicnodepolicies
+  - nicnodepolicies/status
   verbs:
   - create
   - delete
@@ -245,6 +247,7 @@ rules:
   - ipoibnetworks/finalizers
   - macvlannetworks/finalizers
   - nicclusterpolicies/finalizers
+  - nicnodepolicies/finalizers
   verbs:
   - update
 - apiGroups:

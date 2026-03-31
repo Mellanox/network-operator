@@ -138,8 +138,9 @@ func (s *stateSpectrumXOperator) GetWatchSources() map[string]client.Object {
 
 //nolint:dupl
 func (s *stateSpectrumXOperator) GetManifestObjects(
-	_ context.Context, cr *mellanoxv1alpha1.NicClusterPolicy,
+	_ context.Context, nicPolicy mellanoxv1alpha1.NicPolicyCR,
 	catalog InfoCatalog, reqLogger logr.Logger) ([]*unstructured.Unstructured, error) {
+	cr := nicPolicy.(*mellanoxv1alpha1.NicClusterPolicy)
 	if cr == nil || cr.Spec.SpectrumXOperator == nil {
 		return nil, errors.New("failed to render objects: state spec is nil")
 	}

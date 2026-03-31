@@ -1,0 +1,708 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: nicnodepolicies.mellanox.com
+spec:
+  group: mellanox.com
+  names:
+    kind: NicNodePolicy
+    listKind: NicNodePolicyList
+    plural: nicnodepolicies
+    shortNames:
+    - nicnode
+    - nnp
+    singular: nicnodepolicy
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: NicNodePolicy is the Schema for the NicNodePolicies API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Defines the desired state of NicNodePolicy
+            properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Optional: Annotations is an unstructured key value map stored with a resource that may be
+                  set by external tools to store and retrieve arbitrary metadata. They are not
+                  queryable and should be preserved when modifying objects.
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Optional: Map of string keys and values that can be used to organize and categorize
+                  (scope and select) objects. May match selectors of replication controllers
+                  and services.
+                type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector specifies a selector for the nodes this
+                  policy applies to
+                type: object
+              ofedDriver:
+                description: |-
+                  OFEDDriver is a specialized driver for NVIDIA NICs which can replace the inbox driver that comes with an OS.
+                  See https://network.nvidia.com/support/mlnx-ofed-matrix/
+                properties:
+                  certConfig:
+                    description: 'Optional: Custom TLS certificates configuration
+                      for DOCA-OFED driver container'
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
+                  containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
+                    items:
+                      description: ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        name:
+                          description: Name of the container the requirements are
+                            set for
+                          type: string
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  env:
+                    description: List of environment variables to set in the DOCA-OFED
+                      driver container.
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: |-
+                            Name of the environment variable.
+                            May consist of any printable ASCII characters except '='.
+                          type: string
+                        value:
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  default: ""
+                                  description: |-
+                                    Name of the referent.
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fileKeyRef:
+                              description: |-
+                                FileKeyRef selects a key of the env file.
+                                Requires the EnvFiles feature gate to be enabled.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key within the env file. An invalid key will prevent the pod from starting.
+                                    The keys defined within a source may consist of any printable ASCII characters except '='.
+                                    During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                                  type: string
+                                optional:
+                                  default: false
+                                  description: |-
+                                    Specify whether the file or its key must be defined. If the file or key
+                                    does not exist, then the env var is not published.
+                                    If optional is set to true and the specified key does not exist,
+                                    the environment variable will not be set in the Pod's containers.
+
+                                    If optional is set to false and the specified key does not exist,
+                                    an error will be returned during Pod creation.
+                                  type: boolean
+                                path:
+                                  description: |-
+                                    The path within the volume from which to select the file.
+                                    Must be relative and may not contain the '..' path or start with '..'.
+                                  type: string
+                                volumeName:
+                                  description: The name of the volume mount containing
+                                    the env file.
+                                  type: string
+                              required:
+                              - key
+                              - path
+                              - volumeName
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  default: ""
+                                  description: |-
+                                    Name of the referent.
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  forcePrecompiled:
+                    default: false
+                    description: |-
+                      ForcePrecompiled specifies if only DOCA-OFED driver precompiled images are allowed
+                      If set to false and precompiled image does not exists, DOCA-OFED driver will be compiled on Nodes
+                      If set to true and precompiled image does not exists, OFED state will be Error.
+                    type: boolean
+                  image:
+                    description: Name of the image
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
+                    items:
+                      type: string
+                    type: array
+                  livenessProbe:
+                    description: Pod liveness probe settings
+                    properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
+                      initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
+                  readinessProbe:
+                    description: Pod readiness probe settings
+                    properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
+                      initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
+                  repoConfig:
+                    description: 'Optional: Custom package repository configuration
+                      for DOCA-OFED driver container'
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
+                  repository:
+                    description: Address of the registry that stores the image
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  startupProbe:
+                    description: Pod startup probe settings
+                    properties:
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded
+                        type: integer
+                      initialDelaySeconds:
+                        description: Number of seconds after the container has started
+                          before the probe is initiated
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe
+                        type: integer
+                      timeoutSeconds:
+                        description: Number of seconds after which the probe times
+                          out
+                        type: integer
+                    required:
+                    - initialDelaySeconds
+                    - periodSeconds
+                    type: object
+                  terminationGracePeriodSeconds:
+                    default: 300
+                    description: |-
+                      TerminationGracePeriodSeconds specifies the length of time in seconds
+                      to wait before killing the DOCA-OFED driver container pod on termination
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  upgradePolicy:
+                    description: DOCA-OFED driver auto-upgrade settings
+                    properties:
+                      autoUpgrade:
+                        default: false
+                        description: |-
+                          AutoUpgrade is a global switch for automatic upgrade feature
+                          if set to false all other options are ignored
+                        type: boolean
+                      drain:
+                        description: The configuration for node drain during automatic
+                          upgrade
+                        properties:
+                          deleteEmptyDir:
+                            default: false
+                            description: |-
+                              DeleteEmptyDir indicates if should continue even if there are pods using emptyDir
+                              (local data that will be deleted when the node is drained)
+                            type: boolean
+                          enable:
+                            default: true
+                            description: Enable indicates if node draining is allowed
+                              during upgrade
+                            type: boolean
+                          force:
+                            default: false
+                            description: Force indicates if force draining is allowed
+                            type: boolean
+                          podSelector:
+                            description: |-
+                              PodSelector specifies a label selector to filter pods on the node that need to be drained
+                              For more details on label selectors, see:
+                              https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+                            type: string
+                          timeoutSeconds:
+                            default: 300
+                            description: TimeoutSecond specifies the length of time
+                              in seconds to wait before giving up drain, zero means
+                              infinite
+                            minimum: 0
+                            type: integer
+                        type: object
+                      maxParallelUpgrades:
+                        default: 1
+                        description: |-
+                          MaxParallelUpgrades indicates how many nodes can be upgraded in parallel
+                          0 means no limit, all nodes will be upgraded in parallel
+                        minimum: 0
+                        type: integer
+                      safeLoad:
+                        default: false
+                        description: SafeLoad turn on safe driver loading (cordon
+                          and drain the node before loading the driver)
+                        type: boolean
+                      waitForCompletion:
+                        description: The configuration for waiting on pods completions
+                        properties:
+                          podSelector:
+                            description: |-
+                              PodSelector specifies a label selector for the pods to wait for completion
+                              For more details on label selectors, see:
+                              https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+                            type: string
+                          timeoutSeconds:
+                            default: 0
+                            description: |-
+                              TimeoutSecond specifies the length of time in seconds
+                              to wait before giving up on pod termination, zero means infinite
+                            minimum: 0
+                            type: integer
+                        type: object
+                    type: object
+                  version:
+                    description: Version of the image to use
+                    type: string
+                required:
+                - image
+                type: object
+              rdmaSharedDevicePlugin:
+                description: |-
+                  RdmaSharedDevicePlugin manages support IB and RoCE HCAs through the Kubernetes device plugin framework.
+                  The config field is a json representation of the RDMA shared device plugin configuration.
+                  See https://github.com/Mellanox/k8s-rdma-shared-dev-plugin
+                properties:
+                  config:
+                    description: Configuration for the component as a string
+                    type: string
+                  containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
+                    items:
+                      description: ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        name:
+                          description: Name of the container the requirements are
+                            set for
+                          type: string
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: Name of the image
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Address of the registry that stores the image
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  useCdi:
+                    description: |-
+                      Enables use of container device interface (CDI)
+                      NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
+                    type: boolean
+                  version:
+                    description: Version of the image to use
+                    type: string
+                required:
+                - image
+                type: object
+              sriovDevicePlugin:
+                description: |-
+                  SriovDevicePlugin manages SRIOV through the Kubernetes device plugin framework.
+                  The config field is a json representation of the RDMA shared device plugin configuration.
+                  See https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin
+                properties:
+                  config:
+                    description: Configuration for the component as a string
+                    type: string
+                  containerResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements
+                    items:
+                      description: ResourceRequirements describes the compute resource
+                        requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits describes the maximum amount of compute resources allowed.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                        name:
+                          description: Name of the container the requirements are
+                            set for
+                          type: string
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests describes the minimum amount of compute resources required.
+                            If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                            otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                            More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: Name of the image
+                    pattern: '[a-zA-Z0-9\-]+'
+                    type: string
+                  imagePullSecrets:
+                    default: []
+                    description: |-
+                      ImagePullSecrets is an optional list of references to secrets in the same
+                      namespace to use for pulling the image
+                    items:
+                      type: string
+                    type: array
+                  repository:
+                    description: Address of the registry that stores the image
+                    pattern: '[a-zA-Z0-9\.\-\/]+'
+                    type: string
+                  useCdi:
+                    description: |-
+                      Enables use of container device interface (CDI)
+                      NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
+                    type: boolean
+                  version:
+                    description: Version of the image to use
+                    type: string
+                required:
+                - image
+                type: object
+              tolerations:
+                description: 'Optional: Set tolerations'
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+            type: object
+          status:
+            description: Defines the observed state of NicNodePolicy
+            properties:
+              appliedStates:
+                description: AppliedStates provide a finer view of the observed state
+                items:
+                  description: AppliedState defines a finer-grained view of the observed
+                    state of NicClusterPolicy
+                  properties:
+                    message:
+                      description: |-
+                        Message is a human readable message indicating details about why
+                        the state is in this condition
+                      type: string
+                    name:
+                      description: Name of the deployed component this state refers
+                        to
+                      type: string
+                    state:
+                      description: The state of the deployed component. ("ready",
+                        "notReady", "ignore", "error")
+                      enum:
+                      - ready
+                      - notReady
+                      - ignore
+                      - error
+                      type: string
+                  required:
+                  - name
+                  - state
+                  type: object
+                type: array
+              reason:
+                description: Informative string in case the observed state is error
+                type: string
+              state:
+                description: Reflects the current state of the cluster policy
+                enum:
+                - ignore
+                - notReady
+                - ready
+                - error
+                type: string
+            required:
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -15,23 +15,25 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
+    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
     nvidia.com/ofed-driver: ""
     mofed-ds-format-version: "1"
-  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}-ds
+    ds-owner: {{ .DSOwner }}
+  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
   updateStrategy:
     type: OnDelete
   selector:
     matchLabels:
-      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
+      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
   template:
     metadata:
       labels:
-        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}
+        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
         kernel: {{ .RuntimeSpec.Kernel }}
         nvidia.com/ofed-driver: ""
+        ds-owner: {{ .DSOwner }}
     spec:
       priorityClassName: system-node-critical
       tolerations:
@@ -271,6 +273,9 @@ spec:
         feature.node.kubernetes.io/kernel-version.full: "{{ .RuntimeSpec.Kernel }}"
         {{- if .RuntimeSpec.UseDtk }}
         feature.node.kubernetes.io/system-os_release.OSTREE_VERSION: "{{ .RuntimeSpec.RhcosVersion }}"
+        {{- end }}
+        {{- range $k, $v := .NodeSelector }}
+        {{ $k }}: {{ $v | quote }}
         {{- end }}
       {{- if .NodeAffinity }}
       affinity:

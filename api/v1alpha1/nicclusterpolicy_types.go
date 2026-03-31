@@ -453,9 +453,6 @@ type AppliedState struct {
 
 // NicClusterPolicyStatus defines the observed state of NicClusterPolicy
 type NicClusterPolicyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// Reflects the current state of the cluster policy
 	// +kubebuilder:validation:Enum={"ignore", "notReady", "ready", "error"}
 	State State `json:"state"`
@@ -491,6 +488,72 @@ type NicClusterPolicyList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []NicClusterPolicy `json:"items"`
+}
+
+// GetOFEDDriverSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetOFEDDriverSpec() *OFEDDriverSpec {
+	return n.Spec.OFEDDriver
+}
+
+// GetRdmaSharedDevicePluginSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetRdmaSharedDevicePluginSpec() *DevicePluginSpec {
+	return n.Spec.RdmaSharedDevicePlugin
+}
+
+// GetSriovDevicePluginSpec implements NicPolicy.
+func (n *NicClusterPolicy) GetSriovDevicePluginSpec() *DevicePluginSpec {
+	return n.Spec.SriovDevicePlugin
+}
+
+// GetTolerations implements NicPolicy.
+func (n *NicClusterPolicy) GetTolerations() []v1.Toleration {
+	return n.Spec.Tolerations
+}
+
+// GetNodeAffinity implements NicPolicy.
+func (n *NicClusterPolicy) GetNodeAffinity() *v1.NodeAffinity {
+	return n.Spec.NodeAffinity
+}
+
+// GetNodeSelector implements NicPolicy.
+// NicClusterPolicy does not have a NodeSelector field; returns nil.
+func (n *NicClusterPolicy) GetNodeSelector() map[string]string {
+	return nil
+}
+
+// GetCRDName implements NicPolicy.
+func (n *NicClusterPolicy) GetCRDName() string {
+	return NicClusterPolicyCRDName
+}
+
+// GetGlobalConfig implements NicPolicy.
+func (n *NicClusterPolicy) GetGlobalConfig() *GlobalConfig {
+	return n.Spec.Global
+}
+
+// GetAppliedStates implements NicPolicyCR.
+func (n *NicClusterPolicy) GetAppliedStates() []AppliedState {
+	return n.Status.AppliedStates
+}
+
+// SetAppliedStates implements NicPolicyCR.
+func (n *NicClusterPolicy) SetAppliedStates(states []AppliedState) {
+	n.Status.AppliedStates = states
+}
+
+// GetPolicyState implements NicPolicyCR.
+func (n *NicClusterPolicy) GetPolicyState() State {
+	return n.Status.State
+}
+
+// SetPolicyState implements NicPolicyCR.
+func (n *NicClusterPolicy) SetPolicyState(state State) {
+	n.Status.State = state
+}
+
+// SetReason implements NicPolicyCR.
+func (n *NicClusterPolicy) SetReason(reason string) {
+	n.Status.Reason = reason
 }
 
 func init() {

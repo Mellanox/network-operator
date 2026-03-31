@@ -14,27 +14,32 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: network-operator-sriov-device-plugin
+  name: network-operator-sriov-device-plugin{{ .NameSuffix }}
   namespace: {{ .RuntimeSpec.Namespace }}
   labels:
     tier: node
     app: sriovdp
+    ds-owner: {{ .DSOwner }}
 spec:
   selector:
     matchLabels:
-      name: network-operator-sriov-device-plugin
+      name: network-operator-sriov-device-plugin{{ .NameSuffix }}
   template:
     metadata:
       labels:
-        name: network-operator-sriov-device-plugin
+        name: network-operator-sriov-device-plugin{{ .NameSuffix }}
         tier: node
         app: sriovdp
+        ds-owner: {{ .DSOwner }}
     spec:
       priorityClassName: system-node-critical
       hostNetwork: true
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
         network.nvidia.com/operator.mofed.wait: "false"
+        {{- range $k, $v := .NodeSelector }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
       {{- if .NodeAffinity }}
       affinity:
         nodeAffinity:
@@ -122,7 +127,7 @@ spec:
             type: DirectoryOrCreate
         - name: config-volume
           configMap:
-            name: network-operator-sriovdp-config
+            name: network-operator-sriovdp-config{{ .NameSuffix }}
             items:
               - key: config.json
                 path: config.json

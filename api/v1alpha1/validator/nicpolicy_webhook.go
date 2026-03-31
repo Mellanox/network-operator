@@ -46,6 +46,7 @@ import (
 
 	"github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
+	"github.com/Mellanox/network-operator/pkg/policyoverlap"
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
@@ -53,6 +54,14 @@ const (
 	fqdnRegex              = `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$`
 	sriovResourceNameRegex = `^([A-Za-z0-9][A-Za-z0-9_.]*)?[A-Za-z0-9]$`
 	rdmaResourceNameRegex  = `^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$`
+)
+
+const (
+	// minPoliciesForOverlap is the minimum number of policies needed for overlap detection.
+	minPoliciesForOverlap = 2
+	// maxNicNodePolicyNameLength limits NNP name to avoid exceeding Kubernetes label value limits (63 chars).
+	// Derived labels: "NicNodePolicy-<name>" (14+name) and "mofed-ubuntu22.04-<hash>-<name>" (~30+name).
+	maxNicNodePolicyNameLength = 30
 )
 
 // log is for logging in this package.
@@ -64,9 +73,17 @@ var skipValidations = false
 
 var envConfig = config.FromEnv().State
 
-type nicClusterPolicyValidator struct{}
+type nicClusterPolicyValidator struct {
+	k8sClient client.Client
+}
 
 var _ webhook.CustomValidator = &nicClusterPolicyValidator{}
+
+type nicNodePolicyValidator struct {
+	k8sClient client.Client
+}
+
+var _ webhook.CustomValidator = &nicNodePolicyValidator{}
 
 type devicePluginSpecWrapper struct {
 	v1alpha1.DevicePluginSpec
@@ -90,7 +107,17 @@ func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 	InitSchemaValidator("./webhook-schemas")
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&v1alpha1.NicClusterPolicy{}).
-		WithValidator(&nicClusterPolicyValidator{}).
+		WithValidator(&nicClusterPolicyValidator{k8sClient: mgr.GetClient()}).
+		Complete()
+}
+
+// SetupNicNodePolicyWebhookWithManager sets up the webhook for NicNodePolicy.
+func SetupNicNodePolicyWebhookWithManager(mgr ctrl.Manager) error {
+	nicClusterPolicyLog.Info("Nic node policy webhook admission controller")
+	InitSchemaValidator("./webhook-schemas")
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(&v1alpha1.NicNodePolicy{}).
+		WithValidator(&nicNodePolicyValidator{k8sClient: mgr.GetClient()}).
 		Complete()
 }
 
@@ -98,7 +125,7 @@ func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-nicclusterpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=nicclusterpolicies,verbs=create;update,versions=v1alpha1,name=vnicclusterpolicy.kb.io,admissionReviewVersions=v1
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *nicClusterPolicyValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (w *nicClusterPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
@@ -109,12 +136,15 @@ func (w *nicClusterPolicyValidator) ValidateCreate(_ context.Context, obj runtim
 		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate create", "name", nicClusterPolicy.Name)
-	return nil, w.validateNicClusterPolicy(nicClusterPolicy)
+	if err := w.validateNicClusterPolicy(nicClusterPolicy); err != nil {
+		return nil, err
+	}
+	return nil, w.validateNicClusterPolicyOverlap(ctx, nicClusterPolicy)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (w *nicClusterPolicyValidator) ValidateUpdate(
-	_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
@@ -125,7 +155,10 @@ func (w *nicClusterPolicyValidator) ValidateUpdate(
 		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate update", "name", nicClusterPolicy.Name)
-	return nil, w.validateNicClusterPolicy(nicClusterPolicy)
+	if err := w.validateNicClusterPolicy(nicClusterPolicy); err != nil {
+		return nil, err
+	}
+	return nil, w.validateNicClusterPolicyOverlap(ctx, nicClusterPolicy)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -143,6 +176,185 @@ func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, in runtime
 
 	// Validation for delete call is not required
 	return nil, nil
+}
+
+//nolint:lll
+//+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-nicnodepolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=nicnodepolicies,verbs=create;update,versions=v1alpha1,name=vnicnodepolicy.kb.io,admissionReviewVersions=v1
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for NicNodePolicy
+func (w *nicNodePolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil, nil
+	}
+
+	nicNodePolicy, ok := obj.(*v1alpha1.NicNodePolicy)
+	if !ok {
+		return nil, errors.New("failed to unmarshal NicNodePolicy object to validate")
+	}
+	nicClusterPolicyLog.Info("validate create", "name", nicNodePolicy.Name)
+	if err := validateNicNodePolicy(nicNodePolicy); err != nil {
+		return nil, err
+	}
+	return nil, w.validateNicNodePolicyOverlap(ctx, nicNodePolicy)
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for NicNodePolicy
+func (w *nicNodePolicyValidator) ValidateUpdate(
+	ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	if skipValidations {
+		nicClusterPolicyLog.Info("skipping CR validation")
+		return nil, nil
+	}
+
+	nicNodePolicy, ok := newObj.(*v1alpha1.NicNodePolicy)
+	if !ok {
+		return nil, errors.New("failed to unmarshal NicNodePolicy object to validate")
+	}
+	nicClusterPolicyLog.Info("validate update", "name", nicNodePolicy.Name)
+	if err := validateNicNodePolicy(nicNodePolicy); err != nil {
+		return nil, err
+	}
+	return nil, w.validateNicNodePolicyOverlap(ctx, nicNodePolicy)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for NicNodePolicy
+func (w *nicNodePolicyValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
+}
+
+// validateNicClusterPolicyOverlap checks that NicClusterPolicy sections don't conflict with existing NicNodePolicies.
+func (w *nicClusterPolicyValidator) validateNicClusterPolicyOverlap(
+	ctx context.Context, in *v1alpha1.NicClusterPolicy) error {
+	if w.k8sClient == nil {
+		return nil
+	}
+
+	nodePolicyList := &v1alpha1.NicNodePolicyList{}
+	if err := w.k8sClient.List(ctx, nodePolicyList); err != nil {
+		nicClusterPolicyLog.Error(err, "failed to list NicNodePolicies for overlap validation")
+		return nil // don't block admission if we can't list
+	}
+
+	conflicts := policyoverlap.DetectSectionConflict(in, nodePolicyList.Items)
+	if len(conflicts) > 0 {
+		return errors.New(policyoverlap.FormatSectionConflicts(conflicts, false))
+	}
+	return nil
+}
+
+// validateNicNodePolicyOverlap checks section conflicts with NicClusterPolicy and node selector overlap
+// with other NicNodePolicies.
+func (w *nicNodePolicyValidator) validateNicNodePolicyOverlap(
+	ctx context.Context, in *v1alpha1.NicNodePolicy) error {
+	if w.k8sClient == nil {
+		return nil
+	}
+
+	// Rule 1: Check section conflicts with NicClusterPolicy
+	clusterPolicyList := &v1alpha1.NicClusterPolicyList{}
+	if err := w.k8sClient.List(ctx, clusterPolicyList); err != nil {
+		nicClusterPolicyLog.Error(err, "failed to list NicClusterPolicies for overlap validation")
+		return nil
+	}
+	if len(clusterPolicyList.Items) > 0 {
+		// Use the first (and typically only) NicClusterPolicy
+		conflicts := policyoverlap.DetectSectionConflict(&clusterPolicyList.Items[0],
+			[]v1alpha1.NicNodePolicy{*in})
+		if len(conflicts) > 0 {
+			return errors.New(policyoverlap.FormatSectionConflicts(conflicts, true))
+		}
+	}
+
+	// Rule 2: Check node selector overlap with other NicNodePolicies
+	nodePolicyList := &v1alpha1.NicNodePolicyList{}
+	if err := w.k8sClient.List(ctx, nodePolicyList); err != nil {
+		nicClusterPolicyLog.Error(err, "failed to list NicNodePolicies for node overlap validation")
+		return nil
+	}
+
+	// Build the full list of policies: replace existing entry with new spec if updating, or append if creating
+	allPolicies := make([]v1alpha1.NicNodePolicy, 0, len(nodePolicyList.Items)+1)
+	found := false
+	for i := range nodePolicyList.Items {
+		if nodePolicyList.Items[i].Name == in.Name {
+			allPolicies = append(allPolicies, *in) // use the incoming (new) spec
+			found = true
+		} else {
+			allPolicies = append(allPolicies, nodePolicyList.Items[i])
+		}
+	}
+	if !found {
+		allPolicies = append(allPolicies, *in)
+	}
+
+	if len(allPolicies) < minPoliciesForOverlap {
+		return nil // only one policy, no overlap possible
+	}
+
+	overlaps, err := policyoverlap.DetectNodeOverlap(ctx, w.k8sClient, allPolicies)
+	if err != nil {
+		nicClusterPolicyLog.Error(err, "failed to detect node overlap")
+		return nil
+	}
+	if len(overlaps) > 0 {
+		return errors.New(policyoverlap.FormatNodeOverlap(overlaps))
+	}
+	return nil
+}
+
+// validateNicNodePolicy validates the NicNodePolicy spec fields.
+func validateNicNodePolicy(in *v1alpha1.NicNodePolicy) error {
+	var allErrs field.ErrorList
+
+	// Validate OFEDDriverSpec
+	if in.Spec.OFEDDriver != nil {
+		allErrs = append(allErrs, validateOFEDDriverSpec(in.Spec.OFEDDriver,
+			field.NewPath("spec").Child("ofedDriver"))...)
+	}
+	// Validate RdmaSharedDevicePlugin
+	if in.Spec.RdmaSharedDevicePlugin != nil {
+		allErrs = append(allErrs, validateRdmaSharedDevicePluginSpec(in.Spec.RdmaSharedDevicePlugin,
+			field.NewPath("spec").Child("rdmaSharedDevicePlugin"))...)
+	}
+	// Validate SriovDevicePlugin
+	if in.Spec.SriovDevicePlugin != nil {
+		allErrs = append(allErrs, validateSriovDevicePluginSpec(in.Spec.SriovDevicePlugin,
+			field.NewPath("spec").Child("sriovNetworkDevicePlugin"))...)
+	}
+	// Validate name length (DS names include CR name as suffix)
+	if len(in.Name) > maxNicNodePolicyNameLength {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("name"),
+			in.Name, "NicNodePolicy name must be at most 50 characters to avoid exceeding DaemonSet name limits"))
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "mellanox.com", Kind: "NicNodePolicy"},
+		in.Name, allErrs)
+}
+
+// validateOFEDDriverSpec validates the OFED driver spec fields shared between NicClusterPolicy and NicNodePolicy.
+func validateOFEDDriverSpec(spec *v1alpha1.OFEDDriverSpec, fldPath *field.Path) field.ErrorList {
+	wrapper := ofedDriverSpecWrapper{OFEDDriverSpec: *spec}
+	allErrs := make(field.ErrorList, 0, 2) //nolint:mnd
+	allErrs = append(allErrs, wrapper.validateVersion(fldPath)...)
+	allErrs = append(allErrs, wrapper.validateSafeLoad(fldPath)...)
+	return allErrs
+}
+
+// validateRdmaSharedDevicePluginSpec validates the RDMA shared device plugin spec.
+func validateRdmaSharedDevicePluginSpec(spec *v1alpha1.DevicePluginSpec, fldPath *field.Path) field.ErrorList {
+	wrapper := devicePluginSpecWrapper{DevicePluginSpec: *spec}
+	return wrapper.validateRdmaSharedDevicePlugin(fldPath)
+}
+
+// validateSriovDevicePluginSpec validates the SR-IOV device plugin spec.
+func validateSriovDevicePluginSpec(spec *v1alpha1.DevicePluginSpec, fldPath *field.Path) field.ErrorList {
+	wrapper := devicePluginSpecWrapper{DevicePluginSpec: *spec}
+	return wrapper.validateSriovNetworkDevicePlugin(fldPath)
 }
 
 /*
@@ -176,26 +388,18 @@ func (w *nicClusterPolicyValidator) validateNicClusterPolicy(in *v1alpha1.NicClu
 		allErrs = append(allErrs, wrapper.validate(field.NewPath("spec").Child("ibKubernetes"))...)
 	}
 	// Validate OFEDDriverSpec
-	ofedDriver := in.Spec.OFEDDriver
-	if ofedDriver != nil {
-		wrapper := ofedDriverSpecWrapper{OFEDDriverSpec: *in.Spec.OFEDDriver}
-		ofedDriverFieldPath := field.NewPath("spec").Child("ofedDriver")
-		allErrs = append(append(allErrs,
-			wrapper.validateVersion(ofedDriverFieldPath)...),
-			wrapper.validateSafeLoad(ofedDriverFieldPath)...)
+	if in.Spec.OFEDDriver != nil {
+		allErrs = append(allErrs, validateOFEDDriverSpec(in.Spec.OFEDDriver,
+			field.NewPath("spec").Child("ofedDriver"))...)
 	}
 	// Validate RdmaSharedDevicePlugin
-	rdmaSharedDevicePlugin := in.Spec.RdmaSharedDevicePlugin
-	if rdmaSharedDevicePlugin != nil {
-		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *in.Spec.RdmaSharedDevicePlugin}
-		allErrs = append(allErrs, wrapper.validateRdmaSharedDevicePlugin(
+	if in.Spec.RdmaSharedDevicePlugin != nil {
+		allErrs = append(allErrs, validateRdmaSharedDevicePluginSpec(in.Spec.RdmaSharedDevicePlugin,
 			field.NewPath("spec").Child("rdmaSharedDevicePlugin"))...)
 	}
 	// Validate SriovDevicePlugin
-	sriovNetworkDevicePlugin := in.Spec.SriovDevicePlugin
-	if sriovNetworkDevicePlugin != nil {
-		wrapper := devicePluginSpecWrapper{DevicePluginSpec: *in.Spec.SriovDevicePlugin}
-		allErrs = append(allErrs, wrapper.validateSriovNetworkDevicePlugin(
+	if in.Spec.SriovDevicePlugin != nil {
+		allErrs = append(allErrs, validateSriovDevicePluginSpec(in.Spec.SriovDevicePlugin,
 			field.NewPath("spec").Child("sriovNetworkDevicePlugin"))...)
 	}
 	// Validate DOCATelemetryService
