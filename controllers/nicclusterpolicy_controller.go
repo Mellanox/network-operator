@@ -112,6 +112,7 @@ type NicClusterPolicyReconciler struct {
 // +kubebuilder:rbac:groups=spectrumx.nvidia.com,resources=spectrumxrailpoolconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=sriovnetwork.openshift.io,resources=ovsnetworks;sriovnetworknodepolicies;sriovnetworkpoolconfigs,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=sriovnetwork.openshift.io,resources=sriovnetworknodestates,verbs=get;list;watch
+// +kubebuilder:rbac:groups=resource.k8s.io,resources=resourceclaims;resourceclaims/status;resourceslices,verbs=get;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

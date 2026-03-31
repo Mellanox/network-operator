@@ -164,6 +164,7 @@ sriov-network-operator:
     ovsCni: {{ .OVSCni.Repository }}/{{ .OVSCni.Image }}:{{ .OVSCni.Version }}
     rdmaCni: {{ .RDMACni.Repository }}/{{ .RDMACni.Image }}:{{ .RDMACni.Version }}
     sriovDevicePlugin: {{ .SriovDevicePlugin.Repository }}/{{ .SriovDevicePlugin.Image }}:{{ .SriovDevicePlugin.Version }}
+    sriovDraDriver: {{ .DraDriverSriov.Repository }}/{{ .DraDriverSriov.Image }}:{{ .DraDriverSriov.Version }}
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
     webhook: {{ .SriovNetworkOperatorWebhook.Repository }}/{{ .SriovNetworkOperatorWebhook.Image }}:{{ .SriovNetworkOperatorWebhook.Version }}
   # imagePullSecrest for SR-IOV Network Operator related images
