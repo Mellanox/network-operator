@@ -79,6 +79,12 @@ spec:
               value: {{ .Values.images.rdmaCni }}
             - name: SRIOV_DEVICE_PLUGIN_IMAGE
               value: {{ .Values.images.sriovDevicePlugin }}
+            - name: SRIOV_DRA_DRIVER_IMAGE
+              value: {{ .Values.images.sriovDraDriver | default "ghcr.io/k8snetworkplumbingwg/dra-driver-sriov:latest" }}
+            - name: DRA_DRIVER_CDI_ROOT
+              value: {{ .Values.draDriver.cdiRoot | default "/var/run/cdi" }}
+            - name: DRA_DRIVER_DEFAULT_INTERFACE_PREFIX
+              value: {{ .Values.draDriver.defaultInterfacePrefix | default "net" }}
             - name: NETWORK_RESOURCES_INJECTOR_IMAGE
               value: {{ .Values.images.resourcesInjector }}
             - name: OPERATOR_NAME

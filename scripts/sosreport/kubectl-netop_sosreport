@@ -411,7 +411,7 @@ collect_crd_definitions() {
     local crd_dir="$OUTPUT_DIR/crds/definitions"
 
     # [GENERATED-CRDS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-03-24T16:00:04Z
+    # Generated at: 2026-04-02T12:05:13Z
     # All CRDs we want to collect
     local all_crds=(
         # Main Network Operator CRDs
@@ -419,6 +419,7 @@ collect_crd_definitions() {
         "ipoibnetworks.mellanox.com"
         "macvlannetworks.mellanox.com"
         "nicclusterpolicies.mellanox.com"
+        "nicnodepolicies.mellanox.com"
         # NV-IPAM CRDs
         "cidrpools.nv-ipam.nvidia.com"
         "ippools.nv-ipam.nvidia.com"
@@ -692,7 +693,7 @@ collect_all_components() {
     log_info "Collecting all component workloads..."
 
     # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-03-24T16:00:04Z
+    # Generated at: 2026-04-02T12:05:13Z
     # Component definitions: name, label, type
     declare -A components=(
         # Main Network Operator components
@@ -701,14 +702,14 @@ collect_all_components() {
         ["ib-kubernetes"]="name=ib-kubernetes|deployment"
         ["kube-ipoib-cni-ds"]="name=ipoib-cni|daemonset"
         ["kube-multus-ds"]="name=multus|daemonset"
-        ["network-operator-sriov-device-plugin"]="name=network-operator-sriov-device-plugin|daemonset"
+        ["network-operator-sriov-device-plugin{{"]="template=|daemonset"
         ["nic-configuration-daemon"]="app.kubernetes.io/name=nic-configuration-daemon|daemonset"
         ["nic-configuration-operator"]="app.kubernetes.io/component=nic-configuration-operator|deployment"
         ["nic-feature-discovery-ds"]="name=nic-feature-discovery|daemonset"
         ["nv-ipam-controller"]="name=nv-ipam-controller|deployment"
         ["nv-ipam-node"]="name=nv-ipam-node|daemonset"
         ["ofed-driver"]="nvidia.com/ofed-driver=|daemonset"
-        ["rdma-shared-dp-ds"]="app=rdma-shared-dp|daemonset"
+        ["rdma-shared-dp-ds{{"]="template=|daemonset"
         ["spectrum-x-flowcontroller"]="control-plane=spectrum-x-flowcontroller|daemonset"
         # Node Feature Discovery (sub-chart)
         ["nfd-master"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=master|deployment"
