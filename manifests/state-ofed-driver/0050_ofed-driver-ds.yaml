@@ -78,6 +78,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          volumeMounts:
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
       {{- end }}
       containers:
         - image: {{ .RuntimeSpec.MOFEDImageName }}
@@ -247,6 +254,14 @@ spec:
           hostPath:
             path: /etc/modprobe.d/ib_core.conf
             type: FileOrCreate
+        - name: host-proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: host-sys
+          hostPath:
+            path: /sys
+            type: Directory
         {{- range .AdditionalVolumeMounts.Volumes }}
         - name: {{ .Name }}
           {{- if and .ConfigMap .ConfigMap.Items }}

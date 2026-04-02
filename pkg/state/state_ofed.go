@@ -244,6 +244,9 @@ type initContainerConfig struct {
 	InitContainerImageName string
 	SafeLoadEnable         bool
 	SafeLoadAnnotation     string
+	ModuleDepCheckEnable   bool
+	ModuleDepCheckModules  string
+	UnloadThirdPartyRDMA   bool
 }
 
 type ofedRuntimeSpec struct {
@@ -741,15 +744,38 @@ func getProviders(catalog InfoCatalog) (nodeinfo.Provider, clustertype.Provider,
 func (s *stateOFED) getInitContainerConfig(
 	cr mellanoxv1alpha1.NicPolicyCR, reqLogger logr.Logger, image string) initContainerConfig {
 	var initContCfg initContainerConfig
-	safeLoadEnable := cr.GetOFEDDriverSpec().OfedUpgradePolicy != nil &&
-		cr.GetOFEDDriverSpec().OfedUpgradePolicy.AutoUpgrade &&
-		cr.GetOFEDDriverSpec().OfedUpgradePolicy.SafeLoad
+
+	ofedDriverSpec := cr.GetOFEDDriverSpec()
+
+	safeLoadEnable := ofedDriverSpec.OfedUpgradePolicy != nil &&
+		ofedDriverSpec.OfedUpgradePolicy.AutoUpgrade &&
+		ofedDriverSpec.OfedUpgradePolicy.SafeLoad
+
+	// Extract UNLOAD_THIRD_PARTY_RDMA_MODULES from driver container env vars
+	unloadThirdPartyRDMA := false
+	if ofedDriverSpec.Env != nil {
+		for _, env := range ofedDriverSpec.Env {
+			if env.Name != "UNLOAD_THIRD_PARTY_RDMA_MODULES" {
+				continue
+			}
+			if env.Value == "true" {
+				unloadThirdPartyRDMA = true
+			}
+			break
+		}
+	}
+
 	if image != "" {
 		initContCfg = initContainerConfig{
 			InitContainerEnable:    true,
 			InitContainerImageName: image,
 			SafeLoadEnable:         safeLoadEnable,
 			SafeLoadAnnotation:     upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
+			ModuleDepCheckEnable:   true,
+			ModuleDepCheckModules: `"mlx5_core", "mlx5_ib", "ib_umad",` +
+				` "ib_uverbs", "ib_ipoib", "rdma_cm",` +
+				` "rdma_ucm", "ib_core", "ib_cm"`,
+			UnloadThirdPartyRDMA: unloadThirdPartyRDMA,
 		}
 	}
 
