@@ -1,0 +1,75 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: deviceattributes.sriovnetwork.k8snetworkplumbingwg.io
+spec:
+  group: sriovnetwork.k8snetworkplumbingwg.io
+  names:
+    kind: DeviceAttributes
+    listKind: DeviceAttributesList
+    plural: deviceattributes
+    singular: deviceattributes
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          DeviceAttributes defines a set of arbitrary attributes that can be applied
+          to devices selected by a SriovResourcePolicy. Policies reference
+          DeviceAttributes objects via label selectors.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DeviceAttributesSpec holds the attributes to apply to devices.
+            properties:
+              attributes:
+                additionalProperties:
+                  description: DeviceAttribute must have exactly one field set.
+                  properties:
+                    bool:
+                      description: BoolValue is a true/false value.
+                      type: boolean
+                    int:
+                      description: IntValue is a number.
+                      format: int64
+                      type: integer
+                    string:
+                      description: StringValue is a string. Must not be longer than
+                        64 characters.
+                      type: string
+                    version:
+                      description: |-
+                        VersionValue is a semantic version according to semver.org spec 2.0.0.
+                        Must not be longer than 64 characters.
+                      type: string
+                  type: object
+                description: |-
+                  Attributes is a map of qualified attribute name to value.
+                  Keys should be fully qualified (e.g. "k8s.cni.cncf.io/resourceName").
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
