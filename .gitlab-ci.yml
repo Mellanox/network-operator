@@ -27,11 +27,9 @@ trigger-jenkins-nspect-on-tag:
         -H "Authorization: Bearer $GITHUB_TOKEN" \
         "https://api.github.com/repos/Mellanox/network-operator/actions/runs?head_sha=$CI_COMMIT_SHA" \
           | jq \
-            -r \
+            -re \
             --arg GH_WORKFLOW_NAME "$gh_workflow_name" \
-            '.workflow_runs[] | select(.name == $GH_WORKFLOW_NAME) | .status' \
-          | head -n 1 \
-          | grep "completed";
+            'first(.workflow_runs[] | select(.name == $GH_WORKFLOW_NAME) | .status == "completed")';
       do
         retry_counter=$((retry_counter + 1))
         echo "  attempt $retry_counter "
