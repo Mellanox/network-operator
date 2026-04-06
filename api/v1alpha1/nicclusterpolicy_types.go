@@ -380,6 +380,8 @@ type NicConfigurationOperatorSpec struct {
 type SpectrumXOperatorSpec struct {
 	// Image information for NVIDIA Spectrum-X Operator
 	ImageSpec `json:""`
+	// +optional
+	XPlane ImageSpec `json:"xPlane,omitempty"`
 }
 
 // NicClusterPolicySpec defines the desired state of NicClusterPolicy
