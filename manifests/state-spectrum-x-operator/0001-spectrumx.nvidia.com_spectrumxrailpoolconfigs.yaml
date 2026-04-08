@@ -67,7 +67,7 @@ spec:
                 type: object
               numVfs:
                 description: Number of VFs for each PF
-                minimum: 0
+                minimum: 1
                 type: integer
               railTopology:
                 description: Rails topology list

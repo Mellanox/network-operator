@@ -133,6 +133,7 @@ func (r *textTemplateRenderer) renderFile(filePath string, data *TemplatingData)
 		"nindent":       nindent,
 		"nindentPrefix": nindentPrefix,
 		"hasPrefix":     strings.HasPrefix,
+		"join":          strings.Join,
 		"imagePath":     imagePath,
 	})
 

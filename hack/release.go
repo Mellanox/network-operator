@@ -86,6 +86,7 @@ type Release struct {
 	NicConfigurationConfigDaemon *ReleaseImageSpec
 	MaintenanceOperator          *ReleaseImageSpec
 	SpectrumXOperator            *ReleaseImageSpec
+	XPlaneService                *ReleaseImageSpec
 	DraDriverSriov               *ReleaseImageSpec
 }
 
@@ -152,6 +153,7 @@ func readEnvironmentVariables(release *Release) {
 	initWithEnvVariale("NIC_CONFIGURATION_CONFIG_DAEMON", release.NicConfigurationConfigDaemon)
 	initWithEnvVariale("MAINTENANCE_OPERATOR", release.MaintenanceOperator)
 	initWithEnvVariale("SPECTRUM_X_OPERATOR", release.SpectrumXOperator)
+	initWithEnvVariale("XPLANE_SERVICE", release.XPlaneService)
 	initWithEnvVariale("DRA_DRIVER_SRIOV", release.DraDriverSriov)
 }
 
