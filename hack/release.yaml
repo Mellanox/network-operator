@@ -185,7 +185,6 @@ xPlaneService:
   image: xplane
   repository: nvcr.io/nvstaging/doca
   version: 3.4.0005
-  nSpectScope: general
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
