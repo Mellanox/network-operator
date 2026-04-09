@@ -411,7 +411,7 @@ collect_crd_definitions() {
     local crd_dir="$OUTPUT_DIR/crds/definitions"
 
     # [GENERATED-CRDS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-04-02T12:05:13Z
+    # Generated at: 2026-04-09T13:00:22Z
     # All CRDs we want to collect
     local all_crds=(
         # Main Network Operator CRDs
@@ -693,7 +693,7 @@ collect_all_components() {
     log_info "Collecting all component workloads..."
 
     # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-04-02T12:05:13Z
+    # Generated at: 2026-04-09T13:00:22Z
     # Component definitions: name, label, type
     declare -A components=(
         # Main Network Operator components
