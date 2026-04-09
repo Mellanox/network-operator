@@ -72,7 +72,6 @@ type IBKubernetesManifestRenderData struct {
 	NodeAffinity                *v1.NodeAffinity
 	DeploymentNodeAffinity      *v1.NodeAffinity
 	DeploymentTolerations       []v1.Toleration
-	DeployInitContainer         bool
 	RuntimeSpec                 *IBKubernetesSpec
 }
 
@@ -162,7 +161,6 @@ func (s *stateIBKubernetes) GetManifestObjects(
 		NodeAffinity:                cr.Spec.NodeAffinity,
 		DeploymentNodeAffinity:      cr.Spec.DeploymentNodeAffinity,
 		DeploymentTolerations:       cr.Spec.DeploymentTolerations,
-		DeployInitContainer:         cr.Spec.OFEDDriver != nil,
 		RuntimeSpec: &IBKubernetesSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),

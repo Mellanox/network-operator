@@ -66,14 +66,13 @@ type stateRDMASharedDevicePluginSpec struct {
 	ContainerResources ContainerResourcesMap
 }
 type stateRDMASharedDevicePluginManifestRenderData struct {
-	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
-	Tolerations         []v1.Toleration
-	NodeAffinity        *v1.NodeAffinity
-	NodeSelector        map[string]string
-	DSOwner             string
-	NameSuffix          string
-	DeployInitContainer bool
-	RuntimeSpec         *stateRDMASharedDevicePluginSpec
+	CrSpec       *mellanoxv1alpha1.DevicePluginSpec
+	Tolerations  []v1.Toleration
+	NodeAffinity *v1.NodeAffinity
+	NodeSelector map[string]string
+	DSOwner      string
+	NameSuffix   string
+	RuntimeSpec  *stateRDMASharedDevicePluginSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -162,13 +161,12 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	}
 
 	renderData := &stateRDMASharedDevicePluginManifestRenderData{
-		CrSpec:              cr.GetRdmaSharedDevicePluginSpec(),
-		Tolerations:         cr.GetTolerations(),
-		NodeAffinity:        cr.GetNodeAffinity(),
-		NodeSelector:        cr.GetNodeSelector(),
-		DSOwner:             dsOwnerValue(cr),
-		NameSuffix:          nameSuffix(cr),
-		DeployInitContainer: cr.GetOFEDDriverSpec() != nil,
+		CrSpec:       cr.GetRdmaSharedDevicePluginSpec(),
+		Tolerations:  cr.GetTolerations(),
+		NodeAffinity: cr.GetNodeAffinity(),
+		NodeSelector: cr.GetNodeSelector(),
+		DSOwner:      dsOwnerValue(cr),
+		NameSuffix:   nameSuffix(cr),
 		RuntimeSpec: &stateRDMASharedDevicePluginSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
