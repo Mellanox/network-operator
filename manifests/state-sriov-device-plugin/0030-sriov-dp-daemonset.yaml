@@ -59,14 +59,6 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
-{{- if .DeployInitContainer}}
-      initContainers:
-        - name: ofed-driver-validation
-          image: {{ imagePath .CrSpec.ImageSpec.Repository .CrSpec.ImageSpec.Image .CrSpec.ImageSpec.Version }}
-          imagePullPolicy: IfNotPresent
-          command: ['sh', '-c']
-          args: ["until lsmod | grep mlx5_core; do echo waiting for OFED drivers to be loaded; sleep 30; done"]
-{{- end}}
       containers:
         - name: kube-sriovdp
           image: {{ imagePath .CrSpec.ImageSpec.Repository .CrSpec.ImageSpec.Image .CrSpec.ImageSpec.Version }}

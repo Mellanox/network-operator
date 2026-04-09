@@ -68,14 +68,13 @@ type sriovDpRuntimeSpec struct {
 }
 
 type sriovDpManifestRenderData struct {
-	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
-	Tolerations         []v1.Toleration
-	NodeAffinity        *v1.NodeAffinity
-	NodeSelector        map[string]string
-	DSOwner             string
-	NameSuffix          string
-	DeployInitContainer bool
-	RuntimeSpec         *sriovDpRuntimeSpec
+	CrSpec       *mellanoxv1alpha1.DevicePluginSpec
+	Tolerations  []v1.Toleration
+	NodeAffinity *v1.NodeAffinity
+	NodeSelector map[string]string
+	DSOwner      string
+	NameSuffix   string
+	RuntimeSpec  *sriovDpRuntimeSpec
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -164,13 +163,12 @@ func (s *stateSriovDp) GetManifestObjects(
 	}
 
 	renderData := &sriovDpManifestRenderData{
-		CrSpec:              cr.GetSriovDevicePluginSpec(),
-		Tolerations:         cr.GetTolerations(),
-		NodeAffinity:        cr.GetNodeAffinity(),
-		NodeSelector:        cr.GetNodeSelector(),
-		DSOwner:             dsOwnerValue(cr),
-		NameSuffix:          nameSuffix(cr),
-		DeployInitContainer: cr.GetOFEDDriverSpec() != nil,
+		CrSpec:       cr.GetSriovDevicePluginSpec(),
+		Tolerations:  cr.GetTolerations(),
+		NodeAffinity: cr.GetNodeAffinity(),
+		NodeSelector: cr.GetNodeSelector(),
+		DSOwner:      dsOwnerValue(cr),
+		NameSuffix:   nameSuffix(cr),
 		RuntimeSpec: &sriovDpRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
