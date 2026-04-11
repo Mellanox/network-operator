@@ -30,7 +30,7 @@
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-foo (testing PR CI!)...
+foobar (testing PR CI!)...
 
 # NVIDIA Network Operator
 NVIDIA Network Operator leverages [Kubernetes CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
