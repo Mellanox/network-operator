@@ -167,7 +167,7 @@ spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.4.0-beta.3
+  version: 42b8011
   nSpectScope: general
 spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
