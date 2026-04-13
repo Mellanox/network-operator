@@ -73,4 +73,4 @@ spec:
     multus:
       image: multus-cni
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.4.0-beta.3
+      version: 32f6a2a1
