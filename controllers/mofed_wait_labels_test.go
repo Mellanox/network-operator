@@ -74,7 +74,7 @@ var _ = Describe("NicNodePolicy mofed.wait label management", func() {
 			defer func() { _ = k8sClient.Delete(ctx, nnp) }()
 
 			By("Simulating a ready OFED pod owned by this NNP")
-			dsOwner := mellanoxv1alpha1.NicNodePolicyCRDName + "-" + nnp.Name
+			dsOwner := mellanoxv1alpha1.NicNodePolicyShortName + "-" + nnp.Name
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mofed-wait-test-pod",

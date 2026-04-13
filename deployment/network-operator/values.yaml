@@ -281,7 +281,7 @@ operator:
     # enable upgrade controller requestor
     useRequestor: false
     # upgrade controller requestor ID to be used in nodeMaintenance objects
-    requestorID: "nvidia.network-operator-driver-upgrade-controller"
+    requestorID: "nvidia.doca-driver-upgrade"
     # nodeMaintenance name prefix to be used by upgrade-controller (default is "")
     nodeMaintenanceNamePrefix: "network-operator"
     # enable drain controller requestor

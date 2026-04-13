@@ -56,7 +56,7 @@ type UpgradeReconciler struct {
 	MigrationCh  chan struct{}
 
 	// NodePolicyStateManagers holds per-NicNodePolicy upgrade state managers.
-	// Keyed by "NicNodePolicy-<name>".
+	// Keyed by "nnp-<name>".
 	NodePolicyStateManagers map[string]upgrade.ClusterUpgradeStateManager
 
 	// newStateManagerFn creates a ClusterUpgradeStateManager for a given requestor ID.
@@ -65,6 +65,9 @@ type UpgradeReconciler struct {
 }
 
 const plannedRequeueInterval = time.Minute * 2
+
+// nicNodePolicyRequestorPrefix is the short prefix used in requestorIDs for NicNodePolicy upgrades.
+const nicNodePolicyRequestorPrefix = mellanoxv1alpha1.NicNodePolicyShortName
 
 // UpgradeStateAnnotation is kept for backwards cleanup TODO: drop in 2 releases
 const UpgradeStateAnnotation = "nvidia.com/ofed-upgrade-state"
@@ -177,7 +180,7 @@ func (r *UpgradeReconciler) reconcileNodePolicyUpgrades(ctx context.Context,
 
 	for i := range nodePolicyList.Items {
 		np := &nodePolicyList.Items[i]
-		policyKey := mellanoxv1alpha1.NicNodePolicyCRDName + "-" + np.Name
+		policyKey := nicNodePolicyRequestorPrefix + "-" + np.Name
 
 		if np.Spec.OFEDDriver == nil ||
 			np.Spec.OFEDDriver.OfedUpgradePolicy == nil ||
@@ -233,15 +236,15 @@ func (r *UpgradeReconciler) reconcileNodePolicyUpgrades(ctx context.Context,
 	}
 
 	// Clean up stale state managers for deleted policies
-	for key := range r.NodePolicyStateManagers {
-		if !activePolicyKeys[key] {
-			if err := r.cleanupNodePolicyUpgradeResources(ctx, key); err != nil {
+	for policyKey := range r.NodePolicyStateManagers {
+		if !activePolicyKeys[policyKey] {
+			if err := r.cleanupNodePolicyUpgradeResources(ctx, policyKey); err != nil {
 				reqLogger.V(consts.LogLevelError).Error(err,
-					"Failed to clean up upgrade resources for deleted policy", "policy", key)
+					"Failed to clean up upgrade resources for deleted policy", "policy", policyKey)
 				needsRequeue = true
 				continue // keep manager in map, retry next reconcile
 			}
-			delete(r.NodePolicyStateManagers, key)
+			delete(r.NodePolicyStateManagers, policyKey)
 		}
 	}
 
@@ -250,19 +253,18 @@ func (r *UpgradeReconciler) reconcileNodePolicyUpgrades(ctx context.Context,
 
 // getOrCreateNodePolicyStateManager creates a new ClusterUpgradeStateManager for a NicNodePolicy.
 func (r *UpgradeReconciler) getOrCreateNodePolicyStateManager(
-	policyKey string) (upgrade.ClusterUpgradeStateManager, error) {
+	requestorKey string) (upgrade.ClusterUpgradeStateManager, error) {
 	if r.newStateManagerFn != nil {
-		return r.newStateManagerFn(policyKey)
+		return r.newStateManagerFn(requestorKey)
 	}
-	return newNodePolicyStateManager(policyKey)
+	return newNodePolicyStateManager(requestorKey)
 }
 
 // newNodePolicyStateManager creates a ClusterUpgradeStateManager with a policy-specific requestor ID.
-func newNodePolicyStateManager(policyKey string) (upgrade.ClusterUpgradeStateManager, error) {
-	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade").WithName(policyKey)
+func newNodePolicyStateManager(requestorKey string) (upgrade.ClusterUpgradeStateManager, error) {
+	upgradeLogger := ctrl.Log.WithName("controllers").WithName("Upgrade").WithName(requestorKey)
 	requestorOpts := upgrade.GetRequestorOptsFromEnvs()
-	// Create a policy-specific requestor ID
-	requestorOpts.MaintenanceOPRequestorID = requestorOpts.MaintenanceOPRequestorID + "-" + policyKey
+	requestorOpts.MaintenanceOPRequestorID = requestorOpts.MaintenanceOPRequestorID + "-" + requestorKey
 	return upgrade.NewClusterUpgradeStateManager(
 		upgradeLogger,
 		ctrl.GetConfigOrDie(),
@@ -429,6 +431,7 @@ func (r *UpgradeReconciler) cleanupNodeMaintenanceObjects(ctx context.Context) e
 
 // cleanupNodePolicyUpgradeResources cleans up upgrade state labels and NodeMaintenance objects
 // for a specific NicNodePolicy that has been deleted or had its upgrade policy disabled.
+// policyKey is "nnp-<name>", used for both ds-owner label matching and requestorID matching.
 func (r *UpgradeReconciler) cleanupNodePolicyUpgradeResources(ctx context.Context, policyKey string) error {
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info("Cleaning up upgrade resources for NicNodePolicy", "policy", policyKey)
