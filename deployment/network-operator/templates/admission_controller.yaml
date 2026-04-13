@@ -114,6 +114,29 @@ webhooks:
     resources:
     - nicclusterpolicies
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ .Release.Name }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-mellanox-com-v1alpha1-nicnodepolicy
+    {{- if not .Values.operator.admissionController.useCertManager }}
+    caBundle: {{ .Values.operator.admissionController.certificate.caCrt | b64enc | quote }}
+    {{- end }}
+  failurePolicy: Fail
+  name: vnicnodepolicy.kb.io
+  rules:
+  - apiGroups:
+    - mellanox.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - nicnodepolicies
+  sideEffects: None
 {{- end }}
 ---
 {{- if and .Values.operator.admissionController.enabled (not .Values.operator.admissionController.useCertManager) }}
