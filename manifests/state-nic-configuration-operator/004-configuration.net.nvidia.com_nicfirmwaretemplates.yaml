@@ -1,4 +1,4 @@
-# 2025 NVIDIA CORPORATION & AFFILIATES
+# 2026 NVIDIA CORPORATION & AFFILIATES
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: nicfirmwaretemplates.configuration.net.nvidia.com
 spec:
   group: configuration.net.nvidia.com
@@ -61,9 +61,15 @@ spec:
                     description: Type of the NIC to be selected, e.g. 101d,1015,a2d6
                       etc.
                     type: string
+                  partNumbers:
+                    description: Part numbers of the NICs to be selected, e.g. MCX713106AEHEA_QP1
+                    items:
+                      type: string
+                    type: array
                   pciAddresses:
                     description: Array of PCI addresses to be selected, e.g. "0000:03:00.0"
                     items:
+                      pattern: ^0000:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$
                       type: string
                     type: array
                   serialNumbers:
