@@ -98,6 +98,57 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 				}
 			}
 		})
+		It("Should Render fieldRef env vars", func() {
+			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ibKubernetesState := stateIBKubernetes{
+				stateSkel: stateSkel{
+					renderer: renderer,
+				},
+			}
+
+			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
+			ibKubernetesSpec.Image = "image"
+			ibKubernetesSpec.Repository = "repository"
+			ibKubernetesSpec.ImagePullSecrets = []string{}
+			ibKubernetesSpec.Version = "version"
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			cr.Spec.IBKubernetes = ibKubernetesSpec
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+
+			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(objs)).To(Equal(4))
+
+			deploySpec := objs[3].Object["spec"].(map[string]interface{})
+			podSpec := deploySpec["template"].(map[string]interface{})["spec"].(map[string]interface{})
+			containers := podSpec["containers"].([]interface{})
+			env := containers[0].(map[string]interface{})["env"].([]interface{})
+
+			expectedFieldRefs := map[string]string{
+				"K8S_NODE":      "spec.nodeName",
+				"POD_NAMESPACE": "metadata.namespace",
+				"POD_UID":       "metadata.uid",
+			}
+
+			for _, envVar := range env {
+				envMap := envVar.(map[string]interface{})
+				name, _ := envMap["name"].(string)
+				if expectedPath, ok := expectedFieldRefs[name]; ok {
+					valueFrom := envMap["valueFrom"].(map[string]interface{})
+					fieldRef := valueFrom["fieldRef"].(map[string]interface{})
+					Expect(fieldRef["fieldPath"]).To(Equal(expectedPath), "fieldPath for %s", name)
+					delete(expectedFieldRefs, name)
+				}
+			}
+			Expect(expectedFieldRefs).To(BeEmpty(), "missing fieldRef env vars: %v", expectedFieldRefs)
+		})
 		It("Should Render ContainerResources", func() {
 			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 

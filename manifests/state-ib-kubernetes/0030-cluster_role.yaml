@@ -21,4 +21,11 @@ rules:
     verbs: ["get", "list", "patch", "watch"]
   - apiGroups: ["k8s.cni.cncf.io"]
     resources: ["network-attachment-definitions"]
-    verbs: ["get"]
+    verbs: ["get", "list", "watch"]
+  # Leader election permissions
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "create", "update", "patch", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]

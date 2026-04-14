@@ -18,7 +18,7 @@ metadata:
   namespace: {{ .RuntimeSpec.Namespace }}
   annotations:
     kubernetes.io/description: |
-      This deployment launches the ib-kubernetes daemon for ib-sriov-cni.
+      This deployment launches the ib-kubernetes daemon for Infiniband CNI.
 spec:
   progressDeadlineSeconds: 600
   strategy:
@@ -113,6 +113,18 @@ spec:
               memory: 300Mi
           {{- end }}
           env:
+            - name: K8S_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: DAEMON_SM_PLUGIN
               value: "ufm"
             - name: DAEMON_PERIODIC_UPDATE
