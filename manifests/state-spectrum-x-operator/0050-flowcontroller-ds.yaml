@@ -52,7 +52,7 @@ spec:
             - name: XPLANE_VERSION
               value: {{ .CrSpec.XPlane.Version }}
             - name: IMAGE_PULL_SECRETS
-              value: {{ join "," .CrSpec.XPlane.ImagePullSecrets }}
+              value: {{ join .CrSpec.XPlane.ImagePullSecrets "," }}
             {{- end }}
             - name: POD_NAMESPACE
               valueFrom:
