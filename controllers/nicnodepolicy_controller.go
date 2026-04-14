@@ -132,7 +132,7 @@ func (r *NicNodePolicyReconciler) handleMOFEDWaitLabels(
 	if instance.Spec.OFEDDriver == nil {
 		return nil
 	}
-	dsOwner := mellanoxv1alpha1.NicNodePolicyCRDName + "-" + instance.Name
+	dsOwner := mellanoxv1alpha1.NicNodePolicyShortName + "-" + instance.Name
 	return handleOFEDWaitLabelsForPods(ctx, r.Client, map[string]string{
 		consts.OfedDriverLabel: "",
 		consts.DSOwnerLabel:    dsOwner,
@@ -143,7 +143,7 @@ func (r *NicNodePolicyReconciler) handleMOFEDWaitLabels(
 // If OFED pods owned by this NNP are still terminating, sets mofed.wait=true and requeues.
 func (r *NicNodePolicyReconciler) handleDeletion(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := log.FromContext(ctx)
-	dsOwner := mellanoxv1alpha1.NicNodePolicyCRDName + "-" + req.Name
+	dsOwner := mellanoxv1alpha1.NicNodePolicyShortName + "-" + req.Name
 
 	pods := &corev1.PodList{}
 	if err := r.Client.List(ctx, pods, client.MatchingLabels{

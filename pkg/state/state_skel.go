@@ -72,12 +72,13 @@ func (s *stateSkel) Description() string {
 
 // dsOwnerValue returns the ds-owner label value for the given CR.
 // For NicClusterPolicy, it returns just the CRD name (preserving backwards compatibility).
-// For other CR types (e.g. NicNodePolicy), it includes the CR name to allow multiple instances.
+// For NicNodePolicy, it returns "nnp-<name>" to allow multiple instances while keeping
+// the label value short enough to fit within Kubernetes limits.
 func dsOwnerValue(cr mellanoxv1alpha1.NicPolicyCR) string {
 	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
 		return cr.GetCRDName()
 	}
-	return cr.GetCRDName() + "-" + cr.GetName()
+	return mellanoxv1alpha1.NicNodePolicyShortName + "-" + cr.GetName()
 }
 
 // nameSuffix returns the resource name suffix for the given CR.

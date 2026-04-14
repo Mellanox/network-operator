@@ -24,6 +24,9 @@ import (
 const (
 	// NicNodePolicyCRDName is used for the CRD Kind.
 	NicNodePolicyCRDName = "NicNodePolicy"
+	// NicNodePolicyShortName is the abbreviated form used in labels and requestorIDs
+	// to keep values within Kubernetes length limits.
+	NicNodePolicyShortName = "nnp"
 )
 
 // NicNodePolicySpec defines the desired state of NIC drivers and device plugin
