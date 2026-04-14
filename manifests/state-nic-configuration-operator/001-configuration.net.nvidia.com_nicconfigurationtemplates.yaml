@@ -68,7 +68,7 @@ spec:
                   pciAddresses:
                     description: Array of PCI addresses to be selected, e.g. "0000:03:00.0"
                     items:
-                      pattern: ^0000:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$
+                      pattern: ^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$
                       type: string
                     type: array
                   serialNumbers:
