@@ -247,6 +247,7 @@ type initContainerConfig struct {
 	ModuleDepCheckEnable   bool
 	ModuleDepCheckModules  string
 	UnloadThirdPartyRDMA   bool
+	UnloadStorageModules   bool
 }
 
 type ofedRuntimeSpec struct {
@@ -751,17 +752,17 @@ func (s *stateOFED) getInitContainerConfig(
 		ofedDriverSpec.OfedUpgradePolicy.AutoUpgrade &&
 		ofedDriverSpec.OfedUpgradePolicy.SafeLoad
 
-	// Extract UNLOAD_THIRD_PARTY_RDMA_MODULES from driver container env vars
+	// Extract module unload flags from driver container env vars
 	unloadThirdPartyRDMA := false
+	unloadStorageModules := false
 	if ofedDriverSpec.Env != nil {
 		for _, env := range ofedDriverSpec.Env {
-			if env.Name != "UNLOAD_THIRD_PARTY_RDMA_MODULES" {
-				continue
+			switch env.Name {
+			case "UNLOAD_THIRD_PARTY_RDMA_MODULES":
+				unloadThirdPartyRDMA = env.Value == "true"
+			case "UNLOAD_STORAGE_MODULES":
+				unloadStorageModules = env.Value == "true"
 			}
-			if env.Value == "true" {
-				unloadThirdPartyRDMA = true
-			}
-			break
 		}
 	}
 
@@ -776,6 +777,7 @@ func (s *stateOFED) getInitContainerConfig(
 				` "ib_uverbs", "ib_ipoib", "rdma_cm",` +
 				` "rdma_ucm", "ib_core", "ib_cm"`,
 			UnloadThirdPartyRDMA: unloadThirdPartyRDMA,
+			UnloadStorageModules: unloadStorageModules,
 		}
 	}
 

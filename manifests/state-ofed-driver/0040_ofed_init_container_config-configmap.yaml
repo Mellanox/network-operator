@@ -28,6 +28,7 @@ data:
         "enable": {{ .RuntimeSpec.InitContainerConfig.ModuleDepCheckEnable }},
         "modules": [{{ .RuntimeSpec.InitContainerConfig.ModuleDepCheckModules }}],
         "unloadThirdPartyRdma": {{ .RuntimeSpec.InitContainerConfig.UnloadThirdPartyRDMA }},
+        "unloadStorageModules": {{ .RuntimeSpec.InitContainerConfig.UnloadStorageModules }},
         "hostProcPath": "/host/proc",
         "hostSysPath": "/host/sys"
       }
