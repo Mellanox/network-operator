@@ -91,23 +91,6 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
-      initContainers:
-        - command:
-          - cp
-          - /railcni
-          - /hostcni/rail
-          image:  {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
-          name: copy-rail-cni
-          securityContext:
-            capabilities:
-              drop:
-              - ALL
-            privileged: true
-            runAsGroup: 0
-            runAsUser: 0
-          volumeMounts:
-          - mountPath: /hostcni
-            name: host-cni-bin
       volumes:
         - name: proc
           hostPath:

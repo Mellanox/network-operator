@@ -63,19 +63,9 @@ rules:
   resources:
   - spectrumxrailpoolconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - spectrumx.nvidia.com
-  resources:
-  - spectrumxrailpoolconfigs/finalizers
-  verbs:
-  - update
 - apiGroups:
   - spectrumx.nvidia.com
   resources:
