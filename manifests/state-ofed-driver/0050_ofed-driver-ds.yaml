@@ -127,6 +127,8 @@ spec:
               mountPath: /mnt/drivers-inventory
             - name: host-ib-core
               mountPath: /etc/modprobe.d/ib_core.conf
+            - name: dev-infiniband
+              mountPath: /dev/infiniband
             {{- if.AdditionalVolumeMounts.VolumeMounts }}
             {{- range .AdditionalVolumeMounts.VolumeMounts }}
             - name: {{ .Name }}
@@ -254,6 +256,10 @@ spec:
           hostPath:
             path: /etc/modprobe.d/ib_core.conf
             type: FileOrCreate
+        - name: dev-infiniband
+          hostPath:
+            path: /dev/infiniband
+            type: DirectoryOrCreate
         - name: host-proc
           hostPath:
             path: /proc
