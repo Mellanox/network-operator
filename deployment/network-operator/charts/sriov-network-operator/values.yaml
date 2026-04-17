@@ -134,7 +134,7 @@ images:
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
   metricsExporter: ghcr.io/k8snetworkplumbingwg/sriov-network-metrics-exporter
-  metricsExporterKubeRbacProxy: gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0
+  metricsExporterKubeRbacProxy: quay.io/brancz/kube-rbac-proxy:v0.15.0
 
 # DRA Driver configuration (used when dynamicResourceAllocation feature gate is enabled)
 draDriver:
