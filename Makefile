@@ -431,6 +431,7 @@ release-build:
 	yq '.[].version'  hack/release.yaml | grep 'latest' && exit 1 || true
 	cd hack && $(GO) run release.go --templateDir ./templates/crs/ --outputDir ../example/crs
 	cd hack && $(GO) run release.go --templateDir ./templates/values/ --outputDir ../deployment/network-operator/
+	cd hack && $(GO) run release.go --templateDir ./templates/config/manager --outputDir ../config/manager/
 
 .PHONY: check-doca-drivers
 check-doca-drivers: $(HACKTMPDIR)

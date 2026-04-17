@@ -2,4 +2,4 @@
   path: "/spec/template/spec/containers/0/env/-"
   value:
     name: OFED_INIT_CONTAINER_IMAGE
-    value: "{{ (imageAsSha .NetworkOperatorInitContainer) }}"
+    value: "{{ if .NetworkOperatorInitContainer.Shas }}{{ imageAsSha .NetworkOperatorInitContainer }}{{ else }}{{ .NetworkOperatorInitContainer.Repository }}/{{ .NetworkOperatorInitContainer.Image }}:{{ .NetworkOperatorInitContainer.Version }}{{ end }}"
