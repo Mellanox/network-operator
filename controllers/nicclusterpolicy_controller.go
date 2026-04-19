@@ -361,6 +361,27 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 		builder.WithPredicates(nodeEventPredicates), // Wrap predicates for WatchesOption
 	)
 
+	// Watch Node create events filtered to Mellanox NIC nodes so that:
+	// (a) cache population at startup fires a reconcile for each existing Mellanox NIC node, and
+	// (b) newly joining nodes that already carry the Mellanox NIC label trigger a reconcile.
+	// Nodes without the label at creation time (NFD not yet run) are covered by the update
+	// watch above via MlnxLabelChangedPredicate when NFD later adds the label.
+	// This ensures mofed.wait labels are initialized via handleMOFEDWaitLabelsNoConfig
+	// even when no NicClusterPolicy exists (e.g. only SRIOV operator is deployed).
+	bld = bld.Watches(
+		&corev1.Node{},
+		handler.Funcs{
+			CreateFunc: func(_ context.Context, _ event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+				q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+					Name: consts.NicClusterPolicyResourceName,
+				}})
+			},
+		},
+		builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
+			return obj.GetLabels()[nodeinfo.NodeLabelMlnxNIC] == "true"
+		})),
+	)
+
 	bld = watchStateSources(bld, mgr, setupLog, stateManager, &mellanoxv1alpha1.NicClusterPolicy{})
 
 	// Watch NicNodePolicy changes so we recalculate NNP-managed node exclusions for mofed.wait.

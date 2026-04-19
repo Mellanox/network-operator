@@ -227,6 +227,33 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+	Context("When no NicClusterPolicy exists", func() {
+		It("should set mofed.wait=false on Mellanox NIC nodes at startup without any NCP CR", func() {
+			By("Creating a node with a Mellanox NIC label but no mofed.wait label")
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "no-ncp-mlnx-node",
+					Labels: map[string]string{
+						nodeinfo.NodeLabelMlnxNIC: "true",
+					},
+					Annotations: make(map[string]string),
+				},
+			}
+			Expect(k8sClient.Create(context.TODO(), node)).To(Succeed())
+			defer func() { _ = k8sClient.Delete(context.TODO(), node) }()
+
+			By("Verifying mofed.wait=false is set without any NicClusterPolicy CR")
+			Eventually(func() string {
+				n := &corev1.Node{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: node.Name}, n)
+				if err != nil {
+					return ""
+				}
+				return n.Labels[nodeinfo.NodeLabelWaitOFED]
+			}, timeout*3, interval).Should(Equal("false"))
+		})
+	})
+
 	Context("When NicClusterPolicy CR is deleted", func() {
 		It("should set mofed.wait and nic-configuration.wait to false", func() {
 			By("Create Node")
