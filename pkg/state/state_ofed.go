@@ -244,10 +244,7 @@ type initContainerConfig struct {
 	InitContainerImageName string
 	SafeLoadEnable         bool
 	SafeLoadAnnotation     string
-	ModuleDepCheckEnable   bool
 	ModuleDepCheckModules  string
-	UnloadThirdPartyRDMA   bool
-	UnloadStorageModules   bool
 }
 
 type ofedRuntimeSpec struct {
@@ -752,32 +749,15 @@ func (s *stateOFED) getInitContainerConfig(
 		ofedDriverSpec.OfedUpgradePolicy.AutoUpgrade &&
 		ofedDriverSpec.OfedUpgradePolicy.SafeLoad
 
-	// Extract module unload flags from driver container env vars
-	unloadThirdPartyRDMA := false
-	unloadStorageModules := false
-	if ofedDriverSpec.Env != nil {
-		for _, env := range ofedDriverSpec.Env {
-			switch env.Name {
-			case "UNLOAD_THIRD_PARTY_RDMA_MODULES":
-				unloadThirdPartyRDMA = env.Value == "true"
-			case "UNLOAD_STORAGE_MODULES":
-				unloadStorageModules = env.Value == "true"
-			}
-		}
-	}
-
 	if image != "" {
 		initContCfg = initContainerConfig{
 			InitContainerEnable:    true,
 			InitContainerImageName: image,
 			SafeLoadEnable:         safeLoadEnable,
 			SafeLoadAnnotation:     upgrade.GetUpgradeDriverWaitForSafeLoadAnnotationKey(),
-			ModuleDepCheckEnable:   true,
 			ModuleDepCheckModules: `"mlx5_core", "mlx5_ib", "ib_umad",` +
 				` "ib_uverbs", "ib_ipoib", "rdma_cm",` +
 				` "rdma_ucm", "ib_core", "ib_cm"`,
-			UnloadThirdPartyRDMA: unloadThirdPartyRDMA,
-			UnloadStorageModules: unloadStorageModules,
 		}
 	}
 

@@ -25,6 +25,9 @@ In most deployments its expected to not require setting those.
 | RESTORE_DRIVER_ON_POD_TERMINATION |N|`"true"`| restore host drivers when container is gracefully stopped |
 | NVIDIA_NIC_DRIVERS_INVENTORY_PATH | N | `"/mnt/drivers-inventory"` | enable use of a persistent directory to store drivers' build artifacts to avoid recompilation between runs. Keep the default value or set to "" to disable. |
 | UNLOAD_THIRD_PARTY_RDMA_MODULES | N | `"false"` | When `true`, all known third-party RDMA kernel modules (from rdma-core: qedr, efa, siw, etc.) are blacklisted and unloaded before OFED driver reload. The init container will skip these modules in its dependency check when this flag is set. |
+| STORAGE_MODULES | N | `"ib_iser ib_isert ib_srp ib_srpt nvme_rdma nvmet_rdma rpcrdma xprtrdma"` | Space-separated list of storage-over-RDMA kernel modules to unload when `UNLOAD_STORAGE_MODULES="true"`. Override this only when the default list does not match your host's storage stack. |
+| THIRD_PARTY_RDMA_MODULES | N | `"qedr efa siw bnxt_re"` (extensible) | Space-separated list of third-party NIC vendor RDMA provider modules to unload when `UNLOAD_THIRD_PARTY_RDMA_MODULES="true"`. The default covers the common rdma-core consumers (`qedr`, `efa`, `siw`, `bnxt_re`). Override this only to add or remove vendor modules specific to your deployment. |
+| SKIP_PREFLIGHT_CHECKS | N | `"true"` | When `true` (default — applied by the init container binary when the env var is unset), the init container skips the module dependency check and succeeds immediately; pre-flight runs only on explicit opt-in. When `false`, the check runs and any finding causes the init container to exit non-zero, blocking pod init until the host is remediated. Opt in by adding `{name: SKIP_PREFLIGHT_CHECKS, value: "false"}` to `spec.ofedDriver.env`. |
 
 In addition, the user can specify essentially any environment variables to be exposed to the MOFED container such as
 the standard `"HTTP_PROXY"`, `"HTTPS_PROXY"`, `"NO_PROXY"`
@@ -45,7 +48,9 @@ The init container reads `/proc/modules` and `/sys/module/*/holders/` on the hos
 
 ### Behavior on failure
 
-If blocking dependencies are detected, the init container exits with a non-zero exit code and logs each blocking module and what it depends on. Because this is a Kubernetes init container, the main driver container will not start until the init container succeeds. This prevents the OFED driver reload from being attempted when it would fail and leave the node in a broken state.
+By default (`SKIP_PREFLIGHT_CHECKS="true"`) the init container does not run the module dependency check at all — init succeeds immediately and the main driver container proceeds with MOFED load. The Network Operator injects this default onto the init container in the rendered DaemonSet; users who want the check must explicitly opt in.
+
+When `SKIP_PREFLIGHT_CHECKS="false"`, the init container runs the check and exits with a non-zero exit code on any blocking dependency, logging each offending module along with what it depends on. Because this is a Kubernetes init container, the main driver container will not start until the init container succeeds. This prevents the OFED driver reload from being attempted when it would fail and leave the node in a broken state, at the cost of requiring the host to be clean before the pod can progress.
 
 ### Resolution
 
