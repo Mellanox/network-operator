@@ -16,7 +16,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: nicinterfacenametemplates.configuration.net.nvidia.com
 spec:
   group: configuration.net.nvidia.com
@@ -86,7 +86,8 @@ spec:
                 type: array
               rdmaDevicePrefix:
                 description: |-
-                  RdmaDevicePrefix specifies the prefix for the rdma device name
+                  RdmaDevicePrefix specifies the prefix for the rdma device name.
+                  When empty, no RDMA udev rules are generated and RDMA device naming is skipped.
                   %nic_id%, %plane_id% and %rail_id% placeholders can be used to construct the device name
                   %nic_id% is the index of the NIC in the flattened list of NICs
                   %plane_id% is the index of the plane of the specific NIC
@@ -96,7 +97,6 @@ spec:
             - netDevicePrefix
             - pfsPerNic
             - railPciAddresses
-            - rdmaDevicePrefix
             type: object
           status:
             description: NicInterfaceNameTemplateStatus defines the observed state
