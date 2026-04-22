@@ -78,6 +78,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            {{- if .CrSpec.Env }}
+            {{- range .CrSpec.Env }}
+            {{ . | yaml | nindentPrefix 14 "- " }}
+            {{- end }}
+            {{- end }}
           volumeMounts:
             - name: host-proc
               mountPath: /host/proc
