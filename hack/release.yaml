@@ -135,25 +135,25 @@ nicConfigurationOperatorStigFipsUbuntu:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.4.0-beta.5-stig-fips-ubuntu
+  version: 8bd5856-ubuntu
   nSpectScope: fedramp
 nicConfigurationConfigDaemonStigFipsUbuntu:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.4.0-beta.5-stig-fips-ubuntu
+  version: 8bd5856-ubuntu
   nSpectScope: fedramp
 nicConfigurationOperatorStigFipsRhel:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.4.0-beta.5-stig-fips-rhel
+  version: 8bd5856-rhel
   nSpectScope: fedramp
 nicConfigurationConfigDaemonStigFipsRhel:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.4.0-beta.5-stig-fips-rhel
+  version: 8bd5856-rhel
   nSpectScope: fedramp
 maintenanceOperator:
   image: maintenance-operator
