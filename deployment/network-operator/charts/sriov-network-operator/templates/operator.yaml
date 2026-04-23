@@ -56,14 +56,6 @@ spec:
             requests:
               cpu: 100m
               memory: 100Mi
-          securityContext:
-            capabilities:
-              drop:
-                - ALL
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
-            seccompProfile:
-              type: RuntimeDefault
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
