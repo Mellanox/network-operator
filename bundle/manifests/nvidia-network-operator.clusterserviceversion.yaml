@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:877a9679dfedf9a3555994f0eda8c3737c8941c234da81fdc701a5043abee312
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:2b09e00adbbe11183535fa7c246ca95ffc3dea8f4e423a07667eb04a47dc09f9
     alm-examples: |-
       [
         {
@@ -83,13 +83,13 @@ metadata:
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvstaging/mellanox",
-              "version": "sha256:b668d0b4665b974d2d5dbd718a0c3cbdb64a384043f0956f5cee436974623c56"
+              "version": "sha256:9b77d9044003d1562e06928d995ffd43f023dcf1926951d62760d42ea28bfcac"
             }
           }
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-04-17T21:23:25Z"
+    createdAt: "2026-04-23T05:31:03Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -110,7 +110,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v26.4.0-beta.4
+  name: nvidia-network-operator.v26.4.0-beta.5
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -571,8 +571,8 @@ spec:
                 - name: USE_DTK
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
-                  value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:a1ad93ba895b99da23cc02427dda4a13f431313d483de99161c475f56d254acc
-                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:877a9679dfedf9a3555994f0eda8c3737c8941c234da81fdc701a5043abee312
+                  value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:e74611fcfccdbb1bb4bf958bb9f8c9374410f51bab74d2ef673c94e97537a367
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:2b09e00adbbe11183535fa7c246ca95ffc3dea8f4e423a07667eb04a47dc09f9
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -679,7 +679,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 26.4.0-beta.4
+  version: 26.4.0-beta.5
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -743,29 +743,29 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicnodepolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:877a9679dfedf9a3555994f0eda8c3737c8941c234da81fdc701a5043abee312
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:2b09e00adbbe11183535fa7c246ca95ffc3dea8f4e423a07667eb04a47dc09f9
     - name: nvidia-network-operator-init-container
-      image: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:a1ad93ba895b99da23cc02427dda4a13f431313d483de99161c475f56d254acc
+      image: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:e74611fcfccdbb1bb4bf958bb9f8c9374410f51bab74d2ef673c94e97537a367
     - name: rdma-shared-device-plugin
-      image: nvcr.io/nvstaging/mellanox/k8s-rdma-shared-dev-plugin@sha256:b668d0b4665b974d2d5dbd718a0c3cbdb64a384043f0956f5cee436974623c56
+      image: nvcr.io/nvstaging/mellanox/k8s-rdma-shared-dev-plugin@sha256:9b77d9044003d1562e06928d995ffd43f023dcf1926951d62760d42ea28bfcac
     - name: sriov-network-device-plugin
-      image: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin@sha256:112563e2fe2d0f2ff19e084debfa35d4acc72c5ecf344b1fd7f5b2d26be16193
+      image: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin@sha256:541af85314e6482278c349246012a7cd13e17770ad3e41b4f3c4727f9de11e8d
     - name: ib-kubernetes
-      image: nvcr.io/nvstaging/mellanox/ib-kubernetes@sha256:20cd6123220b5b1048f2d2438fd8e9f603c6bd110a92fca1d9a73da83dd11e52
+      image: nvcr.io/nvstaging/mellanox/ib-kubernetes@sha256:80126d31ad39342d82d94b6a7edd828c99acd93b7e84d832bc95a56c4f5e1f37
     - name: ipoib-cni
-      image: nvcr.io/nvstaging/mellanox/ipoib-cni@sha256:a7e97bbf4634f71e3276e215bbb46c670087c98d8ba88d8a0d371c1d1a7d4e32
+      image: nvcr.io/nvstaging/mellanox/ipoib-cni@sha256:b8a3a737c5966b820582c8751ce9cf1a73a737d94a5ad431ead46535feed4511
     - name: nv-ipam
-      image: nvcr.io/nvstaging/mellanox/nvidia-k8s-ipam@sha256:4f24f9709499f748589eb8e0946c80c59ce14b555eb88061023ce38f26bdd6db
+      image: nvcr.io/nvstaging/mellanox/nvidia-k8s-ipam@sha256:a43385bf27c18e912588627cb4e184530b6ca94a4232c8d30da579d31e03c27e
     - name: nic-feature-discovery
-      image: nvcr.io/nvstaging/mellanox/nic-feature-discovery@sha256:0b00534f85d7f4859096965a5bcacabe62c3222c642f6c06379b9d06e49c803b
+      image: nvcr.io/nvstaging/mellanox/nic-feature-discovery@sha256:583370edf4c061931fcab7d0162db5ebe686689c8538d63574843ad2064aea27
     - name: doca-telemetry-service
       image: nvcr.io/nvidia/doca/doca_telemetry@sha256:d561707f58be0470121c8dbe31b2576caffd92c6a6533a5ddaf37e3f6d1479d6
     - name: nic-configuration-operator
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:e4f44693d6c23f49feee4b845f6044452a7b431efc83acdf8eade7a9e5efa9b4
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:c56b762602a0dc3306eba30cf207ab981ec37ee0408f11b5b958cb48cf003733
     - name: nic-configuration-operator-daemon
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:c7a56ead30648a1bd9a87643b3060d066a014844010dee2143555b57d3d29e18
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:6f63fa21881c61d0d8161f19104d4329a53b0e54db4f49cac0a69e782f58bb8d
     - name: spectrum-x-operator
-      image: nvcr.io/nvstaging/mellanox/spectrum-x-operator@sha256:4de3f3e5bc4533af8609745ec0dd0bcdb9860cc8806931c24b57ec421bf6cf36
+      image: nvcr.io/nvstaging/mellanox/spectrum-x-operator@sha256:45749b5b389446c71957ab99f1e21b1462120d4343c5891af2011010822f6f07
     - name: doca-driver-0
       image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:ab15d903f4a8fe88ab66eba7953562f9d182f8587dcb978fbeb42eb2a3da00f7
     - name: doca-driver-1
