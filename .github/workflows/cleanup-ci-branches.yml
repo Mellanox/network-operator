@@ -1,0 +1,75 @@
+name: "Cleanup CI Branches"
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Delete merged or closed CI branches
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Delete stale ci/update- branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          echo "Fetching branches with prefix ci/update-..."
+          branches=$(gh api \
+            --paginate \
+            "repos/${REPO}/branches?per_page=100" \
+            --jq '.[].name' \
+            | grep '^ci/update-' || true)
+
+          if [[ -z "$branches" ]]; then
+            echo "No ci/update- branches found."
+            exit 0
+          fi
+
+          deleted=0
+          skipped=0
+
+          while IFS= read -r branch; do
+            echo "Checking branch: ${branch}"
+
+            # Find the most recent PR for this branch (head ref)
+            pr_state=$(gh api \
+              --paginate \
+              "repos/${REPO}/pulls?head=${REPO%/*}:${branch}&state=all&per_page=10" \
+              --arg branch_name "${branch}" \
+              --jq '[.[] | select(.head.ref == $branch_name)] | first | .state // empty' \
+              2>/dev/null || true)
+
+            if [[ -z "$pr_state" ]]; then
+              echo "  No PR found for branch '${branch}', skipping."
+              (( skipped++ )) || true
+              continue
+            fi
+
+            echo "  PR state: ${pr_state}"
+
+            if [[ "$pr_state" == "closed" ]]; then
+              echo "  Deleting branch '${branch}'..."
+              if gh api \
+                --method DELETE \
+                "repos/${REPO}/git/refs/heads/${branch}"; then
+                echo "  Deleted."
+                (( deleted++ )) || true
+              else
+                echo "  Failed to delete (may already be gone)."
+              fi
+            else
+              echo "  PR is still open, skipping."
+              (( skipped++ )) || true
+            fi
+          done <<< "$branches"
+
+          echo ""
+          echo "Done. Deleted: ${deleted}, Skipped: ${skipped}."
