@@ -27,104 +27,113 @@ spec:
     singular: spectrumxrailpoolconfig
   scope: Namespaced
   versions:
-  - name: v1alpha2
-    schema:
-      openAPIV3Schema:
-        description: SpectrumXRailPoolConfig is the Schema for the spectrumxrailpoolconfigs
-          API.
-        properties:
-          apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-            type: string
-          kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: SpectrumXRailPoolConfigSpec defines the desired state of
-              SpectrumXRailPoolConfig.
-            properties:
-              draEnabled:
-                default: true
-                type: boolean
-              networkNamespace:
-                description: Namespace of the NetworkAttachmentDefinition custom resource
-                type: string
-              nodeSelector:
-                additionalProperties:
+    - name: v1alpha2
+      schema:
+        openAPIV3Schema:
+          description: SpectrumXRailPoolConfig is the Schema for the spectrumxrailpoolconfigs
+            API.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: SpectrumXRailPoolConfigSpec defines the desired state of
+                SpectrumXRailPoolConfig.
+              properties:
+                draEnabled:
+                  default: true
+                  type: boolean
+                maxUnavailable:
+                  anyOf:
+                    - type: integer
+                    - type: string
+                  default: 1
+                  description: |-
+                    maxUnavailable defines either an integer number or percentage
+                    of nodes in the pool that can be configured in a parallel.
+                  x-kubernetes-int-or-string: true
+                networkNamespace:
+                  description: Namespace of the NetworkAttachmentDefinition custom resource
                   type: string
-                description: NodeSelector specifies a selector for Spectrum-X nodes
-                type: object
-              numVfs:
-                description: Number of VFs for each PF
-                minimum: 1
-                type: integer
-              railTopology:
-                description: Rails topology list
-                items:
-                  properties:
-                    cidrPoolRef:
-                      description: Reference to a CIDR Pool resource
-                      type: string
-                    ipam:
-                      description: Advanced IPAM configuration
-                      type: string
-                    mtu:
-                      description: MTU
-                      minimum: 0
-                      type: integer
-                    name:
-                      description: Rail topology name
-                      minLength: 1
-                      type: string
-                    nicSelector:
-                      description: PF selector
-                      properties:
-                        pfNames:
-                          description: PF selector
-                          items:
-                            type: string
-                          minItems: 1
-                          type: array
-                      required:
-                      - pfNames
-                      type: object
-                  required:
-                  - mtu
-                  - name
-                  - nicSelector
+                nodeSelector:
+                  additionalProperties:
+                    type: string
+                  description: NodeSelector specifies a selector for Spectrum-X nodes
                   type: object
-                  x-kubernetes-validations:
-                  - message: Only one of cidrPoolRef or ipam can be specified
-                    rule: '!has(self.cidrPoolRef) || !has(self.ipam)'
-                minItems: 1
-                type: array
-            required:
-            - numVfs
-            - railTopology
-            type: object
-          status:
-            description: SpectrumXRailPoolConfigStatus defines the observed state
-              of SpectrumXRailPoolConfig.
-            properties:
-              observedGeneration:
-                format: int64
-                type: integer
-              syncStatus:
-                type: string
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
+                numVfs:
+                  description: Number of VFs for each PF
+                  minimum: 1
+                  type: integer
+                railTopology:
+                  description: Rails topology list
+                  items:
+                    properties:
+                      cidrPoolRef:
+                        description: Reference to a CIDR Pool resource
+                        type: string
+                      ipam:
+                        description: Advanced IPAM configuration
+                        type: string
+                      mtu:
+                        description: MTU
+                        minimum: 0
+                        type: integer
+                      name:
+                        description: Rail topology name
+                        minLength: 1
+                        type: string
+                      nicSelector:
+                        description: PF selector
+                        properties:
+                          pfNames:
+                            description: PF selector
+                            items:
+                              type: string
+                            minItems: 1
+                            type: array
+                        required:
+                          - pfNames
+                        type: object
+                    required:
+                      - mtu
+                      - name
+                      - nicSelector
+                    type: object
+                    x-kubernetes-validations:
+                      - message: Only one of cidrPoolRef or ipam can be specified
+                        rule: '!has(self.cidrPoolRef) || !has(self.ipam)'
+                  minItems: 1
+                  type: array
+              required:
+                - numVfs
+                - railTopology
+              type: object
+            status:
+              description: SpectrumXRailPoolConfigStatus defines the observed state
+                of SpectrumXRailPoolConfig.
+              properties:
+                observedGeneration:
+                  format: int64
+                  type: integer
+                syncStatus:
+                  type: string
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
