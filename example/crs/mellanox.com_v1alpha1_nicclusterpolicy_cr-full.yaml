@@ -86,7 +86,7 @@ spec:
     ipoib:
       image: ipoib-cni
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.4.0-beta.6
+      version: b04422d
     multus:
       image: multus-cni
       repository: nvcr.io/nvstaging/mellanox
