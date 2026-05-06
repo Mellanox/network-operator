@@ -36,6 +36,7 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 		testNamespace = "ipoib"
 		testType      = "ipoib"
 		testMaster    = "eth0"
+		testMtu       = 1496
 	)
 
 	var (
@@ -80,6 +81,19 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
 			expectedNadConfig.IPAM = ipam
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
+		})
+		It("Should Render NetworkAttachmentDefinition with MTU", func() {
+			cr := getIPoIBNetwork(testName, testNamespace, testMaster)
+			cr.Spec.Mtu = testMtu
+			err := ts.client.Create(context.Background(), cr)
+			Expect(err).NotTo(HaveOccurred())
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig.IPAM = nadConfigIPAM{}
+			expectedNadConfig.MTU = testMtu
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
 		It("Should Render NetworkAttachmentDefinition with default namespace", func() {
