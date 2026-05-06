@@ -108,10 +108,26 @@ spec:
                         required:
                           - pfNames
                         type: object
+                      qos:
+                        description: Network QoS settings
+                        properties:
+                          rdmaQoSTC:
+                            default: 102
+                            description: Network QoS TC
+                            type: integer
+                          rdmaQoSToS:
+                            default: 96
+                            description: Network QoS Type of Service
+                            type: integer
+                        required:
+                          - rdmaQoSTC
+                          - rdmaQoSToS
+                        type: object
                     required:
                       - mtu
                       - name
                       - nicSelector
+                      - qos
                     type: object
                     x-kubernetes-validations:
                       - message: Only one of cidrPoolRef or ipam can be specified
