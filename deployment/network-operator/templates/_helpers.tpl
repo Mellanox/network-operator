@@ -67,6 +67,22 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Returns operator tolerations. When noPrimaryCNI is enabled, automatically
+appends the node.kubernetes.io/network-unavailable:NoSchedule toleration so
+the operator and its hook jobs can be scheduled before any CNI plugin is present.
+*/}}
+{{- define "network-operator.operator.tolerations" -}}
+{{- $tolerations := .Values.operator.tolerations | default list }}
+{{- if .Values.noPrimaryCNI }}
+{{- $noCNIToleration := dict "key" "node.kubernetes.io/network-unavailable" "operator" "Exists" "effect" "NoSchedule" }}
+{{- $tolerations = append $tolerations $noCNIToleration }}
+{{- end }}
+{{- if $tolerations }}
+{{- toYaml $tolerations }}
+{{- end }}
+{{- end }}
+
+{{/*
 imagePullSecrets helpers
 */}}
 {{- define "network-operator.operator.imagePullSecrets" }}
