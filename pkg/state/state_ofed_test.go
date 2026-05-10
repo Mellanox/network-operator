@@ -857,7 +857,7 @@ var _ = Describe("MOFED state test", func() {
 			// Verify default values are set in the CR after GetManifestObjects
 			Expect(cr.Spec.OFEDDriver.StartupProbe).NotTo(BeNil())
 			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(30))
-			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(10))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(20))
 
 			Expect(cr.Spec.OFEDDriver.LivenessProbe).NotTo(BeNil())
 			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(10))
@@ -1085,8 +1085,8 @@ var _ = Describe("MOFED state test", func() {
 					// Verify StartupProbe defaults
 					Expect(container.StartupProbe).NotTo(BeNil())
 					Expect(container.StartupProbe.InitialDelaySeconds).To(Equal(int32(30)))
-					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(10)))
-					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(60)))
+					Expect(container.StartupProbe.PeriodSeconds).To(Equal(int32(20)))
+					Expect(container.StartupProbe.FailureThreshold).To(Equal(int32(120)))
 					Expect(container.StartupProbe.SuccessThreshold).To(Equal(int32(1)))
 					Expect(container.StartupProbe.TimeoutSeconds).To(Equal(int32(10)))
 
@@ -1162,7 +1162,7 @@ var _ = Describe("MOFED state test", func() {
 			// Verify custom and default values are used for StartupProbe and LivenessProbe
 			Expect(cr.Spec.OFEDDriver.StartupProbe.InitialDelaySeconds).To(Equal(20))
 			Expect(cr.Spec.OFEDDriver.StartupProbe.PeriodSeconds).To(Equal(25))
-			Expect(cr.Spec.OFEDDriver.StartupProbe.FailureThreshold).To(Equal(60))
+			Expect(cr.Spec.OFEDDriver.StartupProbe.FailureThreshold).To(Equal(120))
 			Expect(cr.Spec.OFEDDriver.StartupProbe.TimeoutSeconds).To(Equal(10))
 
 			Expect(cr.Spec.OFEDDriver.LivenessProbe.InitialDelaySeconds).To(Equal(10))
