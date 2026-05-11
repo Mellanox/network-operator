@@ -106,7 +106,7 @@ const (
 
 const (
 	startupInitialDelaySeconds = 30
-	startupPeriodSeconds       = 20
+	startupPeriodSeconds       = 10
 	startupFailureThreshold    = 120
 	startupTimeoutSeconds      = 10
 
