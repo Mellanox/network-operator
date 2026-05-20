@@ -164,7 +164,7 @@ sriov-network-operator:
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.4.0-beta.8
     rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v26.4.0-beta.8
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.4.0-beta.8
-    sriovDraDriver: nvcr.io/nvstaging/mellanox/dra-driver-sriov:network-operator-v26.4.0-beta.8
+    sriovDraDriver: nvcr.io/nvstaging/mellanox/dra-driver-sriov:a63c787
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
     webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-v26.4.0-beta.8
   # imagePullSecrest for SR-IOV Network Operator related images
