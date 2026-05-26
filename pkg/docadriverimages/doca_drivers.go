@@ -19,8 +19,12 @@ package docadriverimages
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,13 +32,14 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kauth "github.com/google/go-containerregistry/pkg/authn/kubernetes"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -71,6 +76,8 @@ type provider struct {
 	ctx           context.Context
 	mu            sync.Mutex
 	lastError     error // tracks the last error from tag retrieval
+	// tagLister overrides remote.List when set (used in unit tests).
+	tagLister func(name.Repository, ...remote.Option) ([]string, error)
 }
 
 // TagExists returns true if DOCA driver image with provided tag exists
@@ -96,13 +103,25 @@ func (p *provider) SetImageSpec(spec *mellanoxv1alpha1.ImageSpec) {
 		p.mu.Unlock()
 		return
 	}
-	if reflect.DeepEqual(p.docaImageSpec, spec) {
-		p.mu.Unlock()
-		return
+	specChanged := p.docaImageSpec == nil || !reflect.DeepEqual(p.docaImageSpec, spec)
+	if specChanged {
+		p.docaImageSpec = spec
 	}
-	p.docaImageSpec = spec
+	lastErr := p.lastError
+	shouldRefresh := specChanged || (lastErr != nil && isRetryableRegistryError(lastErr))
+	retrying := !specChanged && shouldRefresh
 	p.mu.Unlock()
-	p.retrieveTags()
+	if shouldRefresh {
+		if retrying {
+			log.FromContext(p.ctx).Info("retrying DOCA driver image tag fetch after transient error",
+				"repo", spec.Repository, "image", spec.Image, "error", lastErr)
+		}
+		p.retrieveTags()
+	} else if !specChanged {
+		log.FromContext(p.ctx).Info("DOCA tag refresh skipped on reconcile",
+			"repo", spec.Repository, "image", spec.Image,
+			"hasLastError", lastErr != nil, "retryable", isRetryableRegistryError(lastErr), "lastError", lastErr)
+	}
 }
 
 func (p *provider) retrieveTags() {
@@ -120,7 +139,7 @@ func (p *provider) retrieveTags() {
 			Name:      name,
 			Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
 		}, secret)
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			continue
 		} else if err != nil {
 			logger.Error(err, "failed to get pull secret")
@@ -142,12 +161,93 @@ func (p *provider) retrieveTags() {
 		p.lastError = fmt.Errorf("failed to create repo: %w", err)
 		return
 	}
-	tags, err := remote.List(repo, remote.WithAuthFromKeychain(auth))
+	var tags []string
+	listOpts := []remote.Option{remote.WithAuthFromKeychain(auth)}
+	if p.tagLister != nil {
+		tags, err = p.tagLister(repo, listOpts...)
+	} else {
+		tags, err = remote.List(repo, listOpts...)
+	}
 	if err != nil {
-		logger.Error(err, "failed to list tags")
+		retryable := isRetryableRegistryError(fmt.Errorf("failed to list tags: %w", err))
+		logger.Info("failed to list DOCA driver image tags", "repo", p.docaImageSpec.Repository,
+			"image", p.docaImageSpec.Image, "retryable", retryable, "error", err)
 		p.lastError = fmt.Errorf("failed to list tags: %w", err)
 		return
 	}
 	p.tags = tags
 	p.lastError = nil // clear error on successful tag retrieval
+}
+
+func isRetryableRegistryError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var transportErr *transport.Error
+	if errors.As(err, &transportErr) {
+		if isNonRetryableTransportError(transportErr) {
+			return false
+		}
+		if transportErr.Temporary() {
+			return true
+		}
+	}
+
+	errMsg := strings.ToLower(err.Error())
+	if strings.Contains(errMsg, "failed to create repo") ||
+		strings.Contains(errMsg, "failed to create registry auth from secrets") {
+		return false
+	}
+
+	// Treat tag-list failures as retryable unless classified non-retryable above
+	// (covers timeouts, DNS, TLS, and other network errors with varying wrappers).
+	if strings.Contains(errMsg, "failed to list tags") {
+		return true
+	}
+
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return netErr.Timeout()
+	}
+
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	if apiErrors.IsTimeout(err) || apiErrors.IsServerTimeout(err) ||
+		apiErrors.IsServiceUnavailable(err) || apiErrors.IsInternalError(err) {
+		return true
+	}
+
+	if strings.Contains(errMsg, "i/o timeout") ||
+		strings.Contains(errMsg, "connection refused") ||
+		strings.Contains(errMsg, "connection reset") ||
+		strings.Contains(errMsg, "no such host") ||
+		strings.Contains(errMsg, "server misbehaving") ||
+		strings.Contains(errMsg, "temporary failure in name resolution") ||
+		strings.Contains(errMsg, "tls:") {
+		return true
+	}
+
+	return false
+}
+
+func isNonRetryableTransportError(err *transport.Error) bool {
+	switch err.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+		return true
+	}
+	for _, d := range err.Errors {
+		switch d.Code {
+		case transport.UnauthorizedErrorCode, transport.DeniedErrorCode, transport.NameUnknownErrorCode:
+			return true
+		}
+	}
+	return false
 }
