@@ -21,6 +21,7 @@ SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   chartLocation: deployment/sriov-network-operator-chart
   excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
@@ -29,24 +30,28 @@ SriovNetworkOperatorWebhook:
   image: sriov-network-operator-webhook
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: general
 SriovConfigDaemonStigFips:
   image: sriov-network-operator-config-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9-stig-fips
   nSpectScope: fedramp
 SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
 SriovIbCni:
@@ -76,6 +81,7 @@ SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
 IbKubernetes:
@@ -89,6 +95,7 @@ CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
   dependabotSyncManaged: true
@@ -96,6 +103,7 @@ Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
 Ipoib:
@@ -127,6 +135,7 @@ ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
 rdmaCni:
@@ -215,6 +224,7 @@ nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
+  downstreamFork: true
   version: network-operator-v26.4.0-beta.9
   chartLocation: deployment/helm/node-feature-discovery
   nSpectScope: gov-ready
