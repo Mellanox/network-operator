@@ -71,6 +71,10 @@ NextResult:
 	cr.SetAppliedStates(appliedStates)
 	cr.SetPolicyState(mellanoxv1alpha1.State(status.Status))
 
+	if ch, ok := cr.(mellanoxv1alpha1.ConditionHolder); ok {
+		ch.SetConditions(computePolicyConditions(ch.GetConditions(), status, cr.GetGeneration()))
+	}
+
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Updating status", "Custom resource name", cr.GetName(), "namespace", cr.GetNamespace(),
 		"Result:", cr.GetPolicyState())
