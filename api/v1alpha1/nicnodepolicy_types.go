@@ -67,9 +67,6 @@ type NicNodePolicySpec struct {
 
 // NicNodePolicyStatus defines the observed state of NicNodePolicy
 type NicNodePolicyStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// Reflects the current state of the cluster policy
 	// +kubebuilder:validation:Enum={"ignore", "notReady", "ready", "error"}
 	State State `json:"state"`
@@ -77,6 +74,15 @@ type NicNodePolicyStatus struct {
 	Reason string `json:"reason,omitempty"`
 	// AppliedStates provide a finer view of the observed state
 	AppliedStates []AppliedState `json:"appliedStates,omitempty"`
+	// Conditions is a list of conditions describing the state of the NicNodePolicy.
+	// Each enabled component exposes a <ComponentName>Ready condition, and the aggregate
+	// Ready condition summarizes the overall policy health.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -172,6 +178,16 @@ func (n *NicNodePolicy) SetPolicyState(state State) {
 // SetReason implements NicPolicyCR.
 func (n *NicNodePolicy) SetReason(reason string) {
 	n.Status.Reason = reason
+}
+
+// GetConditions implements ConditionHolder.
+func (n *NicNodePolicy) GetConditions() []metav1.Condition {
+	return n.Status.Conditions
+}
+
+// SetConditions implements ConditionHolder.
+func (n *NicNodePolicy) SetConditions(conditions []metav1.Condition) {
+	n.Status.Conditions = conditions
 }
 
 func init() {
