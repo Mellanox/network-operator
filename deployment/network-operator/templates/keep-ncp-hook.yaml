@@ -69,9 +69,13 @@ spec:
       affinity:
       {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.operator.tolerations }}
-      tolerations:
-      {{- toYaml . | nindent 8 }}
+      {{- $tolerations := include "network-operator.operator.tolerations" . | trim }}
+      {{- if $tolerations }}
+      tolerations:{{- $tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.noPrimaryCNI }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       {{- end }}
       serviceAccountName: {{ include "network-operator.fullname" . }}-hooks-keep-ncp-sa
       imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . }}
