@@ -325,9 +325,18 @@ jobs:
           make release-build
           make generate-sosreport-maps
 
+          # Generate release-nvstaging.yaml for GA releases (no rc/beta suffix)
+          if ! echo "$APP_VERSION" | grep -q '-'; then
+            sed \
+              -e 's|nvcr.io/nvidia/mellanox|nvcr.io/nvstaging/mellanox|g' \
+              -e 's|nvcr.io/nvidia/cloud-native|nvcr.io/nvstaging/mellanox|g' \
+              hack/release.yaml > hack/release-nvstaging.yaml
+          fi
+
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
             git add hack/release.yaml
+            git add hack/release-nvstaging.yaml
             git add scripts/sosreport/network-operator-sosreport.sh
             git add scripts/sosreport/kubectl-netop_sosreport
             git commit -sam "cicd: release Network Operator $APP_VERSION"

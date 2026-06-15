@@ -125,6 +125,22 @@ jobs:
 
         APP_VERSION=$git_tag VERSION=${git_tag:1} make chart-build chart-push  # VERSION as 'v' prefix removed
 
+    - name: Make pre-GA package and push (`git_tag-pre-ga` as chart version)
+      if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
+      run: |
+        git_tag=${{ github.ref_name }}
+
+        # Patch values.yaml to point to nvstaging repositories
+        sed -i \
+          -e 's|nvcr.io/nvidia/mellanox|nvcr.io/nvstaging/mellanox|g' \
+          -e 's|nvcr.io/nvidia/cloud-native|nvcr.io/nvstaging/mellanox|g' \
+          deployment/network-operator/values.yaml
+
+        APP_VERSION=$git_tag VERSION=${git_tag:1}-pre-ga make chart-build chart-push
+
+        # Restore values.yaml so subsequent steps see the original production values
+        git checkout -- deployment/network-operator/values.yaml
+
   ocp-bundle:
     if: needs.docker-build-push.outputs.publish == 'true'
     needs:
