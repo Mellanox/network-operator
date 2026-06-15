@@ -29,14 +29,12 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/xeipuuv/gojsonschema"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apiresource "k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -77,13 +75,13 @@ type nicClusterPolicyValidator struct {
 	k8sClient client.Client
 }
 
-var _ webhook.CustomValidator = &nicClusterPolicyValidator{}
+var _ admission.Validator[*v1alpha1.NicClusterPolicy] = &nicClusterPolicyValidator{}
 
 type nicNodePolicyValidator struct {
 	k8sClient client.Client
 }
 
-var _ webhook.CustomValidator = &nicNodePolicyValidator{}
+var _ admission.Validator[*v1alpha1.NicNodePolicy] = &nicNodePolicyValidator{}
 
 type devicePluginSpecWrapper struct {
 	v1alpha1.DevicePluginSpec
@@ -105,8 +103,7 @@ type docaTelemetryServiceWrapper struct {
 func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 	nicClusterPolicyLog.Info("Nic cluster policy webhook admission controller")
 	InitSchemaValidator("./webhook-schemas")
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha1.NicClusterPolicy{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1alpha1.NicClusterPolicy{}).
 		WithValidator(&nicClusterPolicyValidator{k8sClient: mgr.GetClient()}).
 		Complete()
 }
@@ -115,8 +112,7 @@ func SetupNicClusterPolicyWebhookWithManager(mgr ctrl.Manager) error {
 func SetupNicNodePolicyWebhookWithManager(mgr ctrl.Manager) error {
 	nicClusterPolicyLog.Info("Nic node policy webhook admission controller")
 	InitSchemaValidator("./webhook-schemas")
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha1.NicNodePolicy{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1alpha1.NicNodePolicy{}).
 		WithValidator(&nicNodePolicyValidator{k8sClient: mgr.GetClient()}).
 		Complete()
 }
@@ -124,16 +120,11 @@ func SetupNicNodePolicyWebhookWithManager(mgr ctrl.Manager) error {
 //nolint:lll
 //+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-nicclusterpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=nicclusterpolicies,verbs=create;update,versions=v1alpha1,name=vnicclusterpolicy.kb.io,admissionReviewVersions=v1
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (w *nicClusterPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type
+func (w *nicClusterPolicyValidator) ValidateCreate(ctx context.Context, nicClusterPolicy *v1alpha1.NicClusterPolicy) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
-	}
-
-	nicClusterPolicy, ok := obj.(*v1alpha1.NicClusterPolicy)
-	if !ok {
-		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate create", "name", nicClusterPolicy.Name)
 	if err := w.validateNicClusterPolicy(nicClusterPolicy); err != nil {
@@ -142,17 +133,12 @@ func (w *nicClusterPolicyValidator) ValidateCreate(ctx context.Context, obj runt
 	return nil, w.validateNicClusterPolicyOverlap(ctx, nicClusterPolicy)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type
 func (w *nicClusterPolicyValidator) ValidateUpdate(
-	ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	ctx context.Context, _, nicClusterPolicy *v1alpha1.NicClusterPolicy) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
-	}
-
-	nicClusterPolicy, ok := newObj.(*v1alpha1.NicClusterPolicy)
-	if !ok {
-		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate update", "name", nicClusterPolicy.Name)
 	if err := w.validateNicClusterPolicy(nicClusterPolicy); err != nil {
@@ -161,19 +147,13 @@ func (w *nicClusterPolicyValidator) ValidateUpdate(
 	return nil, w.validateNicClusterPolicyOverlap(ctx, nicClusterPolicy)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, in runtime.Object) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type
+func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, nicClusterPolicy *v1alpha1.NicClusterPolicy) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
 	}
-	nicClusterPolicy, ok := in.(*v1alpha1.NicClusterPolicy)
-	if !ok {
-		return nil, errors.New("failed to unmarshal NicClusterPolicy object to validate")
-	}
-
 	nicClusterPolicyLog.Info("validate delete", "name", nicClusterPolicy.Name)
-
 	// Validation for delete call is not required
 	return nil, nil
 }
@@ -181,16 +161,11 @@ func (w *nicClusterPolicyValidator) ValidateDelete(_ context.Context, in runtime
 //nolint:lll
 //+kubebuilder:webhook:path=/validate-mellanox-com-v1alpha1-nicnodepolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=mellanox.com,resources=nicnodepolicies,verbs=create;update,versions=v1alpha1,name=vnicnodepolicy.kb.io,admissionReviewVersions=v1
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for NicNodePolicy
-func (w *nicNodePolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+// ValidateCreate implements admission.Validator so a webhook will be registered for NicNodePolicy
+func (w *nicNodePolicyValidator) ValidateCreate(ctx context.Context, nicNodePolicy *v1alpha1.NicNodePolicy) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
-	}
-
-	nicNodePolicy, ok := obj.(*v1alpha1.NicNodePolicy)
-	if !ok {
-		return nil, errors.New("failed to unmarshal NicNodePolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate create", "name", nicNodePolicy.Name)
 	if err := validateNicNodePolicy(nicNodePolicy); err != nil {
@@ -199,17 +174,12 @@ func (w *nicNodePolicyValidator) ValidateCreate(ctx context.Context, obj runtime
 	return nil, w.validateNicNodePolicyOverlap(ctx, nicNodePolicy)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for NicNodePolicy
+// ValidateUpdate implements admission.Validator so a webhook will be registered for NicNodePolicy
 func (w *nicNodePolicyValidator) ValidateUpdate(
-	ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	ctx context.Context, _, nicNodePolicy *v1alpha1.NicNodePolicy) (admission.Warnings, error) {
 	if skipValidations {
 		nicClusterPolicyLog.Info("skipping CR validation")
 		return nil, nil
-	}
-
-	nicNodePolicy, ok := newObj.(*v1alpha1.NicNodePolicy)
-	if !ok {
-		return nil, errors.New("failed to unmarshal NicNodePolicy object to validate")
 	}
 	nicClusterPolicyLog.Info("validate update", "name", nicNodePolicy.Name)
 	if err := validateNicNodePolicy(nicNodePolicy); err != nil {
@@ -218,8 +188,8 @@ func (w *nicNodePolicyValidator) ValidateUpdate(
 	return nil, w.validateNicNodePolicyOverlap(ctx, nicNodePolicy)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for NicNodePolicy
-func (w *nicNodePolicyValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator so a webhook will be registered for NicNodePolicy
+func (w *nicNodePolicyValidator) ValidateDelete(_ context.Context, _ *v1alpha1.NicNodePolicy) (admission.Warnings, error) {
 	return nil, nil
 }
 

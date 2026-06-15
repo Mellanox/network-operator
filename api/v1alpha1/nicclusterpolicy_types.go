@@ -576,7 +576,3 @@ func (n *NicClusterPolicy) GetConditions() []metav1.Condition {
 func (n *NicClusterPolicy) SetConditions(conditions []metav1.Condition) {
 	n.Status.Conditions = conditions
 }
-
-func init() {
-	SchemeBuilder.Register(&NicClusterPolicy{}, &NicClusterPolicyList{})
-}

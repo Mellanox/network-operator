@@ -79,7 +79,3 @@ type MacvlanNetworkList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []MacvlanNetwork `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&MacvlanNetwork{}, &MacvlanNetworkList{})
-}

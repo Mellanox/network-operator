@@ -103,7 +103,7 @@ func setupDrainControllerWithManager(k8sManager manager.Manager,
 	drainController, err := NewDrainReconcileController(drainKClient,
 		k8sConfig,
 		k8sManager.GetScheme(),
-		k8sManager.GetEventRecorderFor("operator"),
+		k8sManager.GetEventRecorderFor("operator"), //nolint:staticcheck // TODO: migrate to new events.EventRecorder API
 		orchestrator,
 		migrationCompletionChan,
 		k8sManager.GetLogger().WithValues("Function", "Drain"))
