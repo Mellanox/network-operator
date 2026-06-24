@@ -248,6 +248,18 @@ type DevicePluginSpec struct {
 	UseCdi bool `json:"useCdi,omitempty"`
 }
 
+// MultusDeploymentType defines the Multus CNI deployment variant.
+// +kubebuilder:validation:Enum=thin;thick
+type MultusDeploymentType string
+
+const (
+	// MultusDeploymentTypeThin deploys Multus as an in-process CNI plugin (thin entrypoint).
+	MultusDeploymentTypeThin MultusDeploymentType = "thin"
+	// MultusDeploymentTypeThick deploys Multus as a long-running privileged daemon.
+	// CNI calls from the host are proxied to the daemon via a Unix socket shim.
+	MultusDeploymentTypeThick MultusDeploymentType = "thick"
+)
+
 // MultusSpec describes configuration options for Multus CNI
 //  1. Image information for Multus CNI
 //  2. Multus CNI config if config is missing or empty then multus config will be automatically generated from the CNI
@@ -255,6 +267,13 @@ type DevicePluginSpec struct {
 type MultusSpec struct {
 	// Image information for Multus and optional configuration
 	ImageSpecWithConfig `json:""`
+	// DeploymentType selects the Multus deployment variant.
+	// "thin" (default): Multus runs as an in-process CNI plugin.
+	// "thick": Multus runs as a privileged daemon; CNI calls are proxied via a Unix socket shim.
+	// For thick mode, the config field configures the daemon (daemon-config.json).
+	// +optional
+	// +kubebuilder:default:=thin
+	DeploymentType MultusDeploymentType `json:"deploymentType,omitempty"`
 }
 
 // SecondaryNetworkSpec describes configuration options for secondary network

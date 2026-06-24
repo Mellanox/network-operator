@@ -50,7 +50,11 @@ spec:
           command: ["/install_multus"]
           args:
             - "--type"
+            {{- if eq .CrSpec.DeploymentType "thick" }}
+            - "thick"
+            {{- else }}
             - "thin"
+            {{- end }}
           resources:
             requests:
               cpu: "10m"
@@ -66,17 +70,21 @@ spec:
       containers:
         - name: kube-multus
           image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
+          {{- if eq .CrSpec.DeploymentType "thick" }}
+          command: ["/usr/src/multus-cni/bin/multus-daemon"]
+          args:
+            - "--config=/etc/cni/net.d/multus.d/daemon-config.json"
+          {{- else }}
           command: ["/thin_entrypoint"]
           args:
-            # /tmp/multus-conf/00-multus.conf is where multus-cfg ConfigMap is mounted then entrypoint.sh copy it to
-            # /host/etc/cni/net.d/00-multus.conf
-            - "--multus-conf-file={{- if .CrSpec.Config -}}/tmp/multus-conf/00-multus.conf{{- else -}}auto{{- end -}}"
+            - "--multus-conf-file=auto"
             - "--multus-autoconfig-dir=/host/etc/cni/net.d"
             - "--cni-conf-dir=/host/etc/cni/net.d"
             - "--cleanup-config-on-exit"
             - "--skip-config-watch"
             - "--cni-bin-dir=/host/opt/cni/bin"
             - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
+          {{- end }}
           {{- with .RuntimeSpec.ContainerResources }}
           {{- with index . "kube-multus" }}
           resources:
@@ -102,27 +110,80 @@ spec:
             privileged: true
             runAsUser: 0
           terminationMessagePolicy: FallbackToLogsOnError
+          {{- if eq .CrSpec.DeploymentType "thick" }}
+          env:
+            - name: MULTUS_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          {{- end }}
           volumeMounts:
+          {{- if eq .CrSpec.DeploymentType "thick" }}
+            - name: cni
+              mountPath: /host/etc/cni/net.d
+            - name: cnibin
+              mountPath: {{ .RuntimeSpec.CniBinDirectory }}
+            - name: host-run
+              mountPath: /host/run
+            - name: host-var-lib-cni-multus
+              mountPath: /var/lib/cni/multus
+            - name: host-var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              mountPropagation: HostToContainer
+            - name: host-run-k8s-cni-cncf-io
+              mountPath: /run/k8s.cni.cncf.io
+            - name: host-run-netns
+              mountPath: /run/netns
+              mountPropagation: HostToContainer
+            - name: multus-cni-config
+              mountPath: /etc/cni/net.d/multus.d
+              readOnly: true
+            - name: hostroot
+              mountPath: /hostroot
+              mountPropagation: HostToContainer
+          {{- else }}
             - name: cninetwork
               mountPath: /host/etc/cni/net.d
             - name: cnibin
               mountPath: /host/opt/cni/bin
-          {{- if .CrSpec.Config }}
-            - name: multus-cni-config
-              mountPath: /tmp/multus-conf
           {{- end }}
       volumes:
+      {{- if eq .CrSpec.DeploymentType "thick" }}
+        - name: cni
+          hostPath:
+            path: {{ .RuntimeSpec.CniNetworkDirectory }}
+        - name: cnibin
+          hostPath:
+            path: {{ .RuntimeSpec.CniBinDirectory }}
+        - name: hostroot
+          hostPath:
+            path: /
+        - name: multus-cni-config
+          configMap:
+            name: multus-daemon-config
+            items:
+            - key: daemon-config.json
+              path: daemon-config.json
+        - name: host-run
+          hostPath:
+            path: /run
+        - name: host-var-lib-cni-multus
+          hostPath:
+            path: /var/lib/cni/multus
+        - name: host-var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+        - name: host-run-k8s-cni-cncf-io
+          hostPath:
+            path: /run/k8s.cni.cncf.io
+        - name: host-run-netns
+          hostPath:
+            path: /run/netns
+      {{- else }}
         - name: cninetwork
           hostPath:
             path: {{ .RuntimeSpec.CniNetworkDirectory }}
         - name: cnibin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
-      {{- if .CrSpec.Config }}
-        - name: multus-cni-config
-          configMap:
-            name: multus-cni-config
-            items:
-            - key: cni-conf.json
-              path: 00-multus.conf
       {{- end }}

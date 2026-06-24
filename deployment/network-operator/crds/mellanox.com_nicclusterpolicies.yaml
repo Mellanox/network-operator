@@ -1800,6 +1800,17 @@ spec:
                           - name
                           type: object
                         type: array
+                      deploymentType:
+                        default: thin
+                        description: |-
+                          DeploymentType selects the Multus deployment variant.
+                          "thin" (default): Multus runs as an in-process CNI plugin.
+                          "thick": Multus runs as a privileged daemon; CNI calls are proxied via a Unix socket shim.
+                          For thick mode, the config field configures the daemon (daemon-config.json).
+                        enum:
+                        - thin
+                        - thick
+                        type: string
                       image:
                         description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
