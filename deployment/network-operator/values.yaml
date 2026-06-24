@@ -326,6 +326,12 @@ operator:
 # Network Operator images.
 imagePullSecrets: []
 
+# -- Set to true when installing on a cluster with no primary CNI running.
+# Enables hostNetwork and adds the node.kubernetes.io/network-unavailable
+# toleration on the operator deployment and hook jobs, allowing them to
+# bootstrap before any CNI plugin is present.
+noPrimaryCNI: false
+
 # @ignore
 test:
   pf: ens2f0
