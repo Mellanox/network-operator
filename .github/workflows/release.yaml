@@ -36,6 +36,15 @@ jobs:
           # tag for components
           TAG="network-operator-${APP_VERSION}"
           echo "component_tag=${TAG}" >> $GITHUB_OUTPUT
+
+          # whether to sync Dependabot config to the release branch: rc/ga only,
+          # never beta (betas are cut from master, the LTS branch is only real at rc)
+          if echo "$APP_VERSION" | grep -q 'beta'; then
+            SYNC_DEPENDABOT=false
+          else
+            SYNC_DEPENDABOT=true
+          fi
+          echo "sync_dependabot=${SYNC_DEPENDABOT}" >> $GITHUB_OUTPUT
       - id: set-chart-version
         run: |
           CHART_VERSION=$(echo ${APP_VERSION#v})
@@ -79,6 +88,7 @@ jobs:
       docker_registry_managed_components: ${{ steps.determine-docker-registry.outputs.docker_registry_managed_components }}
       docker_registry_staging: nvcr.io/nvstaging/mellanox
       release_branch: ${{ steps.set-version.outputs.release_branch }}
+      sync_dependabot: ${{ steps.set-version.outputs.sync_dependabot }}
 
   get-managed-components:
     needs: determine-versions
@@ -93,8 +103,22 @@ jobs:
           repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
+      - id: set-dependabot-repos
+        run: |
+          # Repos whose dependabot.yaml we own (dependabotSyncManaged: true).
+          # Components keyed by sourceRepository; deduped to one entry per repo.
+          sync=$(yq -o=json 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique' hack/release.yaml | jq -c .)
+          # Mofed has no sourceRepository; its image is built from doca-driver-build
+          # (added to the matrix via include), so map its flag to that repo.
+          if [ "$(yq '.Mofed.dependabotSyncManaged // false' hack/release.yaml)" = "true" ] || \
+             [ "$(yq '.MofedStigFips.dependabotSyncManaged // false' hack/release.yaml)" = "true" ]; then
+            sync=$(echo "$sync" | jq -c '. + ["doca-driver-build"] | unique')
+          fi
+          echo "Dependabot-managed repositories: $sync"
+          echo "dependabot_managed_repos=$(echo $sync)" >> $GITHUB_OUTPUT
     outputs:
       managed_repos: ${{ steps.set-components.outputs.managed_repos }}
+      dependabot_managed_repos: ${{ steps.set-dependabot-repos.outputs.dependabot_managed_repos }}
 
   create-tags-for-components:
     runs-on: ubuntu-24.04
@@ -117,7 +141,7 @@ jobs:
           repository: ${{ github.repository_owner }}/${{ matrix.repo }}
           path: ${{ matrix.repo }}
           fetch-depth: 0
-      - name: Create tag to trigger PR that update image tags in network-operator values
+      - name: Ensure release branch exists
         run: |
           cd ${{ matrix.repo }}
           git config user.name  nvidia-ci-cd
@@ -133,6 +157,71 @@ jobs:
             git checkout -b $RELEASE_BRANCH
             git push -u origin $RELEASE_BRANCH
           fi
+
+      # Add a target-branch Dependabot entry for the new release branch on the
+      # component's default branch, so LTS branches receive version (security
+      # patch) updates. Runs only for owned configs (dependabot_managed_repos)
+      # on rc/ga (sync_dependabot). Non-blocking: a failure here must never hold
+      # up the release tag. Must run BEFORE the tag is cut.
+      - name: Sync Dependabot config for the new release branch
+        if: >-
+          needs.determine-versions.outputs.sync_dependabot == 'true' &&
+          contains(fromJson(needs.get-managed-components.outputs.dependabot_managed_repos), matrix.repo)
+        continue-on-error: true
+        run: |
+          cd ${{ matrix.repo }}
+          DEFAULT_BRANCH=$(gh repo view ${{ github.repository_owner }}/${{ matrix.repo }} --json defaultBranchRef -q .defaultBranchRef.name)
+          git checkout "$DEFAULT_BRANCH"
+          git pull origin "$DEFAULT_BRANCH"
+
+          CONFIG=.github/dependabot.yaml
+          [ -f "$CONFIG" ] || CONFIG=.github/dependabot.yml
+          if [ ! -f "$CONFIG" ]; then
+            echo "::warning::${{ matrix.repo }} is dependabotSyncManaged but has no $CONFIG; $RELEASE_BRANCH left uncovered"
+            exit 0
+          fi
+
+          # (1) already merged into the config on the default branch
+          if yq -e '.updates[] | select(.["target-branch"] == strenv(RELEASE_BRANCH))' "$CONFIG" >/dev/null 2>&1; then
+            echo "$RELEASE_BRANCH already present in $CONFIG; nothing to do"
+            exit 0
+          fi
+          # (2) a sync PR is already open from a prior rc.N run
+          if [ -n "$(gh pr list --repo ${{ github.repository_owner }}/${{ matrix.repo }} --head dependabot-sync-$RELEASE_BRANCH --state open --json number -q '.[].number')" ]; then
+            echo "dependabot-sync PR for $RELEASE_BRANCH already open; nothing to do"
+            exit 0
+          fi
+
+          # Clone every default-branch update entry, retarget it to the release
+          # branch, and restrict the LTS branch to patch-only bumps.
+          yq -i '.updates += [
+            .updates[] | select(has("target-branch") | not)
+            | . + {
+                "target-branch": strenv(RELEASE_BRANCH),
+                "ignore": ((.ignore // []) + [{"dependency-name": "*", "update-types": ["version-update:semver-major", "version-update:semver-minor"]}])
+              }
+          ]' "$CONFIG"
+
+          git checkout -b dependabot-sync-$RELEASE_BRANCH
+          git commit -sam "ci: add Dependabot config for $RELEASE_BRANCH"
+          # --force-with-lease: re-cut the CI-owned sync branch if a prior PR was
+          # closed without merging and left the remote branch behind. The lease
+          # (checkout uses fetch-depth: 0, so the remote-tracking ref exists)
+          # still refuses to clobber genuine concurrent pushes.
+          git push --force-with-lease -u origin dependabot-sync-$RELEASE_BRANCH
+          gh pr create \
+            --repo ${{ github.repository_owner }}/${{ matrix.repo }} \
+            --base "$DEFAULT_BRANCH" \
+            --head dependabot-sync-$RELEASE_BRANCH \
+            --title "ci: Dependabot config for $RELEASE_BRANCH" \
+            --body "Adds version updates for the \`$RELEASE_BRANCH\` release branch (patch-only). Auto-opened by the network-operator [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) when the branch was cut."
+
+      # Cut the tag LAST, after the Dependabot PR has been raised. Step above
+      # switched to the default branch, so re-checkout the release branch here.
+      - name: Create release tag
+        run: |
+          cd ${{ matrix.repo }}
+          git checkout $RELEASE_BRANCH
 
           echo "Checking if tag already exists: $COMPONENT_TAG"
           if git ls-remote --tags origin | grep -q "refs/tags/$COMPONENT_TAG$"; then

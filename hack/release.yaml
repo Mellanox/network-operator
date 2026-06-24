@@ -1,3 +1,10 @@
+# dependabotSyncManaged: true marks components whose .github/dependabot.yaml we
+# own (the source repo is not a fork, or it is a fork but upstream ships no
+# dependabot config). For those, the Release workflow adds a target-branch
+# Dependabot entry to the component's default branch when a release branch is
+# cut (RC/GA only). Do NOT set it on forks whose dependabot config is synced
+# from upstream, or on repos with no dependabot config. See the create-tags-for-
+# components job in .github/workflows/release.yaml.
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
@@ -9,6 +16,7 @@ NetworkOperatorInitContainer:
   sourceRepository: network-operator-init-container
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
@@ -51,16 +59,19 @@ Mofed:
   image: doca-driver
   repository: nvcr.io/nvstaging/mellanox
   version: doca3.5.0-26.07-0.0.9.0-0
+  dependabotSyncManaged: true
 MofedStigFips:
   image: doca-driver-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   version: doca3.5.0-26.07-0.0.9.0-0
+  dependabotSyncManaged: true
 RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8s-rdma-shared-dev-plugin
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
@@ -73,12 +84,14 @@ IbKubernetes:
   sourceRepository: ib-kubernetes
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
@@ -91,18 +104,21 @@ Ipoib:
   sourceRepository: ipoib-cni
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
   version: network-operator-v26.4.0-beta.9
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
@@ -125,36 +141,42 @@ nicConfigurationOperator:
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9
   nSpectScope: general
+  dependabotSyncManaged: true
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9
   nSpectScope: general
+  dependabotSyncManaged: true
 nicConfigurationOperatorStigFipsUbuntu:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-ubuntu
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 nicConfigurationConfigDaemonStigFipsUbuntu:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-ubuntu
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 nicConfigurationOperatorStigFipsRhel:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-rhel
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 nicConfigurationConfigDaemonStigFipsRhel:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-rhel
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
@@ -163,24 +185,28 @@ maintenanceOperator:
   chartLocation: deployment/maintenance-operator-chart
   chartName: maintenance-operator-chart
   nSpectScope: gov-ready
+  dependabotSyncManaged: true
 spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
   version: network-operator-v26.4.0-beta.9
   nSpectScope: general
+  dependabotSyncManaged: true
 spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-rhel
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 spectrumXOperatorStigFipsUbuntu:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
   version: network-operator-v26.4.0-beta.9-stig-fips-ubuntu
   nSpectScope: fedramp
+  dependabotSyncManaged: true
 xPlaneService:
   image: xplane
   repository: nvcr.io/nvstaging/doca
