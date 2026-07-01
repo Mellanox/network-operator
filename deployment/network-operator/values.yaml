@@ -162,7 +162,7 @@ sriov-network-operator:
     sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v26.4.0-beta.9
     ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v26.4.0-beta.9
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.4.0-beta.9
-    rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v26.4.0-beta.9
+    rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:bbe4fdf
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.4.0-beta.9
     sriovDraDriver: nvcr.io/nvstaging/mellanox/dra-driver-sriov:network-operator-v26.4.0-beta.9
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
