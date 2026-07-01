@@ -97,12 +97,33 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-versions.outputs.base_branch }}
+      - name: Validate downstreamFork consistency across entries sharing a sourceRepository
+        run: |
+          inconsistent=$(yq -o=json 'to_entries
+              | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit")
+                    | {repo: .value.sourceRepository, fork: (.value.downstreamFork // false)})
+              | group_by(.repo)
+              | map(select((map(.fork) | unique | length) > 1) | .[0].repo)' \
+            hack/release.yaml)
+          if ! echo "$inconsistent" | jq -e '. == []' > /dev/null; then
+            echo "ERROR: downstreamFork values disagree across entries sharing a sourceRepository:"
+            echo "$inconsistent"
+            exit 1
+          fi
       - id: set-components
         run: |
           # Extract unique sourceRepository names for tagging
           repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
+
+          # Build a {sourceRepository: downstreamFork} map for downstream lookup.
+          forks=$(yq -o=json 'to_entries
+              | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit")
+                    | {(.value.sourceRepository): (.value.downstreamFork // false)})
+              | add // {}' hack/release.yaml | jq -c .)
+          echo "downstream forks map: $forks"
+          echo "downstream_forks=$forks" >> $GITHUB_OUTPUT
       - id: set-dependabot-repos
         run: |
           # Repos whose dependabot.yaml we own (dependabotSyncManaged: true).
@@ -119,6 +140,7 @@ jobs:
     outputs:
       managed_repos: ${{ steps.set-components.outputs.managed_repos }}
       dependabot_managed_repos: ${{ steps.set-dependabot-repos.outputs.dependabot_managed_repos }}
+      downstream_forks: ${{ steps.set-components.outputs.downstream_forks }}
 
   create-tags-for-components:
     runs-on: ubuntu-24.04
@@ -134,6 +156,7 @@ jobs:
       APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
       RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
+      DOWNSTREAM_FORKS: ${{ needs.get-managed-components.outputs.downstream_forks }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -148,15 +171,51 @@ jobs:
           git config user.email svc-cloud-orch-gh@nvidia.com
           git fetch origin
 
-          echo "Checking if the release branch exists"
-          if git ls-remote --heads origin $RELEASE_BRANCH | grep -q "$RELEASE_BRANCH"; then
-            echo "Release branch exists, using it for tagging"
-            git checkout $RELEASE_BRANCH
+          # Resolve downstreamFork from the map built by get-managed-components.
+          # Repos absent from release.yaml (e.g. doca-driver-build, added via matrix include)
+          # default to false (NVIDIA-owned).
+          DOWNSTREAM_FORK=$(echo "$DOWNSTREAM_FORKS" | jq -r --arg r "${{ matrix.repo }}" '.[$r] // false')
+          echo "downstreamFork for ${{ matrix.repo }}: $DOWNSTREAM_FORK"
+
+          is_beta=false
+          echo "$APP_VERSION" | grep -q 'beta' && is_beta=true
+          is_rc=false
+          echo "$APP_VERSION" | grep -qE 'rc' && is_rc=true
+
+          branch_exists=false
+          git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH" && branch_exists=true
+
+          if [ "$DOWNSTREAM_FORK" = "true" ]; then
+            # Downstream fork of an upstream project: release branch is created on every release.
+            if $branch_exists; then
+              echo "Release branch exists, using it for tagging"
+              git checkout "$RELEASE_BRANCH"
+            else
+              echo "Release branch doesn't exist, creating it from default branch"
+              git checkout -b "$RELEASE_BRANCH"
+              git push -u origin "$RELEASE_BRANCH"
+            fi
           else
-            echo "Release branch doesn't exist, creating it from default branch"
-            git checkout -b $RELEASE_BRANCH
-            git push -u origin $RELEASE_BRANCH
+            # NVIDIA-owned: beta tags on default branch; RC creates the branch; GA requires it.
+            if $is_beta; then
+              echo "Beta on NVIDIA-owned repo: tagging on default branch (no checkout)"
+            elif $branch_exists; then
+              echo "Release branch exists, using it for tagging"
+              git checkout "$RELEASE_BRANCH"
+            elif $is_rc; then
+              echo "First RC on NVIDIA-owned repo: creating release branch from default"
+              git checkout -b "$RELEASE_BRANCH"
+              git push -u origin "$RELEASE_BRANCH"
+            else
+              echo "ERROR: GA release $APP_VERSION but release branch $RELEASE_BRANCH does not exist in ${{ matrix.repo }}."
+              echo "       Cut RC first, or investigate why the RC branch is missing."
+              exit 1
+            fi
           fi
+
+          # Preserve the exact commit selected for tagging. The optional Dependabot
+          # step below may switch to the repository's default branch.
+          echo "TAG_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # Add a target-branch Dependabot entry for the new release branch on the
       # component's default branch, so LTS branches receive version (security
@@ -216,19 +275,19 @@ jobs:
             --title "ci: Dependabot config for $RELEASE_BRANCH" \
             --body "Adds version updates for the \`$RELEASE_BRANCH\` release branch (patch-only). Auto-opened by the network-operator [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) when the branch was cut."
 
-      # Cut the tag LAST, after the Dependabot PR has been raised. Step above
-      # switched to the default branch, so re-checkout the release branch here.
+      # Cut the tag LAST, after the Dependabot PR has been raised. TAG_COMMIT is
+      # the release branch commit, except for NVIDIA-owned beta releases where it
+      # intentionally points at the default branch.
       - name: Create release tag
         run: |
           cd ${{ matrix.repo }}
-          git checkout $RELEASE_BRANCH
 
           echo "Checking if tag already exists: $COMPONENT_TAG"
           if git ls-remote --tags origin | grep -q "refs/tags/$COMPONENT_TAG$"; then
             echo "Tag $COMPONENT_TAG already exists, skipping tag creation"
           else
             echo "Creating and pushing the tag: $COMPONENT_TAG"
-            git tag $COMPONENT_TAG
+            git tag "$COMPONENT_TAG" "$TAG_COMMIT"
             git push origin --tags
           fi
 
@@ -306,21 +365,24 @@ jobs:
       DOCKER_REGISTRY_MANAGED_COMPONENTS: ${{ needs.determine-versions.outputs.docker_registry_managed_components }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
+      # Chart sources are checked out at the component tag rather than the release branch:
+      # NVIDIA-owned chart-providers (e.g. maintenance-operator) have no release branch on
+      # beta releases under the downstreamFork-aware tagging logic, but the tag always exists.
       - uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/sriov-network-operator
           path: sriov-network-operator
-          ref: ${{ needs.determine-versions.outputs.release_branch }}
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
       - uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/node-feature-discovery
           path: node-feature-discovery
-          ref: ${{ needs.determine-versions.outputs.release_branch }}
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
       - uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/maintenance-operator
           path: maintenance-operator
-          ref: ${{ needs.determine-versions.outputs.release_branch }}
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
       - uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/network-operator
