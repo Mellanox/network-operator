@@ -191,6 +191,17 @@ jobs:
           export CHANNELS=stable,$version_major_minor
           export DEFAULT_CHANNEL=stable
           export VERSION=${{ env.VERSION_WITHOUT_PREFIX }}
+          release_repository=$(yq -r '.NetworkOperator.repository' hack/release.yaml)
+          release_image=$(yq -r '.NetworkOperator.image' hack/release.yaml)
+          export TAG="$release_repository/$release_image@$NETWORK_OPERATOR_DIGEST"
+          if [[ "$VERSION_WITH_PREFIX" != *-* ]]; then
+            # Merged PR #2648 generates the GA staging lookup contract while
+            # hack/release.yaml remains the final production contract:
+            # https://github.com/Mellanox/network-operator/pull/2648
+            test -f hack/release-nvstaging.yaml
+            [[ "$(yq -r '.NetworkOperator.version' hack/release-nvstaging.yaml)" == "$VERSION_WITH_PREFIX" ]]
+            export DIGEST_RELEASE_DEFAULTS=release-nvstaging.yaml
+          fi
         elif [[ "${{ github.ref_type }}" == "branch" ]]; then
           export CHANNELS=stable,v1.1  # hard coded
           export DEFAULT_CHANNEL=stable  # hard coded
@@ -207,18 +218,38 @@ jobs:
       env:
         FEATURE_BRANCH: update-ocp-bundle-to-${{ env.VERSION_WITH_PREFIX }}
       run: |
+        set -euo pipefail
         git config user.name  nvidia-ci-cd
         git config user.email svc-cloud-orch-gh@nvidia.com
 
-        git checkout -b $FEATURE_BRANCH
-        git status
+        git checkout -B "$FEATURE_BRANCH"
         git add bundle
         git add bundle.Dockerfile
+        if git diff --cached --quiet; then
+          echo "Bundle sources already contain $VERSION_WITH_PREFIX; no PR update required"
+          exit 0
+        fi
         git commit -sm "task: update bundle to $VERSION_WITH_PREFIX"
 
-        git push -u origin $FEATURE_BRANCH
-        gh pr create \
-          --head $FEATURE_BRANCH \
-          --base $BASE_BRANCH \
-          --title "task: update bundle to $VERSION_WITH_PREFIX" \
-          --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+        remote_sha=$(git ls-remote --heads origin "refs/heads/$FEATURE_BRANCH" | awk '{print $1}')
+        if [[ -n "$remote_sha" ]]; then
+          git push --force-with-lease="refs/heads/$FEATURE_BRANCH:$remote_sha" -u origin "$FEATURE_BRANCH"
+        else
+          git push -u origin "$FEATURE_BRANCH"
+        fi
+
+        existing_pr=$(gh pr list \
+          --state open \
+          --head "$FEATURE_BRANCH" \
+          --base "$BASE_BRANCH" \
+          --json number \
+          --jq '.[0].number // empty')
+        if [[ -n "$existing_pr" ]]; then
+          echo "Updated existing bundle PR #$existing_pr"
+        else
+          gh pr create \
+            --head "$FEATURE_BRANCH" \
+            --base "$BASE_BRANCH" \
+            --title "task: update bundle to $VERSION_WITH_PREFIX" \
+            --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+        fi

@@ -162,16 +162,23 @@ func main() {
 	outputDir := flag.String("outputDir", ".", "Destination directory to render templates to")
 	releaseDefaults := flag.String("releaseDefaults", "release.yaml", "Destination of the release defaults definition")
 	retrieveSha := flag.Bool("with-sha256", false, "retrieve SHA256 for container images references")
+	digestSourceReleaseDefaults := flag.String("digestReleaseDefaults", "",
+		"optional release defaults file whose repositories are used only for digest lookup")
 	docaDriverCheck := flag.Bool("doca-driver-check", false, "Verify DOCA Driver tags")
 	docaDriverMatrix := flag.String("doca-driver-matrix", "tmp/doca-driver-matrix.yaml", "DOCA Driver tags matrix")
 	flag.Parse()
 	release := readDefaults(*releaseDefaults)
 	readEnvironmentVariables(&release)
+	var digestSourceRelease *Release
+	if *digestSourceReleaseDefaults != "" {
+		sourceRelease := readDefaults(*digestSourceReleaseDefaults)
+		digestSourceRelease = &sourceRelease
+	}
 
 	if *docaDriverCheck {
 		docaDriverTagsCheck(&release, docaDriverMatrix)
 	} else {
-		renderTemplates(&release, templateDir, outputDir, retrieveSha)
+		renderTemplates(&release, digestSourceRelease, templateDir, outputDir, retrieveSha)
 	}
 }
 
@@ -255,9 +262,9 @@ func validateTags(config DocaDriverMatrix, tags []string, version string,
 	return nil
 }
 
-func renderTemplates(release *Release, templateDir, outputDir *string, retrieveSha *bool) {
+func renderTemplates(release, digestSourceRelease *Release, templateDir, outputDir *string, retrieveSha *bool) {
 	if *retrieveSha {
-		err := resolveImagesSha(release)
+		err := resolveImagesSha(release, digestSourceRelease)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
@@ -334,14 +341,32 @@ func getAuth(repo string) remote.Option {
 	return remote.WithAuthFromKeychain(authn.DefaultKeychain)
 }
 
-func resolveImagesSha(release *Release) error {
+func resolveImagesSha(release, digestSourceRelease *Release) error {
+	return resolveImagesShaWithResolvers(release, digestSourceRelease, resolveImageSha, resolveDocaDriversShas)
+}
+
+func resolveImagesShaWithResolvers(release, digestSourceRelease *Release,
+	resolveImage func(repo, image, tag string) (string, error),
+	resolveDocaDrivers func(repoName, imageName, version string) ([]string, error)) error {
+	if err := validateDigestSourceRelease(release, digestSourceRelease); err != nil {
+		return err
+	}
+
 	v := reflect.ValueOf(*release)
+	var sourceValue reflect.Value
+	if digestSourceRelease != nil {
+		sourceValue = reflect.ValueOf(*digestSourceRelease)
+	}
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		if !field.IsNil() {
 			releaseImageSpec := field.Interface().(*ReleaseImageSpec)
+			digestRepository := releaseImageSpec.Repository
+			if digestSourceRelease != nil {
+				digestRepository = sourceValue.Field(i).Interface().(*ReleaseImageSpec).Repository
+			}
 			if strings.Contains(releaseImageSpec.Image, "doca-driver") {
-				digests, err := resolveDocaDriversShas(releaseImageSpec.Repository, releaseImageSpec.Image,
+				digests, err := resolveDocaDrivers(digestRepository, releaseImageSpec.Image,
 					releaseImageSpec.Version)
 				if err != nil {
 					return err
@@ -352,7 +377,7 @@ func resolveImagesSha(release *Release) error {
 					releaseImageSpec.Shas[i] = SHA256ImageRef{ImageRef: sha, Name: fmt.Sprintf("doca-driver-%d", i), SHA256: digest}
 				}
 			} else {
-				digest, err := resolveImageSha(releaseImageSpec.Repository, releaseImageSpec.Image,
+				digest, err := resolveImage(digestRepository, releaseImageSpec.Image,
 					releaseImageSpec.Version)
 				if err != nil {
 					return err
@@ -363,6 +388,44 @@ func resolveImagesSha(release *Release) error {
 			}
 		}
 	}
+	return nil
+}
+
+func validateDigestSourceRelease(release, digestSourceRelease *Release) error {
+	if digestSourceRelease == nil {
+		return nil
+	}
+
+	targetValue := reflect.ValueOf(*release)
+	sourceValue := reflect.ValueOf(*digestSourceRelease)
+	targetType := targetValue.Type()
+	for i := 0; i < targetValue.NumField(); i++ {
+		targetField := targetValue.Field(i)
+		if targetField.IsNil() {
+			continue
+		}
+
+		fieldName := targetType.Field(i).Name
+		sourceField := sourceValue.Field(i)
+		if sourceField.IsNil() {
+			return fmt.Errorf("digest source release is missing %s", fieldName)
+		}
+
+		targetImage := targetField.Interface().(*ReleaseImageSpec)
+		sourceImage := sourceField.Interface().(*ReleaseImageSpec)
+		if sourceImage.Repository == "" {
+			return fmt.Errorf("digest source release %s repository is empty", fieldName)
+		}
+		if sourceImage.Image != targetImage.Image {
+			return fmt.Errorf("digest source release %s image %q does not match target image %q",
+				fieldName, sourceImage.Image, targetImage.Image)
+		}
+		if sourceImage.Version != targetImage.Version {
+			return fmt.Errorf("digest source release %s version %q does not match target version %q",
+				fieldName, sourceImage.Version, targetImage.Version)
+		}
+	}
+
 	return nil
 }
 
