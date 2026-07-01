@@ -143,6 +143,12 @@ func (s *stateMultusCNI) GetManifestObjects(
 		return nil, errors.Wrap(err, "failed to validate multus image spec")
 	}
 
+	if cr.Spec.SecondaryNetwork.Multus.Config != nil &&
+		cr.Spec.SecondaryNetwork.Multus.DeploymentType != mellanoxv1alpha1.MultusDeploymentTypeThick {
+		return nil, errors.New("spec.secondaryNetwork.multus.config is only supported with deploymentType: thick; " +
+			"remove the config field or set deploymentType to thick")
+	}
+
 	staticConfig := catalog.GetStaticConfigProvider()
 	if staticConfig == nil {
 		return nil, errors.New("staticConfig provider required")

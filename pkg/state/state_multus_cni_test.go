@@ -259,10 +259,49 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
-	It("should render resources correctly when config is specified in CR", func() {
+	It("should not render ConfigMap for thin mode", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "ConfigMap", func(_ *unstructured.Unstructured) {})).To(BeFalse())
+	})
+
+	It("should return an error when Config is set in thin mode", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
-		configString := "myconfig"
+		configString := `{"chrootDir": "/hostroot", "logLevel": "debug"}`
+		cr.Spec.SecondaryNetwork.Multus.Config = &configString
+
+		_, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("deploymentType: thick"))
+	})
+
+	It("should render ConfigMap with default daemon config for thick mode without config", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.DeploymentType = mellanoxv1alpha1.MultusDeploymentTypeThick
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "ConfigMap", func(obj *unstructured.Unstructured) {
+			var configMap corev1.ConfigMap
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &configMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(configMap.Name).To(Equal("multus-daemon-config"))
+			Expect(configMap.Namespace).To(Equal(ts.namespace))
+			Expect(configMap.Data).To(HaveKey("daemon-config.json"))
+			Expect(configMap.Data["daemon-config.json"]).To(ContainSubstring("chrootDir"))
+		})).To(BeTrue())
+	})
+
+	It("should render ConfigMap with custom daemon config for thick mode when config is specified in CR", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.DeploymentType = mellanoxv1alpha1.MultusDeploymentTypeThick
+
+		configString := `{"chrootDir": "/hostroot", "logLevel": "debug"}`
 		cr.Spec.SecondaryNetwork.Multus.Config = &configString
 
 		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
@@ -273,52 +312,161 @@ var _ = Describe("Multus CNI state", func() {
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &configMap)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(configMap.Namespace).To(Equal(ts.namespace))
-			Expect(configMap.Data["cni-conf.json"]).To(Equal(configString))
+			Expect(configMap.Name).To(Equal("multus-daemon-config"))
+			Expect(configMap.Data["daemon-config.json"]).To(Equal(configString))
 		})).To(BeTrue())
+	})
+
+	It("should render thick DaemonSet with correct structure when DeploymentType is thick", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.DeploymentType = mellanoxv1alpha1.MultusDeploymentTypeThick
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
 			var daemonSet appsv1.DaemonSet
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
-				corev1.VolumeMount{
-					Name:      "multus-cni-config",
-					MountPath: "/tmp/multus-conf",
+			// Init container uses /install_multus --type thick
+			initContainers := daemonSet.Spec.Template.Spec.InitContainers
+			Expect(initContainers).To(HaveLen(1))
+			Expect(initContainers[0].Command).To(ContainElement("/install_multus"))
+			Expect(initContainers[0].Args).To(ContainElement("thick"))
+
+			mainContainer := daemonSet.Spec.Template.Spec.Containers[0]
+			Expect(mainContainer.Command).To(ContainElement("/usr/src/multus-cni/bin/multus-daemon"))
+			Expect(mainContainer.Args).To(ContainElement("--config=/etc/cni/net.d/multus.d/daemon-config.json"))
+
+			// MULTUS_NODE_NAME env var
+			Expect(mainContainer.Env).To(ContainElement(
+				corev1.EnvVar{
+					Name: "MULTUS_NODE_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"},
+					},
 				},
 			))
 
+			// Volume mounts
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "cni", MountPath: "/host/etc/cni/net.d"},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "cnibin", MountPath: "custom-cni-bin-directory"},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{
+					Name:             "hostroot",
+					MountPath:        "/hostroot",
+					MountPropagation: mountPropagationPtr(corev1.MountPropagationHostToContainer),
+				},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "multus-cni-config", MountPath: "/etc/cni/net.d/multus.d", ReadOnly: true},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-run", MountPath: "/host/run"},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-var-lib-cni-multus", MountPath: "/var/lib/cni/multus"},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-var-lib-kubelet", MountPath: "/var/lib/kubelet",
+					MountPropagation: mountPropagationPtr(corev1.MountPropagationHostToContainer)},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-run-k8s-cni-cncf-io", MountPath: "/run/k8s.cni.cncf.io"},
+			))
+			Expect(mainContainer.VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-run-netns", MountPath: "/run/netns",
+					MountPropagation: mountPropagationPtr(corev1.MountPropagationHostToContainer)},
+			))
+
+			// Volumes
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "cni", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "custom-cni-network-directory"},
+				}},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "hostroot", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/"},
+				}},
+			))
 			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
 				corev1.Volume{
 					Name: "multus-cni-config",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "multus-cni-config",
-							},
+							LocalObjectReference: corev1.LocalObjectReference{Name: "multus-daemon-config"},
 							Items: []corev1.KeyToPath{
-								{
-									Key:  "cni-conf.json",
-									Path: "00-multus.conf",
-								},
+								{Key: "daemon-config.json", Path: "daemon-config.json"},
 							},
 						},
 					},
 				},
 			))
-
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-run", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/run"},
+				}},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-var-lib-cni-multus", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/cni/multus"},
+				}},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-var-lib-kubelet", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/kubelet"},
+				}},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-run-k8s-cni-cncf-io", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/run/k8s.cni.cncf.io"},
+				}},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-run-netns", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/run/netns"},
+				}},
+			))
 		})).To(BeTrue())
 	})
 
-	It("should not render ConfigMap if config is not specified in CR", func() {
+	It("should render thin DaemonSet with correct structure when DeploymentType is thin", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
+
 		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 		Expect(err).NotTo(HaveOccurred())
 
-		for _, obj := range objs {
-			Expect(obj.GetKind()).ToNot(Equal("ConfigMap"))
-		}
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			initContainers := daemonSet.Spec.Template.Spec.InitContainers
+			Expect(initContainers).To(HaveLen(1))
+			Expect(initContainers[0].Command).To(ContainElement("/install_multus"))
+			Expect(initContainers[0].Args).To(ContainElement("thin"))
+
+			mainContainer := daemonSet.Spec.Template.Spec.Containers[0]
+			Expect(mainContainer.Command).To(ContainElement("/thin_entrypoint"))
+			Expect(mainContainer.Args).To(ContainElement("--multus-conf-file=auto"))
+			Expect(mainContainer.Env).To(BeEmpty())
+
+			volumeMountNames := make([]string, 0, len(mainContainer.VolumeMounts))
+			for _, vm := range mainContainer.VolumeMounts {
+				volumeMountNames = append(volumeMountNames, vm.Name)
+			}
+			Expect(volumeMountNames).To(ContainElement("cninetwork"))
+			Expect(volumeMountNames).To(ContainElement("cnibin"))
+			Expect(volumeMountNames).NotTo(ContainElement("hostroot"))
+			Expect(volumeMountNames).NotTo(ContainElement("multus-cni-config"))
+			Expect(volumeMountNames).NotTo(ContainElement("host-run"))
+		})).To(BeTrue())
 	})
 
 	It("should render Daemonset with custom CNI directories", func() {
@@ -396,4 +544,8 @@ func getMinimalNicClusterPolicyWithMultus() *mellanoxv1alpha1.NicClusterPolicy {
 	cr.Spec.SecondaryNetwork = secondaryNetworkSpec
 
 	return cr
+}
+
+func mountPropagationPtr(p corev1.MountPropagationMode) *corev1.MountPropagationMode {
+	return &p
 }
