@@ -189,7 +189,3 @@ func (n *NicNodePolicy) GetConditions() []metav1.Condition {
 func (n *NicNodePolicy) SetConditions(conditions []metav1.Condition) {
 	n.Status.Conditions = conditions
 }
-
-func init() {
-	SchemeBuilder.Register(&NicNodePolicy{}, &NicNodePolicyList{})
-}

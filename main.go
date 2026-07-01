@@ -320,7 +320,7 @@ func setupDrainController(ctx context.Context, mgr ctrl.Manager, migrationChan c
 		drainKClient,
 		restConfig,
 		mgr.GetScheme(),
-		mgr.GetEventRecorderFor("SR-IOV operator"),
+		mgr.GetEventRecorderFor("SR-IOV operator"), //nolint:staticcheck // TODO: migrate to new events.EventRecorder API
 		orch,
 		migrationChan,
 		mgr.GetLogger().WithValues("Function", "Drain"))

@@ -24,7 +24,7 @@ HACKTMPDIR=$(CURDIR)/hack/tmp
 BUILDDIR=$(CURDIR)/build/_output
 GOFILES=$(shell find . -name "*.go" | grep -vE "(\/vendor\/)|(_test.go)")
 TESTPKGS=./...
-ENVTEST_K8S_VERSION=1.28
+ENVTEST_K8S_VERSION=1.36
 ARCH ?= $(shell go env GOARCH)
 OS ?= $(shell go env GOOS)
 GOPROXY ?=
@@ -123,11 +123,12 @@ $(BUILDDIR)/$(BINARY_NAME): $(GOFILES) | $(BUILDDIR)
 
 # Tools
 GO = go
+GO_MOD_VERSION := $(shell grep '^go ' go.mod | awk '{print $$2}')
 
 # golangci-lint is used to lint go code.
 GOLANGCI_LINT_PKG=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOLANGCI_LINT_BIN= golangci-lint
-GOLANGCI_LINT_VER = v2.11.4
+GOLANGCI_LINT_VER = v2.12.2
 GOLANGCI_LINT = $(TOOLSDIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 $(GOLANGCI_LINT):
 	$(call go-install-tool,$(GOLANGCI_LINT_PKG),$(GOLANGCI_LINT_BIN),$(GOLANGCI_LINT_VER))
@@ -135,7 +136,7 @@ $(GOLANGCI_LINT):
 # controller gen is used to generate manifests and code for Kubernetes controllers.
 CONTROLLER_GEN_PKG = sigs.k8s.io/controller-tools/cmd/controller-gen
 CONTROLLER_GEN_BIN = controller-gen
-CONTROLLER_GEN_VER = v0.19.0
+CONTROLLER_GEN_VER = v0.21.0
 CONTROLLER_GEN = $(TOOLSDIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
 $(CONTROLLER_GEN):
 	$(call go-install-tool,$(CONTROLLER_GEN_PKG),$(CONTROLLER_GEN_BIN),$(CONTROLLER_GEN_VER))
@@ -151,7 +152,7 @@ $(KUSTOMIZE):
 # setup-envtest is used to install test Kubernetes control plane components for envtest-based tests.
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 SETUP_ENVTEST_BIN := setup-envtest
-SETUP_ENVTEST_VER := release-0.22
+SETUP_ENVTEST_VER := release-0.24
 SETUP_ENVTEST := $(abspath $(TOOLSDIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 $(SETUP_ENVTEST):
 	$(call go-install-tool,$(SETUP_ENVTEST_PKG),$(SETUP_ENVTEST_BIN),$(SETUP_ENVTEST_VER))
@@ -461,8 +462,10 @@ dev-skaffold: $(SKAFFOLD) $(CERT_MANAGER_YAML) manifests generate dev-minikube #
 	$(SKAFFOLD) debug --default-repo=$(SKAFFOLD_REGISTRY) --detect-minikube=false
 
 # go-install-tool will 'go install' a go module $1 with version $3 and install it with the name $2-$3 to $TOOLSDIR.
+# GOTOOLCHAIN is set explicitly so tools are always built with the Go version declared in go.mod,
+# rather than the toolchain pinned in the tool's own go.mod.
 define go-install-tool
 	$Q echo "Installing $(2)-$(3) to $(TOOLSDIR)"
-	$Q GOBIN=$(TOOLSDIR) go install $(1)@$(3)
+	$Q GOBIN=$(TOOLSDIR) GOTOOLCHAIN=go$(GO_MOD_VERSION) go install $(1)@$(3)
 	$Q mv $(TOOLSDIR)/$(2) $(TOOLSDIR)/$(2)-$(3)
 endef

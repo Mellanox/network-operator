@@ -75,7 +75,3 @@ type HostDeviceNetworkList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []HostDeviceNetwork `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&HostDeviceNetwork{}, &HostDeviceNetworkList{})
-}

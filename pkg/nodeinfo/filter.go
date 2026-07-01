@@ -16,7 +16,10 @@ limitations under the License.
 
 package nodeinfo
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+)
 
 // A Filter applies a filter on a list of Nodes
 type Filter interface {
@@ -176,7 +179,7 @@ func (ntf *nodeTaintFilter) toleratesTaints(taints []corev1.Taint) bool {
 // toleratesTaint checks if any of the tolerations can tolerate the given taint
 func (ntf *nodeTaintFilter) toleratesTaint(taint corev1.Taint) bool {
 	for _, toleration := range ntf.tolerations {
-		if toleration.ToleratesTaint(&taint) {
+		if toleration.ToleratesTaint(klog.Background(), &taint, true) {
 			return true
 		}
 	}
