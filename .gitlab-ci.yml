@@ -12,30 +12,79 @@ trigger-jenkins-nspect-on-tag:
   timeout: 1h  # network-operator CI usually takes ~30 minutes, after the git tag is pushed
   variables:  # additional variables defined at the gitlab group scope
     JENKINS_JOB_NAME: nspect-automation
+    MAX_RETRIES: 30
     SLEEP_INTERVAL: 120s
   script:
-    # init
-    - apk add --no-cache curl jq yq
+    - apk add --no-cache curl jq
     - retry_counter=0
-    - gh_workflow_name=$(yq ".name" .github/workflows/ci.yaml)
-    # await github actions CI completion
+    # Match the exact GitHub tag run. A branch and a tag can point at the same
+    # commit, so the SHA alone is not a sufficient release identity.
     - |
-      echo "Waiting for $gh_workflow_name to complete... "
-      until curl \
-        -fsSL \
-        -H "Accept: application/vnd.github.v3+json" \
-        -H "Authorization: Bearer $GITHUB_TOKEN" \
-        "https://api.github.com/repos/Mellanox/network-operator/actions/runs?head_sha=$CI_COMMIT_SHA" \
-          | jq \
-            -re \
-            --arg GH_WORKFLOW_NAME "$gh_workflow_name" \
-            'first(.workflow_runs[] | select(.name == $GH_WORKFLOW_NAME) | .status == "completed")';
-      do
+      echo "Waiting for ci.yaml tag run $CI_COMMIT_TAG ($CI_COMMIT_SHA) to complete..."
+      github_run_id=""
+      workflow_status=""
+      workflow_conclusion=""
+      while [ "$retry_counter" -lt "$MAX_RETRIES" ]; do
+        workflow_runs=$(curl \
+          --fail \
+          --get \
+          --silent \
+          --show-error \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          --data-urlencode "event=push" \
+          --data-urlencode "branch=$CI_COMMIT_TAG" \
+          --data-urlencode "head_sha=$CI_COMMIT_SHA" \
+          --data-urlencode "per_page=100" \
+          "https://api.github.com/repos/Mellanox/network-operator/actions/workflows/ci.yaml/runs")
+
+        selected_run=$(echo "$workflow_runs" | jq -c \
+          --arg tag "$CI_COMMIT_TAG" \
+          --arg sha "$CI_COMMIT_SHA" \
+          '[.workflow_runs[] |
+            select(.event == "push" and .head_branch == $tag and .head_sha == $sha)] |
+            sort_by([.run_number, .run_attempt]) | last // empty')
+        if [ -n "$selected_run" ]; then
+          github_run_id=$(echo "$selected_run" | jq -r '.id')
+          workflow_status=$(echo "$selected_run" | jq -r '.status')
+          workflow_conclusion=$(echo "$selected_run" | jq -r '.conclusion // empty')
+
+          if [ "$workflow_status" = "completed" ]; then
+            if [ "$workflow_conclusion" = "success" ]; then
+              echo "GitHub ci.yaml run $github_run_id completed successfully"
+              break
+            fi
+            echo "GitHub ci.yaml run $github_run_id failed with conclusion: $workflow_conclusion" >&2
+            exit 1
+          fi
+        fi
+
         retry_counter=$((retry_counter + 1))
-        echo "  attempt $retry_counter "
-        sleep $SLEEP_INTERVAL
+        echo "  attempt $retry_counter/$MAX_RETRIES"
+        if [ "$retry_counter" -ge "$MAX_RETRIES" ]; then
+          break
+        fi
+        sleep "$SLEEP_INTERVAL"
       done
-      echo "    Workflow $gh_workflow_name complete!"
-    # trigger jenkins job
+
+      if [ -z "$github_run_id" ] || [ "$workflow_status" != "completed" ] || [ "$workflow_conclusion" != "success" ]; then
+        echo "Timed out waiting for a successful ci.yaml run for $CI_COMMIT_TAG ($CI_COMMIT_SHA)" >&2
+        exit 1
+      fi
     - echo "Triggering Jenkins job $JENKINS_JOB_NAME for tag $CI_COMMIT_TAG ..."
-    - curl -fsSLX POST -u "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_JENKINS_TOKEN" "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters?GIT_TAG=$CI_COMMIT_TAG"
+    - response_headers=$(mktemp)
+    - |
+      curl \
+        --fail \
+        --request POST \
+        --silent \
+        --show-error \
+        --dump-header "$response_headers" \
+        --output /dev/null \
+        --user "$SVC_CLOUD_ORCH_CI_USERNAME:$SVC_CLOUD_ORCH_CI_JENKINS_TOKEN" \
+        --data-urlencode "GIT_TAG=$CI_COMMIT_TAG" \
+        "$BLOSSOM_JENKINS_URL/job/$JENKINS_JOB_NAME/buildWithParameters"
+    - jenkins_queue_url=$(awk 'tolower($1) == "location:" { sub("\r$", "", $2); print $2 }' "$response_headers")
+    - test -n "$jenkins_queue_url"
+    - echo "Jenkins accepted $CI_COMMIT_TAG as queue item $jenkins_queue_url"

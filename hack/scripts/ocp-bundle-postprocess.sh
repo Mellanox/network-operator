@@ -24,7 +24,11 @@ fi
 
 # Generate relatedImages
 cd hack
-if ! $GO run release.go --with-sha256 --templateDir ./templates/related-images/ --outputDir .; then
+DIGEST_RELEASE_DEFAULTS_FLAG=()
+if [[ -n "${DIGEST_RELEASE_DEFAULTS:-}" ]]; then
+    DIGEST_RELEASE_DEFAULTS_FLAG+=(--digestReleaseDefaults "$DIGEST_RELEASE_DEFAULTS")
+fi
+if ! $GO run release.go --with-sha256 "${DIGEST_RELEASE_DEFAULTS_FLAG[@]}" --templateDir ./templates/related-images/ --outputDir .; then
     echo "release.go code execution failed"
     exit 1
 fi

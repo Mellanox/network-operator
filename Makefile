@@ -63,6 +63,12 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
 endif
 
+# DIGEST_RELEASE_DEFAULTS optionally points to a release defaults file
+# whose repositories are used for digest lookup. Rendered image references still
+# come from release.yaml. The path is relative to the hack directory.
+DIGEST_RELEASE_DEFAULTS ?=
+DIGEST_RELEASE_DEFAULTS_FLAG = $(if $(strip $(DIGEST_RELEASE_DEFAULTS)),--digestReleaseDefaults $(DIGEST_RELEASE_DEFAULTS))
+
 # Accept proxy settings for docker
 # To pass proxy for Docker invoke it as 'make image HTTP_POXY=http://192.168.0.1:8080'
 DOCKERARGS=
@@ -410,13 +416,13 @@ generate: $(CONTROLLER_GEN) ## Generate code
 
 .PHONY: bundle
 bundle: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate bundle manifests and metadata, then validate generated files.
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/config/manager --outputDir ../config/manager/
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/samples/ --outputDir ../config/samples/
+	cd hack && $(GO) run release.go --with-sha256 $(DIGEST_RELEASE_DEFAULTS_FLAG) --templateDir ./templates/config/manager --outputDir ../config/manager/
+	cd hack && $(GO) run release.go --with-sha256 $(DIGEST_RELEASE_DEFAULTS_FLAG) --templateDir ./templates/samples/ --outputDir ../config/samples/
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	git checkout -- config/manager/kustomization.yaml
-	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) TAG=$(TAG) hack/scripts/ocp-bundle-postprocess.sh
+	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) TAG=$(TAG) DIGEST_RELEASE_DEFAULTS="$(DIGEST_RELEASE_DEFAULTS)" hack/scripts/ocp-bundle-postprocess.sh
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
