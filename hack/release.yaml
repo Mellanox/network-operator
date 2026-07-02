@@ -117,7 +117,7 @@ nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
-  version: network-operator-v26.4.0-beta.9
+  version: 0e20a13
   nSpectScope: gov-ready
   dependabotSyncManaged: true
 nicFeatureDiscovery:
