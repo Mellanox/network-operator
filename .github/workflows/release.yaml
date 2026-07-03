@@ -99,12 +99,11 @@ jobs:
           ref: ${{ needs.determine-versions.outputs.base_branch }}
       - name: Validate downstreamFork consistency across entries sharing a sourceRepository
         run: |
-          inconsistent=$(yq -o=json 'to_entries
+          inconsistent=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries
               | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit")
                     | {repo: .value.sourceRepository, fork: (.value.downstreamFork // false)})
               | group_by(.repo)
-              | map(select((map(.fork) | unique | length) > 1) | .[0].repo)' \
-            hack/release.yaml)
+              | map(select((map(.fork) | unique | length) > 1) | .[0].repo)')
           if ! echo "$inconsistent" | jq -e '. == []' > /dev/null; then
             echo "ERROR: downstreamFork values disagree across entries sharing a sourceRepository:"
             echo "$inconsistent"
@@ -113,22 +112,22 @@ jobs:
       - id: set-components
         run: |
           # Extract unique sourceRepository names for tagging
-          repos=$(yq -o=json 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.sourceRepository)' hack/release.yaml | jq -c 'unique')
+          repos=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit") | .value.sourceRepository) | unique')
           echo "Managed repositories: $repos"
           echo "managed_repos=$(echo $repos)" >> $GITHUB_OUTPUT
 
           # Build a {sourceRepository: downstreamFork} map for downstream lookup.
-          forks=$(yq -o=json 'to_entries
+          forks=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries
               | map(select(.value.sourceRepository != null and .value.sourceRepository != "NVIDIA/k8s-launch-kit")
                     | {(.value.sourceRepository): (.value.downstreamFork // false)})
-              | add // {}' hack/release.yaml | jq -c .)
+              | add // {}')
           echo "downstream forks map: $forks"
           echo "downstream_forks=$forks" >> $GITHUB_OUTPUT
       - id: set-dependabot-repos
         run: |
           # Repos whose dependabot.yaml we own (dependabotSyncManaged: true).
           # Components keyed by sourceRepository; deduped to one entry per repo.
-          sync=$(yq -o=json 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique' hack/release.yaml | jq -c .)
+          sync=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique')
           # Mofed has no sourceRepository; its image is built from doca-driver-build
           # (added to the matrix via include), so map its flag to that repo.
           if [ "$(yq '.Mofed.dependabotSyncManaged // false' hack/release.yaml)" = "true" ] || \
