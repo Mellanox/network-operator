@@ -96,7 +96,7 @@ CniPlugins:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
   downstreamFork: true
-  version: network-operator-v26.4.0-beta.9
+  version: 17c9301e
   nSpectScope: gov-ready
   dependabotSyncManaged: true
 Multus:
