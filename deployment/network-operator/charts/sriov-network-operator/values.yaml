@@ -9,6 +9,19 @@ operator:
   nodeSelector: {}
   # custom extra environment variables for the operator container
   extraEnv: {}
+  # TLS configuration for admission webhooks and metrics proxy (Kubernetes only).
+  # On OpenShift, TLS settings are read from the config.openshift.io/v1 APIServer TLS profile.
+  # Leave empty to use Go defaults.
+  tls:
+    # Comma-separated list of TLS cipher suites (IANA names).
+    # Example: "TLS_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+    cipherSuites: ""
+    # Minimum TLS version.
+    # Example: "VersionTLS12" or "VersionTLS13"
+    minVersion: ""
+    # Comma-separated list of TLS curve/group names for key exchange.
+    # Example: "X25519,secp256r1,secp384r1"
+    curvePreferences: ""
   affinity:
     nodeAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:

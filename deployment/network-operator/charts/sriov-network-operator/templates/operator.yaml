@@ -135,6 +135,12 @@ spec:
             - name: {{ $k }}
               value: {{ $v | toString | quote }}
             {{- end }}
+            - name: TLS_CIPHER_SUITES
+              value: {{ .Values.operator.tls.cipherSuites | quote }}
+            - name: TLS_MIN_VERSION
+              value: {{ .Values.operator.tls.minVersion | quote }}
+            - name: TLS_CURVE_PREFERENCES
+              value: {{ .Values.operator.tls.curvePreferences | quote }}
         {{- if .Values.operator.admissionControllers.enabled }}
             - name: OPERATOR_WEBHOOK_NETWORK_POLICY_PORT
               value: "{{ .Values.operator.admissionControllers.networkPolicy.operator.port }}"
