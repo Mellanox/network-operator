@@ -71,6 +71,14 @@ spec:
                     description: Configuration template applied from the NicConfigurationTemplate
                       CR
                     properties:
+                      force:
+                        default: false
+                        description: |-
+                          Force passes `--force` to mlxconfig set commands. When set, the daemon
+                          applies the nv config batch and set_system_conf with --force, letting
+                          mlxconfig accept a batch it would otherwise refuse due to implicit
+                          parameter dependencies.
+                        type: boolean
                       gpuDirectOptimized:
                         description: GPU Direct optimization settings
                         properties:
@@ -85,11 +93,27 @@ spec:
                         - env
                         type: object
                       linkType:
-                        description: LinkType to be configured, Ethernet|Infiniband
+                        description: |-
+                          LinkType to be configured, Ethernet|Infiniband. Required unless networkBay is configured;
+                          for Network Bay the link type is governed by the system configuration and must not be set.
                         enum:
                         - Ethernet
                         - Infiniband
                         type: string
+                      networkBay:
+                        description: NetworkBay configures a ConnectX-9 Network Bay
+                          card (per-ASIC set_system_conf). Allowed only for ConnectX-9
+                          (nicType 1025).
+                        properties:
+                          conf:
+                            description: |-
+                              Conf is the <conf_name> argument passed to `mlxconfig set_system_conf`.
+                              The per-ASIC index is appended automatically by the daemon based on the
+                              device's detected Network Bay ASIC index, e.g. set_system_conf <conf>[0].
+                            type: string
+                        required:
+                        - conf
+                        type: object
                       numVfs:
                         description: Number of VFs to be configured
                         type: integer
@@ -124,14 +148,17 @@ spec:
                           properties:
                             name:
                               description: Name of the arbitrary nvconfig parameter
+                              maxLength: 64
                               type: string
                             value:
                               description: Value of the arbitrary nvconfig parameter
+                              maxLength: 128
                               type: string
                           required:
                           - name
                           - value
                           type: object
+                        maxItems: 128
                         type: array
                       roceOptimized:
                         description: RoCE optimization settings
@@ -142,6 +169,39 @@ spec:
                           qos:
                             description: Quality of Service settings
                             properties:
+                              cableLen:
+                                description: Cable length in meters, used for ECN
+                                  buffer threshold calculation
+                                type: integer
+                              ecn:
+                                description: ECN (Explicit Congestion Notification)
+                                  settings
+                                properties:
+                                  enabled:
+                                    description: Enable ECN on the specified priority
+                                    type: boolean
+                                  priority:
+                                    description: Traffic class / priority to enable
+                                      ECN on (0-7)
+                                    maximum: 7
+                                    minimum: 0
+                                    type: integer
+                                required:
+                                - enabled
+                                - priority
+                                type: object
+                              pauseFrames:
+                                description: Global pause frame settings (disable
+                                  when using PFC)
+                                properties:
+                                  enabled:
+                                    description: Enable global pause frames (autoneg,
+                                      rx, tx). Set to false to disable all pause frames
+                                      (recommended when PFC is used).
+                                    type: boolean
+                                required:
+                                - enabled
+                                type: object
                               pfc:
                                 description: Priority-based Flow Control configuration,
                                   e.g. "0,0,0,1,0,0,0,0"
@@ -151,12 +211,45 @@ spec:
                                 description: 8-bit value for type of service
                                 type: integer
                               trust:
-                                description: Trust mode for QoS settings, e.g. trust-dscp
+                                description: Trust mode for QoS settings, e.g. dscp
                                 type: string
                             required:
                             - pfc
                             - trust
                             type: object
+                          roceMode:
+                            description: 'RoCE mode: 1 for RoCE v1, 2 for RoCE v2.
+                              Only effective when roceOptimized.enabled is true.'
+                            enum:
+                            - 1
+                            - 2
+                            type: integer
+                        required:
+                        - enabled
+                        type: object
+                      runtimePerformanceOptimized:
+                        description: Runtime NIC performance tuning (ring buffers,
+                          channels, LRO) applied via ethtool
+                        properties:
+                          combinedChannels:
+                            description: Number of combined channels (ethtool -L combined)
+                            minimum: 1
+                            type: integer
+                          enabled:
+                            description: Enable runtime performance optimization
+                            type: boolean
+                          lro:
+                            description: Enable Large Receive Offload (ethtool -K
+                              lro)
+                            type: boolean
+                          rxRingSize:
+                            description: RX ring buffer size (ethtool -G rx)
+                            minimum: 1
+                            type: integer
+                          txRingSize:
+                            description: TX ring buffer size (ethtool -G tx)
+                            minimum: 1
+                            type: integer
                         required:
                         - enabled
                         type: object
@@ -199,12 +292,8 @@ spec:
                             type: string
                           version:
                             description: Version of the Spectrum-X architecture to
-                              optimize for
-                            enum:
-                            - RA1.3
-                            - RA2.0
-                            - RA2.1
-                            - RA2.2
+                              optimize for. Should match the name of the config map
+                              with Spectrum-X profile
                             type: string
                         required:
                         - enabled
@@ -221,25 +310,28 @@ spec:
                           rule: '!has(self.multiplaneMode) || !has(self.numberOfPlanes)
                             || self.multiplaneMode == ''none'' || self.numberOfPlanes
                             != 1'
-                        - message: when Version is RA1.3 or RA2.0, MultiplaneMode
-                            must be none and numberOfPlanes must be 1
-                          rule: '!has(self.version) || !has(self.multiplaneMode) ||
-                            !has(self.numberOfPlanes) || !(self.version == ''RA1.3''
-                            || self.version == ''RA2.0'') || (self.multiplaneMode
-                            == ''none'' && self.numberOfPlanes == 1)'
                     required:
-                    - linkType
                     - numVfs
                     type: object
                     x-kubernetes-validations:
                     - message: spectrumXOptimized can be enabled only when linkType=='Ethernet'
-                        and numVfs==1
+                        (or unset for Network Bay) and numVfs==1
                       rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
-                        || (self.linkType == ''Ethernet'' && self.numVfs == 1)'
+                        || ((!has(self.linkType) || self.linkType == ''Ethernet'')
+                        && self.numVfs == 1)'
                     - message: spectrumXOptimized includes RoCE optimizations, so
                         separate roceOptimized section must not be enabled
                       rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
                         || !(has(self.roceOptimized) && self.roceOptimized.enabled)'
+                    - message: linkType is required unless networkBay is configured
+                      rule: has(self.networkBay) || has(self.linkType)
+                    - message: linkType must not be set when networkBay is configured
+                        (the Network Bay link type is governed by the system configuration)
+                      rule: '!has(self.networkBay) || !has(self.linkType)'
+                    - message: rawNvConfig parameter names must not use index-range
+                        syntax like NAME[0..3]; list each index explicitly (NAME[0],
+                        NAME[1], ...)
+                      rule: '!has(self.rawNvConfig) || self.rawNvConfig.all(p, !p.name.matches(''.*[[][0-9]+[.][.][0-9]+[]].*''))'
                 type: object
               firmware:
                 description: Firmware specifies the fw upgrade policy requested by
@@ -362,6 +454,24 @@ spec:
                 description: ModelName is the model name of the device, e.g. ConnectX-6
                   or BlueField-3
                 type: string
+              networkBay:
+                description: |-
+                  NetworkBay holds ConnectX-9 Network Bay ("orchid") identity for the device.
+                  Set only when the device is detected as part of a Network Bay card.
+                properties:
+                  asic:
+                    description: Asic is the orchid ASIC index (0 or 1) inferred from
+                      the MGIR.ga register field.
+                    type: integer
+                  peerPci:
+                    description: |-
+                      PeerPCI is the PCI address of the sibling ASIC in the same Network Bay card
+                      (the other device sharing this device's serial number). Empty if the peer
+                      could not be resolved.
+                    type: string
+                required:
+                - asic
+                type: object
               node:
                 description: Node where the device is located
                 type: string
@@ -392,7 +502,12 @@ spec:
                 description: Product Serial ID of the device, e.g. MT_0000000221
                 type: string
               serialNumber:
-                description: Serial number of the device, e.g. MT2116X09299
+                description: |-
+                  SerialNumber of the device, e.g. MT2116X09299. Informational only — not guaranteed
+                  unique across all cards on a host: on systems with embedded NICs sharing a flashed
+                  VPD image (e.g. HGX B300) multiple cards will report the same serial number. The
+                  operator identifies NICs uniquely by their PCI device address (the `pci` field on
+                  the first entry in `ports`, with the function digit stripped).
                 type: string
               superNIC:
                 description: SuperNIC indicates if the device is a SuperNIC
