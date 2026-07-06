@@ -17,6 +17,8 @@ spec:
     spec:
       # Required by the sysfs collector only.
       hostNetwork: true
+      hostIPC: true
+      restartPolicy: Always
       serviceAccount: doca-telemetry-service
       nodeSelector:
         # We need to run it after DOCA driver is started to be able successfully restart driver by a container.
@@ -65,6 +67,46 @@ spec:
         # Required by the pod_resources collector only.
         - name: cni
           mountPath: /var/run/k8s.cni.cncf.io/devinfo/cni
+        - name: telemetry-service-config
+          mountPath: /config
+        - name: telemetry-service-data
+          mountPath: /data
+        - name: telemetry-service-ipc-sockets
+          mountPath: /tmp/ipc_sockets
+        - name: telemetry-ipc-shm
+          mountPath: /dev/shm
+        - name: telemetry-service-logs
+          mountPath: /var/log
+        # diagnostic_data / low_freq_debug provider
+        - name: dev-infiniband
+          mountPath: /dev/infiniband
+        - name: sys-class-infiniband
+          mountPath: /sys/class/infiniband
+        - name: dev-fwctl
+          mountPath: /dev/fwctl
+        - name: sys-class-fwctl
+          mountPath: /sys/class/fwctl
+        # ppcc_eth and amber providers
+        - name: dev-mst
+          mountPath: /dev/mst
+        # ppcc_eth provider
+        - name: mft-sdk
+          mountPath: /usr/lib64/mft
+        - name: etc-mft
+          mountPath: /etc/mft
+        - name: mft-share
+          mountPath: /usr/share/mft
+        # amber provider
+        - name: host-mlxlink-ext
+          mountPath: /usr/bin/mlxlink_ext
+          readOnly: true
+        - name: host-mdevices-info
+          mountPath: /usr/bin/mdevices_info
+          readOnly: true
+        - name: sys-bus-pci
+          mountPath: /sys/bus/pci
+        - name: sys-class-net
+          mountPath: /sys/class/net
         env:
         # Required by the pod_resources collector only.
         - name: MY_POD_UID
@@ -91,6 +133,78 @@ spec:
         - name: cni
           hostPath:
             path: /var/run/k8s.cni.cncf.io/devinfo/cni/
+        - name: telemetry-service-config
+          hostPath:
+            path: /host/telemetry/config
+            type: DirectoryOrCreate
+        - name: telemetry-service-data
+          hostPath:
+            path: /host/telemetry/data
+            type: DirectoryOrCreate
+        - name: telemetry-service-ipc-sockets
+          hostPath:
+            path: /host/telemetry/ipc_sockets
+            type: DirectoryOrCreate
+        - name: telemetry-ipc-shm
+          hostPath:
+            path: /dev/shm/telemetry
+            type: DirectoryOrCreate
+        - name: telemetry-service-logs
+          hostPath:
+            path: /var/log/doca/telemetry
+            type: DirectoryOrCreate
+        # diagnostic_data / low_freq_debug provider: DOCA device access via verbs and fwctl
+        - name: dev-infiniband
+          hostPath:
+            path: /dev/infiniband
+            type: DirectoryOrCreate
+        - name: sys-class-infiniband
+          hostPath:
+            path: /sys/class/infiniband
+            type: DirectoryOrCreate
+        - name: dev-fwctl
+          hostPath:
+            path: /dev/fwctl
+            type: DirectoryOrCreate
+        - name: sys-class-fwctl
+          hostPath:
+            path: /sys/class/fwctl
+            type: DirectoryOrCreate
+        # ppcc_eth and amber providers: MST char devices
+        - name: dev-mst
+          hostPath:
+            path: /dev/mst
+            type: DirectoryOrCreate
+        # ppcc_eth provider: MFT PRM Access Register SDK (libmlxreg_sdk)
+        - name: mft-sdk
+          hostPath:
+            path: /usr/lib64/mft
+            type: DirectoryOrCreate
+        - name: etc-mft
+          hostPath:
+            path: /etc/mft
+            type: DirectoryOrCreate
+        - name: mft-share
+          hostPath:
+            path: /usr/share/mft
+            type: DirectoryOrCreate
+        # amber provider: host MFT tools and sysfs for file-based MST discovery
+        - name: host-mlxlink-ext
+          hostPath:
+            path: /usr/bin/mlxlink_ext
+            type: File
+        - name: host-mdevices-info
+          hostPath:
+            path: /usr/bin/mdevices_info
+            type: File
+        - name: sys-bus-pci
+          hostPath:
+            path: /sys/bus/pci
+            type: DirectoryOrCreate
+        - name: sys-class-net
+          hostPath:
+            path: /sys/class/net
+            type: DirectoryOrCreate
 {{ if .DeployConfigMap }}
 ---
 apiVersion: v1
