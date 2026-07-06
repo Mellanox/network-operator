@@ -96,3 +96,11 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - nv-ipam.nvidia.com
+  resources:
+  - cidrpools
+  verbs:
+  - get
+  - list
+  - watch
