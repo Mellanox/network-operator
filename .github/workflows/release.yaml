@@ -97,6 +97,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-versions.outputs.base_branch }}
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-source
       - name: Validate downstreamFork consistency across entries sharing a sourceRepository
         run: |
           inconsistent=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries
@@ -126,12 +130,16 @@ jobs:
       - id: set-dependabot-repos
         run: |
           # Repos whose dependabot.yaml we own (dependabotSyncManaged: true).
+          # This ownership metadata is workflow policy, so read it from the
+          # workflow commit rather than the release branch. Older release
+          # branches may not carry the marker fields.
+          release_metadata=workflow-source/hack/release.yaml
           # Components keyed by sourceRepository; deduped to one entry per repo.
-          sync=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique')
+          sync=$(yq -o=json '.' "$release_metadata" | jq -c 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique')
           # Mofed has no sourceRepository; its image is built from doca-driver-build
           # (added to the matrix via include), so map its flag to that repo.
-          if [ "$(yq '.Mofed.dependabotSyncManaged // false' hack/release.yaml)" = "true" ] || \
-             [ "$(yq '.MofedStigFips.dependabotSyncManaged // false' hack/release.yaml)" = "true" ]; then
+          if [ "$(yq '.Mofed.dependabotSyncManaged // false' "$release_metadata")" = "true" ] || \
+             [ "$(yq '.MofedStigFips.dependabotSyncManaged // false' "$release_metadata")" = "true" ]; then
             sync=$(echo "$sync" | jq -c '. + ["doca-driver-build"] | unique')
           fi
           echo "Dependabot-managed repositories: $sync"
