@@ -111,7 +111,7 @@ Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: network-operator-v26.7.0-beta.2
+  version: 4ec3b3f
   nSpectScope: gov-ready
   dependabotSyncManaged: true
 nvIpam:
