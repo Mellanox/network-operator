@@ -494,7 +494,9 @@ jobs:
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
             git add hack/release.yaml
-            git add hack/release-nvstaging.yaml
+            if ! echo "$APP_VERSION" | grep -q '-'; then
+              git add hack/release-nvstaging.yaml
+            fi
             git add scripts/sosreport/network-operator-sosreport.sh
             git add scripts/sosreport/kubectl-netop_sosreport
             git commit -sam "cicd: release Network Operator $APP_VERSION"
