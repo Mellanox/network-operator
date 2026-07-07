@@ -150,14 +150,14 @@ nicConfigurationOperator:
   image: nic-configuration-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.7.0-beta.2
+  version: 9dac0e8
   nSpectScope: general
   dependabotSyncManaged: true
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.7.0-beta.2
+  version: 9dac0e8
   nSpectScope: general
   dependabotSyncManaged: true
 nicConfigurationOperatorStigFipsUbuntu:
