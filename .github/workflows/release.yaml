@@ -90,6 +90,75 @@ jobs:
       release_branch: ${{ steps.set-version.outputs.release_branch }}
       sync_dependabot: ${{ steps.set-version.outputs.sync_dependabot }}
 
+  prepare-reusable-workflows-release:
+    needs: determine-versions
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
+      RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
+      REUSABLE_WORKFLOWS_REPO: cloud-orchestration-reusable-workflows
+    steps:
+      - name: Skip reusable workflows release prep for prereleases
+        if: ${{ contains(needs.determine-versions.outputs.app_version, '-') }}
+        run: echo "Reusable workflows release branch pinning runs only for GA releases"
+
+      - name: Ensure reusable workflows release branch exists
+        if: ${{ !contains(needs.determine-versions.outputs.app_version, '-') }}
+        run: |
+          REPO="${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}"
+          if gh api "repos/${REPO}/branches/${RELEASE_BRANCH}" --silent >/dev/null 2>&1; then
+            echo "Reusable workflows release branch ${RELEASE_BRANCH} already exists"
+            exit 0
+          fi
+
+          DEFAULT_SHA=$(gh api "repos/${REPO}/commits/HEAD" --jq .sha)
+          echo "Creating reusable workflows release branch ${RELEASE_BRANCH} from default branch (${DEFAULT_SHA})"
+          gh api "repos/${REPO}/git/refs" \
+            -f ref="refs/heads/${RELEASE_BRANCH}" \
+            -f sha="${DEFAULT_SHA}"
+
+      - name: Sync Dependabot config for reusable workflows release branch
+        if: ${{ !contains(needs.determine-versions.outputs.app_version, '-') }}
+        continue-on-error: true
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}.git"
+          cd "$REUSABLE_WORKFLOWS_REPO"
+          git config user.name  nvidia-ci-cd
+          git config user.email svc-cloud-orch-gh@nvidia.com
+          DEFAULT_BRANCH=$(gh repo view "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" --json defaultBranchRef -q .defaultBranchRef.name)
+          git checkout "$DEFAULT_BRANCH"
+          git pull origin "$DEFAULT_BRANCH"
+
+          CONFIG=.github/dependabot.yml
+          if yq -e '.updates[] | select(.["target-branch"] == strenv(RELEASE_BRANCH))' "$CONFIG" >/dev/null 2>&1; then
+            echo "$RELEASE_BRANCH already present in $CONFIG; nothing to do"
+            exit 0
+          fi
+          REUSABLE_DEPENDABOT_BRANCH="dependabot-sync-$RELEASE_BRANCH"
+          if [ -n "$(gh pr list --repo "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" --head "$REUSABLE_DEPENDABOT_BRANCH" --state open --json number -q '.[].number')" ]; then
+            echo "dependabot-sync PR for $RELEASE_BRANCH already open; nothing to do"
+            exit 0
+          fi
+
+          yq -i '.updates += [
+            .updates[] | select(has("target-branch") | not)
+            | . + {
+                "target-branch": strenv(RELEASE_BRANCH),
+                "ignore": ((.ignore // []) + [{"dependency-name": "*", "update-types": ["version-update:semver-major", "version-update:semver-minor"]}])
+              }
+          ]' "$CONFIG"
+
+          git checkout -b "$REUSABLE_DEPENDABOT_BRANCH"
+          git commit -sam "ci: add Dependabot config for $RELEASE_BRANCH"
+          git push --force-with-lease -u origin "$REUSABLE_DEPENDABOT_BRANCH"
+          gh pr create \
+            --repo "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" \
+            --base "$DEFAULT_BRANCH" \
+            --head "$REUSABLE_DEPENDABOT_BRANCH" \
+            --title "ci: Dependabot config for $RELEASE_BRANCH" \
+            --body "Adds Docker image version updates for the \`$RELEASE_BRANCH\` reusable-workflows release branch (patch-only). Auto-opened by the network-operator [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) when the GA release branch was cut."
+
   get-managed-components:
     needs: determine-versions
     runs-on: ubuntu-24.04
@@ -151,7 +220,7 @@ jobs:
 
   create-tags-for-components:
     runs-on: ubuntu-24.04
-    needs: [determine-versions, get-managed-components]
+    needs: [determine-versions, prepare-reusable-workflows-release, get-managed-components]
     strategy:
       fail-fast: false  # allow all jobs to run independently
       matrix:
@@ -219,9 +288,45 @@ jobs:
               exit 1
             fi
           fi
+      - name: Pin reusable workflows for selected GA components
+        if: >-
+          !contains(needs.determine-versions.outputs.app_version, '-') &&
+          contains(fromJson('["nic-configuration-operator","sriov-network-operator","spectrum-x-operator"]'), matrix.repo)
+        run: |
+          cd ${{ matrix.repo }}
 
-          # Preserve the exact commit selected for tagging. The optional Dependabot
-          # step below may switch to the repository's default branch.
+          if [ ! -d .github/workflows ]; then
+            echo "${{ matrix.repo }} has no workflow directory; nothing to pin"
+            exit 0
+          fi
+
+          workflow_files=$(grep -R -l 'Mellanox/cloud-orchestration-reusable-workflows/.github/workflows/' .github/workflows --include='*.yml' --include='*.yaml' || true)
+          if [ -z "$workflow_files" ]; then
+            echo "::warning::${{ matrix.repo }} is selected for reusable workflow pinning but has no reusable workflow references"
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            perl -0pi -e 's#(Mellanox/cloud-orchestration-reusable-workflows/\.github/workflows/[^@\s]+@)main(?=[\s"'\''"]|$)#${1}$ENV{RELEASE_BRANCH}#g' "$file"
+          done <<< "$workflow_files"
+
+          if git diff --quiet -- .github/workflows; then
+            echo "Reusable workflow references already point at $RELEASE_BRANCH"
+            exit 0
+          fi
+
+          git diff -- .github/workflows
+          git add .github/workflows
+          git commit -m "ci: pin reusable workflows to $RELEASE_BRANCH"
+          git push origin "HEAD:$RELEASE_BRANCH"
+
+      # Preserve the exact commit selected for tagging. This happens after the
+      # optional GA reusable-workflow pinning commit and before Dependabot sync,
+      # which may switch to the repository's default branch.
+      - name: Store release tag commit
+        run: |
+          cd ${{ matrix.repo }}
           echo "TAG_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # Add a target-branch Dependabot entry for the new release branch on the
