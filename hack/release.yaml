@@ -52,7 +52,7 @@ SriovCni:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
   downstreamFork: true
-  version: network-operator-v26.7.0-beta.2
+  version: "3851590"
   nSpectScope: gov-ready
 SriovIbCni:
   image: ib-sriov-cni
