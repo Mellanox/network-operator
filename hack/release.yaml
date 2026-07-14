@@ -241,5 +241,5 @@ DraDriverSriov:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: dra-driver-sriov
   downstreamFork: true
-  version: network-operator-v26.7.0-beta.2
+  version: c492986
   nSpectScope: gov-ready
