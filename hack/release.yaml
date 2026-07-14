@@ -14,7 +14,7 @@ NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: network-operator-init-container
-  version: network-operator-v26.7.0-beta.2
+  version: f906717
   nSpectScope: gov-ready
   dependabotSyncManaged: true
 SriovNetworkOperator:
