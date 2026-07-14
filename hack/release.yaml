@@ -192,7 +192,7 @@ maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: network-operator-v26.7.0-beta.2
+  version: ae63100
   chartLocation: deployment/maintenance-operator-chart
   chartName: maintenance-operator-chart
   nSpectScope: gov-ready
