@@ -99,12 +99,12 @@ jobs:
       RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
       REUSABLE_WORKFLOWS_REPO: cloud-orchestration-reusable-workflows
     steps:
-      - name: Skip reusable workflows release prep for prereleases
-        if: ${{ contains(needs.determine-versions.outputs.app_version, '-') }}
-        run: echo "Reusable workflows release branch pinning runs only for GA releases"
+      - name: Skip reusable workflows release prep for beta releases
+        if: ${{ needs.determine-versions.outputs.sync_dependabot != 'true' }}
+        run: echo "Reusable workflows release branch pinning runs only for RC and GA releases"
 
       - name: Ensure reusable workflows release branch exists
-        if: ${{ !contains(needs.determine-versions.outputs.app_version, '-') }}
+        if: ${{ needs.determine-versions.outputs.sync_dependabot == 'true' }}
         run: |
           REPO="${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}"
           if gh api "repos/${REPO}/branches/${RELEASE_BRANCH}" --silent >/dev/null 2>&1; then
@@ -119,7 +119,7 @@ jobs:
             -f sha="${DEFAULT_SHA}"
 
       - name: Sync Dependabot config for reusable workflows release branch
-        if: ${{ !contains(needs.determine-versions.outputs.app_version, '-') }}
+        if: ${{ needs.determine-versions.outputs.sync_dependabot == 'true' }}
         continue-on-error: true
         run: |
           git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}.git"
@@ -288,9 +288,9 @@ jobs:
               exit 1
             fi
           fi
-      - name: Pin reusable workflows for selected GA components
+      - name: Pin reusable workflows for selected RC/GA components
         if: >-
-          !contains(needs.determine-versions.outputs.app_version, '-') &&
+          needs.determine-versions.outputs.sync_dependabot == 'true' &&
           contains(fromJson('["nic-configuration-operator","sriov-network-operator","spectrum-x-operator"]'), matrix.repo)
         run: |
           cd ${{ matrix.repo }}
@@ -363,14 +363,13 @@ jobs:
             exit 0
           fi
 
-          # Clone every default-branch update entry, retarget it to the release
-          # branch, and restrict the LTS branch to patch-only bumps.
+          # Clone every default-branch update entry and retarget it to the
+          # release branch. Default-branch ignore rules are not copied so
+          # release branches receive all Dependabot version updates.
           yq -i '.updates += [
             .updates[] | select(has("target-branch") | not)
-            | . + {
-                "target-branch": strenv(RELEASE_BRANCH),
-                "ignore": ((.ignore // []) + [{"dependency-name": "*", "update-types": ["version-update:semver-major", "version-update:semver-minor"]}])
-              }
+            | del(.ignore)
+            | . + {"target-branch": strenv(RELEASE_BRANCH)}
           ]' "$CONFIG"
 
           git checkout -b dependabot-sync-$RELEASE_BRANCH
