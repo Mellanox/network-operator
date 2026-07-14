@@ -45,7 +45,7 @@ node-feature-discovery:
 
   image:
     repository: nvcr.io/nvstaging/mellanox/node-feature-discovery
-    tag: network-operator-v26.7.0-beta.2
+    tag: 8a8816f1
     pullPolicy: IfNotPresent
   # imagePullSecrest for node-feature-discovery Network Operator related images
   #imagePullSecrets: []
