@@ -142,18 +142,6 @@ data:
     # If not set, the Prometheus endpoint is disabled.
     prometheus=http://0.0.0.0:9189
 
-    # Prometheus can use data field as index to keep several data records with
-    # different index value. Index fields will be added to Prometheus labels
-    # Comma-separated counterset description for Prometheus indexing
-    #prometheus-indexes=idx1,idx2
-
-    # Comma-separated fieldset description for Prometheus indexing
-    #prometheus-fset-indexes=idx1,idx2
-    prometheus-fset-indexes=device_name,device_id,pod_name,id
-
-    # Comma-separated list of counter names to be ignored by Prometheus exporter
-    #prometheus-ignore-names=counter_name1,counter_name_2
-
     # Comma-separated list of data source tags to be ignored by Prometheus exporter
     prometheus-ignore-tags=FI_metrics
 {{end}}
