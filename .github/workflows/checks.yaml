@@ -11,7 +11,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.x'
+          go-version: '1.25.x'
       - name: checkout
         uses: actions/checkout@v6
       - name: lint
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.x'
+          go-version: '1.25.x'
       - name: checkout
         uses: actions/checkout@v6
       - name: check manifests
@@ -59,7 +59,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.x'
+          go-version: '1.25.x'
       - name: checkout
         uses: actions/checkout@v6
       - name: check go modules
@@ -73,7 +73,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.x'
+          go-version: '1.25.x'
       - name: checkout
         uses: actions/checkout@v6
       - name: check release-build
@@ -87,7 +87,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.x'
+          go-version: '1.25.x'
       - name: checkout
         uses: actions/checkout@v6
       - name: test
