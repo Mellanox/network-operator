@@ -232,7 +232,7 @@ nodeFeatureDiscovery:
   nSpectScope: gov-ready
 k8sLaunchKit:
   image: k8s-launch-kit
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
   sourceRepository: NVIDIA/k8s-launch-kit
   version: v26.4.0
   nSpectScope: general
