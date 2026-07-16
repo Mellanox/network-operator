@@ -27,7 +27,14 @@ spec:
     singular: spectrumxrailpoolconfig
   scope: Namespaced
   versions:
-    - name: v1alpha2
+    - additionalPrinterColumns:
+        - jsonPath: .status.syncStatus
+          name: Status
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha2
       schema:
         openAPIV3Schema:
           description: SpectrumXRailPoolConfig is the Schema for the spectrumxrailpoolconfigs
@@ -126,10 +133,44 @@ spec:
               description: SpectrumXRailPoolConfigStatus defines the observed state
                 of SpectrumXRailPoolConfig.
               properties:
+                nodeStates:
+                  description: NodeStates provide a finer view of the observed state
+                  items:
+                    description: NodeState defines a finer-grained view of the observed
+                      state of SpectrumXRailPoolConfig.
+                    properties:
+                      message:
+                        description: |-
+                          Message is a human-readable message indicating details about why
+                          the state is in this condition
+                        type: string
+                      name:
+                        description: Name of the node this state refers to.
+                        type: string
+                      observedGeneration:
+                        description: ObservedGeneration is the SpectrumXRailPoolConfig
+                          generation this node state was reported for.
+                        format: int64
+                        type: integer
+                      state:
+                        description: The state of the node configuration. ("Unknown",
+                          "InProgress", "Failed", "Succeeded")
+                        enum:
+                          - Unknown
+                          - InProgress
+                          - Failed
+                          - Succeeded
+                        type: string
+                    required:
+                      - name
+                      - state
+                    type: object
+                  type: array
                 observedGeneration:
                   format: int64
                   type: integer
                 syncStatus:
+                  description: State represents reconcile state of the system.
                   type: string
               type: object
           type: object
