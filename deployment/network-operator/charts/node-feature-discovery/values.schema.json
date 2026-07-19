@@ -1081,6 +1081,19 @@
                     "$ref": "#/$defs/_definitions.json/definitions/io.k8s.api.core.v1.PodSpec/properties/nodeSelector",
                     "type": "object"
                 },
+                "ownerRefs": {
+                    "description": "Objects used as owner references for NodeFeature objects. Valid values are `node`, `pod`, and `ds`. This value is passed through `-owner-refs` and takes precedence over `worker.config.core.ownerRefs`.",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "node",
+                            "pod",
+                            "ds"
+                        ]
+                    }
+                },
                 "podSecurityContext": {
                     "description": "[Pod SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod) of the nfd-worker pods.",
                     "$ref": "#/$defs/_definitions.json/definitions/io.k8s.api.core.v1.PodSecurityContext",

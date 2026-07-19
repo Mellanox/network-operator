@@ -247,6 +247,7 @@ NFD.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | worker.enable | bool | `true` | Specifies whether nfd-worker should be deployed |
+| worker.ownerRefs | list | `["pod","ds"]` | Objects used as owner references for NodeFeature objects. Valid values are `node`, `pod`, and `ds`. This value is passed through `-owner-refs` and takes precedence over `worker.config.core.ownerRefs`. |
 | worker.extraArgs | list | `[]` | Additional [command line arguments](https://kubernetes-sigs.github.io/node-feature-discovery/master/reference/worker-commandline-reference) to pass to nfd-worker. |
 | worker.extraEnvs | list | `[]` | Additional environment variables to set in the nfd-worker container. |
 | worker.hostNetwork | bool | `false` | Run the container in the host's network namespace. |
