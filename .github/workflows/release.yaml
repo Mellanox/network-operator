@@ -22,6 +22,14 @@ jobs:
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
           echo "APP_VERSION=${APP_VERSION}" | tee -a $GITHUB_ENV
 
+          IS_BETA=false
+          echo "$APP_VERSION" | grep -q 'beta' && IS_BETA=true
+          echo "is_beta=${IS_BETA}" >> $GITHUB_OUTPUT
+
+          IS_RC=false
+          echo "$APP_VERSION" | grep -q 'rc' && IS_RC=true
+          echo "is_rc=${IS_RC}" >> $GITHUB_OUTPUT
+
           # major.minor version with v prefix and x suffix, i.e. v25.4.x
           V_MAJOR_MINOR_X=$(echo $APP_VERSION | grep -Eo '^v[0-9]+\.[0-9]+').x
           echo "V_MAJOR_MINOR_X=${V_MAJOR_MINOR_X}" | tee -a $GITHUB_ENV
@@ -39,7 +47,7 @@ jobs:
 
           # whether to sync Dependabot config to the release branch: rc/ga only,
           # never beta (betas are cut from master, the LTS branch is only real at rc)
-          if echo "$APP_VERSION" | grep -q 'beta'; then
+          if $IS_BETA; then
             SYNC_DEPENDABOT=false
           else
             SYNC_DEPENDABOT=true
@@ -87,6 +95,8 @@ jobs:
       docker_registry_network_operator: ${{ steps.determine-docker-registry.outputs.docker_registry_network_operator }}
       docker_registry_managed_components: ${{ steps.determine-docker-registry.outputs.docker_registry_managed_components }}
       docker_registry_staging: nvcr.io/nvstaging/mellanox
+      is_beta: ${{ steps.set-version.outputs.is_beta }}
+      is_rc: ${{ steps.set-version.outputs.is_rc }}
       release_branch: ${{ steps.set-version.outputs.release_branch }}
       sync_dependabot: ${{ steps.set-version.outputs.sync_dependabot }}
 
@@ -218,9 +228,86 @@ jobs:
       dependabot_managed_repos: ${{ steps.set-dependabot-repos.outputs.dependabot_managed_repos }}
       downstream_forks: ${{ steps.set-components.outputs.downstream_forks }}
 
+  validate-mofed-release-manifest:
+    needs: determine-versions
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+      APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
+      IS_BETA: ${{ needs.determine-versions.outputs.is_beta }}
+      IS_RC: ${{ needs.determine-versions.outputs.is_rc }}
+      RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.determine-versions.outputs.base_branch }}
+          path: network-operator
+      - id: determine-doca-driver-build-ref
+        name: Determine DOCA driver build ref
+        run: |
+          repo="${{ github.repository_owner }}/doca-driver-build"
+          default_branch=$(gh api "repos/${repo}" --jq .default_branch)
+
+          if $IS_BETA; then
+            doca_driver_build_ref="$default_branch"
+            echo "Beta release: validating against doca-driver-build default branch: $doca_driver_build_ref"
+          elif gh api "repos/${repo}/branches/${RELEASE_BRANCH}" --silent >/dev/null 2>&1; then
+            doca_driver_build_ref="$RELEASE_BRANCH"
+            echo "Validating against doca-driver-build release branch: $doca_driver_build_ref"
+          elif $IS_RC; then
+            doca_driver_build_ref="$default_branch"
+            echo "RC release: doca-driver-build release branch $RELEASE_BRANCH does not exist yet; validating default branch: $doca_driver_build_ref"
+          else
+            echo "ERROR: GA release $APP_VERSION but doca-driver-build release branch $RELEASE_BRANCH does not exist."
+            echo "       Cut RC first, or investigate why the RC branch is missing."
+            exit 1
+          fi
+
+          echo "ref=${doca_driver_build_ref}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
+          repository: ${{ github.repository_owner }}/doca-driver-build
+          ref: ${{ steps.determine-doca-driver-build-ref.outputs.ref }}
+          path: doca-driver-build
+      - name: Verify OFED version matches DOCA driver build manifest
+        run: |
+          cd network-operator
+
+          mofed_version=$(yq -r '.Mofed.version' hack/release.yaml)
+          mofed_stig_fips_version=$(yq -r '.MofedStigFips.version' hack/release.yaml)
+          if [ "$mofed_version" != "$mofed_stig_fips_version" ]; then
+            echo "Mofed.version ($mofed_version) does not match MofedStigFips.version ($mofed_stig_fips_version)"
+            exit 1
+          fi
+
+          release_manifest_name=$(echo "$mofed_version" | cut -d- -f2).yaml
+          release_manifest="../doca-driver-build/release_manifests/$release_manifest_name"
+          if [ ! -f "$release_manifest" ]; then
+            echo "DOCA driver build release manifest not found: $release_manifest"
+            exit 1
+          fi
+
+          manifest_doca_version=$(yq -r '.doca_version' "$release_manifest")
+          manifest_driver_version=$(yq -r '.driver_version' "$release_manifest")
+          if [ -z "$manifest_doca_version" ] || [ "$manifest_doca_version" = "null" ]; then
+            echo "DOCA driver build release manifest $release_manifest is missing doca_version"
+            exit 1
+          fi
+          if [ -z "$manifest_driver_version" ] || [ "$manifest_driver_version" = "null" ]; then
+            echo "DOCA driver build release manifest $release_manifest is missing driver_version"
+            exit 1
+          fi
+
+          manifest_mofed_version="doca${manifest_doca_version}-${manifest_driver_version}"
+          if [ "$mofed_version" != "$manifest_mofed_version" ]; then
+            echo "Mofed.version in hack/release.yaml ($mofed_version) does not match $release_manifest ($manifest_mofed_version)"
+            exit 1
+          fi
+
   create-tags-for-components:
     runs-on: ubuntu-24.04
-    needs: [determine-versions, prepare-reusable-workflows-release, get-managed-components]
+    needs: [determine-versions, prepare-reusable-workflows-release, get-managed-components, validate-mofed-release-manifest]
     strategy:
       fail-fast: false  # allow all jobs to run independently
       matrix:
@@ -230,6 +317,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
+      IS_BETA: ${{ needs.determine-versions.outputs.is_beta }}
+      IS_RC: ${{ needs.determine-versions.outputs.is_rc }}
       RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
       DOWNSTREAM_FORKS: ${{ needs.get-managed-components.outputs.downstream_forks }}
@@ -253,11 +342,6 @@ jobs:
           DOWNSTREAM_FORK=$(echo "$DOWNSTREAM_FORKS" | jq -r --arg r "${{ matrix.repo }}" '.[$r] // false')
           echo "downstreamFork for ${{ matrix.repo }}: $DOWNSTREAM_FORK"
 
-          is_beta=false
-          echo "$APP_VERSION" | grep -q 'beta' && is_beta=true
-          is_rc=false
-          echo "$APP_VERSION" | grep -qE 'rc' && is_rc=true
-
           branch_exists=false
           git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH" && branch_exists=true
 
@@ -273,12 +357,12 @@ jobs:
             fi
           else
             # NVIDIA-owned: beta tags on default branch; RC creates the branch; GA requires it.
-            if $is_beta; then
+            if $IS_BETA; then
               echo "Beta on NVIDIA-owned repo: tagging on default branch (no checkout)"
             elif $branch_exists; then
               echo "Release branch exists, using it for tagging"
               git checkout "$RELEASE_BRANCH"
-            elif $is_rc; then
+            elif $IS_RC; then
               echo "First RC on NVIDIA-owned repo: creating release branch from default"
               git checkout -b "$RELEASE_BRANCH"
               git push -u origin "$RELEASE_BRANCH"
