@@ -372,6 +372,12 @@ worker:
   # -- Specifies whether nfd-worker should be deployed
   # @section -- NFD-Worker
   enable: true
+  # @schema uniqueItems:true;item:string;itemEnum:["node","pod","ds"]
+  # -- Objects used as owner references for NodeFeature objects. Valid values are `node`, `pod`, and `ds`. This value is passed through `-owner-refs` and takes precedence over `worker.config.core.ownerRefs`.
+  # @section -- NFD-Worker
+  ownerRefs:
+    - pod
+    - ds
   # @schema $ref: $k8s/_definitions.json#/definitions/io.k8s.api.core.v1.Container/properties/args
   # -- Additional [command line arguments](https://kubernetes-sigs.github.io/node-feature-discovery/master/reference/worker-commandline-reference) to pass to nfd-worker.
   # @section -- NFD-Worker
@@ -399,6 +405,8 @@ worker:
     #  labelWhiteList:
     #  noPublish: false
     #  noOwnerRefs: false
+    #  # Select from node, pod and ds. Use [] to disable owner references.
+    #  ownerRefs: [pod, ds]
     #  sleepInterval: 60s
     #  featureSources: [all]
     #  labelSources: [all]

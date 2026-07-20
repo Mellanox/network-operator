@@ -121,6 +121,7 @@ spec:
         {{- range $key, $value := .Values.featureGates }}
         - "-feature-gates={{ $key }}={{ $value }}"
         {{- end }}
+        - "-owner-refs={{ join "," .Values.worker.ownerRefs }}"
         - "-port={{ .Values.worker.port | default "8080"}}"
         {{- with .Values.worker.extraArgs }}
         {{- toYaml . | nindent 8 }}
