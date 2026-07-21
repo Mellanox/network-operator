@@ -83,7 +83,7 @@ SriovDevicePlugin:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
   downstreamFork: true
-  version: network-operator-v26.7.0-beta.3
+  version: 8a1884c0
   nSpectScope: gov-ready
 IbKubernetes:
   image: ib-kubernetes
