@@ -24,7 +24,7 @@ spec:
   ofedDriver:
     image: doca-driver
     repository: nvcr.io/nvidia/mellanox
-    version: doca3.4.0-26.04-0.8.6.0-1
+    version: doca3.4.1-26.04-1.1.0.0-1
     upgradePolicy:
       autoUpgrade: true
       drain:
