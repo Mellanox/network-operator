@@ -125,7 +125,7 @@ nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: network-operator-v26.7.0-beta.3
+  version: 89c6d44
   nSpectScope: gov-ready
   dependabotSyncManaged: true
 docaTelemetryService:
