@@ -91,7 +91,7 @@ spec:
   ibKubernetes:
     image: ib-kubernetes
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.7.0-beta.5
+    version: 1c55819
     pKeyGUIDPoolRangeStart: "02:00:00:00:00:00:00:00"
     pKeyGUIDPoolRangeEnd: "02:FF:FF:FF:FF:FF:FF:FF"
     ufmSecret: ufm-secret
