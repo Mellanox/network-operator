@@ -58,10 +58,18 @@ spec:
           - containerPort: 9443
             name: webhook-server
             protocol: TCP
+          {{- end }}
+          {{- if or .Values.operator.coverage.enabled .Values.operator.admissionController.enabled }}
           volumeMounts:
+          {{- if .Values.operator.coverage.enabled }}
+          - name: go-coverage
+            mountPath: /coverage
+          {{- end }}
+          {{- if .Values.operator.admissionController.enabled }}
           - mountPath: /tmp/k8s-webhook-server/serving-certs
             name: cert
             readOnly: true
+          {{- end }}
           {{- end }}
           command:
           - /manager
@@ -76,6 +84,12 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "network-operator"
+            {{- if .Values.operator.coverage.enabled }}
+            - name: GOCOVERDIR
+              value: "/coverage"
+            - name: COVERAGE_CLEAR_AFTER_FLUSH
+              value: "1"
+            {{- end }}
             - name: ENABLE_WEBHOOKS
               value: "{{ .Values.operator.admissionController.enabled }}"
             - name: USE_DTK
@@ -141,10 +155,16 @@ spec:
       securityContext:
         runAsUser: 65532
       terminationGracePeriodSeconds: 10
-      {{- if .Values.operator.admissionController.enabled }}
+      {{- if or .Values.operator.coverage.enabled .Values.operator.admissionController.enabled }}
       volumes:
+      {{- if .Values.operator.coverage.enabled }}
+      - name: go-coverage
+        emptyDir: {}
+      {{- end }}
+      {{- if .Values.operator.admissionController.enabled }}
       - name: cert
         secret:
           defaultMode: 420
           secretName: webhook-server-cert
+      {{- end }}
       {{- end }}

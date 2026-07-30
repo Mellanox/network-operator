@@ -38,6 +38,7 @@ COPY ./ ./
 ARG LDFLAGS
 ARG GCFLAGS
 ARG GOPROXY
+ARG GO_COVERAGE=0
 ENV GOPROXY=$GOPROXY
 
 # Use TARGETARCH provided by Docker Buildx for cross-compilation
@@ -47,9 +48,15 @@ ARG ARCH=${TARGETARCH}
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go  && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o keep-ncp cmd/keep-ncp/main.go && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds cmd/apply-crds/main.go
+    if [ "$GO_COVERAGE" = "1" ]; then \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -cover -covermode=atomic -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -cover -covermode=atomic -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o keep-ncp cmd/keep-ncp/main.go && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -cover -covermode=atomic -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds cmd/apply-crds/main.go; \
+    else \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o manager main.go && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o keep-ncp cmd/keep-ncp/main.go && \
+      CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags="${LDFLAGS}" -gcflags="${GCFLAGS}" -o apply-crds cmd/apply-crds/main.go; \
+    fi
 
 # copy CRDs from helm charts
 COPY deployment/network-operator/ ./network-operator-chart/
