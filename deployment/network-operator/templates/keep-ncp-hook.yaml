@@ -1,3 +1,4 @@
+{{- if .Values.keepNCP }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -90,3 +91,4 @@ spec:
           command:
             - /keep-ncp
       restartPolicy: OnFailure
+{{- end }}
