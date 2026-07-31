@@ -64,7 +64,7 @@ spec:
     multus:
       image: multus-cni
       repository: nvcr.io/nvstaging/mellanox
-      version: network-operator-v26.7.0-beta.5
+      version: aa2e3fa7
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
