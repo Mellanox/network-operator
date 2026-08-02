@@ -129,6 +129,22 @@ $ helm install --set nfd.enabled=false -n network-operator --create-namespace --
 > __Note:__ By default the operator is deployed without an instance of `NicClusterPolicy` and `MacvlanNetwork`
 > custom resources. The user is required to create it later with configuration matching the cluster or use chart parameters to deploy it together with the operator.
 
+#### Deploy Network Operator with GitOps
+
+The chart runs a `keep-ncp` hook by default to preserve a Helm-managed `NicClusterPolicy` when upgrading from an older
+chart version that deployed the custom resource. GitOps controllers such as Argo CD cannot distinguish a Helm install
+from an upgrade and run this hook during every sync.
+
+For a first-time GitOps installation where there is no existing Helm-managed `NicClusterPolicy`, disable the hook and
+its RBAC resources by setting:
+
+```yaml
+keepNCP: false
+```
+
+Keep the default value, `keepNCP: true`, when upgrading a deployment that might contain a Helm-managed
+`NicClusterPolicy` from an older chart version.
+
 #### Deploy development version of Network Operator
 
 To install development version of Network Operator you need to clone repository first and install helm chart from the

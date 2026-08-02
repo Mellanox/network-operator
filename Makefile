@@ -242,6 +242,10 @@ lint-dockerfile: $(HADOLINT) ; $(info  running Dockerfile lint with hadolint...)
 lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
 	$Q $(HELM) lint $(CHART_PATH)
 
+.PHONY: test-helm
+test-helm: $(HELM) ; $(info  running helm chart tests...) @ ## Test Helm chart value combinations
+	$Q $(CURDIR)/hack/scripts/test-helm-hook-values.sh $(HELM) $(CHART_PATH)
+
 .PHONY: check-manifests
 check-manifests: generate manifests
 	$(info checking for git diff after running 'make manifests')

@@ -25,6 +25,9 @@ nfd:
 # -- Enable CRDs upgrade with helm pre-install and pre-upgrade hooks.
 upgradeCRDs: true
 
+# -- Preserve a Helm-managed NicClusterPolicy custom resource during chart upgrades.
+keepNCP: true
+
 sriovNetworkOperator:
   # -- Deploy SR-IOV Network Operator.
   enabled: false
