@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:a39f3419d74af21cb25300b9a95b32269800d615590fe7274b5dbdff92813696
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:e5de653650d1b498a5e957db45c68ae2cbe489cdaf20d7ab5e8ce49384d7988c
     alm-examples: |-
       [
         {
@@ -77,13 +77,13 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "doca3.5.0-26.07-0.4.3.0-0"
+              "version": "doca3.5.0-26.07-0.5.1.0-0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvstaging/mellanox",
-              "version": "sha256:6032adc1ac4d0dd4a3e12fbfb0f8afa74b4b53eba0d1fb9ede6e5dc9257cbb8f"
+              "version": "sha256:50c9f41b6fba8457260ac37854a86c6f905dc9e7ad7b19d6a70b07578da95379"
             }
           }
         },
@@ -124,19 +124,19 @@ metadata:
                 },
                 "maxParallelUpgrades": 1
               },
-              "version": "doca3.5.0-26.07-0.4.3.0-0"
+              "version": "doca3.5.0-26.07-0.5.1.0-0"
             },
             "rdmaSharedDevicePlugin": {
               "config": "{\n  \"configList\": [\n    {\n      \"resourceName\": \"rdma_shared_device_a\",\n      \"rdmaHcaMax\": 63,\n      \"selectors\": {\n        \"vendors\": [\"15b3\"]\n      }\n    }\n  ]\n}\n",
               "image": "k8s-rdma-shared-dev-plugin",
               "repository": "nvcr.io/nvstaging/mellanox",
-              "version": "sha256:6032adc1ac4d0dd4a3e12fbfb0f8afa74b4b53eba0d1fb9ede6e5dc9257cbb8f"
+              "version": "sha256:50c9f41b6fba8457260ac37854a86c6f905dc9e7ad7b19d6a70b07578da95379"
             }
           }
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-07-28T06:05:54Z"
+    createdAt: "2026-08-02T14:00:54Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -157,7 +157,7 @@ metadata:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
-  name: nvidia-network-operator.v26.7.0-beta.5
+  name: nvidia-network-operator.v26.7.0-rc.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -618,8 +618,8 @@ spec:
                 - name: USE_DTK
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
-                  value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:74344df25714e51e7d1478ebcba1f25a2d404b529634abaa0df54433234a6f91
-                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:a39f3419d74af21cb25300b9a95b32269800d615590fe7274b5dbdff92813696
+                  value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:f23ae7023d4f558e9c9f99cc10813c2d39592a5aef02eb18bf26fd6f81107651
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:e5de653650d1b498a5e957db45c68ae2cbe489cdaf20d7ab5e8ce49384d7988c
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -726,7 +726,7 @@ spec:
   provider:
     name: NVIDIA
     url: https://github.com/Mellanox/network-operator/
-  version: 26.7.0-beta.5
+  version: 26.7.0-rc.1
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -790,50 +790,50 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicnodepolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:a39f3419d74af21cb25300b9a95b32269800d615590fe7274b5dbdff92813696
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:e5de653650d1b498a5e957db45c68ae2cbe489cdaf20d7ab5e8ce49384d7988c
     - name: nvidia-network-operator-init-container
-      image: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:74344df25714e51e7d1478ebcba1f25a2d404b529634abaa0df54433234a6f91
+      image: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:f23ae7023d4f558e9c9f99cc10813c2d39592a5aef02eb18bf26fd6f81107651
     - name: rdma-shared-device-plugin
-      image: nvcr.io/nvstaging/mellanox/k8s-rdma-shared-dev-plugin@sha256:6032adc1ac4d0dd4a3e12fbfb0f8afa74b4b53eba0d1fb9ede6e5dc9257cbb8f
+      image: nvcr.io/nvstaging/mellanox/k8s-rdma-shared-dev-plugin@sha256:50c9f41b6fba8457260ac37854a86c6f905dc9e7ad7b19d6a70b07578da95379
     - name: sriov-network-device-plugin
-      image: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin@sha256:f258f22c98a5004a8dcba02c6067cc579dd8244764f367c17cc51e5d31b85998
+      image: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin@sha256:e743f2d53c5fdfff3cc6da27db9651731fd0f59e7fcb06a2144a4990a2e4571a
     - name: ib-kubernetes
-      image: nvcr.io/nvstaging/mellanox/ib-kubernetes@sha256:2fcc5840faea1c2e9d3bc0057100b94d619022d6d79412a8511d95776b0d59dc
+      image: nvcr.io/nvstaging/mellanox/ib-kubernetes@sha256:6ce8f4128f5c3ac4be3ddfac9ab9896661ff3423b24280b6e4242abadf6c905b
     - name: ipoib-cni
-      image: nvcr.io/nvstaging/mellanox/ipoib-cni@sha256:ed936d2460b5edaacfd8e64636ed2eeb9caf7f9efb41af32503a9221155f3755
+      image: nvcr.io/nvstaging/mellanox/ipoib-cni@sha256:f517f66fd024b6d685b5156fb4042d5cc533dd6dfdcb5525d6aadc2039ad123f
     - name: nv-ipam
-      image: nvcr.io/nvstaging/mellanox/nvidia-k8s-ipam@sha256:e93cecb521271d5f997da10fd83b3a158ebcb9203f4c435919d61a10a2550451
+      image: nvcr.io/nvstaging/mellanox/nvidia-k8s-ipam@sha256:d21beefab87ff51a88543bc0133c7ea5609d3b52ce122e9d6b7a6ee04b05e1bf
     - name: nic-feature-discovery
-      image: nvcr.io/nvstaging/mellanox/nic-feature-discovery@sha256:b7a886e878e4319f3d940e42fc06a426767f080cada5afb75509c49befa2d203
+      image: nvcr.io/nvstaging/mellanox/nic-feature-discovery@sha256:3d9f4f86a1f4d7bc85ed939be727ad0e354bff850f917d874d177caeb4f1b694
     - name: doca-telemetry-service
       image: nvcr.io/nvidia/doca/doca_telemetry@sha256:e728430bdde27bc0f2e57cedb83814f21d23113385328034af9727e900724d09
     - name: nic-configuration-operator
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:c8003f5c4c145b57d93650b9418ff453aafe36a9c1b4023a866b95009c8d0eb1
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:345616b046a389e352e9c3731977c90afffb7d1940de12f1106f58f41df2e8df
     - name: nic-configuration-operator-daemon
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:bb66856f54866622456b00fbc8ddef8e36c5aecea86000f7c2c9c471719c6c4c
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:d0ad73ca054676b3cca3a75ba51890c4a3c282f1cdb056acd61c5575cd000a19
     - name: spectrum-x-operator
-      image: nvcr.io/nvstaging/mellanox/spectrum-x-operator@sha256:c1b04779b16d151af3d8595352837a5a17c6ef63748024faacbebf02a9a3ddb8
+      image: nvcr.io/nvstaging/mellanox/spectrum-x-operator@sha256:9a32c82cfdcc80e2676e59e84405eefb83b6c1dbaad6e5188f18d9a50af016fb
     - name: doca-driver-0
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:9fd7593d8d85f5ec504daddcf6abc1691bd4bc0da3ffcb798d411a2bbcc7042e
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:fad0a4590dea38202abdff5e63381f639ca8cdc9815bac57c47930a0fdca3247
     - name: doca-driver-1
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:b47f42f4113e75eaac64220a3081787b70d01791d920a9b6d13f63f2c0ef218f
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:dc48b6c458f7c71bb336e3254c4055f13261803e04f06a5737ccb61d3791bdbd
     - name: doca-driver-2
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:b08572ac585ec4481e87f9c63be3190b3f1e66a0289b78470c166ff70e1aef3a
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:d18802d915570881bb4cdb4e5dbd177aa7569137c88a7e25a4b2425884504c59
     - name: doca-driver-3
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:000fa1190de4c3a2b89dbe6182551641cb803e82fa745827129caf7228f04520
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:e6852c8e27766a78f9fc8110ac9a8b72a0517615b14dea2a6c0522f0a435e6ba
     - name: doca-driver-4
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:f782128b2f86a9971ca8582d40ecad98007ccba544fbd95e644a78ee52b8b218
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:aed916f68583e916b2f53fac632fdf7dd3f420ca81c5bd818c67f2501c080b6b
     - name: doca-driver-5
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:d4129b7393791d6909f1f8b3ce5461e2332017808762b6bc2322bfb0b8ed4f95
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:c4a97b64fbc49e96b6cac7523b56e281456f8861677ad2dacba79a22620a291f
     - name: doca-driver-6
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:b958fe7cc37b1362772df8d3c111b4dc2f06fcc1d2d3badd92b5a8ff482dba1a
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:dc67e64116d7d5f638c5e3e9040ac1cc672a3007bd6939b64435e5ef93bc1b19
     - name: doca-driver-7
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:6ca1a1152d300dcfef1fa8180aacc58df4b01e1e8156a344f383dd902c242f12
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:ead834a62ead0527abe0ab0b17c8435b5d73459e7d7a25673343b80b52ec3428
     - name: doca-driver-8
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:7a8a08eee52a55d3f7ca5cd9f57224308abe180322e2229759225a159c862fd5
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:d4ce188a39f5e0bf17081b3d348652c008f6222459b5fef3160a1f142279af33
     - name: doca-driver-9
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:d3506c95429201e0070ee924d8d1a35c178a8f1034b41d8eb43f03ab13e36bfb
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:886e1a28b9dff739ced73637181cac612491dea5a83ae41e3671cc09eca7cdb3
     - name: doca-driver-10
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:f2b6980eae1639b0a0821786637ee66d53ee6ce75cdb64dd2b71f86954ec3dbe
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:18501736875bb46db04d302f0463b5d8539bedc61bea782046a82057c3f6bfbe
     - name: doca-driver-11
-      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:4d131ce752c643f8bf22979942839837490e6da264bc359cdc5d4cb9b3242c01
+      image: nvcr.io/nvstaging/mellanox/doca-driver@sha256:58eae9f43af4d4931e497d8b70aee91cfad4906e27e2beb5a98b49c450f59f23
