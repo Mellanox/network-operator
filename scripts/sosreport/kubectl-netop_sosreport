@@ -41,6 +41,15 @@ VERBOSE=false
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ERROR_LOG=""
 NODE_SELECTOR=""
+HELM_RELEASE_SELECTOR=""
+HELM_RELEASE_DISCOVERED=false
+RESOLVED_COMPONENT_SELECTOR=""
+
+# Track pods and dynamically discovered components so the Helm release
+# catch-all does not duplicate artifacts already collected by a known
+# component selector.
+declare -A COLLECTED_PODS=()
+declare -A DISCOVERED_COMPONENTS=()
 
 # Collection statistics
 declare -A STATS=(
@@ -52,6 +61,8 @@ declare -A STATS=(
     [component_pods]=0
     [nodes]=0
     [diagnostic_commands]=0
+    [diagnostic_skipped]=0
+    [diagnostic_failed]=0
     [errors]=0
     [warnings]=0
 )
@@ -81,7 +92,7 @@ Options:
   --output-dir PATH          Output directory (default: ./network-operator-sosreport-<timestamp>)
   --no-compress              Don't create tarball, leave as directory
   --log-lines N              Number of log lines to collect per pod (default: 5000)
-  --skip-diagnostics         Skip running diagnostic commands in OFED pods (lsmod, ibstat, ibv_devinfo, mst, dmesg, ip)
+  --skip-diagnostics         Skip running diagnostic commands in OFED pods (lsmod, RDMA/devlink, dmesg, ip, and optional legacy tools)
   --skip-report              Skip HTML report generation
   --node-selector SELECTOR   Only collect from nodes matching label selector (default: all nodes)
                              Example: feature.node.kubernetes.io/pci-15b3.present=true
@@ -259,7 +270,7 @@ collect_resource() {
         local line_count
         line_count=$(wc -l < "$temp_file")
         local has_items
-        has_items=$(grep -c "^  - " "$temp_file" 2>/dev/null || echo 0)
+        has_items=$(grep -c "^  - " "$temp_file" 2>/dev/null || true)
 
         # Detect empty YAML structures
         local is_empty=false
@@ -411,7 +422,7 @@ collect_crd_definitions() {
     local crd_dir="$OUTPUT_DIR/crds/definitions"
 
     # [GENERATED-CRDS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-07-27T12:50:26Z
+    # Generated at: 2026-07-31T11:23:32Z
     # All CRDs we want to collect
     local all_crds=(
         # Main Network Operator CRDs
@@ -496,6 +507,7 @@ collect_crd_instances() {
     # Collect all CR types
     # Main Network Operator CRs
     collect_cr_instances "nicclusterpolicies.mellanox.com" "nicclusterpolicies"
+    collect_cr_instances "nicnodepolicies.mellanox.com" "nicnodepolicies"
     collect_cr_instances "macvlannetworks.mellanox.com" "macvlannetworks"
     collect_cr_instances "hostdevicenetworks.mellanox.com" "hostdevicenetworks"
     collect_cr_instances "ipoibnetworks.mellanox.com" "ipoibnetworks"
@@ -550,26 +562,7 @@ collect_operator_resources() {
     local pods
     pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l app.kubernetes.io/name=network-operator -o name 2>/dev/null)
 
-    for pod in $pods; do
-        local pod_name
-        pod_name=$(basename "$pod")
-        log_info "  Collecting operator pod: $pod_name"
-
-        collect_resource "$controller_dir/pods/${pod_name}.yaml" get -n "$OPERATOR_NAMESPACE" "$pod" -o yaml
-
-        # Pod logs
-        mkdir -p "$controller_dir/pods"
-        if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" --tail="$LOG_LINES" > "$controller_dir/pods/${pod_name}.log" 2>> "$ERROR_LOG"; then
-            STATS[operator_pods]=$((STATS[operator_pods] + 1))
-        fi
-
-        # Previous logs if pod restarted
-        if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" --previous --tail="$LOG_LINES" > "$controller_dir/pods/${pod_name}-previous.log" 2>/dev/null; then
-            log_info "    Collected previous logs"
-        else
-            rm -f "$controller_dir/pods/${pod_name}-previous.log"
-        fi
-    done
+    collect_pods_and_logs "$OPERATOR_NAMESPACE" "$controller_dir/pods" "$pods" "operator_pods"
 
     # ConfigMaps
     collect_resource "$operator_dir/configmaps.yaml" get configmaps -n "$OPERATOR_NAMESPACE" -o yaml
@@ -585,6 +578,17 @@ collect_operator_resources() {
     collect_resource "$operator_dir/rbac/clusterroles.yaml" get clusterroles -l app.kubernetes.io/name=network-operator -o yaml
     collect_resource "$operator_dir/rbac/clusterrolebindings.yaml" get clusterrolebindings -l app.kubernetes.io/name=network-operator -o yaml
 
+    # The parent chart and all enabled sub-charts share the Helm release label.
+    # Collect their cluster-scoped RBAC even when the component uses a different
+    # app.kubernetes.io/name value.
+    detect_helm_release_selector
+    if [ -n "$HELM_RELEASE_SELECTOR" ]; then
+        collect_resource "$operator_dir/rbac/helm-release-clusterroles.yaml" \
+            get clusterroles -l "$HELM_RELEASE_SELECTOR" -o yaml
+        collect_resource "$operator_dir/rbac/helm-release-clusterrolebindings.yaml" \
+            get clusterrolebindings -l "$HELM_RELEASE_SELECTOR" -o yaml
+    fi
+
     # Events
     collect_resource "$operator_dir/events.yaml" get events -n "$OPERATOR_NAMESPACE" --sort-by='.lastTimestamp' -o yaml
 
@@ -595,11 +599,324 @@ collect_operator_resources() {
     log_success "Operator resources collection completed"
 }
 
+# Collect current and previous logs for one container.
+collect_container_logs() {
+    local namespace="$1"
+    local pod="$2"
+    local pod_name="$3"
+    local pods_dir="$4"
+    local container="$5"
+    local container_type="$6"
+
+    local file_prefix=""
+    local type_description="container"
+    case "$container_type" in
+        init)
+            file_prefix="init-"
+            type_description="init container"
+            ;;
+        ephemeral)
+            file_prefix="ephemeral-"
+            type_description="ephemeral container"
+            ;;
+    esac
+
+    mkdir -p "$pods_dir"
+
+    local current_log="$pods_dir/${pod_name}-${file_prefix}${container}.log"
+    local log_error_file
+    log_error_file=$(mktemp)
+    if "$KUBECTL_BIN" logs -n "$namespace" "$pod" -c "$container" --tail="$LOG_LINES" > "$current_log" 2> "$log_error_file"; then
+        log_info "      Collected logs for $type_description: $container"
+    else
+        rm -f "$current_log"
+        log_warn "Failed to collect logs for $namespace/$pod_name $type_description $container"
+        sed 's/^/  /' "$log_error_file" >> "$ERROR_LOG"
+    fi
+    rm -f "$log_error_file"
+
+    # Previous logs are optional because most containers have not restarted.
+    local previous_log="$pods_dir/${pod_name}-${file_prefix}${container}-previous.log"
+    if "$KUBECTL_BIN" logs -n "$namespace" "$pod" -c "$container" --previous --tail="$LOG_LINES" > "$previous_log" 2>/dev/null; then
+        log_info "      Collected previous logs for $type_description: $container"
+    else
+        rm -f "$previous_log"
+    fi
+}
+
+# Collect pod specifications and logs for regular, init, and ephemeral containers.
+collect_pods_and_logs() {
+    local namespace="$1"
+    local pods_dir="$2"
+    local pods="$3"
+    local stats_key="${4:-component_pods}"
+
+    # Get list of selected nodes if node selector is specified
+    local selected_nodes=""
+    if [ -n "$NODE_SELECTOR" ]; then
+        selected_nodes=$("$KUBECTL_BIN" get nodes -l "$NODE_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+        if [ -z "$selected_nodes" ]; then
+            log_info "    No pods match the requested node selector"
+            return 0
+        fi
+    fi
+
+    for pod in $pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+        local pod_key="$namespace/$pod_name"
+
+        if [ -n "${COLLECTED_PODS[$pod_key]:-}" ]; then
+            log_info "    Pod already collected: $pod_key"
+            continue
+        fi
+
+        # Skip pod if node selector is set and pod is not on selected node
+        if [ -n "$NODE_SELECTOR" ]; then
+            local pod_node
+            pod_node=$("$KUBECTL_BIN" get -n "$namespace" "$pod" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
+            if ! echo "$selected_nodes" | grep -qw "$pod_node"; then
+                log_info "    Skipping pod $pod_name (not on selected node)"
+                COLLECTED_PODS["$pod_key"]="skipped"
+                continue
+            fi
+        fi
+
+        collect_resource "$pods_dir/${pod_name}.yaml" get -n "$namespace" "$pod" -o yaml
+
+        local container_type
+        for container_type in regular init ephemeral; do
+            local containers=""
+            case "$container_type" in
+                regular)
+                    containers=$("$KUBECTL_BIN" get -n "$namespace" "$pod" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null)
+                    ;;
+                init)
+                    containers=$("$KUBECTL_BIN" get -n "$namespace" "$pod" -o jsonpath='{.spec.initContainers[*].name}' 2>/dev/null)
+                    ;;
+                ephemeral)
+                    containers=$("$KUBECTL_BIN" get -n "$namespace" "$pod" -o jsonpath='{.spec.ephemeralContainers[*].name}' 2>/dev/null)
+                    ;;
+            esac
+
+            local container
+            for container in $containers; do
+                collect_container_logs "$namespace" "$pod" "$pod_name" "$pods_dir" "$container" "$container_type"
+            done
+        done
+
+        COLLECTED_PODS["$pod_key"]="collected"
+        if [ "$stats_key" = "operator_pods" ]; then
+            STATS[operator_pods]=$((STATS[operator_pods] + 1))
+        else
+            STATS[component_pods]=$((STATS[component_pods] + 1))
+        fi
+    done
+}
+
+# Discover the Helm release that owns the Network Operator deployment. Parent
+# and sub-chart workloads all inherit app.kubernetes.io/instance, which gives
+# the collector a future-proof catch-all without collecting unrelated pods in
+# a shared namespace.
+detect_helm_release_selector() {
+    if [ "$HELM_RELEASE_DISCOVERED" = true ]; then
+        return 0
+    fi
+    HELM_RELEASE_DISCOVERED=true
+
+    local release_name
+    release_name=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+        -l app.kubernetes.io/name=network-operator \
+        -o jsonpath='{.items[0].metadata.labels.app\.kubernetes\.io/instance}' 2>/dev/null)
+
+    if [ -z "$release_name" ]; then
+        release_name=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+            -l app.kubernetes.io/name=network-operator \
+            -o jsonpath='{.items[0].metadata.annotations.meta\.helm\.sh/release-name}' 2>/dev/null)
+    fi
+
+    # nameOverride can change app.kubernetes.io/name. In that case, identify
+    # the parent deployment by its network-operator Helm chart label.
+    if [ -z "$release_name" ]; then
+        release_name=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+            -o jsonpath='{range .items[*]}{.metadata.labels.helm\.sh/chart}{"|"}{.metadata.labels.app\.kubernetes\.io/instance}{"|"}{.metadata.annotations.meta\.helm\.sh/release-name}{"\n"}{end}' 2>/dev/null \
+            | awk -F'|' '$1 ~ /^network-operator-/ { if ($2 != "") print $2; else print $3; exit }')
+    fi
+
+    if [ -n "$release_name" ]; then
+        HELM_RELEASE_SELECTOR="app.kubernetes.io/instance=$release_name"
+        log_info "Detected Network Operator Helm release: $release_name"
+    else
+        log_info "Network Operator Helm release label not found"
+    fi
+}
+
+# Resolve a pod's controlling workload. ReplicaSets are folded into their
+# parent Deployment so a rollout does not appear as a separate component.
+resolve_pod_workload() {
+    local namespace="$1"
+    local pod="$2"
+
+    local owner_kind
+    local owner_name
+    owner_kind=$("$KUBECTL_BIN" get -n "$namespace" "$pod" \
+        -o jsonpath='{.metadata.ownerReferences[0].kind}' 2>/dev/null)
+    owner_name=$("$KUBECTL_BIN" get -n "$namespace" "$pod" \
+        -o jsonpath='{.metadata.ownerReferences[0].name}' 2>/dev/null)
+
+    if [ "$owner_kind" = "ReplicaSet" ] && [ -n "$owner_name" ]; then
+        local parent_kind
+        local parent_name
+        parent_kind=$("$KUBECTL_BIN" get replicaset -n "$namespace" "$owner_name" \
+            -o jsonpath='{.metadata.ownerReferences[0].kind}' 2>/dev/null)
+        parent_name=$("$KUBECTL_BIN" get replicaset -n "$namespace" "$owner_name" \
+            -o jsonpath='{.metadata.ownerReferences[0].name}' 2>/dev/null)
+        if [ "$parent_kind" = "Deployment" ] && [ -n "$parent_name" ]; then
+            owner_kind="$parent_kind"
+            owner_name="$parent_name"
+        fi
+    fi
+
+    if [ -z "$owner_kind" ] || [ -z "$owner_name" ]; then
+        owner_kind="Pod"
+        owner_name=$(basename "$pod")
+    fi
+
+    printf '%s|%s\n' "$(printf '%s' "$owner_kind" | tr '[:upper:]' '[:lower:]')" "$owner_name"
+}
+
+# Collect all resources and pods owned by the Network Operator Helm release.
+# Known components retain their stable report names; any chart workload missing
+# from the generated map is added dynamically using its controlling workload.
+collect_helm_release_components() {
+    detect_helm_release_selector
+    if [ -z "$HELM_RELEASE_SELECTOR" ]; then
+        return 0
+    fi
+
+    log_info "Collecting complete Helm release workload inventory..."
+    local release_dir="$OUTPUT_DIR/operator/helm-release"
+    local resource_type
+    for resource_type in deployments daemonsets statefulsets replicasets jobs cronjobs; do
+        collect_resource "$release_dir/workloads/${resource_type}.yaml" \
+            get "$resource_type" -n "$OPERATOR_NAMESPACE" -l "$HELM_RELEASE_SELECTOR" -o yaml || true
+    done
+    collect_resource "$release_dir/poddisruptionbudgets.yaml" \
+        get poddisruptionbudgets -n "$OPERATOR_NAMESPACE" -l "$HELM_RELEASE_SELECTOR" -o yaml || true
+    collect_resource "$release_dir/networkpolicies.yaml" \
+        get networkpolicies -n "$OPERATOR_NAMESPACE" -l "$HELM_RELEASE_SELECTOR" -o yaml || true
+
+    local pods
+    pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l "$HELM_RELEASE_SELECTOR" -o name 2>/dev/null)
+    local pod
+    for pod in $pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+        if [ -n "${COLLECTED_PODS[$OPERATOR_NAMESPACE/$pod_name]:-}" ]; then
+            continue
+        fi
+
+        local workload
+        local workload_type
+        local workload_name
+        workload=$(resolve_pod_workload "$OPERATOR_NAMESPACE" "$pod")
+        IFS='|' read -r workload_type workload_name <<< "$workload"
+
+        local component_dir="$OUTPUT_DIR/operator/components/$workload_name"
+        if [ -z "${DISCOVERED_COMPONENTS[$component_dir]:-}" ]; then
+            log_info "  Discovered Helm component: $workload_name ($workload_type)"
+            DISCOVERED_COMPONENTS["$component_dir"]="true"
+            STATS[components_found]=$((STATS[components_found] + 1))
+
+            collect_resource "$component_dir/${workload_type}.yaml" \
+                get "$workload_type" -n "$OPERATOR_NAMESPACE" "$workload_name" -o yaml
+        fi
+
+        collect_pods_and_logs "$OPERATOR_NAMESPACE" "$component_dir/pods" "$pod"
+    done
+}
+
+# Expand a generated NameSuffix marker into one selector that matches every
+# deployed base or suffixed workload. Discover values from workload and pod
+# labels instead of requiring permission to list NicNodePolicy objects.
+resolve_component_selector() {
+    local selector="$1"
+    local namespace="${2:-$OPERATOR_NAMESPACE}"
+    local resource_type="${3:-both}"
+    local suffix_marker="__NAME_SUFFIX__"
+
+    if [[ "$selector" != *"$suffix_marker"* ]]; then
+        RESOLVED_COMPONENT_SELECTOR="$selector"
+        return 0
+    fi
+
+    local label_key="${selector%%=*}"
+    local base_value="${selector#*=}"
+    base_value="${base_value//$suffix_marker/}"
+
+    local label_jsonpath_key="${label_key//./\\.}"
+    local label_jsonpath="{range .items[*]}{.metadata.labels.${label_jsonpath_key}}{\"\\n\"}{end}"
+    local resources=(pods)
+    case "$resource_type" in
+        daemonset)
+            resources=(daemonsets pods)
+            ;;
+        deployment)
+            resources=(deployments pods)
+            ;;
+        both)
+            resources=(daemonsets deployments pods)
+            ;;
+    esac
+
+    local values="$base_value"
+    local -A seen_values=(["$base_value"]="true")
+    local resource
+    for resource in "${resources[@]}"; do
+        local discovered_values
+        local discovery_error_file
+        discovery_error_file=$(mktemp)
+        if ! discovered_values=$("$KUBECTL_BIN" get "$resource" -n "$namespace" \
+            -l "$label_key" -o "jsonpath=$label_jsonpath" 2> "$discovery_error_file"); then
+            log_warn "Failed to discover suffix values for label $label_key from $namespace/$resource"
+            sed 's/^/  /' "$discovery_error_file" >> "$ERROR_LOG"
+        fi
+        rm -f "$discovery_error_file"
+
+        local discovered_value
+        for discovered_value in $discovered_values; do
+            if [[ "$discovered_value" != "$base_value" && "$discovered_value" != "$base_value"-* ]]; then
+                continue
+            fi
+            if [ -z "${seen_values[$discovered_value]:-}" ]; then
+                values="${values},${discovered_value}"
+                seen_values["$discovered_value"]="true"
+            fi
+        done
+    done
+
+    RESOLVED_COMPONENT_SELECTOR="$label_key in ($values)"
+}
+
 # Collect component workloads
 collect_component() {
     local component_name="$1"
-    local label_selector="$2"
+    local raw_label_selector="$2"
     local resource_type="$3"  # daemonset, deployment, or both
+    local raw_pod_label_selector="${4:-$raw_label_selector}"
+    local namespace="${5:-$OPERATOR_NAMESPACE}"
+    local components_dir="${6:-$OUTPUT_DIR/operator/components}"
+
+    local label_selector
+    resolve_component_selector "$raw_label_selector" "$namespace" "$resource_type"
+    label_selector="$RESOLVED_COMPONENT_SELECTOR"
+    local pod_label_selector
+    if [ "$raw_pod_label_selector" = "$raw_label_selector" ]; then
+        pod_label_selector="$label_selector"
+    else
+        resolve_component_selector "$raw_pod_label_selector" "$namespace" "$resource_type"
+        pod_label_selector="$RESOLVED_COMPONENT_SELECTOR"
+    fi
 
     log_info "Checking component: $component_name"
 
@@ -607,13 +924,13 @@ collect_component() {
     local exists=false
 
     if [ "$resource_type" = "daemonset" ] || [ "$resource_type" = "both" ]; then
-        if "$KUBECTL_BIN" get daemonsets -n "$OPERATOR_NAMESPACE" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
+        if "$KUBECTL_BIN" get daemonsets -n "$namespace" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
             exists=true
         fi
     fi
 
     if [ "$resource_type" = "deployment" ] || [ "$resource_type" = "both" ]; then
-        if "$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
+        if "$KUBECTL_BIN" get deployments -n "$namespace" -l "$label_selector" --no-headers 2>/dev/null | grep -q .; then
             exists=true
         fi
     fi
@@ -627,65 +944,26 @@ collect_component() {
     log_info "  Collecting component: $component_name"
     STATS[components_found]=$((STATS[components_found] + 1))
 
-    local component_dir="$OUTPUT_DIR/operator/components/$component_name"
+    local component_dir="$components_dir/$component_name"
+    DISCOVERED_COMPONENTS["$component_dir"]="true"
 
     # Collect DaemonSet or Deployment
     if [ "$resource_type" = "daemonset" ] || [ "$resource_type" = "both" ]; then
-        collect_resource "$component_dir/daemonset.yaml" get daemonsets -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+        collect_resource "$component_dir/daemonset.yaml" get daemonsets -n "$namespace" -l "$label_selector" -o yaml
     fi
 
     if [ "$resource_type" = "deployment" ] || [ "$resource_type" = "both" ]; then
-        collect_resource "$component_dir/deployment.yaml" get deployments -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+        collect_resource "$component_dir/deployment.yaml" get deployments -n "$namespace" -l "$label_selector" -o yaml
     fi
 
     # Collect pods
     local pods
-    pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o name 2>/dev/null)
-
-    # Get list of selected nodes if node selector is specified
-    local selected_nodes=""
-    if [ -n "$NODE_SELECTOR" ]; then
-        selected_nodes=$("$KUBECTL_BIN" get nodes -l "$NODE_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
-    fi
-
-    for pod in $pods; do
-        local pod_name
-        pod_name=$(basename "$pod")
-
-        # Skip pod if node selector is set and pod is not on selected node
-        if [ -n "$NODE_SELECTOR" ] && [ -n "$selected_nodes" ]; then
-            local pod_node
-            pod_node=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
-            if ! echo "$selected_nodes" | grep -qw "$pod_node"; then
-                log_info "    Skipping pod $pod_name (not on selected node)"
-                continue
-            fi
-        fi
-
-        collect_resource "$component_dir/pods/${pod_name}.yaml" get -n "$OPERATOR_NAMESPACE" "$pod" -o yaml
-
-        # Pod logs (all containers)
-        local containers
-        containers=$("$KUBECTL_BIN" get -n "$OPERATOR_NAMESPACE" "$pod" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null)
-        for container in $containers; do
-            mkdir -p "$component_dir/pods"
-            if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" -c "$container" --tail="$LOG_LINES" > "$component_dir/pods/${pod_name}-${container}.log" 2>> "$ERROR_LOG"; then
-                STATS[component_pods]=$((STATS[component_pods] + 1))
-            else
-                rm -f "$component_dir/pods/${pod_name}-${container}.log"
-            fi
-
-            # Previous logs if available
-            if "$KUBECTL_BIN" logs -n "$OPERATOR_NAMESPACE" "$pod" -c "$container" --previous --tail="$LOG_LINES" > "$component_dir/pods/${pod_name}-${container}-previous.log" 2>/dev/null; then
-                log_info "      Collected previous logs for container: $container"
-            else
-                rm -f "$component_dir/pods/${pod_name}-${container}-previous.log"
-            fi
-        done
-    done
+    pods=$("$KUBECTL_BIN" get pods -n "$namespace" -l "$pod_label_selector" -o name 2>/dev/null)
+    collect_pods_and_logs "$namespace" "$component_dir/pods" "$pods"
 
     # Collect Services
-    collect_resource "$component_dir/services.yaml" get services -n "$OPERATOR_NAMESPACE" -l "$label_selector" -o yaml
+    collect_resource "$component_dir/services.yaml" get services -n "$namespace" -l "$label_selector" -o yaml
+    return 0
 }
 
 # Collect all components
@@ -693,8 +971,8 @@ collect_all_components() {
     log_info "Collecting all component workloads..."
 
     # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-07-27T12:50:26Z
-    # Component definitions: name, label, type
+    # Generated at: 2026-07-31T11:23:32Z
+    # Component definitions: name, workload label, type, optional pod label
     declare -A components=(
         # Main Network Operator components
         ["cni-plugins-ds"]="name=cni-plugins|daemonset"
@@ -702,34 +980,85 @@ collect_all_components() {
         ["ib-kubernetes"]="name=ib-kubernetes|deployment"
         ["kube-ipoib-cni-ds"]="name=ipoib-cni|daemonset"
         ["kube-multus-ds"]="name=multus|daemonset"
-        ["network-operator-sriov-device-plugin{{"]="template=|daemonset"
+        ["network-operator-sriov-device-plugin"]="name=network-operator-sriov-device-plugin__NAME_SUFFIX__|daemonset"
         ["nic-configuration-daemon"]="app.kubernetes.io/name=nic-configuration-daemon|daemonset"
         ["nic-configuration-operator"]="app.kubernetes.io/component=nic-configuration-operator|deployment"
         ["nic-feature-discovery-ds"]="name=nic-feature-discovery|daemonset"
         ["nv-ipam-controller"]="name=nv-ipam-controller|deployment"
         ["nv-ipam-node"]="name=nv-ipam-node|daemonset"
         ["ofed-driver"]="nvidia.com/ofed-driver=|daemonset"
-        ["rdma-shared-dp-ds{{"]="template=|daemonset"
+        ["rdma-shared-dp-ds"]="app=rdma-shared-dp__NAME_SUFFIX__|daemonset"
         ["spectrum-x-flowcontroller"]="control-plane=spectrum-x-flowcontroller|daemonset"
         # Node Feature Discovery (sub-chart)
         ["nfd-master"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=master|deployment"
         ["nfd-worker"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=worker|daemonset"
         ["nfd-gc"]="app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=gc|deployment"
+        ["nfd-topology-updater"]="app.kubernetes.io/name=node-feature-discovery,role=topology-updater|daemonset"
         # SR-IOV Network Operator (sub-chart)
-        ["sriov-network-operator"]="app=sriov-network-operator|deployment"
+        ["sriov-network-operator"]="app.kubernetes.io/name=sriov-network-operator|deployment|name=sriov-network-operator"
         ["sriov-network-config-daemon"]="app=sriov-network-config-daemon|daemonset"
-        ["sriov-network-resources-injector"]="app=network-resources-injector|deployment"
+        ["sriov-network-resources-injector"]="app=network-resources-injector|daemonset"
+        ["sriov-network-operator-webhook"]="app=operator-webhook|daemonset"
+        ["sriov-network-device-plugin"]="app=sriov-device-plugin|daemonset"
+        ["sriov-network-metrics-exporter"]="app=sriov-network-metrics-exporter|daemonset"
+        ["sriov-dra-driver"]="app=sriov-dra-driver|daemonset"
         # Maintenance Operator (sub-chart)
         ["maintenance-operator"]="app.kubernetes.io/name=maintenance-operator|deployment"
     )
     # [GENERATED-COMPONENTS-END]
 
     for component in "${!components[@]}"; do
-        IFS='|' read -r label type <<< "${components[$component]}"
-        collect_component "$component" "$label" "$type"
+        local label type pod_label
+        IFS='|' read -r label type pod_label <<< "${components[$component]}"
+        collect_component "$component" "$label" "$type" "${pod_label:-$label}"
     done
 
+    collect_helm_release_components
+
     log_success "Found ${STATS[components_found]} components, skipped ${STATS[components_skipped]}"
+}
+
+# Record and execute one diagnostic command in the MOFED container.
+run_diagnostic_command() {
+    local pod="$1"
+    local node_name="$2"
+    local diagnostics_dir="$3"
+    local status_file="$4"
+    local diagnostic_name="$5"
+    local required_binary="$6"
+    local command="$7"
+
+    local probe_result
+    local probe_command="if command -v $required_binary >/dev/null 2>&1; then printf available; else printf unavailable; fi"
+    if ! probe_result=$("$KUBECTL_BIN" exec -n "$OPERATOR_NAMESPACE" "$pod" -c mofed-container -- sh -c "$probe_command" 2>&1); then
+        printf '%-28s FAILED  unable to check for executable %s\n' "$diagnostic_name" "$required_binary" >> "$status_file"
+        STATS[diagnostic_failed]=$((STATS[diagnostic_failed] + 1))
+        log_warn "Failed to check diagnostic tool '$required_binary' in $OPERATOR_NAMESPACE/$(basename "$pod")"
+        printf '  %s\n' "$probe_result" >> "$ERROR_LOG"
+        return 0
+    fi
+
+    if [ "$probe_result" != "available" ]; then
+        printf '%-28s SKIPPED executable %s is not installed in mofed-container\n' "$diagnostic_name" "$required_binary" >> "$status_file"
+        STATS[diagnostic_skipped]=$((STATS[diagnostic_skipped] + 1))
+        log_info "    Skipped $diagnostic_name ($required_binary is not installed)"
+        return 0
+    fi
+
+    local output_file="$diagnostics_dir/${node_name}-${diagnostic_name}.txt"
+    local command_error_file
+    command_error_file=$(mktemp)
+    if "$KUBECTL_BIN" exec -n "$OPERATOR_NAMESPACE" "$pod" -c mofed-container -- sh -c "$command" > "$output_file" 2> "$command_error_file"; then
+        printf '%-28s SUCCESS\n' "$diagnostic_name" >> "$status_file"
+        STATS[diagnostic_commands]=$((STATS[diagnostic_commands] + 1))
+    else
+        rm -f "$output_file"
+        printf '%-28s FAILED  command returned a non-zero exit status\n' "$diagnostic_name" >> "$status_file"
+        STATS[diagnostic_failed]=$((STATS[diagnostic_failed] + 1))
+        log_warn "Diagnostic '$diagnostic_name' failed on node $node_name"
+        sed 's/^/  /' "$command_error_file" >> "$ERROR_LOG"
+    fi
+    rm -f "$command_error_file"
 }
 
 # Run diagnostic commands in OFED pods
@@ -786,29 +1115,42 @@ collect_diagnostic_commands() {
 
         mkdir -p "$diagnostics_dir"
 
-        # Run diagnostic commands
-        local commands=(
-            "lsmod | grep mlx:${node_name}-lsmod.txt"
-            "ibstat:${node_name}-ibstat.txt"
-            "ibv_devinfo:${node_name}-ibv_devinfo.txt"
-            "mst status:${node_name}-mst_status.txt"
-            "cat /proc/version:${node_name}-kernel_version.txt"
-            "dmesg | tail -500:${node_name}-dmesg.txt"
-            "ip link show:${node_name}-ip_link.txt"
-            "ip addr show:${node_name}-ip_addr.txt"
-        )
+        local status_file="$diagnostics_dir/${node_name}-diagnostic_status.txt"
+        {
+            echo "OFED diagnostic command status"
+            echo "=============================="
+            echo "Pod: $pod_name"
+            echo "Container: mofed-container"
+            echo ""
+        } > "$status_file"
 
-        for cmd_spec in "${commands[@]}"; do
-            IFS=':' read -r cmd output_file <<< "$cmd_spec"
-            if "$KUBECTL_BIN" exec -n "$OPERATOR_NAMESPACE" "$pod" -- sh -c "$cmd" > "$diagnostics_dir/$output_file" 2>> "$ERROR_LOG"; then
-                STATS[diagnostic_commands]=$((STATS[diagnostic_commands] + 1))
-            else
-                rm -f "$diagnostics_dir/$output_file"
-            fi
-        done
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "lsmod" "lsmod" "lsmod | grep mlx"
+
+        # These legacy utilities are useful when a custom driver image provides
+        # them, but they are not part of the minimal kernel-only MOFED image.
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "ibstat" "ibstat" "ibstat"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "ibv_devinfo" "ibv_devinfo" "ibv_devinfo"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "mst_status" "mst" "mst status"
+
+        # Portable RDMA and devlink diagnostics available in the minimal driver
+        # image. These preserve useful device, port, PCI, and firmware data when
+        # the optional legacy utilities are absent.
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "rdma_dev" "rdma" "rdma dev show"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "rdma_link" "rdma" "rdma link show"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "devlink_dev" "devlink" "devlink dev show"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "devlink_info" "devlink" "devlink dev info"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "devlink_port" "devlink" "devlink port show"
+        # Keep variables quoted for expansion by the shell inside mofed-container.
+        # shellcheck disable=SC2016
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "infiniband_sysfs" "cat" 'for device in /sys/class/infiniband/*; do [ -e "$device" ] || continue; echo "device: ${device##*/}"; for attribute in node_guid sys_image_guid node_type fw_ver hca_type; do [ -r "$device/$attribute" ] && echo "  $attribute: $(cat "$device/$attribute")"; done; for port in "$device"/ports/*; do [ -e "$port" ] || continue; echo "  port: ${port##*/}"; for attribute in state phys_state rate link_layer lid sm_lid; do [ -r "$port/$attribute" ] && echo "    $attribute: $(cat "$port/$attribute")"; done; done; done'
+
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "kernel_version" "cat" "cat /proc/version"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "dmesg" "dmesg" "dmesg | tail -500"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "ip_link" "ip" "ip link show"
+        run_diagnostic_command "$pod" "$node_name" "$diagnostics_dir" "$status_file" "ip_addr" "ip" "ip addr show"
     done
 
-    log_success "Collected ${STATS[diagnostic_commands]} diagnostic command outputs"
+    log_success "Collected ${STATS[diagnostic_commands]} diagnostic command outputs (${STATS[diagnostic_skipped]} skipped, ${STATS[diagnostic_failed]} failed)"
 }
 
 # Collect node information
@@ -868,15 +1210,47 @@ collect_network_info() {
 collect_related_operators() {
     log_info "Checking for related operators..."
 
-    # Check for SR-IOV Network Operator
-    if "$KUBECTL_BIN" get namespace openshift-sriov-network-operator &> /dev/null; then
-        log_info "  Found SR-IOV Network Operator"
-        local sriov_dir="$OUTPUT_DIR/related-operators/sriov-network-operator"
+    # Discover both Helm-managed and standalone/OpenShift SR-IOV Operator
+    # namespaces. Different releases use different labels, so use the CR,
+    # controller Deployment, controller Pod, and the conventional namespace.
+    local sriov_namespaces=""
+    local discovered_namespaces
 
-        collect_resource "$sriov_dir/namespace.yaml" get namespace openshift-sriov-network-operator -o yaml
-        collect_resource "$sriov_dir/deployments.yaml" get deployments -n openshift-sriov-network-operator -o yaml
-        collect_resource "$sriov_dir/daemonsets.yaml" get daemonsets -n openshift-sriov-network-operator -o yaml
+    discovered_namespaces=$("$KUBECTL_BIN" get sriovoperatorconfigs.sriovnetwork.openshift.io -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"\n"}{end}' 2>/dev/null || true)
+    sriov_namespaces="$sriov_namespaces"$'\n'"$discovered_namespaces"
+
+    discovered_namespaces=$("$KUBECTL_BIN" get deployments -A -l app.kubernetes.io/name=sriov-network-operator -o jsonpath='{range .items[*]}{.metadata.namespace}{"\n"}{end}' 2>/dev/null || true)
+    sriov_namespaces="$sriov_namespaces"$'\n'"$discovered_namespaces"
+
+    discovered_namespaces=$("$KUBECTL_BIN" get pods -A -l name=sriov-network-operator -o jsonpath='{range .items[*]}{.metadata.namespace}{"\n"}{end}' 2>/dev/null || true)
+    sriov_namespaces="$sriov_namespaces"$'\n'"$discovered_namespaces"
+
+    if "$KUBECTL_BIN" get namespace openshift-sriov-network-operator &> /dev/null; then
+        sriov_namespaces="$sriov_namespaces"$'\n'"openshift-sriov-network-operator"
     fi
+
+    while IFS= read -r namespace; do
+        [ -n "$namespace" ] || continue
+
+        # Bundled SR-IOV components were already collected component-by-component.
+        if [ "$namespace" = "$OPERATOR_NAMESPACE" ]; then
+            log_info "  SR-IOV Network Operator is bundled in $namespace"
+            continue
+        fi
+
+        log_info "  Collecting standalone SR-IOV Network Operator from $namespace"
+        local sriov_dir="$OUTPUT_DIR/related-operators/sriov-network-operator/$namespace"
+
+        collect_resource "$sriov_dir/namespace.yaml" get namespace "$namespace" -o yaml
+        collect_resource "$sriov_dir/deployments.yaml" get deployments -n "$namespace" -o yaml
+        collect_resource "$sriov_dir/daemonsets.yaml" get daemonsets -n "$namespace" -o yaml
+        collect_resource "$sriov_dir/configmaps.yaml" get configmaps -n "$namespace" -o yaml
+        collect_resource "$sriov_dir/events.yaml" get events -n "$namespace" --sort-by='.lastTimestamp' -o yaml
+
+        local pods
+        pods=$("$KUBECTL_BIN" get pods -n "$namespace" -o name 2>/dev/null)
+        collect_pods_and_logs "$namespace" "$sriov_dir/pods" "$pods"
+    done < <(printf '%s\n' "$sriov_namespaces" | sed '/^$/d' | sort -u)
 
     log_success "Related operators collection completed"
 }
@@ -982,6 +1356,8 @@ generate_summary() {
         echo "Component Pods: ${STATS[component_pods]}"
         echo "Nodes: ${STATS[nodes]}"
         echo "Diagnostic Commands: ${STATS[diagnostic_commands]}"
+        echo "Diagnostic Commands Skipped: ${STATS[diagnostic_skipped]}"
+        echo "Diagnostic Commands Failed: ${STATS[diagnostic_failed]}"
         echo "Warnings: ${STATS[warnings]}"
         echo "Errors: ${STATS[errors]}"
         echo ""
@@ -1155,7 +1531,7 @@ main() {
     echo "  Components: ${STATS[components_found]} found, ${STATS[components_skipped]} skipped"
     echo "  Pods: ${STATS[operator_pods]} operator, ${STATS[component_pods]} component"
     echo "  Nodes: ${STATS[nodes]}"
-    echo "  Diagnostics: ${STATS[diagnostic_commands]} commands"
+    echo "  Diagnostics: ${STATS[diagnostic_commands]} succeeded, ${STATS[diagnostic_skipped]} skipped, ${STATS[diagnostic_failed]} failed"
     echo "  Issues: ${STATS[warnings]} warnings, ${STATS[errors]} errors"
     echo ""
 
@@ -1168,6 +1544,8 @@ main() {
     return 0
 }
 
-# Run main function
-main "$@"
-exit $?
+# Run main function when executed, but allow tests to source the helpers.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+    exit $?
+fi

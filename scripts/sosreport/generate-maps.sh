@@ -42,6 +42,19 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Convert one YAML label line into a kubectl selector. Preserve NameSuffix as a
+# marker so the collector can expand it to the base NicClusterPolicy value and
+# all current NicNodePolicy-suffixed values. Other templates are removed.
+format_label_selector() {
+    echo "$1" | sed -E \
+        -e 's/^[[:space:]]+//' \
+        -e 's/[[:space:]]*\{\{[[:space:]]*\.NameSuffix[[:space:]]*\}\}/__NAME_SUFFIX__/g' \
+        -e 's/[[:space:]]*\{\{.*$//' \
+        -e 's/:[[:space:]]*/=/' \
+        -e 's/"//g' \
+        -e 's/[[:space:]]+$//'
+}
+
 # Extract CRD names from manifests
 extract_crds() {
     local crds=()
@@ -95,25 +108,30 @@ extract_components() {
                 fi
 
                 # Extract component name from metadata.name in the manifest
-                comp_name=$(grep -A2 "^metadata:" "$manifest" 2>/dev/null | grep "name:" | head -1 | awk '{print $2}')
+                comp_name=$(grep -A2 "^metadata:" "$manifest" 2>/dev/null | grep "name:" | head -1 | awk '{print $2}' | sed 's/{{.*//')
                 # Fallback to directory name if metadata.name not found
                 [ -z "$comp_name" ] && comp_name=$(basename "$state_dir" | sed 's/state-//')
 
                 # Skip if already found for this component
                 [ -n "${components[$comp_name]}" ] && continue
 
-                # Extract labels from matchLabels section, skip lines with Go templates
-                # Try to find a stable label (one without {{ }})
+                # Extract labels from the matchLabels area. NameSuffix values
+                # retain a marker that is expanded by the collector at runtime.
                 local labels
-                labels=$(grep -A10 "matchLabels:" "$manifest" 2>/dev/null | grep -v "matchLabels:" | grep -v "^--$" | grep -v "{{" | head -5)
+                labels=$(grep -A12 "matchLabels:" "$manifest" 2>/dev/null \
+                    | grep -E '^[[:space:]]+[[:alnum:]_.\/-]+:' \
+                    | grep -vE '^[[:space:]]+(matchLabels|template|metadata|labels|spec):' \
+                    | head -10)
 
-                # Get first non-template label
-                label=$(echo "$labels" | head -1 | sed 's/^ *//' | sed 's/: */=/' | tr -d ' ' | sed 's/=""$/=/')
+                # Get the first label, preserving a runtime marker for
+                # NicNodePolicy suffixes.
+                label=$(format_label_selector "$(echo "$labels" | head -1)")
 
-                # If the manifest has Go templates and we found nvidia.com label, prefer it
-                if grep -q "{{" "$manifest" 2>/dev/null; then
+                # The OFED app label is entirely runtime-generated, so prefer
+                # its stable presence label when it is available.
+                if echo "$labels" | grep -q "nvidia.com/ofed-driver"; then
                     local nvidia_label
-                    nvidia_label=$(echo "$labels" | grep "nvidia.com" | head -1 | sed 's/^ *//' | sed 's/: */=/' | tr -d ' ' | sed 's/=""$/=/')
+                    nvidia_label=$(format_label_selector "$(echo "$labels" | grep "nvidia.com/ofed-driver" | head -1)")
                     [ -n "$nvidia_label" ] && label="$nvidia_label"
                 fi
 
@@ -183,7 +201,7 @@ generate_crds_section() {
 generate_components_section() {
     echo "    # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually"
     echo "    # Generated at: $TIMESTAMP"
-    echo "    # Component definitions: name, label, type"
+    echo "    # Component definitions: name, workload label, type, optional pod label"
     echo "    declare -A components=("
 
     echo "        # Main Network Operator components"
@@ -198,11 +216,16 @@ generate_components_section() {
     echo "        [\"nfd-master\"]=\"app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=master|deployment\""
     echo "        [\"nfd-worker\"]=\"app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=worker|daemonset\""
     echo "        [\"nfd-gc\"]=\"app.kubernetes.io/name=node-feature-discovery,app.kubernetes.io/component=gc|deployment\""
+    echo "        [\"nfd-topology-updater\"]=\"app.kubernetes.io/name=node-feature-discovery,role=topology-updater|daemonset\""
 
     echo "        # SR-IOV Network Operator (sub-chart)"
-    echo "        [\"sriov-network-operator\"]=\"app=sriov-network-operator|deployment\""
+    echo "        [\"sriov-network-operator\"]=\"app.kubernetes.io/name=sriov-network-operator|deployment|name=sriov-network-operator\""
     echo "        [\"sriov-network-config-daemon\"]=\"app=sriov-network-config-daemon|daemonset\""
-    echo "        [\"sriov-network-resources-injector\"]=\"app=network-resources-injector|deployment\""
+    echo "        [\"sriov-network-resources-injector\"]=\"app=network-resources-injector|daemonset\""
+    echo "        [\"sriov-network-operator-webhook\"]=\"app=operator-webhook|daemonset\""
+    echo "        [\"sriov-network-device-plugin\"]=\"app=sriov-device-plugin|daemonset\""
+    echo "        [\"sriov-network-metrics-exporter\"]=\"app=sriov-network-metrics-exporter|daemonset\""
+    echo "        [\"sriov-dra-driver\"]=\"app=sriov-dra-driver|daemonset\""
 
     echo "        # Maintenance Operator (sub-chart)"
     echo "        [\"maintenance-operator\"]=\"app.kubernetes.io/name=maintenance-operator|deployment\""
@@ -303,6 +326,7 @@ update_maps() {
 
     mv "${temp_file}.2" "$SCRIPT_FILE"
     rm -f "$temp_file"
+    chmod +x "$SCRIPT_FILE"
 
     local crd_count
     crd_count=$(extract_crds | wc -l)
@@ -311,7 +335,7 @@ update_maps() {
 
     log_info "Updated: $SCRIPT_FILE"
     log_info "  - CRDs: $crd_count (from manifests) + 12 (sub-charts)"
-    log_info "  - Components: $component_count (from manifests) + 7 (sub-charts)"
+    log_info "  - Components: $component_count (from manifests) + 11 (sub-charts)"
 }
 
 # Main

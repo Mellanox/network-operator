@@ -40,8 +40,12 @@ kubectl netop-sosreport --help
 ### Features
 
 - **Automatic Detection**: Auto-detects the Network Operator namespace
-- **Comprehensive Collection**: Gathers CRDs, workloads, logs, and diagnostic data
+- **Comprehensive Collection**: Gathers CRDs, workloads, logs, and diagnostic data from every known component
+- **Helm Release Discovery**: Finds chart and sub-chart workloads by release label so optional or newly added components are not omitted
 - **Graceful Error Handling**: Continues collection even if some resources fail
+- **Capability-Aware Diagnostics**: Records unavailable optional tools as skipped instead of collection failures
+- **All Container Logs**: Collects current and previous logs from regular, init, and ephemeral containers
+- **SR-IOV Operator Coverage**: Collects resources and container logs from bundled and standalone deployments
 - **Configurable**: Multiple options to customize the collection behavior
 - **Platform Aware**: Detects OpenShift vs vanilla Kubernetes
 
@@ -52,9 +56,9 @@ The collection script automatically generates a self-contained HTML report (`rep
 **Features:**
 - Executive dashboard with overall NicClusterPolicy status, node count, pod health, and error summary
 - NicClusterPolicy applied states table with color-coded status badges
-- Component health grid showing all 22 components with desired/ready replicas, pod counts, and restart counts
+- Component health grid showing discovered components with desired/ready replicas, pod counts, and restart counts
 - Per-component detail panels with workload YAML, pod status, and log viewers with error/warning highlighting
-- OFED diagnostics per node (lsmod, ibstat, ibv_devinfo, mst status, dmesg, ip link/addr)
+- OFED diagnostics per node (RDMA, devlink, sysfs, kernel, network, and optional legacy tools)
 - Node overview with summary table, resource allocation, and labels
 - Events timeline with warning highlighting
 - CRD inventory with definitions and instances
@@ -80,7 +84,7 @@ python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --templ
 ### What's Collected
 
 #### Custom Resources
-- NicClusterPolicy, MacVlanNetwork, HostDeviceNetwork, IPoIBNetwork
+- NicClusterPolicy, NicNodePolicy, MacVlanNetwork, HostDeviceNetwork, IPoIBNetwork
 - IPPools, CIDRPools (NV-IPAM)
 - NICDevice, NICConfigurationTemplate, NICFirmwareResource, etc.
 - NetworkAttachmentDefinitions (Multus)
@@ -93,7 +97,7 @@ python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --templ
 - Events in operator namespace
 - Webhook configurations
 
-#### Component Workloads (15 components)
+#### Component Workloads
 - OFED Driver
 - NIC Feature Discovery
 - SR-IOV Device Plugin
@@ -106,11 +110,24 @@ python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --templ
 - NIC Configuration Operator (Daemon and Controller)
 - DOCA Telemetry Service
 - Spectrum-X Operator
+- Node Feature Discovery (Master, Worker, Garbage Collector, and optional Topology Updater)
+- SR-IOV Network Operator controller, config daemon, webhook, resource injector,
+  device plugin, metrics exporter, and DRA driver (when deployed by Network Operator)
+- Maintenance Operator (when deployed by Network Operator)
+
+The collector also discovers every workload carrying the Network Operator Helm
+release's `app.kubernetes.io/instance` label. This release-scoped fallback
+captures optional and future parent-chart or sub-chart components without
+collecting unrelated pods when the operator shares a namespace. A complete
+release inventory is stored under `operator/helm-release/`, including
+Deployments, DaemonSets, StatefulSets, ReplicaSets, Jobs, CronJobs,
+PodDisruptionBudgets, and NetworkPolicies that are present during collection.
 
 For each component:
-- DaemonSet/Deployment specifications
+- Workload specifications (including DaemonSets, Deployments, StatefulSets,
+  ReplicaSets, Jobs, CronJobs, and standalone Pods)
 - All pod details and status
-- Current and previous logs (if restarted)
+- Current and previous logs from every regular, init, and ephemeral container
 - Related ConfigMaps and Services
 
 #### Node Information
@@ -120,13 +137,21 @@ For each component:
 - Node-specific labels (feature.node.kubernetes.io/*)
 
 #### Diagnostic Commands (from OFED pods)
+
+Portable diagnostics used by current MOFED/DOCA driver containers:
+
 - `lsmod | grep mlx` - Loaded Mellanox modules
-- `ibstat` - InfiniBand device status
-- `ibv_devinfo` - RDMA device information
-- `mst status` - Mellanox Software Tools status
+- `rdma dev show` and `rdma link show` - RDMA devices and links
+- `devlink dev show`, `devlink dev info`, and `devlink port show` - devlink inventory
+- InfiniBand sysfs attributes - device, port, state, firmware, and GUID data
 - Kernel version
 - Recent dmesg output
 - Network interface information
+
+The collector also runs `ibstat`, `ibv_devinfo`, and `mst status` when those
+optional legacy tools are installed. An unavailable command is recorded as
+`SKIPPED` in the node's `diagnostic_status.txt`; it is not written as an error
+to `collection-errors.log`. Command execution failures are still reported.
 
 #### Cluster-Wide Resources
 - Kubernetes version
@@ -158,9 +183,9 @@ For each component:
 # Skip diagnostic commands for faster collection
 # This skips executing commands inside OFED pods:
 #   - lsmod | grep mlx (loaded Mellanox kernel modules)
-#   - ibstat (InfiniBand device status)
-#   - ibv_devinfo (RDMA device information)
-#   - mst status (Mellanox Software Tools status)
+#   - rdma and devlink inventory
+#   - InfiniBand sysfs attributes
+#   - ibstat, ibv_devinfo, and mst status (when installed)
 #   - dmesg (kernel messages)
 #   - ip link/addr (network interface information)
 ./network-operator-sosreport.sh --skip-diagnostics
@@ -185,7 +210,8 @@ Options:
   --no-compress              Don't create tarball, leave as directory
   --log-lines N              Number of log lines to collect per pod (default: 5000)
   --skip-diagnostics         Skip running diagnostic commands in OFED pods
-                             (lsmod, ibstat, ibv_devinfo, mst, dmesg, ip commands)
+                             (lsmod, rdma, devlink, sysfs, optional legacy tools,
+                             dmesg, and ip commands)
                              Use this for faster collection when driver-level diagnostics are not needed
   --skip-report              Skip HTML report generation
   --kubectl-path PATH        Path to kubectl binary (default: kubectl from PATH)
@@ -221,22 +247,28 @@ network-operator-sosreport-<timestamp>/
 │   ├── events.yaml                   # Namespace events
 │   ├── validatingwebhookconfigurations.yaml
 │   ├── mutatingwebhookconfigurations.yaml
+│   ├── helm-release/                 # Complete parent/sub-chart resource inventory
+│   │   ├── workloads/                # Deployments, DaemonSets, Jobs, etc.
+│   │   ├── poddisruptionbudgets.yaml
+│   │   └── networkpolicies.yaml
 │   └── components/
 │       ├── network-operator/         # Operator controller
 │       │   ├── deployment.yaml
 │       │   └── pods/
 │       │       ├── <pod-name>.yaml
-│       │       ├── <pod-name>.log
-│       │       └── <pod-name>-previous.log
+│       │       ├── <pod-name>-<container>.log
+│       │       ├── <pod-name>-init-<container>.log
+│       │       ├── <pod-name>-ephemeral-<container>.log
+│       │       └── *-previous.log
 │       ├── ofed-driver/
 │       │   ├── daemonset.yaml
 │       │   ├── pods/
-│       │   └── diagnostics/          # Host commands output
+│       │   └── diagnostics/          # Command output and per-node status
 │       ├── rdma-shared-dp-ds/
 │       ├── sriov-device-plugin/
 │       ├── nv-ipam-node/
 │       ├── nv-ipam-controller/
-│       └── ...                       # All components
+│       └── ...                       # Known and Helm-discovered components
 ├── nodes/
 │   ├── all-nodes.yaml                # All nodes with full details
 │   ├── nodes-summary.txt             # Node summary table
@@ -245,7 +277,12 @@ network-operator-sosreport-<timestamp>/
 ├── network/
 │   └── services.yaml
 ├── related-operators/
-│   └── sriov-network-operator/       # If present
+│   └── sriov-network-operator/       # Standalone deployment, if present
+│       └── <namespace>/
+│           ├── deployments.yaml
+│           ├── daemonsets.yaml
+│           ├── events.yaml
+│           └── pods/                 # Pod YAML plus current/previous container logs
 ├── diagnostic-summary.txt            # Quick summary and issues
 ├── report.html                       # Interactive HTML report
 └── collection-errors.log             # Any errors during collection
