@@ -509,14 +509,20 @@ def render_components(report_dir):
             # Determine workload type
             workload_type = "unknown"
             workload_file = ""
-            ds_file = os.path.join(comp_path, "daemonset.yaml")
-            dep_file = os.path.join(comp_path, "deployment.yaml")
-            if os.path.isfile(ds_file):
-                workload_type = "DaemonSet"
-                workload_file = ds_file
-            elif os.path.isfile(dep_file):
-                workload_type = "Deployment"
-                workload_file = dep_file
+            workload_files = [
+                ("DaemonSet", os.path.join(comp_path, "daemonset.yaml")),
+                ("Deployment", os.path.join(comp_path, "deployment.yaml")),
+                ("StatefulSet", os.path.join(comp_path, "statefulset.yaml")),
+                ("ReplicaSet", os.path.join(comp_path, "replicaset.yaml")),
+                ("Job", os.path.join(comp_path, "job.yaml")),
+                ("CronJob", os.path.join(comp_path, "cronjob.yaml")),
+                ("Pod", os.path.join(comp_path, "pod.yaml")),
+            ]
+            for candidate_type, candidate_file in workload_files:
+                if os.path.isfile(candidate_file):
+                    workload_type = candidate_type
+                    workload_file = candidate_file
+                    break
 
             # Extract replica counts
             desired = "-"
@@ -526,6 +532,12 @@ def render_components(report_dir):
                 if workload_type == "DaemonSet":
                     desired = extract_yaml_field(wf_content, "desiredNumberScheduled") or "-"
                     ready_count = extract_yaml_field(wf_content, "numberReady") or "-"
+                elif workload_type == "Job":
+                    desired = extract_yaml_field(wf_content, "completions") or "1"
+                    ready_count = extract_yaml_field(wf_content, "succeeded") or "0"
+                elif workload_type in ("CronJob", "Pod"):
+                    desired = "-"
+                    ready_count = "-"
                 else:
                     desired = extract_yaml_field(wf_content, "replicas") or "-"
                     ready_count = extract_yaml_field(wf_content, "readyReplicas") or "-"
@@ -597,7 +609,7 @@ def render_components(report_dir):
             parts.append('<div class="comp-row-detail">\n')
 
             # Workload YAML files
-            for wf in [ds_file, dep_file]:
+            for _, wf in workload_files:
                 if os.path.isfile(wf):
                     parts.append(collapsible(
                         os.path.basename(wf),
@@ -632,16 +644,46 @@ def render_components(report_dir):
                         "yaml-block",
                     ))
 
-                    # Pod logs
-                    log_file = os.path.join(pods_dir, f"{pod_name}.log")
-                    if os.path.isfile(log_file) and os.path.getsize(log_file) > 0:
+                    # Pod logs. Current collections store one file per
+                    # container; retain support for the historical
+                    # single-container filename when rendering older archives.
+                    pod_logs = sorted(set(
+                        glob.glob(os.path.join(pods_dir, f"{pod_name}.log"))
+                        + glob.glob(os.path.join(pods_dir, f"{pod_name}-*.log"))
+                    ))
+                    for log_file in pod_logs:
+                        if not os.path.isfile(log_file) or os.path.getsize(log_file) == 0:
+                            continue
+
+                        log_basename = os.path.basename(log_file)
+                        is_previous = log_basename.endswith("-previous.log")
+
+                        suffix = log_basename[len(pod_name):]
+                        if suffix.endswith(".log"):
+                            suffix = suffix[:-4]
+                        if suffix.endswith("-previous"):
+                            suffix = suffix[:-9]
+                        container_name = suffix[1:] if suffix.startswith("-") else suffix
+                        container_type = "Container"
+                        if container_name.startswith("init-"):
+                            container_type = "Init Container"
+                            container_name = container_name[len("init-"):]
+                        elif container_name.startswith("ephemeral-"):
+                            container_type = "Ephemeral Container"
+                            container_name = container_name[len("ephemeral-"):]
+
+                        log_kind = "Previous " if is_previous else ""
+                        log_kind += f"{container_type} Logs"
+                        if container_name:
+                            log_kind += f" ({container_name})"
+
                         log_content = read_file(log_file)
                         escaped_log = highlight_logs(html.escape(log_content))
                         log_lines = len(log_content.split("\n"))
                         parts.append('<details class="collapsible">\n')
                         parts.append(
-                            f'<summary>Logs <span class="line-count">'
-                            f"{log_lines} lines</span></summary>\n"
+                            f'<summary>{html.escape(log_kind)} '
+                            f'<span class="line-count">{log_lines} lines</span></summary>\n'
                         )
                         parts.append(
                             f'<div class="collapsible-content">'
@@ -649,26 +691,31 @@ def render_components(report_dir):
                         )
                         parts.append("</details>\n")
 
-                    # Previous logs
-                    prev_log = os.path.join(pods_dir, f"{pod_name}-previous.log")
-                    if os.path.isfile(prev_log) and os.path.getsize(prev_log) > 0:
-                        prev_content = read_file(prev_log)
-                        escaped_prev = highlight_logs(html.escape(prev_content))
-                        prev_lines = len(prev_content.split("\n"))
-                        parts.append('<details class="collapsible">\n')
-                        parts.append(
-                            f'<summary>Previous Logs <span class="line-count">'
-                            f"{prev_lines} lines</span></summary>\n"
-                        )
-                        parts.append(
-                            f'<div class="collapsible-content">'
-                            f"<pre><code>{escaped_prev}</code></pre></div>\n"
-                        )
-                        parts.append("</details>\n")
-
                     parts.append("</div>\n")
 
             parts.append("</div></details>\n")
+
+        # Preserve a release-wide inventory in addition to the per-component
+        # view. This includes chart workloads with no current pods (for example
+        # scaled-down controllers or completed Helm hook Jobs).
+        release_dir = os.path.join(report_dir, "operator", "helm-release")
+        if os.path.isdir(release_dir):
+            parts.append("<h3>Helm Release Artifacts</h3>\n")
+            release_files = []
+            for root, _, filenames in os.walk(release_dir):
+                for filename in filenames:
+                    if filename.endswith((".yaml", ".yml", ".txt")):
+                        release_files.append(os.path.join(root, filename))
+
+            for release_file in sorted(release_files):
+                if os.path.getsize(release_file) == 0:
+                    continue
+                relative_name = os.path.relpath(release_file, release_dir)
+                parts.append(collapsible(
+                    html.escape(relative_name),
+                    file_content_escaped(release_file),
+                    "yaml-block",
+                ))
 
     parts.append("""\
 </div>
@@ -704,8 +751,10 @@ def render_diagnostics(report_dir):
     else:
         # Group files by node name
         known_commands = [
-            "lsmod", "ibstat", "ibv_devinfo", "mst_status",
-            "kernel_version", "dmesg", "ip_link", "ip_addr",
+            "diagnostic_status", "lsmod", "ibstat", "ibv_devinfo", "mst_status",
+            "rdma_dev", "rdma_link", "devlink_dev", "devlink_info",
+            "devlink_port", "infiniband_sysfs", "kernel_version", "dmesg",
+            "ip_link", "ip_addr",
         ]
         seen_nodes = []
         seen_set = set()
@@ -744,12 +793,21 @@ def render_diagnostics(report_dir):
 
                 # Each diagnostic command as a collapsible
                 display_commands = [
-                    "lsmod", "ibstat", "ibv_devinfo", "mst_status",
-                    "dmesg", "ip_link", "ip_addr",
+                    "diagnostic_status", "lsmod", "ibstat", "ibv_devinfo",
+                    "mst_status", "rdma_dev", "rdma_link", "devlink_dev",
+                    "devlink_info", "devlink_port", "infiniband_sysfs",
+                    "kernel_version", "dmesg", "ip_link", "ip_addr",
                 ]
                 display_names = {
+                    "diagnostic_status": "Diagnostic command status",
                     "lsmod": "lsmod | grep mlx",
                     "mst_status": "mst status",
+                    "rdma_dev": "rdma dev show",
+                    "rdma_link": "rdma link show",
+                    "devlink_dev": "devlink dev show",
+                    "devlink_info": "devlink dev info",
+                    "devlink_port": "devlink port show",
+                    "infiniband_sysfs": "InfiniBand sysfs state",
                     "kernel_version": "Kernel Version",
                     "ip_link": "ip link show",
                     "ip_addr": "ip addr show",
@@ -1204,17 +1262,27 @@ def render_related_operators(report_dir):
         for op_path in sorted_dirs(related_dir):
             op_name = os.path.basename(op_path)
             parts.append(f"<h4>{html.escape(op_name)}</h4>\n")
-            # Collect .yaml and .txt files
-            files = sorted(
-                glob.glob(os.path.join(op_path, "*.yaml"))
-                + glob.glob(os.path.join(op_path, "*.txt"))
-            )
+            # Related operators may have one directory per discovered
+            # namespace and nested pod logs. Render the full tree so
+            # standalone SR-IOV logs are visible in the HTML report.
+            files = []
+            for root, _, filenames in os.walk(op_path):
+                for filename in filenames:
+                    if filename.endswith((".yaml", ".yml", ".txt", ".log")):
+                        files.append(os.path.join(root, filename))
+
+            files.sort()
             for f in files:
                 if not os.path.isfile(f) or os.path.getsize(f) == 0:
                     continue
+
+                relative_name = os.path.relpath(f, op_path)
+                content = file_content_escaped(f)
+                if f.endswith(".log"):
+                    content = highlight_logs(content)
                 parts.append(collapsible(
-                    html.escape(os.path.basename(f)),
-                    file_content_escaped(f),
+                    html.escape(relative_name),
+                    content,
                     "yaml-block",
                 ))
 
@@ -1402,7 +1470,7 @@ def main():
         "SECTION_RBAC": render_rbac(report_dir),
         "SECTION_NETWORK": render_network(report_dir),
         "SECTION_CONFIG": render_config(report_dir),
-        "SECTION_RELATED_OPERATORS": render_related_operators(report_dir),
+        "SECTION_RELATED": render_related_operators(report_dir),
         "SECTION_ERRORS": render_errors(report_dir),
     }
 
