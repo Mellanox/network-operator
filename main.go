@@ -51,6 +51,7 @@ import (
 	"github.com/Mellanox/network-operator/api/v1alpha1/validator"
 	"github.com/Mellanox/network-operator/controllers"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
+	"github.com/Mellanox/network-operator/pkg/coverage"
 	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/drain"
 	"github.com/Mellanox/network-operator/pkg/migrate"
@@ -176,6 +177,8 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	coverage.SetupSignalHandler()
 
 	stopCtx := ctrl.SetupSignalHandler()
 

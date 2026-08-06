@@ -261,6 +261,9 @@ operator:
   repository: nvcr.io/nvstaging/mellanox
   # -- Network Operator image name
   image: network-operator
+  # -- Enable Go integration coverage collection (GOCOVERDIR, coverage volume, instrumented image tag).
+  coverage:
+    enabled: false
   # imagePullSecrets: []
   # -- Name to be used as part of objects name generation.
   nameOverride: ""

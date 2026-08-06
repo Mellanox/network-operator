@@ -198,6 +198,21 @@ Replace `SVCNAME` with the SVC name follows this convention <Release_Name>-webho
 This command will generate a new RSA key pair with 2048 bits and create a self-signed certificate (`server.crt`) and
 private key (`server.key`) that are valid for 365 days.
 
+#### Deploy Network Operator with Go integration coverage
+
+For integration test coverage collection (e.g. Jinx regression), enable coverage and deploy
+with the immutable instrumented image tag published by CI (`<git-sha>-coverage`):
+
+```bash
+helm install network-operator ./deployment/network-operator \
+  --set operator.coverage.enabled=true \
+  --set operator.tag=<git-sha>-coverage
+```
+
+When enabled, the controller sets `GOCOVERDIR=/coverage`, mounts an `emptyDir` at `/coverage`, and
+sets `COVERAGE_CLEAR_AFTER_FLUSH=1`. Send **SIGUSR1** to the manager process to flush runtime
+coverage counters without restarting the pod. On distroless images, signal the container host PID
+rather than relying on `kubectl exec kill`.
 
 ## Upgrade
 

@@ -324,6 +324,19 @@ image: ; $(info Building Docker image...)  @ ## Build container image
 image-push:
 	$(IMAGE_BUILDER) push $(TAG)
 
+.PHONY: image-coverage
+image-coverage: ; $(info Building coverage Docker image...)  @ ## Build container image with Go coverage instrumentation
+	$Q DOCKER_BUILDKIT=1 $(IMAGE_BUILDER) build --build-arg BUILD_DATE="$(BUILD_TIMESTAMP)" \
+		--build-arg VERSION="$(BUILD_VERSION)" \
+		--build-arg VCS_REF="$(VCS_REF)" \
+		--build-arg VCS_BRANCH="$(VCS_BRANCH)" \
+		--build-arg LDFLAGS=$(LDFLAGS) \
+		--build-arg ARCH="$(ARCH)" \
+		--build-arg GCFLAGS="$(GCFLAGS)" \
+		--build-arg GOPROXY="$(GOPROXY)" \
+		--build-arg GO_COVERAGE=1 \
+		-t $(TAG)-coverage -f $(DOCKERFILE)  $(CURDIR) $(IMAGE_BUILD_OPTS)
+
 # Targets for multi-arch container builds
 # The multi arch build flow first builds containers locally with a suffix in the image tag stating the architecture.
 # Each of these images is then tagged and pushed to the registry as `$(CONTROLLER_IMAGE):$(VERSION)`.
