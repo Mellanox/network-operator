@@ -208,14 +208,14 @@ spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.7.0-beta.5-stig-fips-rhel
+  version: 47f931e-rhel
   nSpectScope: fedramp
   dependabotSyncManaged: true
 spectrumXOperatorStigFipsUbuntu:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.7.0-beta.5-stig-fips-ubuntu
+  version: 47f931e-ubuntu
   nSpectScope: fedramp
   dependabotSyncManaged: true
 xPlaneService:
