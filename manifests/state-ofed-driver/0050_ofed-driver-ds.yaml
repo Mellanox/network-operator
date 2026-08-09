@@ -193,9 +193,15 @@ spec:
           command: [bash, -xc]
           args:
             - |
+              # PID 1 ignores SIGTERM unless a handler is installed; without this trap the
+              # DTK sidecar can stay Running after mofed-container exits and block pod deletion
+              # until terminationGracePeriodSeconds elapses and kubelet sends SIGKILL.
+              trap 'echo "DTK sidecar received termination signal, exiting"; exit 0' TERM INT
               until [ -f /mnt/shared-doca-driver-toolkit/{{ .RuntimeSpec.Kernel }}/dtk_start_compile ]; do
                 echo Waiting for mofed-container container to prepare the shared directory
-                sleep 3
+                # Background sleep + wait so SIGTERM interrupts promptly (sleep alone may not)
+                sleep 3 &
+                wait $! || true
               done
               exec /mnt/shared-doca-driver-toolkit/{{ .RuntimeSpec.Kernel }}/dtk_nic_driver_build.sh
           env:
