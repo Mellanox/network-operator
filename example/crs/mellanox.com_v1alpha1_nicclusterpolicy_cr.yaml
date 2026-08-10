@@ -59,7 +59,7 @@ spec:
   nvIpam:
     image: nvidia-k8s-ipam
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.7.0-beta.5
+    version: ed52dc3
     enableWebhook: false
   secondaryNetwork:
     cniPlugins:
