@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvidia/cloud-native/network-operator@sha256:49d8bd43fa4559468ec93a4c52053aaf7f36861d9f802ffe8fd3aa94266f82de
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:1f2730d93e7f90c007450d164b57d153ab0fe9b7912655cf22d976bcb3da7a2f
     alm-examples: |-
       [
         {
@@ -89,7 +89,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-07-23T09:16:59Z"
+    createdAt: "2026-08-11T08:07:24Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -572,7 +572,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: nvcr.io/nvidia/mellanox/network-operator-init-container@sha256:922217cee504f080b2a76c51ec5d17baa562ffe2447bb1e370c01a6b26a7059f
-                image: nvcr.io/nvidia/cloud-native/network-operator@sha256:49d8bd43fa4559468ec93a4c52053aaf7f36861d9f802ffe8fd3aa94266f82de
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:1f2730d93e7f90c007450d164b57d153ab0fe9b7912655cf22d976bcb3da7a2f
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
