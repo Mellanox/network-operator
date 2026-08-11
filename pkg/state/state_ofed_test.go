@@ -523,6 +523,63 @@ var _ = Describe("MOFED state test", func() {
 			verifySubscriptionVolumesSles(ds.Spec.Template.Spec.Volumes)
 		}
 	})
+	It("Should Render DaemonSet for Rocky Linux without subscription mounts", func() {
+		client := mocks.ControllerRuntimeClient{}
+		manifestBaseDir := "../../manifests/state-ofed-driver"
+
+		files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+		Expect(err).NotTo(HaveOccurred())
+		renderer := render.NewRenderer(files)
+
+		ofedState := stateOFED{
+			stateSkel: stateSkel{
+				name:        stateOFEDName,
+				description: stateOFEDDescription,
+				client:      &client,
+				renderer:    renderer,
+			},
+		}
+		cr := &v1alpha1.NicClusterPolicy{}
+		cr.Name = "nic-cluster-policy"
+		cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+			ImageSpec: v1alpha1.ImageSpec{
+				Image:      "mofed",
+				Repository: "nvcr.io/mellanox",
+				Version:    "23.10-0.5.5.0",
+			},
+		}
+
+		By("Creating NodeProvider with 1 Nodes, Rocky Linux with containerd")
+		node := getNode("node1", kernelFull1)
+		setContainerRuntime(node, "containerd://1.27.1")
+		node.Labels[nodeinfo.NodeLabelOSName] = "rocky"
+		infoProvider := nodeinfo.NewProvider([]*v1.Node{
+			node,
+		})
+		catalog := NewInfoCatalog()
+		catalog.Add(InfoTypeClusterType, &dummyProvider{})
+		catalog.Add(InfoTypeNodeInfo, infoProvider)
+		catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+		objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+		// Expect 4 objects: 1 DS per pool, Service Account, Role, RoleBinding
+		Expect(len(objs)).To(Equal(4))
+		By("Verify no subscription mounts are injected")
+		for _, obj := range objs {
+			if obj.GetKind() != "DaemonSet" {
+				continue
+			}
+			ds := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+			Expect(err).NotTo(HaveOccurred())
+			for _, m := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
+				Expect(m.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+			for _, v := range ds.Spec.Template.Spec.Volumes {
+				Expect(v.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+		}
+	})
 	Context("SHA256 version", func() {
 		It("Should Render DaemonSet with SHA256 version", func() {
 			client := mocks.ControllerRuntimeClient{}
