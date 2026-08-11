@@ -86,6 +86,25 @@ The `ds-owner` label (on both DaemonSet and pod template) tracks which policy ow
 
 Several downstream DaemonSets (RDMA DP, SR-IOV DP, DOCA telemetry, NIC configuration daemon) use `network.nvidia.com/operator.mofed.wait: "false"` as a nodeSelector. This label gates their scheduling until the OFED driver is ready on a node.
 
+### Graceful Node Shutdown
+
+The controller updates `mofed.wait` when MOFED pods become unready. On node reboot or shutdown this only works if the controller is still running while MOFED starts terminating.
+
+To support that, the Network Operator controller Deployment uses:
+
+- `priorityClassName: system-node-critical` (same critical graceful-shutdown phase as MOFED)
+- a `preStop` sleep (default 25s) so the manager keeps reconciling while MOFED begins termination
+- `terminationGracePeriodSeconds` greater than the sleep (default 30s)
+
+This depends on Kubernetes [Graceful Node Shutdown](https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/) being enabled on the cluster. Configure the kubelet with non-zero values, for example:
+
+```yaml
+shutdownGracePeriod: 90s
+shutdownGracePeriodCriticalPods: 60s
+```
+
+Without those kubelet settings, the priority class and `preStop` sleep have no effect during node shutdown. Helm users can tune `operator.priorityClassName`, `operator.preStopSleepSeconds`, and `operator.terminationGracePeriodSeconds`.
+
 ### Label Management Flow
 
 ```mermaid
