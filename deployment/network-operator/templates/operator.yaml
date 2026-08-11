@@ -47,6 +47,9 @@ spec:
       tolerations:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.operator.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       serviceAccountName: {{ include "network-operator.fullname" . }}
       imagePullSecrets: {{ include "network-operator.operator.imagePullSecrets" . }}
       containers:
@@ -70,6 +73,12 @@ spec:
             name: cert
             readOnly: true
           {{- end }}
+          {{- end }}
+          {{- if gt (int (.Values.operator.preStopSleepSeconds | default 0)) 0 }}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.operator.preStopSleepSeconds }}
           {{- end }}
           command:
           - /manager
@@ -154,7 +163,7 @@ spec:
           {{- end }}
       securityContext:
         runAsUser: 65532
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: {{ .Values.operator.terminationGracePeriodSeconds | default 30 }}
       {{- if or .Values.operator.coverage.enabled .Values.operator.admissionController.enabled }}
       volumes:
       {{- if .Values.operator.coverage.enabled }}
