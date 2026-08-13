@@ -227,6 +227,18 @@ operator:
     requests:
       cpu: 5m
       memory: 64Mi
+  # -- Priority class for the operator controller. ``system-node-critical`` keeps the
+  # controller in the same graceful node shutdown phase as MOFED so it can update
+  # ``network.nvidia.com/operator.mofed.wait`` before the node goes down. See
+  # https://github.com/Mellanox/network-operator/issues/2954.
+  priorityClassName: system-node-critical
+  # -- Termination grace period for the operator controller. Must be greater than
+  # ``preStopSleepSeconds``.
+  terminationGracePeriodSeconds: 30
+  # -- Seconds to sleep in ``preStop`` before SIGTERM. Keeps the controller reconciling
+  # while MOFED pods begin terminating during graceful node shutdown. Requires
+  # Kubernetes >= 1.29 (PodLifecycleSleepAction). Set to ``0`` to disable.
+  preStopSleepSeconds: 25
   # -- Set additional tolerations for various Daemonsets deployed by the operator.
   # @notationType -- yaml
   tolerations:

@@ -51,6 +51,10 @@ spec:
                     values: [ "" ]
       securityContext:
         runAsUser: 65532
+      # system-node-critical keeps the controller in the same graceful node shutdown
+      # phase as MOFED so it can update network.nvidia.com/operator.mofed.wait
+      # before the node goes down. See https://github.com/Mellanox/network-operator/issues/2954.
+      priorityClassName: system-node-critical
       containers:
       - command:
         - /manager
@@ -70,6 +74,12 @@ spec:
             value: "false"
           - name: USE_DTK
             value: "true"
+        # Keep the controller reconciling while MOFED pods begin terminating
+        # during graceful node shutdown. Requires Kubernetes >= 1.29.
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 25
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:
@@ -92,4 +102,5 @@ spec:
             cpu: 5m
             memory: 64Mi
       serviceAccountName: controller-manager
-      terminationGracePeriodSeconds: 10
+      # Must be greater than the preStop sleep duration above.
+      terminationGracePeriodSeconds: 30

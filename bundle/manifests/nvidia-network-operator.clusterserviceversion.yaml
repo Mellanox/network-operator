@@ -621,6 +621,10 @@ spec:
                   value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:74344df25714e51e7d1478ebcba1f25a2d404b529634abaa0df54433234a6f91
                 image: nvcr.io/nvstaging/mellanox/network-operator@sha256:a39f3419d74af21cb25300b9a95b32269800d615590fe7274b5dbdff92813696
                 imagePullPolicy: IfNotPresent
+                lifecycle:
+                  preStop:
+                    sleep:
+                      seconds: 25
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -651,10 +655,11 @@ spec:
                 - mountPath: /tmp/k8s-webhook-server/serving-certs
                   name: cert
                   readOnly: true
+              priorityClassName: system-node-critical
               securityContext:
                 runAsUser: 65532
               serviceAccountName: nvidia-network-operator-controller-manager
-              terminationGracePeriodSeconds: 10
+              terminationGracePeriodSeconds: 30
               tolerations:
               - effect: NoSchedule
                 key: node-role.kubernetes.io/master
