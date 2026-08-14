@@ -170,7 +170,7 @@ required_labels=(
     # Main Network Operator components (from manifests/state-*)
     "nvidia.com/ofed-driver"
     "name=nic-feature-discovery"
-    "name=network-operator-sriov-device-plugin"
+    "app=sriovdp"
     "app=rdma-shared-dp"
     "name=multus"
     "name=cni-plugins"
@@ -245,13 +245,16 @@ echo "[Test 6c] Testing suffix-aware component selectors..."
         exit 1
     fi
 
-    if ! grep -Fq '["rdma-shared-dp-ds"]="app=rdma-shared-dp__NAME_SUFFIX__|daemonset"' "$SOSREPORT_SCRIPT" ||
-       ! grep -Fq '["network-operator-sriov-device-plugin"]="name=network-operator-sriov-device-plugin__NAME_SUFFIX__|daemonset"' "$SOSREPORT_SCRIPT"; then
+    if ! grep -Fq '["rdma-shared-dp-ds"]="app=rdma-shared-dp__NAME_SUFFIX__|daemonset"' "$SOSREPORT_SCRIPT"; then
         echo "FAIL: Generated component map does not preserve NameSuffix markers"
         exit 1
     fi
+    if ! grep -Fq '["network-operator-sriov-device-plugin"]="app=sriovdp|daemonset"' "$SOSREPORT_SCRIPT"; then
+        echo "FAIL: SR-IOV device plugin selector does not cover NCP and NNP workloads"
+        exit 1
+    fi
 )
-echo "PASS: Component selectors include non-empty NicNodePolicy suffixes"
+echo "PASS: Component selectors include NicNodePolicy workloads"
 
 # Test 7: Script has proper error handling
 echo ""

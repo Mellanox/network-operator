@@ -78,6 +78,12 @@ Each NNP produces uniquely-named DaemonSets by appending the policy name as a su
 | NicClusterPolicy | `mofed-ubuntu22.04-<hash>-ds` |
 | NicNodePolicy `pool-a` | `mofed-ubuntu22.04-<hash>-pool-a-ds` |
 
+The SR-IOV device plugin keeps its existing
+`network-operator-sriov-device-plugin` DaemonSet name for NicClusterPolicy.
+NicNodePolicy instances use `net-op-sriov-device-plugin-<policy-name>` and the
+complete name is capped at 63 characters because it is also used as a pod
+selector label value.
+
 The `ds-owner` label (on both DaemonSet and pod template) tracks which policy owns each resource:
 - NCP: `ds-owner: NicClusterPolicy`
 - NNP: `ds-owner: NicNodePolicy-<name>`
