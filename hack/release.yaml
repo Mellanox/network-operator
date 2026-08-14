@@ -9,6 +9,9 @@ NetworkOperatorInitContainer:
   sourceRepository: network-operator-init-container
   version: network-operator-v26.4.1
   nSpectScope: gov-ready
+  shas:
+    - imageref: nvcr.io/nvidia/mellanox/network-operator-init-container@sha256:922217cee504f080b2a76c51ec5d17baa562ffe2447bb1e370c01a6b26a7059f
+      sha256: sha256:922217cee504f080b2a76c51ec5d17baa562ffe2447bb1e370c01a6b26a7059f
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvidia/mellanox
