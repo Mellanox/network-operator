@@ -44,6 +44,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
@@ -173,7 +174,8 @@ var _ = BeforeSuite(func() {
 
 	// Start controllers
 	k8sManager, err = ctrl.NewManager(k8sConfig, ctrl.Options{
-		Scheme: scheme.Scheme,
+		Scheme:  scheme.Scheme,
+		Metrics: metricsserver.Options{BindAddress: "0"},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -225,12 +227,12 @@ var _ = BeforeSuite(func() {
 
 	setupDrainControllerWithManager(k8sManager, migrationCompletionChan)
 
+	ctx, k8sManagerCancelFn = context.WithCancel(context.Background())
 	go func() {
 		defer GinkgoRecover()
 
-		ctx, k8sManagerCancelFn = context.WithCancel(ctrl.SetupSignalHandler())
-		err = k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		startErr := k8sManager.Start(ctx)
+		Expect(startErr).ToNot(HaveOccurred())
 	}()
 })
 
