@@ -159,7 +159,7 @@ required_labels=(
     # Main Network Operator components (from manifests/state-*)
     "nvidia.com/ofed-driver"
     "name=nic-feature-discovery"
-    "name=network-operator-sriov-device-plugin"
+    "app=sriovdp"
     "app=rdma-shared-dp"
     "name=multus"
     "name=cni-plugins"
@@ -194,6 +194,16 @@ if [ "$all_labels_found" = true ]; then
     echo "PASS: All component labels present"
 else
     echo "FAIL: Some component labels are missing"
+    exit 1
+fi
+
+# Test 6b: SR-IOV device plugin selector covers NCP and NNP workloads
+echo ""
+echo "[Test 6b] Checking SR-IOV device plugin selector..."
+if grep -Fq '["network-operator-sriov-device-plugin"]="app=sriovdp|daemonset"' "$SOSREPORT_SCRIPT"; then
+    echo "PASS: SR-IOV device plugin selector covers NCP and NNP workloads"
+else
+    echo "FAIL: SR-IOV device plugin selector does not cover NCP and NNP workloads"
     exit 1
 fi
 

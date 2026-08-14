@@ -96,6 +96,12 @@ extract_components() {
 
                 # Extract component name from metadata.name in the manifest
                 comp_name=$(grep -A2 "^metadata:" "$manifest" 2>/dev/null | grep "name:" | head -1 | awk '{print $2}')
+                # The SR-IOV device plugin has policy-specific rendered names.
+                # Keep its established report directory and select every NCP/NNP
+                # instance through the stable app label.
+                if grep -q 'name: {{ .DaemonSetName }}' "$manifest" 2>/dev/null; then
+                    comp_name="network-operator-sriov-device-plugin"
+                fi
                 # Fallback to directory name if metadata.name not found
                 [ -z "$comp_name" ] && comp_name=$(basename "$state_dir" | sed 's/state-//')
 
@@ -109,6 +115,10 @@ extract_components() {
 
                 # Get first non-template label
                 label=$(echo "$labels" | head -1 | sed 's/^ *//' | sed 's/: */=/' | tr -d ' ' | sed 's/=""$/=/')
+
+                if grep -q 'name: {{ .DaemonSetName }}' "$manifest" 2>/dev/null; then
+                    label="app=sriovdp"
+                fi
 
                 # If the manifest has Go templates and we found nvidia.com label, prefer it
                 if grep -q "{{" "$manifest" 2>/dev/null; then
@@ -303,6 +313,7 @@ update_maps() {
 
     mv "${temp_file}.2" "$SCRIPT_FILE"
     rm -f "$temp_file"
+    chmod +x "$SCRIPT_FILE"
 
     local crd_count
     crd_count=$(extract_crds | wc -l)

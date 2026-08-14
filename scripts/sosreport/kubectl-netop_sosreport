@@ -693,7 +693,7 @@ collect_all_components() {
     log_info "Collecting all component workloads..."
 
     # [GENERATED-COMPONENTS-START] - Auto-generated, do not edit manually
-    # Generated at: 2026-07-16T10:58:36Z
+    # Generated at: 2026-08-14T14:12:46Z
     # Component definitions: name, label, type
     declare -A components=(
         # Main Network Operator components
@@ -702,7 +702,7 @@ collect_all_components() {
         ["ib-kubernetes"]="name=ib-kubernetes|deployment"
         ["kube-ipoib-cni-ds"]="name=ipoib-cni|daemonset"
         ["kube-multus-ds"]="name=multus|daemonset"
-        ["network-operator-sriov-device-plugin{{"]="template=|daemonset"
+        ["network-operator-sriov-device-plugin"]="app=sriovdp|daemonset"
         ["nic-configuration-daemon"]="app.kubernetes.io/name=nic-configuration-daemon|daemonset"
         ["nic-configuration-operator"]="app.kubernetes.io/component=nic-configuration-operator|deployment"
         ["nic-feature-discovery-ds"]="name=nic-feature-discovery|daemonset"

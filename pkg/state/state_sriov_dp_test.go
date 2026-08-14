@@ -18,6 +18,7 @@ package state_test
 
 import (
 	"context"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,7 +27,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/utils/ptr"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -97,6 +101,45 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			assertSriovDpPodTemplatesVolumeMountFields(&ds.Spec.Template, true)
 			Expect(ds.Spec.Template.Spec.Containers[0].Args).Should(ContainElement(ContainSubstring("--use-cdi")))
 		})
+	})
+	Context("When rendering a NicNodePolicy with SRIOV-device-plugin", func() {
+		It("should use the shortened prefix and preserve the complete supported policy name", func() {
+			policyName := strings.Repeat("a", 30)
+			expectedName := "net-op-sriov-device-plugin-" + policyName
+
+			ds := renderSriovDpDaemonSet(&ts, getMinimalNicNodePolicyWithSriovDp(policyName))
+
+			Expect(ds.Name).To(Equal(expectedName))
+			Expect(ds.Name).To(HaveLen(len(expectedName)))
+			Expect(ds.Spec.Selector.MatchLabels).To(HaveKeyWithValue("name", expectedName))
+			Expect(ds.Spec.Template.Labels).To(HaveKeyWithValue("name", expectedName))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "config-volume"),
+				HaveField("ConfigMap.Name", "network-operator-sriovdp-config-"+policyName),
+			)))
+		})
+
+		DescribeTable("should cap the complete DaemonSet name at a valid Kubernetes label value",
+			func(policyName, expectedName string) {
+				ds := renderSriovDpDaemonSet(&ts, getMinimalNicNodePolicyWithSriovDp(policyName))
+
+				Expect(ds.Name).To(Equal(expectedName))
+				Expect(len(ds.Name)).To(BeNumerically("<=", validation.DNS1123LabelMaxLength))
+				Expect(validation.IsDNS1123Subdomain(ds.Name)).To(BeEmpty())
+				Expect(validation.IsValidLabelValue(ds.Name)).To(BeEmpty())
+				Expect(ds.Spec.Selector.MatchLabels).To(HaveKeyWithValue("name", expectedName))
+				Expect(ds.Spec.Template.Labels).To(HaveKeyWithValue("name", expectedName))
+			},
+			Entry("at the boundary",
+				strings.Repeat("b", 36),
+				"net-op-sriov-device-plugin-"+strings.Repeat("b", 36)),
+			Entry("past the boundary",
+				strings.Repeat("c", 37),
+				"net-op-sriov-device-plugin-"+strings.Repeat("c", 36)),
+			Entry("when the cut would leave a trailing separator",
+				strings.Repeat("d", 35)+"-x",
+				"net-op-sriov-device-plugin-"+strings.Repeat("d", 35)),
+		)
 	})
 	Context("Verify Sync flows", func() {
 		It("should create Daemonset, update state to Ready", func() {
@@ -172,6 +215,45 @@ func getMinimalNicClusterPolicyWithSriovDp(useCDI bool) *mellanoxv1alpha1.NicClu
 	}
 	cr.Spec.SriovDevicePlugin = dpSpec
 	return cr
+}
+
+func getMinimalNicNodePolicyWithSriovDp(name string) *mellanoxv1alpha1.NicNodePolicy {
+	clusterPolicy := getMinimalNicClusterPolicyWithSriovDp(false)
+	return &mellanoxv1alpha1.NicNodePolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: mellanoxv1alpha1.NicNodePolicySpec{
+			OFEDDriver:             nil,
+			RdmaSharedDevicePlugin: nil,
+			SriovDevicePlugin:      clusterPolicy.Spec.SriovDevicePlugin.DeepCopy(),
+			NodeSelector:           map[string]string{"node-role.kubernetes.io/worker": ""},
+			Labels:                 map[string]string{},
+			Annotations:            map[string]string{},
+			Tolerations:            []v1.Toleration{},
+		},
+		Status: mellanoxv1alpha1.NicNodePolicyStatus{
+			State:         mellanoxv1alpha1.StateIgnore,
+			Reason:        "",
+			AppliedStates: []mellanoxv1alpha1.AppliedState{},
+		},
+	}
+}
+
+func renderSriovDpDaemonSet(ts *testScope, cr mellanoxv1alpha1.NicPolicyCR) *appsv1.DaemonSet {
+	ctx := context.Background()
+	objects, err := ts.renderer.GetManifestObjects(ctx, cr, ts.catalog, log.FromContext(ctx))
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, object := range objects {
+		if object.GetKind() != "DaemonSet" {
+			continue
+		}
+		ds := &appsv1.DaemonSet{}
+		Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(object.Object, ds)).To(Succeed())
+		return ds
+	}
+
+	Fail("SR-IOV device plugin DaemonSet was not rendered")
+	return nil
 }
 
 func assertSriovDpPodTemplatesVolumeFields(tpl *v1.PodTemplateSpec, useCdi bool) {
