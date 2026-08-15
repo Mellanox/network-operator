@@ -62,6 +62,7 @@ run_case() {
 
     local manifest
     manifest=$("$HELM_BIN" template network-operator "$CHART_PATH" \
+        --kube-version 1.32.0 \
         --namespace network-operator "$@")
 
     assert_resources "$manifest" "$expect_keep_ncp" "${KEEP_NCP_RESOURCES[@]}"
