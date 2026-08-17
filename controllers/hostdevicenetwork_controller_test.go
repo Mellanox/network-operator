@@ -44,8 +44,9 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 					Namespace: "",
 				},
 				Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
-					NetworkNamespace: "default",
-					ResourceName:     "test",
+					NetworkNamespace:  "default",
+					ResourceName:      "test",
+					MetaPluginsConfig: testMetaPluginsConfig,
 				},
 			}
 
@@ -58,6 +59,7 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 			Expect(found.Spec.NetworkNamespace).To(Equal("default"))
 			Expect(found.Spec.ResourceName).To(Equal("test"))
 			Expect(found.Spec.IPAM).To(Equal(""))
+			Expect(found.Spec.MetaPluginsConfig).To(Equal(testMetaPluginsConfig))
 
 			err = k8sClient.Delete(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())

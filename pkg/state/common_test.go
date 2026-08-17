@@ -55,6 +55,20 @@ const (
 	defaultTestImage                    = "myImage"
 	defaultTestVersion                  = "myVersion"
 	defaultTestVersionSha256            = "sha256:1699d23027ea30c9fa"
+	testMetaPluginsConfig               = `{
+  "type": "tuning",
+  "sysctl": {
+    "net.ipv4.conf.all.arp_ignore": "1",
+    "net.ipv4.conf.all.arp_announce": "2",
+    "net.ipv4.conf.all.rp_filter": "0",
+    "net.ipv4.conf.IFNAME.arp_ignore": "1",
+    "net.ipv4.conf.IFNAME.arp_announce": "2",
+    "net.ipv4.conf.IFNAME.rp_filter": "0"
+  }
+},
+{
+  "type": "sbr"
+}`
 )
 
 var testLogger = log.Log.WithName("testLog")
@@ -132,6 +146,15 @@ type nadConfigIPAM struct {
 	PoolName string `json:"range"`
 }
 
+type nadPlugin struct {
+	Type   string            `json:"type"`
+	Master string            `json:"master"`
+	Mode   string            `json:"mode"`
+	MTU    int               `json:"mtu"`
+	IPAM   nadConfigIPAM     `json:"ipam"`
+	Sysctl map[string]string `json:"sysctl"`
+}
+
 type nadConfig struct {
 	CNIVersion string        `json:"cniVersion"`
 	Name       string        `json:"name"`
@@ -140,6 +163,7 @@ type nadConfig struct {
 	Mode       string        `json:"mode"`
 	MTU        int           `json:"mtu"`
 	IPAM       nadConfigIPAM `json:"ipam"`
+	Plugins    []nadPlugin   `json:"plugins"`
 }
 
 func defaultNADConfig(cfg *nadConfig) nadConfig {
@@ -151,6 +175,43 @@ func defaultNADConfig(cfg *nadConfig) nadConfig {
 		Mode:       cfg.Mode,
 		IPAM:       cfg.IPAM,
 		MTU:        cfg.MTU,
+		Plugins:    nil,
+	}
+}
+
+func chainedNADConfig(name string, primaryPlugin *nadPlugin) nadConfig {
+	return nadConfig{
+		CNIVersion: "0.3.1",
+		Name:       name,
+		Type:       "",
+		Master:     "",
+		Mode:       "",
+		MTU:        0,
+		IPAM:       nadConfigIPAM{},
+		Plugins: append([]nadPlugin{*primaryPlugin},
+			nadPlugin{
+				Type:   "tuning",
+				Master: "",
+				Mode:   "",
+				MTU:    0,
+				IPAM:   nadConfigIPAM{},
+				Sysctl: map[string]string{
+					"net.ipv4.conf.all.arp_ignore":      "1",
+					"net.ipv4.conf.all.arp_announce":    "2",
+					"net.ipv4.conf.all.rp_filter":       "0",
+					"net.ipv4.conf.IFNAME.arp_ignore":   "1",
+					"net.ipv4.conf.IFNAME.arp_announce": "2",
+					"net.ipv4.conf.IFNAME.rp_filter":    "0",
+				},
+			},
+			nadPlugin{
+				Type:   "sbr",
+				Master: "",
+				Mode:   "",
+				MTU:    0,
+				IPAM:   nadConfigIPAM{},
+				Sysctl: nil,
+			}),
 	}
 }
 

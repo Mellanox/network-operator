@@ -140,6 +140,7 @@ func (s *stateMacvlanNetwork) getManifestObjects(
 	data["Master"] = cr.Spec.Master
 	data["Mode"] = cr.Spec.Mode
 	data["Mtu"] = cr.Spec.Mtu
+	data["MetaPlugins"] = cr.Spec.MetaPluginsConfig
 
 	if cr.Spec.IPAM != "" {
 		data["Ipam"] = "\"ipam\":" + strings.Join(strings.Fields(cr.Spec.IPAM), "")

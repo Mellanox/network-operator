@@ -49,6 +49,10 @@ spec:
               ipam:
                 description: IPAM configuration to be used for this network
                 type: string
+              metaPlugins:
+                description: MetaPluginsConfig contains additional CNI plugin configurations
+                  to chain after the host-device plugin.
+                type: string
               networkNamespace:
                 description: Namespace of the NetworkAttachmentDefinition custom resource
                 type: string

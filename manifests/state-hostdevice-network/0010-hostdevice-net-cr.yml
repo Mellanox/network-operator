@@ -9,6 +9,17 @@ spec:
   config: '{
   "cniVersion":"0.3.1",
   "name":"{{.HostDeviceNetworkName}}",
+{{- if .CrSpec.MetaPluginsConfig }}
+  "plugins": [
+    {
+{{- end }}
   "type":"host-device",
   "ipam":{{or .CrSpec.IPAM "{}"}}
-}'
+}
+{{- if .CrSpec.MetaPluginsConfig }}
+  ,
+  {{.CrSpec.MetaPluginsConfig}}
+  ]
+}
+{{- end }}
+'

@@ -53,6 +53,10 @@ spec:
                 description: Name of the host interface to enslave. Defaults to default
                   route interface
                 type: string
+              metaPlugins:
+                description: MetaPluginsConfig contains additional CNI plugin configurations
+                  to chain after the macvlan plugin.
+                type: string
               mode:
                 description: Mode of interface one of "bridge", "private", "vepa",
                   "passthru"
