@@ -19,12 +19,14 @@ package state //nolint:dupl
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,6 +36,11 @@ import (
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
+)
+
+const (
+	sriovDpDaemonSetBaseName    = "network-operator-sriov-device-plugin"
+	sriovDpNodePolicyNamePrefix = "net-op-sriov-device-plugin"
 )
 
 // NewStateSriovDp creates a new shared device plugin state
@@ -68,13 +75,31 @@ type sriovDpRuntimeSpec struct {
 }
 
 type sriovDpManifestRenderData struct {
-	CrSpec       *mellanoxv1alpha1.DevicePluginSpec
-	Tolerations  []v1.Toleration
-	NodeAffinity *v1.NodeAffinity
-	NodeSelector map[string]string
-	DSOwner      string
-	NameSuffix   string
-	RuntimeSpec  *sriovDpRuntimeSpec
+	CrSpec        *mellanoxv1alpha1.DevicePluginSpec
+	Tolerations   []v1.Toleration
+	NodeAffinity  *v1.NodeAffinity
+	NodeSelector  map[string]string
+	DSOwner       string
+	NameSuffix    string
+	DaemonSetName string
+	RuntimeSpec   *sriovDpRuntimeSpec
+}
+
+// sriovDpDaemonSetName returns the SR-IOV device plugin DaemonSet name for a policy.
+// Keep the NicClusterPolicy name unchanged for backwards compatibility. NicNodePolicy
+// names use a shorter prefix and are capped because the name is also used as a label value.
+// Admitted policy names are limited to 30 characters, so their full unique suffix is preserved;
+// truncation is defensive for callers that render objects without admission validation.
+func sriovDpDaemonSetName(cr mellanoxv1alpha1.NicPolicyCR) string {
+	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
+		return sriovDpDaemonSetBaseName
+	}
+
+	name := sriovDpNodePolicyNamePrefix + nameSuffix(cr)
+	if len(name) > validation.DNS1123LabelMaxLength {
+		return strings.TrimRight(name[:validation.DNS1123LabelMaxLength], "-.")
+	}
+	return name
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -163,12 +188,13 @@ func (s *stateSriovDp) GetManifestObjects(
 	}
 
 	renderData := &sriovDpManifestRenderData{
-		CrSpec:       cr.GetSriovDevicePluginSpec(),
-		Tolerations:  cr.GetTolerations(),
-		NodeAffinity: cr.GetNodeAffinity(),
-		NodeSelector: cr.GetNodeSelector(),
-		DSOwner:      dsOwnerValue(cr),
-		NameSuffix:   nameSuffix(cr),
+		CrSpec:        cr.GetSriovDevicePluginSpec(),
+		Tolerations:   cr.GetTolerations(),
+		NodeAffinity:  cr.GetNodeAffinity(),
+		NodeSelector:  cr.GetNodeSelector(),
+		DSOwner:       dsOwnerValue(cr),
+		NameSuffix:    nameSuffix(cr),
+		DaemonSetName: sriovDpDaemonSetName(cr),
 		RuntimeSpec: &sriovDpRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),

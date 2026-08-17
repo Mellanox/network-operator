@@ -14,7 +14,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: network-operator-sriov-device-plugin{{ .NameSuffix }}
+  name: {{ .DaemonSetName }}
   namespace: {{ .RuntimeSpec.Namespace }}
   labels:
     tier: node
@@ -23,11 +23,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: network-operator-sriov-device-plugin{{ .NameSuffix }}
+      name: {{ .DaemonSetName }}
   template:
     metadata:
       labels:
-        name: network-operator-sriov-device-plugin{{ .NameSuffix }}
+        name: {{ .DaemonSetName }}
         tier: node
         app: sriovdp
         ds-owner: {{ .DSOwner }}

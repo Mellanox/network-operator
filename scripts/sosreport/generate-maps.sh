@@ -109,6 +109,12 @@ extract_components() {
 
                 # Extract component name from metadata.name in the manifest
                 comp_name=$(grep -A2 "^metadata:" "$manifest" 2>/dev/null | grep "name:" | head -1 | awk '{print $2}' | sed 's/{{.*//')
+                # The SR-IOV device plugin has policy-specific rendered names.
+                # Keep its established report directory and select every NCP/NNP
+                # instance through the stable app label.
+                if grep -q 'name: {{ .DaemonSetName }}' "$manifest" 2>/dev/null; then
+                    comp_name="network-operator-sriov-device-plugin"
+                fi
                 # Fallback to directory name if metadata.name not found
                 [ -z "$comp_name" ] && comp_name=$(basename "$state_dir" | sed 's/state-//')
 
@@ -126,6 +132,10 @@ extract_components() {
                 # Get the first label, preserving a runtime marker for
                 # NicNodePolicy suffixes.
                 label=$(format_label_selector "$(echo "$labels" | head -1)")
+
+                if grep -q 'name: {{ .DaemonSetName }}' "$manifest" 2>/dev/null; then
+                    label="app=sriovdp"
+                fi
 
                 # The OFED app label is entirely runtime-generated, so prefer
                 # its stable presence label when it is available.
