@@ -78,6 +78,10 @@ spec:
               mountPath: /var/run/openvswitch/
             - name: ovs-systemd-config
               mountPath: /etc/default/openvswitch-switch
+            - name: spectrum-x-lib
+              mountPath: /var/lib/spectrum-x
+            - name: ovs-vswitchd-dropin
+              mountPath: /etc/systemd/system/ovs-vswitchd.service.d
           {{- with .RuntimeSpec.ContainerResources }}
           {{- with index . "spectrum-x-flowcontroller" }}
           resources:
@@ -105,6 +109,14 @@ spec:
           hostPath:
             path: /etc/default/openvswitch-switch
             type: FileOrCreate
+        - name: spectrum-x-lib
+          hostPath:
+            path: /var/lib/spectrum-x
+            type: DirectoryOrCreate
+        - name: ovs-vswitchd-dropin
+          hostPath:
+            path: /etc/systemd/system/ovs-vswitchd.service.d
+            type: DirectoryOrCreate
         - name: host-cni-bin
           hostPath:
             path: {{ .RuntimeSpec.CniBinDirectory }}
