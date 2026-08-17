@@ -39,7 +39,8 @@ type MacvlanNetworkSpec struct {
 	Mtu int `json:"mtu,omitempty"`
 	// IPAM configuration to be used for this network.
 	IPAM string `json:"ipam,omitempty"`
-	// MetaPluginsConfig contains additional CNI plugin configurations to chain after the macvlan plugin.
+	// MetaPluginsConfig contains a raw, comma-separated sequence of CNI plugin objects without enclosing
+	// array brackets to chain after the macvlan plugin.
 	MetaPluginsConfig string `json:"metaPlugins,omitempty"`
 }
 

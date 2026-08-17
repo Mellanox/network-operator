@@ -54,8 +54,9 @@ spec:
                   route interface
                 type: string
               metaPlugins:
-                description: MetaPluginsConfig contains additional CNI plugin configurations
-                  to chain after the macvlan plugin.
+                description: |-
+                  MetaPluginsConfig contains a raw, comma-separated sequence of CNI plugin objects without enclosing
+                  array brackets to chain after the macvlan plugin.
                 type: string
               mode:
                 description: Mode of interface one of "bridge", "private", "vepa",
