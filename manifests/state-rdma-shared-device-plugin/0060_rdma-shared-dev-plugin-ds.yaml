@@ -14,7 +14,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: rdma-shared-dp-ds{{ .NameSuffix }}
+  name: rdma-shared-dp-ds{{ .DaemonSetNameSuffix }}
   namespace: {{ .RuntimeSpec.Namespace }}
   labels:
     ds-owner: {{ .DSOwner }}

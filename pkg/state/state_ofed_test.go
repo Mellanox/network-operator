@@ -327,6 +327,7 @@ var _ = Describe("MOFED state test", func() {
 			// Expect 5 objects: 1 DS per pool, Service Account, Role, RoleBinding
 			Expect(len(objs)).To(Equal(5))
 			By("Verify DaemonSets NodeSelector")
+			daemonSetNames := []string{}
 			for _, obj := range objs {
 				if obj.GetKind() != "DaemonSet" {
 					continue
@@ -334,6 +335,7 @@ var _ = Describe("MOFED state test", func() {
 				ds := appsv1.DaemonSet{}
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
 				Expect(err).NotTo(HaveOccurred())
+				daemonSetNames = append(daemonSetNames, ds.Name)
 				if ds.Name == fmt.Sprintf("mofed-%s%s-%s-ds", osName, osVer, "54669c9886") {
 					verifyDSNodeSelector(ds.Spec.Template.Spec.NodeSelector, kernelFull1)
 				}
@@ -342,7 +344,71 @@ var _ = Describe("MOFED state test", func() {
 				}
 				verifyPodAntiInfinity(ds.Spec.Template.Spec.Affinity)
 			}
+			Expect(daemonSetNames).To(ConsistOf(
+				fmt.Sprintf("mofed-%s%s-%s-ds", osName, osVer, "54669c9886"),
+				fmt.Sprintf("mofed-%s%s-%s-ds", osName, osVer, "6d568d699f"),
+			))
 		})
+		DescribeTable("Should hash the NicNodePolicy name in DaemonSet names and app labels",
+			func(policyName, expectedPolicyHash string) {
+				ofedState := getOfedState()
+				cr := &v1alpha1.NicNodePolicy{
+					ObjectMeta: metav1.ObjectMeta{Name: policyName},
+					Spec: v1alpha1.NicNodePolicySpec{
+						OFEDDriver: &v1alpha1.OFEDDriverSpec{
+							ImageSpec: v1alpha1.ImageSpec{
+								Image:      "mofed",
+								Repository: "nvcr.io/mellanox",
+								Version:    "23.10-0.5.5.0",
+							},
+						},
+						RdmaSharedDevicePlugin: nil,
+						SriovDevicePlugin:      nil,
+						NodeSelector:           map[string]string{"node-role.kubernetes.io/worker": ""},
+						Labels:                 map[string]string{},
+						Annotations:            map[string]string{},
+						Tolerations:            []v1.Toleration{},
+					},
+					Status: v1alpha1.NicNodePolicyStatus{
+						State:         v1alpha1.StateIgnore,
+						Reason:        "",
+						AppliedStates: []v1alpha1.AppliedState{},
+						Conditions:    []metav1.Condition{},
+					},
+				}
+
+				catalog := NewInfoCatalog()
+				catalog.Add(InfoTypeClusterType, &dummyProvider{})
+				catalog.Add(InfoTypeNodeInfo, nodeinfo.NewProvider([]*v1.Node{getNode("node1", kernelFull1)}))
+				catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+				objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+				expectedApp := fmt.Sprintf(
+					"mofed-%s%s-%s-%s", osName, osVer, "54669c9886", expectedPolicyHash)
+				expectedName := expectedApp + "-ds"
+
+				var renderedDaemonSet *appsv1.DaemonSet
+				for _, obj := range objs {
+					if obj.GetKind() != "DaemonSet" {
+						continue
+					}
+					renderedDaemonSet = &appsv1.DaemonSet{}
+					Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(
+						obj.Object, renderedDaemonSet)).To(Succeed())
+					break
+				}
+
+				Expect(renderedDaemonSet).NotTo(BeNil())
+				Expect(renderedDaemonSet.Name).To(Equal(expectedName))
+				Expect(renderedDaemonSet.Labels).To(HaveKeyWithValue("app", expectedApp))
+				Expect(renderedDaemonSet.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", expectedApp))
+				Expect(renderedDaemonSet.Spec.Template.Labels).To(HaveKeyWithValue("app", expectedApp))
+				Expect(renderedDaemonSet.Labels).To(HaveKeyWithValue("ds-owner", "nnp-"+policyName))
+			},
+			Entry("for a readable policy name", "pool-a", "779d97f8c7"),
+			Entry("for the maximum admitted policy name length", strings.Repeat("a", 30), "84bb999775"),
+		)
 		It("Should Render subscription mounts for RHEL + containerd", func() {
 			client := mocks.ControllerRuntimeClient{}
 			manifestBaseDir := "../../manifests/state-ofed-driver"

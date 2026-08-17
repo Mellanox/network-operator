@@ -17,9 +17,16 @@ limitations under the License.
 package state_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -41,6 +48,7 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			// We only expect a single manifest here, which should be the DaemonSet.
 			// The other manifests are only if RuntimeSpec.IsOpenshift == true.
 			Expect(len(objs)).To(Equal(1))
+			Expect(objs[0].GetName()).To(Equal("rdma-shared-dp-ds"))
 			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
 		})
 		It("manifests with RdmaSharedDevicePlugin - image as SHA256", func() {
@@ -58,6 +66,27 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			Expect(len(objs)).To(Equal(4))
 			GetManifestObjectsTest(ts.context, cr, ts.catalog, &cr.Spec.RdmaSharedDevicePlugin.ImageSpec, ts.renderer)
 		})
+	})
+	Context("When rendering a NicNodePolicy", func() {
+		DescribeTable("should use a deterministic policy name hash only in the DaemonSet name",
+			func(policyName, expectedHash string) {
+				expectedName := "rdma-shared-dp-ds-" + expectedHash
+				ds := renderRdmaSharedDevicePluginDaemonSet(
+					&ts, getMinimalNicNodePolicyWithRdmaSharedDevicePlugin(policyName))
+
+				Expect(ds.Name).To(Equal(expectedName))
+				Expect(len(ds.Name)).To(BeNumerically("<=", validation.DNS1123LabelMaxLength))
+				Expect(validation.IsDNS1123Subdomain(ds.Name)).To(BeEmpty())
+				Expect(ds.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", "rdma-shared-dp-"+policyName))
+				Expect(ds.Spec.Template.Labels).To(HaveKeyWithValue("app", "rdma-shared-dp-"+policyName))
+				Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+					HaveField("Name", "config"),
+					HaveField("ConfigMap.Name", "rdma-devices-"+policyName),
+				)))
+			},
+			Entry("for a readable policy name", "pool-a", "779d97f8c7"),
+			Entry("for the maximum admitted policy name length", strings.Repeat("a", 30), "84bb999775"),
+		)
 	})
 	Context("should sync", func() {
 		It("without any errors", func() {
@@ -204,4 +233,44 @@ func getRDMASharedDevicePlugin() *mellanoxv1alpha1.NicClusterPolicy {
 		},
 	}
 	return cr
+}
+
+func getMinimalNicNodePolicyWithRdmaSharedDevicePlugin(name string) *mellanoxv1alpha1.NicNodePolicy {
+	clusterPolicy := getRDMASharedDevicePlugin()
+	return &mellanoxv1alpha1.NicNodePolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: mellanoxv1alpha1.NicNodePolicySpec{
+			OFEDDriver:             nil,
+			RdmaSharedDevicePlugin: clusterPolicy.Spec.RdmaSharedDevicePlugin.DeepCopy(),
+			SriovDevicePlugin:      nil,
+			NodeSelector:           map[string]string{"node-role.kubernetes.io/worker": ""},
+			Labels:                 map[string]string{},
+			Annotations:            map[string]string{},
+			Tolerations:            []v1.Toleration{},
+		},
+		Status: mellanoxv1alpha1.NicNodePolicyStatus{
+			State:         mellanoxv1alpha1.StateIgnore,
+			Reason:        "",
+			AppliedStates: []mellanoxv1alpha1.AppliedState{},
+			Conditions:    []metav1.Condition{},
+		},
+	}
+}
+
+func renderRdmaSharedDevicePluginDaemonSet(
+	ts *testScope, cr mellanoxv1alpha1.NicPolicyCR) *appsv1.DaemonSet {
+	objects, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, object := range objects {
+		if object.GetKind() != "DaemonSet" {
+			continue
+		}
+		ds := &appsv1.DaemonSet{}
+		Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(object.Object, ds)).To(Succeed())
+		return ds
+	}
+
+	Fail("RDMA shared device plugin DaemonSet was not rendered")
+	return nil
 }
