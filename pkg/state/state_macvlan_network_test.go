@@ -87,6 +87,30 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 			expectedNadConfig.IPAM = ipam
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
+		It("Should Render NetworkAttachmentDefinition with meta plugins", func() {
+			ipam := nadConfigIPAM{
+				Type:     "nv-ipam",
+				PoolName: "my-pool",
+			}
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
+			cr.Spec.MetaPluginsConfig = testMetaPluginsConfig
+			err := ts.client.Create(context.Background(), cr)
+			Expect(err).NotTo(HaveOccurred())
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig = chainedNADConfig(testName, &nadPlugin{
+				Type:   testType,
+				Master: testMaster,
+				Mode:   testBridgeMode,
+				MTU:    testMtu,
+				IPAM:   ipam,
+				Sysctl: nil,
+			})
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
+		})
 		It("Should Render NetworkAttachmentDefinition with default namespace", func() {
 			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
 			cr.Spec.NetworkNamespace = ""

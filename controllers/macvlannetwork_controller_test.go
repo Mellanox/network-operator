@@ -36,6 +36,7 @@ const (
 	testNetworkNamespace      = "default"
 	crName                    = "test"
 	crNamespace               = "default"
+	testMetaPluginsConfig     = `{"type":"sbr"}`
 )
 
 //nolint:dupl
@@ -49,10 +50,11 @@ var _ = Describe("MacVlanNetwork Controller", func() {
 					Namespace: crNamespace,
 				},
 				Spec: mellanoxv1alpha1.MacvlanNetworkSpec{
-					NetworkNamespace: testNetworkNamespace,
-					Master:           "ibs3",
-					Mode:             "bridge",
-					Mtu:              150,
+					NetworkNamespace:  testNetworkNamespace,
+					Master:            "ibs3",
+					Mode:              "bridge",
+					Mtu:               150,
+					MetaPluginsConfig: testMetaPluginsConfig,
 				},
 			}
 
@@ -66,6 +68,7 @@ var _ = Describe("MacVlanNetwork Controller", func() {
 			Expect(found.Spec.NetworkNamespace).To(Equal(testNetworkNamespace))
 			Expect(found.Spec.Master).To(Equal("ibs3"))
 			Expect(found.Spec.IPAM).To(Equal(""))
+			Expect(found.Spec.MetaPluginsConfig).To(Equal(testMetaPluginsConfig))
 
 			By("Verify NAD is created")
 			verifyNADCreated(cr.GetName(), testNetworkNamespace)

@@ -26,10 +26,15 @@ import (
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
+const (
+	hostDeviceNetworkTestName      = "host-device"
+	hostDeviceNetworkTestNamespace = "hostdevice"
+)
+
 var _ = Describe("HostDevice Network State rendering tests", func() {
 	const (
-		testName      = "host-device"
-		testNamespace = "hostdevice"
+		testName      = hostDeviceNetworkTestName
+		testNamespace = hostDeviceNetworkTestNamespace
 		testType      = "host-device"
 	)
 
@@ -51,7 +56,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 	Context("HostDevice Network State", func() {
 		It("Should Render NetworkAttachmentDefinition", func() {
 			testResourceName := "test"
-			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
+			cr := getHostDeviceNetwork(testResourceName)
 			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
@@ -66,7 +71,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 		// The annotations resource name MUST have to prefix anyway.
 		It("Should Render NetworkAttachmentDefinition with resource with prefix", func() {
 			testResourceName := hostDeviceNetworkResourceNamePrefix + testName
-			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
+			cr := getHostDeviceNetwork(testResourceName)
 			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
@@ -82,7 +87,7 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 				PoolName: "my-pool",
 			}
 			testResourceName := "test"
-			cr := getHostDeviceNetwork(testName, testNamespace, testResourceName)
+			cr := getHostDeviceNetwork(testResourceName)
 			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
 			err := ts.client.Create(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
@@ -93,16 +98,41 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 			expectedNadConfig.IPAM = ipam
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
 		})
+		It("Should Render NetworkAttachmentDefinition with meta plugins", func() {
+			ipam := nadConfigIPAM{
+				Type:     "nv-ipam",
+				PoolName: "my-pool",
+			}
+			testResourceName := "test"
+			cr := getHostDeviceNetwork(testResourceName)
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
+			cr.Spec.MetaPluginsConfig = testMetaPluginsConfig
+			err := ts.client.Create(context.Background(), cr)
+			Expect(err).NotTo(HaveOccurred())
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig = chainedNADConfig(testName, &nadPlugin{
+				Type:   testType,
+				Master: "",
+				Mode:   "",
+				MTU:    0,
+				IPAM:   ipam,
+				Sysctl: nil,
+			})
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
+		})
 	})
 })
 
-func getHostDeviceNetwork(testName, testNamespace, resourceName string) *mellanoxv1alpha1.HostDeviceNetwork {
+func getHostDeviceNetwork(resourceName string) *mellanoxv1alpha1.HostDeviceNetwork {
 	cr := &mellanoxv1alpha1.HostDeviceNetwork{
 		Spec: mellanoxv1alpha1.HostDeviceNetworkSpec{
-			NetworkNamespace: testNamespace,
+			NetworkNamespace: hostDeviceNetworkTestNamespace,
 			ResourceName:     resourceName,
 		},
 	}
-	cr.Name = testName
+	cr.Name = hostDeviceNetworkTestName
 	return cr
 }

@@ -149,6 +149,7 @@ MacvlanNetwork CRD Spec includes the following fields:
 - `mode`: Mode of interface one of "bridge", "private", "vepa", "passthru", default "bridge".
 - `mtu`: MTU of interface to the specified value. 0 for master's MTU.
 - `ipam`: IPAM configuration to be used for this network.
+- `metaPlugins`: Additional CNI plugin configurations to chain after the macvlan plugin.
 
 
 ### HostDeviceNetwork CRD
@@ -159,6 +160,35 @@ HostDeviceNetwork CRD Spec includes the following fields:
 - `networkNamespace`: Namespace for NetworkAttachmentDefinition related to this HostDeviceNetwork CRD.
 - `resourceName`: Host device resource pool.
 - `ipam`: IPAM configuration to be used for this network.
+- `metaPlugins`: Additional CNI plugin configurations to chain after the host-device plugin.
+
+When `metaPlugins` is set, the Operator renders a CNI configuration list with
+the primary `macvlan` or `host-device` plugin first, followed by the supplied
+plugins in order. This allows tools such as k8s-launch-kit to add the `sbr`
+plugin for source-based routing and the `tuning` plugin for
+`ignoreARP: true` without replacing the primary network configuration.
+
+The value uses the same raw fragment format as the SR-IOV Network Operator:
+one or more plugin JSON objects separated by commas, without enclosing array
+brackets. For example, the combined k8s-launch-kit configuration is:
+
+```yaml
+metaPlugins: |
+  {
+    "type": "tuning",
+    "sysctl": {
+      "net.ipv4.conf.all.arp_ignore": "1",
+      "net.ipv4.conf.all.arp_announce": "2",
+      "net.ipv4.conf.all.rp_filter": "0",
+      "net.ipv4.conf.IFNAME.arp_ignore": "1",
+      "net.ipv4.conf.IFNAME.arp_announce": "2",
+      "net.ipv4.conf.IFNAME.rp_filter": "0"
+    }
+  },
+  {
+    "type": "sbr"
+  }
+```
 
 ### IPoIBNetwork CRD
 This CRD defines an IPoIBNetwork secondary network. It is translated by the Operator to a `NetworkAttachmentDefinition` instance as defined in [k8snetworkplumbingwg/multi-net-spec](https://github.com/k8snetworkplumbingwg/multi-net-spec).
