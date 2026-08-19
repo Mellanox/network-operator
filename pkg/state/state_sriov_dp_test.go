@@ -103,24 +103,9 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 		})
 	})
 	Context("When rendering a NicNodePolicy with SRIOV-device-plugin", func() {
-		It("should use the shortened prefix and preserve the complete supported policy name", func() {
-			policyName := strings.Repeat("a", 30)
-			expectedName := "net-op-sriov-device-plugin-" + policyName
-
-			ds := renderSriovDpDaemonSet(&ts, getMinimalNicNodePolicyWithSriovDp(policyName))
-
-			Expect(ds.Name).To(Equal(expectedName))
-			Expect(ds.Name).To(HaveLen(len(expectedName)))
-			Expect(ds.Spec.Selector.MatchLabels).To(HaveKeyWithValue("name", expectedName))
-			Expect(ds.Spec.Template.Labels).To(HaveKeyWithValue("name", expectedName))
-			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
-				HaveField("Name", "config-volume"),
-				HaveField("ConfigMap.Name", "network-operator-sriovdp-config-"+policyName),
-			)))
-		})
-
-		DescribeTable("should cap the complete DaemonSet name at a valid Kubernetes label value",
-			func(policyName, expectedName string) {
+		DescribeTable("should use a deterministic policy name hash in the DaemonSet name",
+			func(policyName, expectedHash string) {
+				expectedName := "network-operator-sriov-device-plugin-" + expectedHash
 				ds := renderSriovDpDaemonSet(&ts, getMinimalNicNodePolicyWithSriovDp(policyName))
 
 				Expect(ds.Name).To(Equal(expectedName))
@@ -129,16 +114,13 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 				Expect(validation.IsValidLabelValue(ds.Name)).To(BeEmpty())
 				Expect(ds.Spec.Selector.MatchLabels).To(HaveKeyWithValue("name", expectedName))
 				Expect(ds.Spec.Template.Labels).To(HaveKeyWithValue("name", expectedName))
+				Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+					HaveField("Name", "config-volume"),
+					HaveField("ConfigMap.Name", "network-operator-sriovdp-config-"+policyName),
+				)))
 			},
-			Entry("at the boundary",
-				strings.Repeat("b", 36),
-				"net-op-sriov-device-plugin-"+strings.Repeat("b", 36)),
-			Entry("past the boundary",
-				strings.Repeat("c", 37),
-				"net-op-sriov-device-plugin-"+strings.Repeat("c", 36)),
-			Entry("when the cut would leave a trailing separator",
-				strings.Repeat("d", 35)+"-x",
-				"net-op-sriov-device-plugin-"+strings.Repeat("d", 35)),
+			Entry("for a readable policy name", "pool-a", "779d97f8c7"),
+			Entry("for the maximum admitted policy name length", strings.Repeat("a", 30), "84bb999775"),
 		)
 	})
 	Context("Verify Sync flows", func() {

@@ -19,14 +19,12 @@ package state //nolint:dupl
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,8 +37,7 @@ import (
 )
 
 const (
-	sriovDpDaemonSetBaseName    = "network-operator-sriov-device-plugin"
-	sriovDpNodePolicyNamePrefix = "net-op-sriov-device-plugin"
+	sriovDpDaemonSetBaseName = "network-operator-sriov-device-plugin"
 )
 
 // NewStateSriovDp creates a new shared device plugin state
@@ -87,19 +84,14 @@ type sriovDpManifestRenderData struct {
 
 // sriovDpDaemonSetName returns the SR-IOV device plugin DaemonSet name for a policy.
 // Keep the NicClusterPolicy name unchanged for backwards compatibility. NicNodePolicy
-// names use a shorter prefix and are capped because the name is also used as a label value.
-// Admitted policy names are limited to 30 characters, so their full unique suffix is preserved;
-// truncation is defensive for callers that render objects without admission validation.
+// names use the same short deterministic hash mechanism as OFED DaemonSet names so the
+// rendered name has a bounded length and remains valid when used as a label value.
 func sriovDpDaemonSetName(cr mellanoxv1alpha1.NicPolicyCR) string {
 	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
 		return sriovDpDaemonSetBaseName
 	}
 
-	name := sriovDpNodePolicyNamePrefix + nameSuffix(cr)
-	if len(name) > validation.DNS1123LabelMaxLength {
-		return strings.TrimRight(name[:validation.DNS1123LabelMaxLength], "-.")
-	}
-	return name
+	return sriovDpDaemonSetBaseName + hashedNameSuffix(cr)
 }
 
 // Sync attempt to get the system to match the desired state which State represent.

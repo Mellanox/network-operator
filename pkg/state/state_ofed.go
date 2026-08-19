@@ -19,7 +19,6 @@ package state
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -37,7 +36,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -270,7 +268,7 @@ type ofedManifestRenderData struct {
 	NodeAffinity           *v1.NodeAffinity
 	NodeSelector           map[string]string
 	DSOwner                string
-	NameSuffix             string
+	DaemonSetNameSuffix    string
 	RuntimeSpec            *ofedRuntimeSpec
 	AdditionalVolumeMounts additionalVolumeMounts
 }
@@ -712,7 +710,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 		NodeAffinity:           cr.GetNodeAffinity(),
 		NodeSelector:           cr.GetNodeSelector(),
 		DSOwner:                dsOwnerValue(cr),
-		NameSuffix:             nameSuffix(cr),
+		DaemonSetNameSuffix:    hashedNameSuffix(cr),
 		AdditionalVolumeMounts: additionalVolMounts,
 	}
 
@@ -1079,13 +1077,4 @@ func (s *stateOFED) getOCPDriverToolkitImage(ctx context.Context, ostreeVersion 
 		return "", fmt.Errorf("failed to find DTK image for RHCOS version: %v", ostreeVersion)
 	}
 	return image, nil
-}
-
-// getStringHash returns a short deterministic hash
-func getStringHash(s string) string {
-	hasher := fnv.New32a()
-	if _, err := hasher.Write([]byte(s)); err != nil {
-		panic(err)
-	}
-	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }

@@ -71,18 +71,18 @@ Two NicNodePolicies must not select overlapping sets of nodes. This is validated
 
 ## DaemonSet Naming and Ownership
 
-Each NNP produces uniquely-named DaemonSets by appending the policy name as a suffix:
+NicClusterPolicy keeps the existing DaemonSet names. All three NicNodePolicy
+components append the same short, deterministic policy-name hash:
 
-| Policy | DaemonSet Name |
-|--------|---------------|
-| NicClusterPolicy | `mofed-ubuntu22.04-<hash>-ds` |
-| NicNodePolicy `pool-a` | `mofed-ubuntu22.04-<hash>-pool-a-ds` |
+| Component | NicClusterPolicy | NicNodePolicy |
+|-----------|------------------|---------------|
+| OFED | `mofed-ubuntu22.04-<kernel-hash>-ds` | `mofed-ubuntu22.04-<kernel-hash>-<policy-name-hash>-ds` |
+| RDMA shared device plugin | `rdma-shared-dp-ds` | `rdma-shared-dp-ds-<policy-name-hash>` |
+| SR-IOV device plugin | `network-operator-sriov-device-plugin` | `network-operator-sriov-device-plugin-<policy-name-hash>` |
 
-The SR-IOV device plugin keeps its existing
-`network-operator-sriov-device-plugin` DaemonSet name for NicClusterPolicy.
-NicNodePolicy instances use `net-op-sriov-device-plugin-<policy-name>` and the
-complete name is capped at 63 characters because it is also used as a pod
-selector label value.
+The policy-name hash uses the same mechanism as the OFED kernel hash. Only
+DaemonSet identity is hashed: policy-specific ConfigMap names and the RDMA
+shared device plugin `app` label retain the readable policy-name suffix.
 
 The `ds-owner` label (on both DaemonSet and pod template) tracks which policy owns each resource:
 - NCP: `ds-owner: NicClusterPolicy`

@@ -19,6 +19,8 @@ package state
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -89,6 +92,25 @@ func nameSuffix(cr mellanoxv1alpha1.NicPolicyCR) string {
 		return ""
 	}
 	return "-" + cr.GetName()
+}
+
+// hashedNameSuffix returns a bounded resource name suffix for the given CR.
+// NicClusterPolicy resources keep their existing names, while NicNodePolicy
+// resources use the same short deterministic hash as OFED DaemonSet names.
+func hashedNameSuffix(cr mellanoxv1alpha1.NicPolicyCR) string {
+	if cr.GetCRDName() == mellanoxv1alpha1.NicClusterPolicyCRDName {
+		return ""
+	}
+	return "-" + getStringHash(cr.GetName())
+}
+
+// getStringHash returns a short deterministic hash.
+func getStringHash(s string) string {
+	hasher := fnv.New32a()
+	if _, err := hasher.Write([]byte(s)); err != nil {
+		panic(err)
+	}
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }
 
 // GetSupportedGVKs returns a list of GetSupportedGVKs managed by Network Operator

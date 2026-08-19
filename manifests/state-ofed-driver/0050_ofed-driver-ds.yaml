@@ -15,22 +15,22 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
+    app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .DaemonSetNameSuffix }}
     nvidia.com/ofed-driver: ""
     mofed-ds-format-version: "1"
     ds-owner: {{ .DSOwner }}
-  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}-ds
+  name: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .DaemonSetNameSuffix }}-ds
   namespace: {{ .RuntimeSpec.Namespace }}
 spec:
   updateStrategy:
     type: OnDelete
   selector:
     matchLabels:
-      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
+      app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .DaemonSetNameSuffix }}
   template:
     metadata:
       labels:
-        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .NameSuffix }}
+        app: mofed-{{ .RuntimeSpec.OSName }}{{ .RuntimeSpec.OSVer }}-{{ .RuntimeSpec.KernelHash }}{{ .DaemonSetNameSuffix }}
         kernel: {{ .RuntimeSpec.Kernel }}
         nvidia.com/ofed-driver: ""
         ds-owner: {{ .DSOwner }}
