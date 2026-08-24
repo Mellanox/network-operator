@@ -23,7 +23,9 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -31,12 +33,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
-
-	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
+	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 )
 
 var _ = Describe("NIC Configuration Operator Controller", func() {
@@ -57,7 +58,10 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 		scheme := runtime.NewScheme()
 		Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
 		Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		Expect(apiextensionsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+			newNodeMaintenanceCRD(),
+		).Build()
 		manifestDir := "../../manifests/state-nic-configuration-operator"
 		s, r, err := state.NewStateNicConfigurationOperator(client, manifestDir)
 		Expect(err).NotTo(HaveOccurred())
@@ -624,6 +628,42 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 		})
 
+		It("should fail if NodeMaintenance CRD is not installed", func() {
+			By("Sync without the NodeMaintenance CRD present")
+			s := newNicConfigurationOperatorState(nil)
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			status, err := s.Sync(context.Background(), cr, catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("NodeMaintenance CRD is not installed"))
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should fail if NodeMaintenance CRD is not established", func() {
+			By("Sync with a NodeMaintenance CRD that is not Established")
+			crd := newNodeMaintenanceCRD()
+			crd.Status.Conditions = nil
+			s := newNicConfigurationOperatorState(crd)
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			status, err := s.Sync(context.Background(), cr, catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("NodeMaintenance CRD is not established"))
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should fail if NodeMaintenance CRD is terminating", func() {
+			By("Sync with a terminating NodeMaintenance CRD")
+			crd := newNodeMaintenanceCRD()
+			now := metav1.Now()
+			crd.DeletionTimestamp = &now
+			crd.Finalizers = []string{"foregroundDeletion"}
+			s := newNicConfigurationOperatorState(crd)
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			status, err := s.Sync(context.Background(), cr, catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("NodeMaintenance CRD is terminating"))
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
 		It("should fail if static config provider not set in catalog", func() {
 			By("Sync")
 			catalog := state.NewInfoCatalog()
@@ -660,4 +700,35 @@ func getMinimalNicClusterPolicyWithNicConfigurationOperator(
 	}
 	cr.Spec.NicConfigurationOperator = spec
 	return cr
+}
+
+func newNicConfigurationOperatorState(crd *apiextensionsv1.CustomResourceDefinition) state.State {
+	scheme := runtime.NewScheme()
+	Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(apiextensionsv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	builder := fake.NewClientBuilder().WithScheme(scheme)
+	if crd != nil {
+		builder = builder.WithObjects(crd)
+	}
+	s, _, err := state.NewStateNicConfigurationOperator(builder.Build(),
+		"../../manifests/state-nic-configuration-operator")
+	Expect(err).NotTo(HaveOccurred())
+	return s
+}
+
+func newNodeMaintenanceCRD() *apiextensionsv1.CustomResourceDefinition {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nodemaintenances.maintenance.nvidia.com",
+		},
+		Status: apiextensionsv1.CustomResourceDefinitionStatus{
+			Conditions: []apiextensionsv1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextensionsv1.Established,
+					Status: apiextensionsv1.ConditionTrue,
+				},
+			},
+		},
+	}
 }

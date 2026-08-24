@@ -46,6 +46,7 @@ import (
 	consts "github.com/k8snetworkplumbingwg/sriov-network-operator/pkg/consts"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	mellanoxcomv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/api/v1alpha1/validator"
@@ -67,6 +68,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 
 	utilruntime.Must(mellanoxcomv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(netattdefv1.AddToScheme(scheme))
