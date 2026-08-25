@@ -18,7 +18,7 @@ metadata:
 spec:
   ofedDriver:
     image: doca-driver
-    repository: nvcr.io/nvstaging/mellanox
+    repository: nvcr.io/nvidia/mellanox
     version: doca3.5.0-26.07-0.7.7.0-0
     upgradePolicy:
       autoUpgrade: true
@@ -30,8 +30,8 @@ spec:
       maxParallelUpgrades: 1
   sriovDevicePlugin:
     image: sriov-network-device-plugin
-    repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.7.0-rc.2
+    repository: nvcr.io/nvidia/mellanox
+    version: network-operator-v26.7.0
     config: |
       {
         "resourceList": [
