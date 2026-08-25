@@ -368,11 +368,17 @@ spec:
             - template
             type: object
             x-kubernetes-validations:
-            - message: spectrumXOptimized can be enabled only for ConnectX-8, ConnectX-9
-                or BlueField-3 SuperNICs
+            - message: spectrumXOptimized can be enabled only for ConnectX-7, ConnectX-8,
+                ConnectX-9 or BlueField-3 SuperNICs
               rule: '!(has(self.template.spectrumXOptimized) && self.template.spectrumXOptimized.enabled)
-                || (self.nicSelector.nicType == ''1023'' || self.nicSelector.nicType
-                == ''1025'' || self.nicSelector.nicType == ''a2dc'')'
+                || (self.nicSelector.nicType == ''1021'' || self.nicSelector.nicType
+                == ''1023'' || self.nicSelector.nicType == ''1025'' || self.nicSelector.nicType
+                == ''a2dc'')'
+            - message: ConnectX-7 (NicType 1021) supports only single-plane Spectrum-X
+                (multiplaneMode none)
+              rule: '!has(self.template.spectrumXOptimized) || !has(self.template.spectrumXOptimized.multiplaneMode)
+                || self.nicSelector.nicType != ''1021'' || self.template.spectrumXOptimized.multiplaneMode
+                == ''none'''
             - message: hwplb MultiplaneMode can only be enabled for ConnectX-8 (NicType
                 1023) or ConnectX-9 (NicType 1025)
               rule: '!has(self.template.spectrumXOptimized) || !has(self.template.spectrumXOptimized.multiplaneMode)
