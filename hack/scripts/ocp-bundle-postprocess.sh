@@ -24,7 +24,7 @@ fi
 
 # Generate relatedImages
 cd hack
-if ! $GO run release.go --with-sha256 --templateDir ./templates/related-images/ --outputDir .; then
+if ! $GO run release.go --with-sha256 --releaseDefaults "${RELEASE_DEFAULTS:-release.yaml}" --templateDir ./templates/related-images/ --outputDir .; then
     echo "release.go code execution failed"
     exit 1
 fi
