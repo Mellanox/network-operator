@@ -213,6 +213,11 @@ jobs:
           export CHANNELS=stable,$version_major_minor
           export DEFAULT_CHANNEL=stable
           export VERSION=${{ env.VERSION_WITHOUT_PREFIX }}
+          # GA tags: release.yaml points at production, which is empty until NGC
+          # promotion. Resolve related-image SHAs from nvstaging instead.
+          if [[ "$VERSION_WITH_PREFIX" != *-* ]]; then
+            export RELEASE_DEFAULTS=release-nvstaging.yaml
+          fi
         elif [[ "${{ github.ref_type }}" == "branch" ]]; then
           export DEFAULT_CHANNEL=stable
           export NETWORK_OPERATOR_VERSION=${{ env.VERSION_WITH_PREFIX }} # for push use commit sha
