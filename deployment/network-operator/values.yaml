@@ -160,8 +160,8 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components.
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-v26.7.0-rc.1
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-v26.7.0-rc.1
+    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:c23837c46
+    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:c23837c46
     sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v26.7.0-rc.1
     ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v26.7.0-rc.1
     ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.7.0-rc.1
@@ -169,7 +169,7 @@ sriov-network-operator:
     sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.7.0-rc.1
     sriovDraDriver: nvcr.io/nvstaging/mellanox/dra-driver-sriov:network-operator-v26.7.0-rc.1
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.7.0
-    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-v26.7.0-rc.1
+    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:c23837c46
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
   sriovOperatorConfig:
