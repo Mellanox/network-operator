@@ -589,6 +589,154 @@ var _ = Describe("MOFED state test", func() {
 			verifySubscriptionVolumesSles(ds.Spec.Template.Spec.Volumes)
 		}
 	})
+	It("Should Render DaemonSet for Rocky Linux without subscription mounts", func() {
+		client := mocks.ControllerRuntimeClient{}
+		manifestBaseDir := "../../manifests/state-ofed-driver"
+
+		files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+		Expect(err).NotTo(HaveOccurred())
+		renderer := render.NewRenderer(files)
+
+		ofedState := stateOFED{
+			stateSkel: stateSkel{
+				name:        stateOFEDName,
+				description: stateOFEDDescription,
+				client:      &client,
+				renderer:    renderer,
+			},
+		}
+		cr := &v1alpha1.NicClusterPolicy{}
+		cr.Name = "nic-cluster-policy"
+		cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+			ImageSpec: v1alpha1.ImageSpec{
+				Image:      "mofed",
+				Repository: "nvcr.io/mellanox",
+				Version:    "23.10-0.5.5.0",
+			},
+		}
+
+		By("Creating NodeProvider with 1 Nodes, Rocky Linux with containerd")
+		node := getNode("node1", kernelFull1)
+		setContainerRuntime(node, "containerd://1.27.1")
+		node.Labels[nodeinfo.NodeLabelOSName] = "rocky"
+		infoProvider := nodeinfo.NewProvider([]*v1.Node{
+			node,
+		})
+		catalog := NewInfoCatalog()
+		catalog.Add(InfoTypeClusterType, &dummyProvider{})
+		catalog.Add(InfoTypeNodeInfo, infoProvider)
+		catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+		objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+		// Expect 4 objects: 1 DS per pool, Service Account, Role, RoleBinding
+		Expect(len(objs)).To(Equal(4))
+		By("Verify no subscription mounts are injected")
+		for _, obj := range objs {
+			if obj.GetKind() != "DaemonSet" {
+				continue
+			}
+			ds := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+			Expect(err).NotTo(HaveOccurred())
+			for _, m := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
+				Expect(m.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+			for _, v := range ds.Spec.Template.Spec.Volumes {
+				Expect(v.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+		}
+	})
+	It("Should Render DaemonSet for Rocky Linux with Cert and Repo configs mounted at RHEL paths", func() {
+		cmRepo := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rocky-repo-cm",
+				Namespace: "nvidia-network-operator",
+			},
+			Data: map[string]string{"mofed.repo": "somerepocontents"},
+		}
+		cmCert := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rocky-cert-cm",
+				Namespace: "nvidia-network-operator",
+			},
+			Data: map[string]string{"my-cert": "somecertificate"},
+		}
+		scheme := runtime.NewScheme()
+		Expect(v1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cmRepo, cmCert).Build()
+		manifestBaseDir := "../../manifests/state-ofed-driver"
+
+		files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+		Expect(err).NotTo(HaveOccurred())
+		renderer := render.NewRenderer(files)
+
+		ofedState := stateOFED{
+			stateSkel: stateSkel{
+				name:        stateOFEDName,
+				description: stateOFEDDescription,
+				client:      client,
+				renderer:    renderer,
+			},
+		}
+		cr := &v1alpha1.NicClusterPolicy{}
+		cr.Name = "nic-cluster-policy"
+		cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+			ImageSpec: v1alpha1.ImageSpec{
+				Image:      "mofed",
+				Repository: "nvcr.io/mellanox",
+				Version:    "23.10-0.5.5.0",
+			},
+			RepoConfig: &v1alpha1.ConfigMapNameReference{Name: "rocky-repo-cm"},
+			CertConfig: &v1alpha1.ConfigMapNameReference{Name: "rocky-cert-cm"},
+		}
+
+		By("Creating NodeProvider with 1 Node, Rocky Linux with containerd")
+		node := getNode("node1", kernelFull1)
+		setContainerRuntime(node, "containerd://1.27.1")
+		node.Labels[nodeinfo.NodeLabelOSName] = "rocky"
+		infoProvider := nodeinfo.NewProvider([]*v1.Node{
+			node,
+		})
+		catalog := NewInfoCatalog()
+		catalog.Add(InfoTypeClusterType, &dummyProvider{})
+		catalog.Add(InfoTypeNodeInfo, infoProvider)
+		catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: false})
+		objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+		// Expect 4 objects: DaemonSet, ServiceAccount, Role, RoleBinding
+		Expect(len(objs)).To(Equal(4))
+		By("Verify Cert and Repo mounts use Rocky (RHEL) path mappings")
+		for _, obj := range objs {
+			if obj.GetKind() != "DaemonSet" {
+				continue
+			}
+			ds := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)
+			Expect(err).NotTo(HaveOccurred())
+			mounts := ds.Spec.Template.Spec.Containers[0].VolumeMounts
+			expectedRepo := v1.VolumeMount{
+				Name:      "rocky-repo-cm",
+				ReadOnly:  true,
+				MountPath: "/etc/yum.repos.d/mofed.repo",
+				SubPath:   "mofed.repo",
+			}
+			expectedCert := v1.VolumeMount{
+				Name:      "rocky-cert-cm",
+				ReadOnly:  true,
+				MountPath: "/etc/pki/ca-trust/extracted/pem/my-cert",
+				SubPath:   "my-cert",
+			}
+			Expect(slices.Contains(mounts, expectedRepo)).To(BeTrue())
+			Expect(slices.Contains(mounts, expectedCert)).To(BeTrue())
+			// Subscription mounts must still be omitted for Rocky.
+			for _, m := range mounts {
+				Expect(m.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+			for _, v := range ds.Spec.Template.Spec.Volumes {
+				Expect(v.Name).NotTo(HavePrefix("subscription-config-"))
+			}
+		}
+	})
 	Context("SHA256 version", func() {
 		It("Should Render DaemonSet with SHA256 version", func() {
 			client := mocks.ControllerRuntimeClient{}
