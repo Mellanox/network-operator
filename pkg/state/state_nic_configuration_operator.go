@@ -23,7 +23,11 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,6 +38,8 @@ import (
 	"github.com/Mellanox/network-operator/pkg/render"
 	"github.com/Mellanox/network-operator/pkg/utils"
 )
+
+const nodeMaintenanceCRDName = "nodemaintenances.maintenance.nvidia.com"
 
 // NewStateNicConfigurationOperator creates a new state for NIC Configuration Operator
 func NewStateNicConfigurationOperator(
@@ -74,6 +80,25 @@ type NicConfigurationOperatorManifestRenderData struct {
 	RuntimeSpec            *nicConfigurationOperatorRuntimeSpec
 }
 
+// isNodeMaintenanceCRDInstalled checks if the NodeMaintenance CRD is installed in the cluster
+func (s *stateNicConfigurationOperator) isNodeMaintenanceCRDInstalled(ctx context.Context) error {
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	err := s.client.Get(ctx, types.NamespacedName{Name: nodeMaintenanceCRDName}, crd)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return errors.New("NodeMaintenance CRD is not installed")
+		}
+		return errors.Wrap(err, "failed to check NodeMaintenance CRD")
+	}
+	if !crd.DeletionTimestamp.IsZero() {
+		return errors.New("NodeMaintenance CRD is terminating")
+	}
+	if !apihelpers.IsCRDConditionTrue(crd, apiextensionsv1.Established) {
+		return errors.New("NodeMaintenance CRD is not established")
+	}
+	return nil
+}
+
 // Sync attempt to get the system to match the desired state which State represent.
 // a sync operation must be relatively short and must not block the execution thread.
 //
@@ -99,6 +124,11 @@ func (s *stateNicConfigurationOperator) Sync(
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
+	}
+
+	// Check if the NodeMaintenance CRD is installed in the cluster
+	if err := s.isNodeMaintenanceCRDInstalled(ctx); err != nil {
+		return SyncStateNotReady, err
 	}
 
 	// Fill ManifestRenderData and render objects
