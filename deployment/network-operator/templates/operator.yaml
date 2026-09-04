@@ -22,7 +22,7 @@ metadata:
     control-plane: {{ .Release.Name }}-controller
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.operator.replicas | default 1 }}
   selector:
     matchLabels:
       {{- include "network-operator.selectorLabels" . | nindent 6 }}
@@ -83,7 +83,9 @@ spec:
           command:
           - /manager
           args:
+          {{- if gt (int (.Values.operator.replicas | default 1)) 1 }}
           - --leader-elect
+          {{- end }}
           env:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/manifests"
