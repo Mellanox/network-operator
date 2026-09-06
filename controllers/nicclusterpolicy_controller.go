@@ -384,28 +384,17 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 
 	bld = watchStateSources(bld, mgr, setupLog, stateManager, &mellanoxv1alpha1.NicClusterPolicy{})
 
+	// Watch the Openshift cluster-wide Proxy object, which states read to render proxy env vars
+	// and the trusted CA bundle. It is not owned by the policy, so it is not covered by
+	// watchStateSources.
+	bld = watchClusterWideProxy(bld, setupLog, r.ClusterTypeProvider, mgr.GetRESTMapper(),
+		enqueueNicClusterPolicy())
+
 	// Watch NicNodePolicy changes so we recalculate NNP-managed node exclusions for mofed.wait.
 	// Must handle create/update/delete to cover NNP addition, spec changes, and removal.
-	nnpEnqueue := handler.Funcs{
-		CreateFunc: func(_ context.Context, _ event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
-			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-				Name: consts.NicClusterPolicyResourceName,
-			}})
-		},
-		UpdateFunc: func(_ context.Context, _ event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
-			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-				Name: consts.NicClusterPolicyResourceName,
-			}})
-		},
-		DeleteFunc: func(_ context.Context, _ event.DeleteEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
-			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-				Name: consts.NicClusterPolicyResourceName,
-			}})
-		},
-	}
 	bld = bld.Watches(
 		&mellanoxv1alpha1.NicNodePolicy{},
-		nnpEnqueue,
+		enqueueNicClusterPolicy(),
 		builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 	)
 

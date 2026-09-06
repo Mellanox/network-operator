@@ -54,4 +54,7 @@ const (
 	ControllerRevisionAnnotation = "nvidia.network-operator.revision"
 	// ConfigHashAnnotation is the key for annotations used to store config hash on pod templates.
 	ConfigHashAnnotation = "nvidia.network-operator.config-hash"
+	// OpenshiftClusterWideProxyName is the name of the singleton Openshift Proxy object which
+	// holds the cluster-wide proxy configuration.
+	OpenshiftClusterWideProxyName = "cluster"
 )
