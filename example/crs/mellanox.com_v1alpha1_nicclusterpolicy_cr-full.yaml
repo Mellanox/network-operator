@@ -110,7 +110,7 @@ spec:
   docaTelemetryService:
     image: doca_telemetry
     repository: nvcr.io/nvidia/doca
-    version: 1.25.5-doca3.4.0-host
+    version: 1.26.5-doca3.5.0-host
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
