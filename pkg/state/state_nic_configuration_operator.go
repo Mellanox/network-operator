@@ -131,6 +131,16 @@ func (s *stateNicConfigurationOperator) Sync(
 		return SyncStateNotReady, err
 	}
 
+	if clusterInfo.IsOpenshift() {
+		spec := cr.Spec.NicConfigurationOperator
+		env, certConfig, err := s.handleOpenshiftClusterWideProxyConfig(ctx, cr, spec.Env, spec.CertConfig)
+		if err != nil {
+			return SyncStateNotReady, errors.Wrap(err, "failed to handle Openshift cluster-wide proxy settings")
+		}
+		spec.Env = env
+		spec.CertConfig = certConfig
+	}
+
 	// Fill ManifestRenderData and render objects
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {

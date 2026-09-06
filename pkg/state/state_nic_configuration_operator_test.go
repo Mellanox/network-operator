@@ -546,6 +546,47 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 					},
 				))
 		})
+
+		It("should mount trusted CA ConfigMap when certConfig is specified", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.NicConfigurationOperator.CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{
+				Name: "ocp-network-operator-trusted-ca",
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			caVolume := v1.Volume{
+				Name: "trusted-ca",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{Name: "ocp-network-operator-trusted-ca"},
+						Items: []v1.KeyToPath{{
+							Key:  "ca-bundle.crt",
+							Path: "tls-ca-bundle.pem",
+						}},
+					},
+				},
+			}
+			caMount := v1.VolumeMount{
+				Name:      "trusted-ca",
+				ReadOnly:  true,
+				MountPath: "/etc/pki/ca-trust/extracted/pem",
+			}
+			sslCertEnv := v1.EnvVar{
+				Name:  "SSL_CERT_FILE",
+				Value: "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+			}
+
+			By("Verify Deployment")
+			d := &appsv1.Deployment{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(d.Spec.Template.Spec.Volumes).Should(ContainElement(caVolume))
+			Expect(d.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(caMount))
+			Expect(d.Spec.Template.Spec.Containers[0].Env).Should(ContainElement(sslCertEnv))
+		})
 	})
 	Context("Verify Sync flows", func() {
 		It("should create DaemonSet, update state to Ready", func() {
