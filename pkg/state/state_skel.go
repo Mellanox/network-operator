@@ -654,7 +654,7 @@ func (s *stateSkel) setEnvFromClusterWideProxy(env []v1.EnvVar, proxyConfig *osc
 // returns nil if object not found, error if generic API error happened
 func (s *stateSkel) readOpenshiftProxyConfig(ctx context.Context) (*osconfigv1.Proxy, error) {
 	proxyConfig := &osconfigv1.Proxy{}
-	err := s.client.Get(ctx, types.NamespacedName{Name: "cluster"}, proxyConfig)
+	err := s.client.Get(ctx, types.NamespacedName{Name: consts.OpenshiftClusterWideProxyName}, proxyConfig)
 	if err != nil {
 		if meta.IsNoMatchError(err) || k8serrors.IsNotFound(err) {
 			// Proxy CRD is not registered (probably we are not in Openshift cluster)

@@ -216,6 +216,12 @@ func (r *NicNodePolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog lo
 
 	bld = watchStateSources(bld, mgr, setupLog, stateManager, &mellanoxv1alpha1.NicNodePolicy{})
 
+	// Watch the Openshift cluster-wide Proxy object, which the OFED state reads to render proxy
+	// env vars and the trusted CA bundle. It is not owned by the policy, so it is not covered by
+	// watchStateSources.
+	bld = watchClusterWideProxy(bld, setupLog, r.ClusterTypeProvider, mgr.GetRESTMapper(),
+		enqueueNicNodePoliciesWithOFED(mgr.GetClient()))
+
 	// Watch Node objects for label changes so re-labeling triggers re-reconciliation
 	// and overlap detection runs again
 	bld = bld.Watches(&corev1.Node{}, handler.EnqueueRequestsFromMapFunc(
