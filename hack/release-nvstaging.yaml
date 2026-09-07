@@ -131,7 +131,7 @@ nicFeatureDiscovery:
 docaTelemetryService:
   image: doca_telemetry
   repository: nvcr.io/nvidia/doca
-  version: 1.25.5-doca3.4.0-host
+  version: 1.26.5-doca3.5.0-host
 ovsCni:
   image: ovs-cni-plugin
   repository: nvcr.io/nvstaging/mellanox
@@ -221,7 +221,7 @@ spectrumXOperatorStigFipsUbuntu:
 xPlaneService:
   image: xplane
   repository: nvcr.io/nvstaging/doca
-  version: 3.5.0035
+  version: 3.5.0041
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
