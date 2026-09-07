@@ -140,6 +140,7 @@ var CertConfigPathMap = map[string]string{
 	"ubuntu": "/usr/local/share/ca-certificates",
 	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
 	"rhel":   "/etc/pki/ca-trust/extracted/pem",
+	"rocky":  "/etc/pki/ca-trust/extracted/pem",
 	"sles":   "/etc/ssl",
 }
 
@@ -148,6 +149,7 @@ var RepoConfigPathMap = map[string]string{
 	"ubuntu": "/etc/apt/sources.list.d",
 	"rhcos":  "/etc/yum.repos.d",
 	"rhel":   "/etc/yum.repos.d",
+	"rocky":  "/etc/yum.repos.d",
 	"sles":   "/etc/zypp/repos.d",
 }
 
