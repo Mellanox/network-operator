@@ -59,22 +59,11 @@ spec:
         volumeMounts:
         - name: doca-telemetry-service-configmap
           mountPath: /configmap
-        # Required by the pod_resources collector only.
-        - name: pod-device-resources
-          mountPath: /var/lib/kubelet/pod-resources
-        # Required by the pod_resources collector only.
-        - name: cni
-          mountPath: /var/run/k8s.cni.cncf.io/devinfo/cni
         env:
-        # Required by the pod_resources collector only.
-        - name: MY_POD_UID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.uid
         - name: PROMETHEUS_XCSET_JOIN_FIELDS
           value: "hca"
         - name: PROMETHEUS_XCSET_MANDATORY_TYPES
-          value: "counters,pod_resources_event"
+          value: "counters"
         command: [ "/bin/bash", "-c", "rm -rf /config/* && DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
         # Required only for the sysfs collector only.
         securityContext:
@@ -83,14 +72,6 @@ spec:
         - name: doca-telemetry-service-configmap
           configMap:
             name: {{ .ConfigMapName }}
-        # Required by the pod_resources collector only.
-        - name: pod-device-resources
-          hostPath:
-            path: /var/lib/kubelet/pod-resources
-        # Required by the pod_resources collector only.
-        - name: cni
-          hostPath:
-            path: /var/run/k8s.cni.cncf.io/devinfo/cni/
 {{ if .DeployConfigMap }}
 ---
 apiVersion: v1
@@ -131,7 +112,6 @@ data:
     #####################################
 
     enable-provider=sysfs
-    enable-provider=pod_resources
     enable-provider=ethtool
     enable-provider=ifconfig
 
