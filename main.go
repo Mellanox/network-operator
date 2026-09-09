@@ -192,6 +192,18 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "12620820.mellanox.com",
+		// No controller watches Pods; they are only listed by label to find which
+		// nodes still run an OFED or nic-configuration daemon pod. A List through
+		// the cached client would lazily start a cluster-wide Pod informer and
+		// apply the label selector client-side, caching every Pod in the cluster
+		// so the operator's memory scales with total Pod count rather than with
+		// the handful of pods it cares about. Uncached, the selector is applied
+		// server-side and only the matching pods are transferred.
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{&corev1.Pod{}},
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
