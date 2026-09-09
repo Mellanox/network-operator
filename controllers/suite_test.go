@@ -138,6 +138,9 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{
 			filepath.Join("config", "crd", "bases"),
 			filepath.Join("hack", "crds"),
+			// Openshift CRDs needed only by tests, kept out of hack/crds so that they are
+			// not applied to development clusters by the Makefile targets.
+			filepath.Join("controllers", "testdata", "crds"),
 			filepath.Join("deployment", "network-operator", "charts", "maintenance-operator-chart", "crds"),
 			filepath.Join("deployment", "network-operator", "charts", "sriov-network-operator", "crds"),
 		},

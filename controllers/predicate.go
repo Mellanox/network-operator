@@ -19,6 +19,7 @@ package controllers
 import (
 	"reflect"
 
+	osconfigv1 "github.com/openshift/api/config/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -28,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 )
 
@@ -123,6 +125,48 @@ func (p NodeTaintChangedPredicate) Update(e event.UpdateEvent) bool {
 	}
 
 	return !equality.Semantic.DeepEqual(oldNode.Spec.Taints, newNode.Spec.Taints)
+}
+
+// ClusterWideProxyChangedPredicate filters events of the Openshift cluster-wide Proxy object
+// down to the singleton named consts.OpenshiftClusterWideProxyName, and for updates down to the
+// settings that states render into workloads: httpProxy, httpsProxy, noProxy and trustedCA.
+// Status-only updates are therefore ignored.
+type ClusterWideProxyChangedPredicate struct {
+	predicate.Funcs
+}
+
+// Create returns true for the cluster-wide Proxy object.
+func (p ClusterWideProxyChangedPredicate) Create(e event.CreateEvent) bool {
+	return isClusterWideProxy(e.Object)
+}
+
+// Delete returns true for the cluster-wide Proxy object, so that settings taken from it
+// are dropped from the rendered workloads once it is gone.
+func (p ClusterWideProxyChangedPredicate) Delete(e event.DeleteEvent) bool {
+	return isClusterWideProxy(e.Object)
+}
+
+// Update returns true if a rendered proxy setting of the cluster-wide Proxy object has changed.
+func (p ClusterWideProxyChangedPredicate) Update(e event.UpdateEvent) bool {
+	if !isClusterWideProxy(e.ObjectNew) {
+		return false
+	}
+	oldProxy, oldOk := e.ObjectOld.(*osconfigv1.Proxy)
+	newProxy, newOk := e.ObjectNew.(*osconfigv1.Proxy)
+	if !oldOk || !newOk || oldProxy == nil {
+		return false
+	}
+
+	return oldProxy.Spec.HTTPProxy != newProxy.Spec.HTTPProxy ||
+		oldProxy.Spec.HTTPSProxy != newProxy.Spec.HTTPSProxy ||
+		oldProxy.Spec.NoProxy != newProxy.Spec.NoProxy ||
+		oldProxy.Spec.TrustedCA.Name != newProxy.Spec.TrustedCA.Name
+}
+
+// isClusterWideProxy reports whether obj is the singleton Openshift Proxy object.
+func isClusterWideProxy(obj client.Object) bool {
+	proxy, ok := obj.(*osconfigv1.Proxy)
+	return ok && proxy != nil && proxy.GetName() == consts.OpenshiftClusterWideProxyName
 }
 
 // NodeLabelChangePredicate filters if node labels have changed.

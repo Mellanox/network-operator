@@ -374,6 +374,8 @@ type NicConfigurationOperatorSpec struct {
 	// +kubebuilder:validation:Enum={"info", "debug"}
 	// +kubebuilder:default:="info"
 	LogLevel string `json:"logLevel,omitempty"`
+	// Optional: Custom TLS certificates configuration for NIC Configuration Operator container
+	CertConfig *ConfigMapNameReference `json:"certConfig,omitempty"`
 }
 
 // SpectrumXOperatorSpec describes configuration options for NVIDIA Spectrum-X Operator

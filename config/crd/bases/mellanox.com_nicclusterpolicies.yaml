@@ -475,6 +475,14 @@ spec:
                   NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
                   See: https://github.com/Mellanox/nic-configuration-operator
                 properties:
+                  certConfig:
+                    description: 'Optional: Custom TLS certificates configuration
+                      for NIC Configuration Operator container'
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
                   configurationDaemon:
                     description: Image information for nic-configuration-daemon
                     properties:
