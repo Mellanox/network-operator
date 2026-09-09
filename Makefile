@@ -51,6 +51,8 @@ CONTROLLER_IMAGE=$(REGISTRY)/$(IMAGE_NAME)
 IMAGE_BUILD_OPTS?=
 BUNDLE_IMG?=network-operator-bundle:$(VERSION)
 BUNDLE_OCP_VERSIONS?=v4.17-v4.20
+# release.yaml (production) or release-nvstaging.yaml (pre-GA; images not yet public)
+RELEASE_DEFAULTS ?= release.yaml
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 BUILD_ARCH= amd64 arm64
@@ -427,13 +429,13 @@ generate: $(CONTROLLER_GEN) ## Generate code
 
 .PHONY: bundle
 bundle: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate bundle manifests and metadata, then validate generated files.
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/config/manager --outputDir ../config/manager/
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/samples/ --outputDir ../config/samples/
+	cd hack && $(GO) run release.go --with-sha256 --releaseDefaults $(RELEASE_DEFAULTS) --templateDir ./templates/config/manager --outputDir ../config/manager/
+	cd hack && $(GO) run release.go --with-sha256 --releaseDefaults $(RELEASE_DEFAULTS) --templateDir ./templates/samples/ --outputDir ../config/samples/
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	git checkout -- config/manager/kustomization.yaml
-	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) TAG=$(TAG) hack/scripts/ocp-bundle-postprocess.sh
+	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) TAG=$(TAG) RELEASE_DEFAULTS=$(RELEASE_DEFAULTS) hack/scripts/ocp-bundle-postprocess.sh
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
