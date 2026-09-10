@@ -134,18 +134,20 @@ jobs:
           mellanox
           no-ace
         EOF
+    # publish-chart.sh skips the push when the chart version is already in NGC. That is the normal
+    # case on a release: the commit and the tag on it are pushed separately, so this workflow runs
+    # twice for one commit and publishes the same `current_version+git_sha` chart both times.
     - name: Make package and push (`current_version+git_sha` as chart version)
       run: |
         git_sha=$(git rev-parse --short=12 HEAD)  # short git commit hash
         current_chart_version=$(yq '.version' deployment/network-operator/Chart.yaml)
-        APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha make chart-build chart-push \
-          2> >(tee error.log) || grep 'already exists in the repository' error.log  # catches any errors to `error.log`; if there is a specific error - passes (exit 0)
+        APP_VERSION=$git_sha VERSION=$current_chart_version-$git_sha hack/scripts/publish-chart.sh
     - name: Make package and push (`git_tag` as chart version)
       if: github.ref_type == 'tag'
       run: |
         git_tag=${{ github.ref_name }}
 
-        APP_VERSION=$git_tag VERSION=${git_tag:1} make chart-build chart-push  # VERSION as 'v' prefix removed
+        APP_VERSION=$git_tag VERSION=${git_tag:1} hack/scripts/publish-chart.sh  # VERSION as 'v' prefix removed
 
     - name: Make pre-GA package and push (`git_tag-pre-ga` as chart version)
       if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
@@ -158,7 +160,7 @@ jobs:
           -e 's|nvcr.io/nvidia/cloud-native|nvcr.io/nvstaging/mellanox|g' \
           deployment/network-operator/values.yaml
 
-        APP_VERSION=$git_tag VERSION=${git_tag:1}-pre-ga make chart-build chart-push
+        APP_VERSION=$git_tag VERSION=${git_tag:1}-pre-ga hack/scripts/publish-chart.sh
 
         # Restore values.yaml so subsequent steps see the original production values
         git checkout -- deployment/network-operator/values.yaml
