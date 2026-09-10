@@ -409,5 +409,31 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 		builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 	)
 
+	// Watch OFED driver Pods so changes to their status (e.g. becoming ready or
+	// terminating) trigger re-reconciliation of the NicClusterPolicy, keeping
+	// mofed.wait node labels in sync.
+	ofedPodEnqueue := handler.Funcs{
+		CreateFunc: func(_ context.Context, _ event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+				Name: consts.NicClusterPolicyResourceName,
+			}})
+		},
+		UpdateFunc: func(_ context.Context, _ event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+				Name: consts.NicClusterPolicyResourceName,
+			}})
+		},
+		DeleteFunc: func(_ context.Context, _ event.DeleteEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+			q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
+				Name: consts.NicClusterPolicyResourceName,
+			}})
+		},
+	}
+	bld = bld.Watches(
+		&corev1.Pod{},
+		ofedPodEnqueue,
+		builder.WithPredicates(predicate.NewPredicateFuncs(isOFEDDriverPod)),
+	)
+
 	return bld.Complete(r)
 }
