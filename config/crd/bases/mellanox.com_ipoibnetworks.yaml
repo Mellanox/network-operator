@@ -53,6 +53,11 @@ spec:
                 description: Name of the host interface to enslave. Defaults to default
                   route interface
                 type: string
+              mtu:
+                description: MTU of interface to the specified value. 0 for master's
+                  MTU
+                minimum: 0
+                type: integer
               networkNamespace:
                 description: Namespace of the NetworkAttachmentDefinition custom resource
                 type: string

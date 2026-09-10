@@ -138,6 +138,7 @@ func (s *stateIPoIBNetwork) getManifestObjects(
 	}
 
 	data["Master"] = cr.Spec.Master
+	data["Mtu"] = cr.Spec.Mtu
 
 	if cr.Spec.IPAM != "" {
 		data["Ipam"] = "\"ipam\":" + strings.Join(strings.Fields(cr.Spec.IPAM), "")
