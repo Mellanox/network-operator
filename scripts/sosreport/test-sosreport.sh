@@ -28,6 +28,8 @@ SOSREPORT_SCRIPT="$SCRIPT_DIR/kubectl-netop_sosreport"
 REPORT_SCRIPT="$SCRIPT_DIR/generate-report.py"
 REPORT_TEMPLATE="$SCRIPT_DIR/report-template.html"
 LEGACY_SYMLINK="$SCRIPT_DIR/network-operator-sosreport.sh"
+CHART_FILE="$SCRIPT_DIR/../../deployment/network-operator/Chart.yaml"
+RELEASE_WORKFLOW="$SCRIPT_DIR/../../.github/workflows/release.yaml"
 
 echo "========================================"
 echo "NVIDIA Network Operator SOS-Report Test Suite"
@@ -84,9 +86,12 @@ required_functions=(
     "collect_operator_resources"
     "collect_container_logs"
     "collect_pods_and_logs"
+    "detect_network_operator_version"
     "detect_helm_release_selector"
+    "collect_helm_release_info"
     "resolve_pod_workload"
     "collect_helm_release_components"
+    "collect_operator_namespace_pods"
     "resolve_component_selector"
     "collect_component"
     "collect_all_components"
@@ -269,17 +274,57 @@ else
     exit 1
 fi
 
-# Test 8: Script version is defined
+# Test 8: Collector version matches the chart appVersion
 echo ""
-echo "[Test 8] Checking script version..."
+echo "[Test 8] Checking collector version..."
 if grep -q "SCRIPT_VERSION=" "$SOSREPORT_SCRIPT"; then
     version=$(grep "SCRIPT_VERSION=" "$SOSREPORT_SCRIPT" | head -1 | cut -d'"' -f2)
-    echo "  Script version: $version"
-    echo "PASS: Script version defined"
+    chart_app_version=$(awk '$1 == "appVersion:" { print $2; exit }' "$CHART_FILE")
+    if [ "$version" != "$chart_app_version" ]; then
+        echo "FAIL: Collector version $version does not match chart appVersion $chart_app_version"
+        exit 1
+    fi
+    version_output=$("$SOSREPORT_SCRIPT" --version)
+    if [ "$version_output" != "NVIDIA Network Operator SOS-Report Collector $chart_app_version" ]; then
+        echo "FAIL: --version reported an unexpected collector version: $version_output"
+        exit 1
+    fi
+    if ! grep -q 'SCRIPT_VERSION=.*APP_VERSION' "$RELEASE_WORKFLOW"; then
+        echo "FAIL: Automated release workflow does not update the collector version"
+        exit 1
+    fi
+    echo "  Collector version: $version"
+    echo "PASS: Collector version matches chart appVersion"
 else
-    echo "FAIL: Script version not defined"
+    echo "FAIL: Collector version not defined"
     exit 1
 fi
+
+# Test 8b: Non-Helm deployments report their image version
+echo ""
+echo "[Test 8b] Testing non-Helm Network Operator version detection..."
+(
+    source "$SOSREPORT_SCRIPT"
+
+    fake_non_helm_kubectl() {
+        case "$*" in
+            "get deployments -n olm-network-operator -l app.kubernetes.io/name=network-operator -o jsonpath="*)
+                echo "|nvcr.io/nvidia/cloud-native/network-operator:network-operator-v26.7.0"
+                ;;
+        esac
+    }
+
+    KUBECTL_BIN=fake_non_helm_kubectl
+    OPERATOR_NAMESPACE=olm-network-operator
+    NETWORK_OPERATOR_VERSION=""
+
+    detect_network_operator_version
+    if [ "$NETWORK_OPERATOR_VERSION" != "network-operator-v26.7.0" ]; then
+        echo "FAIL: Non-Helm image version was not detected: $NETWORK_OPERATOR_VERSION"
+        exit 1
+    fi
+)
+echo "PASS: Non-Helm Network Operator version is detected"
 
 # Test 9: Check CRD collection coverage
 echo ""
@@ -657,6 +702,13 @@ RESOURCE_EOF
             "get deployments -n test-operator -l app.kubernetes.io/name=network-operator -o jsonpath="*)
                 echo "netop-release"
                 ;;
+            "get deployments -n test-operator -l app.kubernetes.io/instance=netop-release -o jsonpath="*)
+                echo "network-operator-26.7.0|v26.7.0|Helm"
+                ;;
+            "get secrets -n test-operator -l owner=helm,name=netop-release -o custom-columns="*)
+                echo "SECRET                                   STATUS     REVISION   CREATED"
+                echo "sh.helm.release.v1.netop-release.v3      deployed   3          2026-09-01T00:00:00Z"
+                ;;
             "get deployments -n test-operator -l app.kubernetes.io/instance=netop-release -o yaml"|\
             "get deployment -n test-operator chart-addon -o yaml"|\
             "get -n test-operator pod/chart-addon-abc -o yaml")
@@ -709,14 +761,50 @@ EMPTY_EOF
         esac
     }
 
+    fake_helm() {
+        case "$*" in
+            "list --namespace test-operator --all --filter ^netop-release$ --output yaml")
+                cat <<HELM_EOF
+- name: netop-release
+  namespace: test-operator
+  revision: "3"
+  status: deployed
+  chart: network-operator-26.7.0
+  app_version: v26.7.0
+HELM_EOF
+                ;;
+            "get metadata --help")
+                ;;
+            "get metadata netop-release --namespace test-operator --output yaml")
+                cat <<HELM_EOF
+name: netop-release
+chart: network-operator
+version: 26.7.0
+appVersion: v26.7.0
+revision: 3
+status: deployed
+HELM_EOF
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+
     KUBECTL_BIN=fake_helm_kubectl
+    HELM_BIN=fake_helm
     OPERATOR_NAMESPACE=test-operator
     OUTPUT_DIR="$TEST_DIR/report"
     ERROR_LOG="$OUTPUT_DIR/collection-errors.log"
     NODE_SELECTOR=""
     LOG_LINES=100
     HELM_RELEASE_SELECTOR=""
+    HELM_RELEASE_NAME=""
+    HELM_CHART=""
+    HELM_APP_VERSION=""
+    HELM_MANAGED_BY=""
     HELM_RELEASE_DISCOVERED=false
+    HELM_RELEASE_INFO_COLLECTED=false
     declare -A COLLECTED_PODS=()
     declare -A DISCOVERED_COMPONENTS=()
     mkdir -p "$OUTPUT_DIR"
@@ -727,9 +815,13 @@ EMPTY_EOF
     collect_helm_release_components
     collect_helm_release_components
 
-    COMPONENT_DIR="$OUTPUT_DIR/operator/components/chart-addon"
+    COMPONENT_DIR="$OUTPUT_DIR/operator/components/deployment-chart-addon"
     for expected_file in \
         "$OUTPUT_DIR/operator/helm-release/workloads/deployments.yaml" \
+        "$OUTPUT_DIR/operator/helm-release/chart-info.txt" \
+        "$OUTPUT_DIR/operator/helm-release/revisions.txt" \
+        "$OUTPUT_DIR/operator/helm-release/helm-list.yaml" \
+        "$OUTPUT_DIR/operator/helm-release/helm-metadata.yaml" \
         "$COMPONENT_DIR/deployment.yaml" \
         "$COMPONENT_DIR/pods/chart-addon-abc.yaml" \
         "$COMPONENT_DIR/pods/chart-addon-abc-controller.log" \
@@ -744,12 +836,174 @@ EMPTY_EOF
         fi
     done
 
+    if ! grep -q "Chart: network-operator-26.7.0" \
+        "$OUTPUT_DIR/operator/helm-release/chart-info.txt" || \
+       ! grep -q "App Version: v26.7.0" \
+        "$OUTPUT_DIR/operator/helm-release/chart-info.txt" || \
+       ! grep -q "sh.helm.release.v1.netop-release.v3" \
+        "$OUTPUT_DIR/operator/helm-release/revisions.txt"; then
+        echo "FAIL: Helm release metadata is incomplete"
+        exit 1
+    fi
+
     if [ "${STATS[components_found]}" -ne 1 ] || [ "${STATS[component_pods]}" -ne 1 ]; then
         echo "FAIL: Helm component or pod was counted more than once"
         exit 1
     fi
 )
 echo "PASS: Helm-only workloads and all container types are collected once"
+
+# Test 10e: Unlabelled pods are collected and cross-kind names stay distinct
+echo ""
+echo "[Test 10e] Testing namespace-wide pod and collision-safe log collection..."
+(
+    source "$SOSREPORT_SCRIPT"
+
+    TEST_DIR=$(mktemp -d)
+    trap 'rm -rf "$TEST_DIR"' EXIT
+
+    emit_namespace_resource_yaml() {
+        local kind="$1"
+        local name="$2"
+        cat <<RESOURCE_EOF
+apiVersion: v1
+kind: $kind
+metadata:
+  name: $name
+spec:
+  containers:
+    - name: collector-test
+status:
+  phase: Running
+RESOURCE_EOF
+    }
+
+    fake_namespace_kubectl() {
+        case "$*" in
+            "get pods -n test-operator -o yaml")
+                cat <<PODS_EOF
+apiVersion: v1
+kind: List
+items:
+  - metadata:
+      name: sriov-network-config-daemon-node-a
+  - metadata:
+      name: nic-configuration-daemon-node-a
+  - metadata:
+      name: shared-deployment-pod
+  - metadata:
+      name: shared-job-pod
+metadata: {}
+PODS_EOF
+                ;;
+            "get pods -n test-operator -o name")
+                echo "pod/sriov-network-config-daemon-node-a"
+                echo "pod/nic-configuration-daemon-node-a"
+                echo "pod/shared-deployment-pod"
+                echo "pod/shared-job-pod"
+                ;;
+            "get -n test-operator pod/sriov-network-config-daemon-node-a -o jsonpath={.metadata.ownerReferences[0].kind}"|\
+            "get -n test-operator pod/nic-configuration-daemon-node-a -o jsonpath={.metadata.ownerReferences[0].kind}")
+                echo "DaemonSet"
+                ;;
+            "get -n test-operator pod/shared-deployment-pod -o jsonpath={.metadata.ownerReferences[0].kind}")
+                echo "Deployment"
+                ;;
+            "get -n test-operator pod/shared-job-pod -o jsonpath={.metadata.ownerReferences[0].kind}")
+                echo "Job"
+                ;;
+            "get -n test-operator pod/sriov-network-config-daemon-node-a -o jsonpath={.metadata.ownerReferences[0].name}")
+                echo "sriov-network-config-daemon"
+                ;;
+            "get -n test-operator pod/nic-configuration-daemon-node-a -o jsonpath={.metadata.ownerReferences[0].name}")
+                echo "nic-configuration-daemon"
+                ;;
+            "get -n test-operator pod/shared-deployment-pod -o jsonpath={.metadata.ownerReferences[0].name}"|\
+            "get -n test-operator pod/shared-job-pod -o jsonpath={.metadata.ownerReferences[0].name}")
+                echo "shared-worker"
+                ;;
+            "get daemonset -n test-operator sriov-network-config-daemon -o yaml")
+                emit_namespace_resource_yaml "DaemonSet" "sriov-network-config-daemon"
+                ;;
+            "get daemonset -n test-operator nic-configuration-daemon -o yaml")
+                emit_namespace_resource_yaml "DaemonSet" "nic-configuration-daemon"
+                ;;
+            "get deployment -n test-operator shared-worker -o yaml")
+                emit_namespace_resource_yaml "Deployment" "shared-worker"
+                ;;
+            "get job -n test-operator shared-worker -o yaml")
+                emit_namespace_resource_yaml "Job" "shared-worker"
+                ;;
+            "get -n test-operator pod/sriov-network-config-daemon-node-a -o yaml")
+                emit_namespace_resource_yaml "Pod" "sriov-network-config-daemon-node-a"
+                ;;
+            "get -n test-operator pod/nic-configuration-daemon-node-a -o yaml")
+                emit_namespace_resource_yaml "Pod" "nic-configuration-daemon-node-a"
+                ;;
+            "get -n test-operator pod/shared-deployment-pod -o yaml")
+                emit_namespace_resource_yaml "Pod" "shared-deployment-pod"
+                ;;
+            "get -n test-operator pod/shared-job-pod -o yaml")
+                emit_namespace_resource_yaml "Pod" "shared-job-pod"
+                ;;
+            "get -n test-operator pod/sriov-network-config-daemon-node-a -o jsonpath={.spec.containers[*].name}")
+                echo "sriov-network-config-daemon"
+                ;;
+            "get -n test-operator pod/nic-configuration-daemon-node-a -o jsonpath={.spec.containers[*].name}")
+                echo "nic-configuration-daemon"
+                ;;
+            "get -n test-operator pod/shared-deployment-pod -o jsonpath={.spec.containers[*].name}"|\
+            "get -n test-operator pod/shared-job-pod -o jsonpath={.spec.containers[*].name}")
+                echo "worker"
+                ;;
+            "logs -n test-operator pod/"*" -c "*" --previous --tail="*)
+                echo "previous config daemon log"
+                ;;
+            "logs -n test-operator pod/"*" -c "*" --tail="*)
+                echo "current config daemon log"
+                ;;
+        esac
+    }
+
+    KUBECTL_BIN=fake_namespace_kubectl
+    OPERATOR_NAMESPACE=test-operator
+    OUTPUT_DIR="$TEST_DIR/report"
+    ERROR_LOG="$OUTPUT_DIR/collection-errors.log"
+    NODE_SELECTOR=""
+    LOG_LINES=100
+    declare -A COLLECTED_PODS=()
+    declare -A DISCOVERED_COMPONENTS=()
+    mkdir -p "$OUTPUT_DIR"
+    : > "$ERROR_LOG"
+    STATS[components_found]=0
+    STATS[component_pods]=0
+
+    collect_operator_namespace_pods
+
+    for expected_file in \
+        "$OUTPUT_DIR/operator/pods.yaml" \
+        "$OUTPUT_DIR/operator/components/daemonset-sriov-network-config-daemon/pods/sriov-network-config-daemon-node-a.yaml" \
+        "$OUTPUT_DIR/operator/components/daemonset-sriov-network-config-daemon/pods/sriov-network-config-daemon-node-a-sriov-network-config-daemon.log" \
+        "$OUTPUT_DIR/operator/components/daemonset-sriov-network-config-daemon/pods/sriov-network-config-daemon-node-a-sriov-network-config-daemon-previous.log" \
+        "$OUTPUT_DIR/operator/components/daemonset-nic-configuration-daemon/pods/nic-configuration-daemon-node-a.yaml" \
+        "$OUTPUT_DIR/operator/components/daemonset-nic-configuration-daemon/pods/nic-configuration-daemon-node-a-nic-configuration-daemon.log" \
+        "$OUTPUT_DIR/operator/components/daemonset-nic-configuration-daemon/pods/nic-configuration-daemon-node-a-nic-configuration-daemon-previous.log" \
+        "$OUTPUT_DIR/operator/components/deployment-shared-worker/deployment.yaml" \
+        "$OUTPUT_DIR/operator/components/deployment-shared-worker/pods/shared-deployment-pod-worker.log" \
+        "$OUTPUT_DIR/operator/components/job-shared-worker/job.yaml" \
+        "$OUTPUT_DIR/operator/components/job-shared-worker/pods/shared-job-pod-worker.log"; do
+        if [ ! -s "$expected_file" ]; then
+            echo "FAIL: Namespace pod artifact is missing: $expected_file"
+            exit 1
+        fi
+    done
+
+    if [ "${STATS[components_found]}" -ne 4 ] || [ "${STATS[component_pods]}" -ne 4 ]; then
+        echo "FAIL: Namespace-discovered components or pods were counted incorrectly"
+        exit 1
+    fi
+)
+echo "PASS: Every operator namespace pod is collected with collision-safe grouping"
 
 # Test 11: HTML report generator exists and is executable
 echo ""
@@ -854,7 +1108,10 @@ mkdir -p "$FIXTURE_DIR/network"
 
 cat > "$FIXTURE_DIR/metadata/collection-info.txt" <<FIXTURE_EOF
 Collection Time: 2026-02-18 14:30:00 UTC
-Script Version: v26.1.0
+Collector Version: v26.7.0-rc.1
+Network Operator Version: v26.7.0
+Helm Release: netop-release
+Helm Chart: network-operator-26.7.0
 Operator Namespace: nvidia-network-operator
 Platform: Kubernetes
 FIXTURE_EOF
@@ -966,7 +1223,7 @@ fi
 
 # Check for key HTML elements
 missing_elements=false
-for element in "<!DOCTYPE html>" "NicClusterPolicy" "Component Health" "OFED Diagnostics" "Node Overview" "Events" "RBAC" "sidebar" "sidecar container log" "Init Container Logs (setup)" "Helm Release Artifacts" "network-operator-upgrade-hook" "Diagnostic command status" "rdma dev show" "standalone sriov namespace log"; do
+for element in "<!DOCTYPE html>" "NicClusterPolicy" "Component Health" "OFED Diagnostics" "Node Overview" "Events" "RBAC" "sidebar" "Operator: v26.7.0" "Collector: v26.7.0-rc.1" "Chart: network-operator-26.7.0" "sidecar container log" "Init Container Logs (setup)" "Helm Release Artifacts" "network-operator-upgrade-hook" "Diagnostic command status" "rdma dev show" "standalone sriov namespace log"; do
     if grep -q "$element" "$REPORT_OUTPUT"; then
         echo "  Found element: $element"
     else
