@@ -40,8 +40,8 @@ kubectl netop-sosreport --help
 ### Features
 
 - **Automatic Detection**: Auto-detects the Network Operator namespace
-- **Comprehensive Collection**: Gathers CRDs, workloads, logs, and diagnostic data from every known component
-- **Helm Release Discovery**: Finds chart and sub-chart workloads by release label so optional or newly added components are not omitted
+- **Comprehensive Collection**: Gathers CRDs, workloads, logs, and diagnostic data from every pod in the Network Operator namespace
+- **Helm Release Discovery**: Records release/chart/app versions, revision metadata, and parent/sub-chart workloads
 - **Graceful Error Handling**: Continues collection even if some resources fail
 - **Capability-Aware Diagnostics**: Records unavailable optional tools as skipped instead of collection failures
 - **All Container Logs**: Collects current and previous logs from regular, init, and ephemeral containers
@@ -92,7 +92,7 @@ python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --templ
 - Node maintenance objects (if present)
 
 #### Operator Resources
-- Deployment, Pods, ConfigMaps, Secrets (metadata only)
+- Deployment, every Pod in the operator namespace, ConfigMaps, Secrets (metadata only)
 - RBAC resources (ServiceAccounts, Roles, RoleBindings)
 - Events in operator namespace
 - Webhook configurations
@@ -115,11 +115,15 @@ python3 generate-report.py ./network-operator-sosreport-20260218-143000/ --templ
   device plugin, metrics exporter, and DRA driver (when deployed by Network Operator)
 - Maintenance Operator (when deployed by Network Operator)
 
-The collector also discovers every workload carrying the Network Operator Helm
-release's `app.kubernetes.io/instance` label. This release-scoped fallback
-captures optional and future parent-chart or sub-chart components without
-collecting unrelated pods when the operator shares a namespace. A complete
-release inventory is stored under `operator/helm-release/`, including
+The collector discovers every workload carrying the Network Operator Helm
+release's `app.kubernetes.io/instance` label, then sweeps every remaining pod
+in the operator namespace. The namespace sweep captures workloads with missing,
+custom, or changed labels, including config daemons, while preserving the
+component-oriented report layout. Dynamically discovered component directories
+use `<workload-kind>-<workload-name>` so same-named resources of different kinds
+remain separate. A complete release inventory is stored under
+`operator/helm-release/`, including the release name, chart and app versions,
+Helm revision metadata (without Secret payloads), optional Helm CLI metadata,
 Deployments, DaemonSets, StatefulSets, ReplicaSets, Jobs, CronJobs,
 PodDisruptionBudgets, and NetworkPolicies that are present during collection.
 
@@ -226,7 +230,7 @@ The script creates a timestamped archive with the following structure:
 ```
 network-operator-sosreport-<timestamp>/
 ├── metadata/
-│   ├── collection-info.txt           # Script version, collection time, cluster info
+│   ├── collection-info.txt           # Collector/operator versions, collection time, cluster info
 │   ├── cluster-version.yaml          # Kubernetes/OpenShift version
 │   ├── namespaces.txt                # List of all namespaces
 │   └── api-resources.txt             # Available API resources
@@ -241,13 +245,18 @@ network-operator-sosreport-<timestamp>/
 │       └── ...
 ├── operator/
 │   ├── namespace.yaml                # Operator namespace details
+│   ├── pods.yaml                     # Namespace-wide pod inventory
 │   ├── configmaps.yaml               # ConfigMaps in operator namespace
 │   ├── secrets-metadata.txt          # Secret names only (no data)
 │   ├── rbac/                         # Roles, RoleBindings, etc.
 │   ├── events.yaml                   # Namespace events
 │   ├── validatingwebhookconfigurations.yaml
 │   ├── mutatingwebhookconfigurations.yaml
-│   ├── helm-release/                 # Complete parent/sub-chart resource inventory
+│   ├── helm-release/                 # Helm release/chart metadata and resource inventory
+│   │   ├── chart-info.txt            # Release, chart, and app versions
+│   │   ├── revisions.txt             # Helm Secret metadata only (no payloads)
+│   │   ├── helm-list.yaml            # Optional Helm CLI release listing
+│   │   ├── helm-metadata.yaml        # Optional detailed chart metadata
 │   │   ├── workloads/                # Deployments, DaemonSets, Jobs, etc.
 │   │   ├── poddisruptionbudgets.yaml
 │   │   └── networkpolicies.yaml
@@ -268,7 +277,7 @@ network-operator-sosreport-<timestamp>/
 │       ├── sriov-device-plugin/
 │       ├── nv-ipam-node/
 │       ├── nv-ipam-controller/
-│       └── ...                       # Known and Helm-discovered components
+│       └── ...                       # Known, Helm-discovered, and namespace-discovered components
 ├── nodes/
 │   ├── all-nodes.yaml                # All nodes with full details
 │   ├── nodes-summary.txt             # Node summary table

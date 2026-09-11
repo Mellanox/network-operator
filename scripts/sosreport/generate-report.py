@@ -190,7 +190,10 @@ def render_dashboard(report_dir):
 
     # Extract metadata
     collection_time = ""
-    script_version = ""
+    collector_version = ""
+    operator_version = ""
+    helm_release = ""
+    helm_chart = ""
     operator_ns = ""
     platform = ""
     cluster_context = ""
@@ -201,9 +204,22 @@ def render_dashboard(report_dir):
         m = re.search(r"Collection Time:\s*(.*)", info_content, re.IGNORECASE)
         if m:
             collection_time = m.group(1).strip()
-        m = re.search(r"Script Version:\s*(.*)", info_content, re.IGNORECASE)
+        m = re.search(r"Collector Version:\s*(.*)", info_content, re.IGNORECASE)
+        if not m:
+            # Backward compatibility for reports generated before the
+            # collector/operator versions were distinguished.
+            m = re.search(r"Script Version:\s*(.*)", info_content, re.IGNORECASE)
         if m:
-            script_version = m.group(1).strip()
+            collector_version = m.group(1).strip()
+        m = re.search(r"Network Operator Version:\s*(.*)", info_content, re.IGNORECASE)
+        if m:
+            operator_version = m.group(1).strip()
+        m = re.search(r"Helm Release:\s*(.*)", info_content, re.IGNORECASE)
+        if m:
+            helm_release = m.group(1).strip()
+        m = re.search(r"Helm Chart:\s*(.*)", info_content, re.IGNORECASE)
+        if m:
+            helm_chart = m.group(1).strip()
         m = re.search(r"Operator Namespace:\s*(.*)", info_content, re.IGNORECASE)
         if m:
             operator_ns = m.group(1).strip()
@@ -286,8 +302,14 @@ def render_dashboard(report_dir):
     meta_parts = []
     if collection_time:
         meta_parts.append(f"Collected: {html.escape(collection_time)}")
-    if script_version:
-        meta_parts.append(f"Version: {html.escape(script_version)}")
+    if operator_version:
+        meta_parts.append(f"Operator: {html.escape(operator_version)}")
+    if collector_version:
+        meta_parts.append(f"Collector: {html.escape(collector_version)}")
+    if helm_release:
+        meta_parts.append(f"Helm release: {html.escape(helm_release)}")
+    if helm_chart:
+        meta_parts.append(f"Chart: {html.escape(helm_chart)}")
     if operator_ns:
         meta_parts.append(f"Namespace: {html.escape(operator_ns)}")
     if platform:
