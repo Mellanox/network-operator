@@ -100,6 +100,73 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})
 	})
+	Context("KubeletRootDir", func() {
+		It("should use default kubelet paths and omit the flag when unset", func() {
+			cr := getRDMASharedDevicePlugin()
+			ds := renderRdmaSharedDevicePluginDaemonSet(&ts, cr)
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).NotTo(ContainElement(ContainSubstring("--kubelet-root-dir")))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("MountPath", "/var/lib/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "plugins-registry"),
+				HaveField("MountPath", "/var/lib/kubelet/plugins_registry"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("HostPath.Path", "/var/lib/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "plugins-registry"),
+				HaveField("HostPath.Path", "/var/lib/kubelet/plugins_registry"),
+			)))
+		})
+		It("should pass --kubelet-root-dir and derive mounts when set", func() {
+			cr := getRDMASharedDevicePlugin()
+			cr.Spec.RdmaSharedDevicePlugin.KubeletRootDir = "/var/lib/k0s/kubelet"
+			ds := renderRdmaSharedDevicePluginDaemonSet(&ts, cr)
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--kubelet-root-dir=/var/lib/k0s/kubelet"))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("MountPath", "/var/lib/k0s/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "plugins-registry"),
+				HaveField("MountPath", "/var/lib/k0s/kubelet/plugins_registry"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("HostPath.Path", "/var/lib/k0s/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "plugins-registry"),
+				HaveField("HostPath.Path", "/var/lib/k0s/kubelet/plugins_registry"),
+			)))
+		})
+		It("should render both --use-cdi and --kubelet-root-dir when both are set", func() {
+			cr := getRDMASharedDevicePlugin()
+			cr.Spec.RdmaSharedDevicePlugin.UseCdi = true
+			cr.Spec.RdmaSharedDevicePlugin.KubeletRootDir = "/custom/kubelet"
+			ds := renderRdmaSharedDevicePluginDaemonSet(&ts, cr)
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--use-cdi"))
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--kubelet-root-dir=/custom/kubelet"))
+		})
+		It("should normalize a trailing slash on kubeletRootDir", func() {
+			cr := getRDMASharedDevicePlugin()
+			cr.Spec.RdmaSharedDevicePlugin.KubeletRootDir = "/var/lib/kubelet/"
+			ds := renderRdmaSharedDevicePluginDaemonSet(&ts, cr)
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--kubelet-root-dir=/var/lib/kubelet"))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("MountPath", "/var/lib/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("HostPath.Path", "/var/lib/kubelet/device-plugins"),
+			)))
+		})
+	})
 	Context("Global config", func() {
 		It("should use global repository and version when component values are empty", func() {
 			cr := getTestClusterPolicyWithBaseFields()

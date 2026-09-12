@@ -50,18 +50,24 @@ spec:
       - image: {{ imagePath .CrSpec.Repository .CrSpec.Image .CrSpec.Version }}
         name: rdma-shared-dp
         command: [ "/bin/k8s-rdma-shared-dp" ]
-        {{- if .CrSpec.UseCdi }}
-        args: [ "--use-cdi" ]
+        {{- if or .CrSpec.UseCdi .CrSpec.KubeletRootDir }}
+        args:
+          {{- if .CrSpec.UseCdi }}
+          - --use-cdi
+          {{- end }}
+          {{- if .CrSpec.KubeletRootDir }}
+          - {{ printf "--kubelet-root-dir=%s" .RuntimeSpec.KubeletRootDir | quote }}
+          {{- end }}
         {{- end }}
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         volumeMounts:
           - name: device-plugin
-            mountPath: /var/lib/kubelet/device-plugins
+            mountPath: {{ printf "%s/device-plugins" .RuntimeSpec.KubeletRootDir | quote }}
             readOnly: false
           - name: plugins-registry
-            mountPath: /var/lib/kubelet/plugins_registry
+            mountPath: {{ printf "%s/plugins_registry" .RuntimeSpec.KubeletRootDir | quote }}
             readOnly: false
           - name: config
             mountPath: /k8s-rdma-shared-dev-plugin
@@ -89,10 +95,10 @@ spec:
       volumes:
         - name: device-plugin
           hostPath:
-            path: /var/lib/kubelet/device-plugins
+            path: {{ printf "%s/device-plugins" .RuntimeSpec.KubeletRootDir | quote }}
         - name: plugins-registry
           hostPath:
-            path: /var/lib/kubelet/plugins_registry
+            path: {{ printf "%s/plugins_registry" .RuntimeSpec.KubeletRootDir | quote }}
         - name: config
           configMap:
             name: rdma-devices{{ .NameSuffix }}

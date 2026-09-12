@@ -1096,6 +1096,102 @@ var _ = Describe("Validate", func() {
 			Expect(err.Error()).To(ContainSubstring("a lowercase RFC 1123 subdomain must consist of"))
 		})
 	})
+	Context("KubeletRootDir validation", func() {
+		rdmaImage := func(kubeletRootDir string) *v1alpha1.DevicePluginSpec {
+			return &v1alpha1.DevicePluginSpec{
+				ImageSpecWithConfig: v1alpha1.ImageSpecWithConfig{
+					ImageSpec: v1alpha1.ImageSpec{
+						Image:            "k8s-rdma-shared-dev-plugin",
+						Repository:       "ghcr.io/mellanox",
+						Version:          "v1.0.0",
+						ImagePullSecrets: []string{},
+					},
+				},
+				KubeletRootDir: kubeletRootDir,
+			}
+		}
+		It("Accepts absolute kubeletRootDir", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("/var/lib/k0s/kubelet"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Accepts kubeletRootDir with trailing slash", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("/var/lib/kubelet/"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Rejects relative kubeletRootDir", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("var/lib/kubelet"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be an absolute path"))
+		})
+		It("Rejects kubeletRootDir with newline", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("/etc\n            #"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not contain control characters, newlines, or '#'"))
+		})
+		It("Rejects kubeletRootDir with '#'", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("/var/lib/kubelet#comment"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not contain control characters, newlines, or '#'"))
+		})
+		It("Rejects kubeletRootDir with '..' segments", func() {
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("/var/lib/kubelet/../etc"),
+				},
+			}
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be a clean absolute path"))
+		})
+		It("Validates kubeletRootDir on NicNodePolicy", func() {
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					RdmaSharedDevicePlugin: rdmaImage("relative/path"),
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be an absolute path"))
+		})
+	})
 	Context("NicNodePolicy field validation tests", func() {
 		It("Valid OFED version in NicNodePolicy", func() {
 			policy := &v1alpha1.NicNodePolicy{
