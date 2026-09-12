@@ -1605,6 +1605,15 @@ spec:
                     items:
                       type: string
                     type: array
+                  kubeletRootDir:
+                    description: |-
+                      KubeletRootDir is an optional path to the kubelet root directory.
+                      When set, the RDMA shared device plugin DaemonSet is configured with
+                      --kubelet-root-dir and hostPath mounts for device-plugins and plugins_registry
+                      are derived from this path. When unset, the default /var/lib/kubelet is used.
+                      Must be an absolute, clean filesystem path without control characters or '#'.
+                      This field is consumed by rdmaSharedDevicePlugin and ignored by sriovDevicePlugin.
+                    type: string
                   repository:
                     description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
@@ -2014,6 +2023,15 @@ spec:
                     items:
                       type: string
                     type: array
+                  kubeletRootDir:
+                    description: |-
+                      KubeletRootDir is an optional path to the kubelet root directory.
+                      When set, the RDMA shared device plugin DaemonSet is configured with
+                      --kubelet-root-dir and hostPath mounts for device-plugins and plugins_registry
+                      are derived from this path. When unset, the default /var/lib/kubelet is used.
+                      Must be an absolute, clean filesystem path without control characters or '#'.
+                      This field is consumed by rdmaSharedDevicePlugin and ignored by sriovDevicePlugin.
+                    type: string
                   repository:
                     description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'

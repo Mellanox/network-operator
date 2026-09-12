@@ -523,9 +523,39 @@ func validateResourceNamePrefix(resource map[string]interface{},
 	return true, allErrs
 }
 
+// validateKubeletRootDir ensures kubeletRootDir is an absolute, normalized path that is safe
+// to embed in DaemonSet YAML (args, mountPath, hostPath). Empty values are allowed (optional).
+func validateKubeletRootDir(value string, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if value == "" {
+		return allErrs
+	}
+	if strings.ContainsAny(value, "\x00\n\r\t#") || strings.IndexFunc(value, func(r rune) bool {
+		return r < 0x20 || r == 0x7f
+	}) >= 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath, value,
+			"must not contain control characters, newlines, or '#'"))
+		return allErrs
+	}
+	if !filepath.IsAbs(value) {
+		allErrs = append(allErrs, field.Invalid(fldPath, value, "must be an absolute path"))
+		return allErrs
+	}
+	cleaned := filepath.Clean(value)
+	// Allow a single trailing slash as the only non-clean form; reject '.'/'..' and other unclean paths.
+	if cleaned != value && cleaned+"/" != value {
+		allErrs = append(allErrs, field.Invalid(fldPath, value,
+			"must be a clean absolute path without '..' or '.' segments"))
+		return allErrs
+	}
+	return allErrs
+}
+
 func (dp *devicePluginSpecWrapper) validateRdmaSharedDevicePlugin(fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	var rdmaSharedDevicePluginConfigJSON map[string]interface{}
+
+	allErrs = append(allErrs, validateKubeletRootDir(dp.KubeletRootDir, fldPath.Child("kubeletRootDir"))...)
 
 	if dp.Config == nil {
 		return allErrs

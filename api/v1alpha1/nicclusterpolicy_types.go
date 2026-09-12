@@ -246,6 +246,14 @@ type DevicePluginSpec struct {
 	// Enables use of container device interface (CDI)
 	// NOTE: NVIDIA Network Operator does not configure container runtime to enable CDI.
 	UseCdi bool `json:"useCdi,omitempty"`
+	// KubeletRootDir is an optional path to the kubelet root directory.
+	// When set, the RDMA shared device plugin DaemonSet is configured with
+	// --kubelet-root-dir and hostPath mounts for device-plugins and plugins_registry
+	// are derived from this path. When unset, the default /var/lib/kubelet is used.
+	// Must be an absolute, clean filesystem path without control characters or '#'.
+	// This field is consumed by rdmaSharedDevicePlugin and ignored by sriovDevicePlugin.
+	// +optional
+	KubeletRootDir string `json:"kubeletRootDir,omitempty"`
 }
 
 // MultusSpec describes configuration options for Multus CNI

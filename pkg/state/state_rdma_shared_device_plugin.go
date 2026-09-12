@@ -19,6 +19,7 @@ package state //nolint:dupl
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -59,12 +60,25 @@ type stateRDMASharedDevicePlugin struct {
 	stateSkel
 }
 
+const defaultKubeletRootDir = "/var/lib/kubelet"
+
 type stateRDMASharedDevicePluginSpec struct {
 	runtimeSpec
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	// KubeletRootDir is the effective kubelet root directory used for hostPath mounts.
+	// Defaults to /var/lib/kubelet when unset on the CR.
+	KubeletRootDir string
 }
+
+func resolveKubeletRootDir(spec *mellanoxv1alpha1.DevicePluginSpec) string {
+	if spec != nil && spec.KubeletRootDir != "" {
+		return filepath.Clean(spec.KubeletRootDir)
+	}
+	return defaultKubeletRootDir
+}
+
 type stateRDMASharedDevicePluginManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
 	Tolerations         []v1.Toleration
@@ -173,6 +187,7 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
 			ContainerResources: createContainerResourcesMap(cr.GetRdmaSharedDevicePluginSpec().ContainerResources),
+			KubeletRootDir:     resolveKubeletRootDir(cr.GetRdmaSharedDevicePluginSpec()),
 		},
 	}
 	// render objects
