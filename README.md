@@ -269,6 +269,8 @@ Check [Upgrade section in Helm Chart documentation](deployment/network-operator/
 
 ## Drain Controller
 In case users would like to use [NVIDIA maintenance operator](https://github.com/Mellanox/maintenance-operator) to manage node operations, e.g. SRIOV node draining, there is an option to disable [SRIOV operator's internal drain controller](https://github.com/Mellanox/sriov-network-operator/blob/master/README.md#key-configuration-fields) and enabling network operator drain controller, which utilizes maintenance operator.
+
+> **Resource sizing / naming:** maintenance-operator memory scales with node count (Node informer cache). Override via `maintenance-operator-chart.operator.resources` (defaults: 256Mi limit / 192Mi request). Top-level `operator.resources` configures the *network-operator* controller and does **not** size maintenance-operator.
 To do so, the following environment variables are required by network operator pod:
 ```text
 # enable drain controller requestor

@@ -198,6 +198,19 @@ maintenance-operator-chart:
       repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
       tag: network-operator-v26.7.0-rc.1
+    # -- Resource requests and limits for the *maintenance-operator* controller.
+    # Memory scales with cluster node count (Node informer cache). Defaults match
+    # Mellanox/maintenance-operator#225 / PR #243 (256Mi limit / 192Mi request).
+    # Raise for larger clusters. Do NOT confuse with top-level `operator.resources`,
+    # which sizes the *network-operator* controller, not maintenance-operator.
+    # @notationType -- yaml
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 10m
+        memory: 192Mi
     admissionController:
       # -- enable admission controller of the operator
       enable: false
