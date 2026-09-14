@@ -642,7 +642,7 @@ func (ofedSpec *ofedDriverSpecWrapper) validateVersion(fldPath *field.Path) fiel
 	// Perform version validation logic here
 	if !isValidOFEDVersion(ofedSpec.Version) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("version"), ofedSpec.Version,
-			`invalid OFED version, supported formats: "23.10-0.2.2.0", "24.01-0.3.3.1-0", "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64", "doca3.1-24.01-0.3.3.1-0", "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64", "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"`))
+			`invalid OFED version, supported formats: "23.10-0.2.2.0", "24.01-0.3.3.1-0", "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64", "doca3.1-24.01-0.3.3.1-0", "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64", "doca3.6.0-26.10-016000-ubuntu24.04-amd64", "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"`))
 	}
 	return allErrs
 }
@@ -908,8 +908,14 @@ func isValidOFEDVersion(version string) bool {
 	// 3. New scheme with kernel-specific suffix: "25.01-0.6.0.0-0-6.8.0-1019-oracle-ubuntu22.04-arm64"
 	// 4. DOCA prefix: "doca3.1.0-25.07-0.6.6.0-0"
 	// 5. DOCA prefix with kernel-specific suffix: "doca3.1-25.07-0.9.7.0-0-5.14.0-427.87.1.el9_4.x86_64-rhcos4.18-amd64"
-	// 6. SHA256 format: "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"
-	versionPattern := `^(sha256:[a-fA-F0-9]{64}|doca\d+\.\d+(\.\d+)?-\d+\.\d+-\d+\.\d+\.\d+\.\d+-\d+(-[\w\.\-]+)*|\d+\.\d+-\d+(\.\d+)*(-\d+)?(-[\w\.\-]+)*)$`
+	// 6. DOCA prefix with DOCA-Host build number, used from DOCA 3.6 onwards instead of the
+	//    MLNX_OFED version: "doca3.6.0-26.10-016000-ubuntu24.04-amd64"
+	// 7. SHA256 format: "sha256:9a831bfdf85f313b1f5749b7c9b2673bb8fff18b4ff768c9242dabaa4468e449"
+	//
+	// The DOCA-Host build number is zero padded to at least 6 digits.
+	versionPattern := `^(sha256:[a-fA-F0-9]{64}` +
+		`|doca\d+\.\d+(\.\d+)?-\d+\.\d+-(\d+\.\d+\.\d+\.\d+-\d+|\d{6,})(-[\w\.\-]+)*` +
+		`|\d+\.\d+-\d+(\.\d+)*(-\d+)?(-[\w\.\-]+)*)$`
 	versionRegex := regexp.MustCompile(versionPattern)
 	return versionRegex.MatchString(version)
 }
