@@ -140,8 +140,9 @@ var CertConfigPathMap = map[string]string{
 	"ubuntu": "/usr/local/share/ca-certificates",
 	"rhcos":  "/etc/pki/ca-trust/extracted/pem",
 	"rhel":   "/etc/pki/ca-trust/extracted/pem",
-	"rocky":  "/etc/pki/ca-trust/extracted/pem",
-	"sles":   "/etc/ssl",
+	"rocky":  "/etc/pki/ca-trust/extracted/pem", // Rocky Linux is not officially supported.
+	// NOTE: DOCA OFED driver containers are not available for Rocky Linux.
+	"sles": "/etc/ssl",
 }
 
 // RepoConfigPathMap indicates standard OS specific paths for repository configuration files
@@ -149,8 +150,9 @@ var RepoConfigPathMap = map[string]string{
 	"ubuntu": "/etc/apt/sources.list.d",
 	"rhcos":  "/etc/yum.repos.d",
 	"rhel":   "/etc/yum.repos.d",
-	"rocky":  "/etc/yum.repos.d",
-	"sles":   "/etc/zypp/repos.d",
+	"rocky":  "/etc/yum.repos.d", // Rocky Linux is not officially supported.
+	// NOTE: DOCA OFED driver containers are not available for Rocky Linux.
+	"sles": "/etc/zypp/repos.d",
 }
 
 // MountPathToVolumeSource maps a container mount path to a VolumeSource
