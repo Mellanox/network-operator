@@ -332,6 +332,13 @@ type DOCATelemetryServiceSpec struct {
 	// Config contains custom config for the DOCATelemetryService.
 	// If set no default config will be deployed.
 	Config *DOCATelemetryServiceConfig `json:"config"`
+	// ShareHostSharedMemory backs the shared memory used for IPC with the host's whole /dev/shm,
+	// which is what IPC clients running directly on the node require.
+	// When false the shared memory is confined to /dev/shm/telemetry on the host, which
+	// containerized IPC clients can mount while the rest of the host's shared memory stays isolated.
+	// +optional
+	// +kubebuilder:default:=false
+	ShareHostSharedMemory bool `json:"shareHostSharedMemory,omitempty"`
 }
 
 // NicFirmwareStorageSpec contains configuration for the NIC firmware storage

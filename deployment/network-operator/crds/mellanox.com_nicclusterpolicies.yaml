@@ -359,6 +359,14 @@ spec:
                     description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
+                  shareHostSharedMemory:
+                    default: false
+                    description: |-
+                      ShareHostSharedMemory backs the shared memory used for IPC with the host's whole /dev/shm,
+                      which is what IPC clients running directly on the node require.
+                      When false the shared memory is confined to /dev/shm/telemetry on the host, which
+                      containerized IPC clients can mount while the rest of the host's shared memory stays isolated.
+                    type: boolean
                   version:
                     description: Version of the image to use
                     type: string

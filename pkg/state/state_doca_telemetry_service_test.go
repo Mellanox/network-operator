@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -96,6 +97,18 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 			}
 		}
 	})
+	It("should confine the IPC shared memory to the telemetry directory by default", func() {
+		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getIPCSharedMemoryHostPath(got)).To(Equal("/dev/shm/telemetry"))
+	})
+	It("should share the host shared memory when `shareHostSharedMemory` is set", func() {
+		withHostShm := cr.DeepCopy()
+		withHostShm.Spec.DOCATelemetryService.ShareHostSharedMemory = true
+		got, err := s.GetManifestObjects(ctx, withHostShm, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getIPCSharedMemoryHostPath(got)).To(Equal("/dev/shm"))
+	})
 	It("should test OpenShift specific role and rolebinding rendered when the cluster is OpenShift", func() {
 		withConfig := cr.DeepCopy()
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalogForOpenshift(true), log.FromContext(ctx))
@@ -122,3 +135,34 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		}
 	})
 })
+
+// getIPCSharedMemoryHostPath returns the host path backing the /dev/shm mount of the DTS container,
+// failing if the mount and the volume it refers to do not line up.
+func getIPCSharedMemoryHostPath(objects []*unstructured.Unstructured) string {
+	for _, obj := range objects {
+		if obj.GetKind() != "DaemonSet" {
+			continue
+		}
+		ds := &appsv1.DaemonSet{}
+		Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
+		podSpec := ds.Spec.Template.Spec
+
+		var volumeName string
+		for _, m := range podSpec.Containers[0].VolumeMounts {
+			if m.MountPath == "/dev/shm" {
+				volumeName = m.Name
+			}
+		}
+		Expect(volumeName).ToNot(BeEmpty(), "no volume is mounted at /dev/shm")
+
+		for i := range podSpec.Volumes {
+			if podSpec.Volumes[i].Name == volumeName {
+				Expect(podSpec.Volumes[i].HostPath).ToNot(BeNil())
+				return podSpec.Volumes[i].HostPath.Path
+			}
+		}
+		Fail("the volume mounted at /dev/shm is not declared")
+	}
+	Fail("no DaemonSet was rendered")
+	return ""
+}
