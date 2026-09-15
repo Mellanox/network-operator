@@ -64,6 +64,12 @@ type stateRDMASharedDevicePluginSpec struct {
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	// KubeletRootDir is the effective kubelet root directory used for hostPath mounts.
+	// Defaults to /var/lib/kubelet when operator.kubeletRootDir / KUBELET_ROOT_DIR is unset.
+	KubeletRootDir string
+	// PassKubeletRootDirArg is true when the RDMA shared device plugin should receive
+	// --kubelet-root-dir for a non-default kubelet root override.
+	PassKubeletRootDirArg bool
 }
 type stateRDMASharedDevicePluginManifestRenderData struct {
 	CrSpec              *mellanoxv1alpha1.DevicePluginSpec
@@ -100,6 +106,10 @@ func (s *stateRDMASharedDevicePlugin) Sync(
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
+	}
+	staticInfo := infoCatalog.GetStaticConfigProvider()
+	if staticInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
 	}
 
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
@@ -160,6 +170,10 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
 
 	renderData := &stateRDMASharedDevicePluginManifestRenderData{
 		CrSpec:              cr.GetRdmaSharedDevicePluginSpec(),
@@ -170,9 +184,11 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 		NameSuffix:          nameSuffix(cr),
 		DaemonSetNameSuffix: hashedNameSuffix(cr),
 		RuntimeSpec: &stateRDMASharedDevicePluginSpec{
-			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift:        clusterInfo.IsOpenshift(),
-			ContainerResources: createContainerResourcesMap(cr.GetRdmaSharedDevicePluginSpec().ContainerResources),
+			runtimeSpec:           runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:           clusterInfo.IsOpenshift(),
+			ContainerResources:    createContainerResourcesMap(cr.GetRdmaSharedDevicePluginSpec().ContainerResources),
+			KubeletRootDir:        utils.GetKubeletRootDir(staticConfig),
+			PassKubeletRootDirArg: utils.ShouldPassKubeletRootDirArg(staticConfig),
 		},
 	}
 	// render objects

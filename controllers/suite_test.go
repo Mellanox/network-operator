@@ -221,6 +221,7 @@ var _ = BeforeSuite(func() {
 		Client:                   k8sManager.GetClient(),
 		Scheme:                   k8sManager.GetScheme(),
 		ClusterTypeProvider:      clusterTypeProvider,
+		StaticConfigProvider:     staticConfigProvider,
 		DocaDriverImagesProvider: &mockImageProvider{},
 	}).SetupWithManager(k8sManager, testSetupLog)
 	Expect(err).ToNot(HaveOccurred())
