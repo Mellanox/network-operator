@@ -326,7 +326,8 @@ func getExpectedMinimalCniPluginDS() *appsv1.DaemonSet {
 					},
 				},
 				Spec: v1.PodSpec{
-					HostNetwork: true,
+					PriorityClassName: "system-node-critical",
+					HostNetwork:       true,
 					Containers: []v1.Container{
 						{
 							Name:            "cni-plugins",

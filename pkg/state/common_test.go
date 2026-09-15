@@ -334,6 +334,29 @@ func assertCNIBinDirForDS(ds *appsv1.DaemonSet) {
 	}
 }
 
+// assertNodeCriticalPriorityForRenderedDS asserts the priority class of the named DaemonSet among
+// the rendered objects. The priority class is checked per state rather than in the common DaemonSet
+// assertions because components that are not on the critical path, nic-feature-discovery for one,
+// deliberately run without a priority class.
+func assertNodeCriticalPriorityForRenderedDS(objs []*unstructured.Unstructured, name string) {
+	found := false
+	for _, obj := range objs {
+		if obj.GetKind() != "DaemonSet" || obj.GetName() != name {
+			continue
+		}
+		ds := &appsv1.DaemonSet{}
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)
+		Expect(err).ToNot(HaveOccurred())
+		assertNodeCriticalPriority(ds)
+		found = true
+	}
+	Expect(found).To(BeTrue(), fmt.Sprintf("DaemonSet %q was not rendered", name))
+}
+
+func assertNodeCriticalPriority(ds *appsv1.DaemonSet) {
+	Expect(ds.Spec.Template.Spec.PriorityClassName).To(Equal("system-node-critical"))
+}
+
 func assertNetworkAttachmentDefinition(c client.Client, expectedNadConfig *nadConfig,
 	name, namespace, resourceName string) {
 	nad := &netattdefv1.NetworkAttachmentDefinition{}

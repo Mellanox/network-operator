@@ -79,6 +79,7 @@ var _ = Describe("NVIPAM Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			assertCommonDaemonSetFields(ds, &cr.Spec.NvIpam.ImageSpec, cr)
 			assertCNIBinDirForDS(ds)
+			assertNodeCriticalPriority(ds)
 		})
 
 		It("should create Deployment - minimal spec", func() {

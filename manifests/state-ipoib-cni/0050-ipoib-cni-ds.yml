@@ -33,6 +33,7 @@ spec:
         app: ipoib-cni
         name: ipoib-cni
     spec:
+      priorityClassName: system-node-critical
       hostNetwork: true
       {{- if .NodeAffinity }}
       affinity:

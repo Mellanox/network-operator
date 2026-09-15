@@ -34,6 +34,7 @@ spec:
         app: nv-ipam
         name: nv-ipam-node
     spec:
+      priorityClassName: system-node-critical
       serviceAccountName: nv-ipam-node
       terminationGracePeriodSeconds: 10
       tolerations:

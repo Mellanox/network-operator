@@ -45,6 +45,7 @@ var _ = Describe("Spectrum X Operator", func() {
 			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(5))
+			assertNodeCriticalPriorityForRenderedDS(objs, "spectrum-x-flowcontroller")
 			GetManifestObjectsTest(ts.context, cr, catalog, &cr.Spec.SpectrumXOperator.ImageSpec, ts.renderer)
 		})
 		It("Openshift manifests", func() {

@@ -17,6 +17,7 @@ spec:
       labels:
         control-plane: spectrum-x-flowcontroller
     spec:
+      priorityClassName: system-node-critical
       nodeSelector:
         feature.node.kubernetes.io/pci-15b3.present: "true"
       tolerations:

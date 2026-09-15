@@ -30,6 +30,7 @@ spec:
         tier: node
         app: cni-plugins
     spec:
+      priorityClassName: system-node-critical
       hostNetwork: true
       {{- if .CrSpec.ImagePullSecrets }}
       imagePullSecrets:
