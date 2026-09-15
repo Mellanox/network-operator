@@ -44,6 +44,7 @@ var _ = Describe("IPoIB CNI State tests", func() {
 			objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(objs)).To(Equal(1))
+			assertNodeCriticalPriorityForRenderedDS(objs, "kube-ipoib-cni-ds")
 			GetManifestObjectsTest(ts.context, cr, ts.catalog, cr.Spec.SecondaryNetwork.IPoIB, ts.renderer)
 		})
 		It("manifests with IPoIB CNI - image as SHA256", func() {
