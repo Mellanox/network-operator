@@ -106,7 +106,7 @@ spec:
   nicFeatureDiscovery:
     image: nic-feature-discovery
     repository: nvcr.io/nvstaging/mellanox
-    version: network-operator-v26.7.0-rc.1
+    version: 347c465
   docaTelemetryService:
     image: doca_telemetry
     repository: nvcr.io/nvidia/doca
