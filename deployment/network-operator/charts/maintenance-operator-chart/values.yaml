@@ -32,14 +32,22 @@ operator:
             matchExpressions:
               - key: "node-role.kubernetes.io/control-plane"
                 operator: Exists
-  # -- specify resource requests and limits for the operator
+  # -- Resource requests and limits for the operator. Memory usage is dominated by
+  # the Node informer cache and therefore scales with cluster node count, not
+  # requestor workload. The default limit of 256Mi is a reasonable baseline for
+  # mid-size clusters (about 130–156Mi idle working set was measured on ~141
+  # nodes); raise further for larger clusters (for example toward 1Gi when
+  # expecting substantial growth or GPU-dense nodes with large status payloads).
+  # When installed via NVIDIA Network Operator, override with
+  # `maintenance-operator-chart.operator.resources` — not the parent chart
+  # top-level `operator.resources`, which configures network-operator itself.
   resources:
     limits:
       cpu: 500m
-      memory: 128Mi
+      memory: 256Mi
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 192Mi
   # -- operator deployment number of repplicas
   replicas: 1
   serviceAccount:

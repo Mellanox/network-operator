@@ -4,6 +4,12 @@
 
 Maintenance Operator Helm Chart
 
+## Resource sizing
+
+Operator memory usage is dominated by the Kubernetes **Node informer cache**, so it scales primarily with **cluster node count**. The chart default (`256Mi` limit / `192Mi` request) is a mid-size baseline; raise further for larger clusters.
+
+When deployed as a Network Operator subchart, set `maintenance-operator-chart.operator.resources`. Do **not** use the parent top-level `operator.resources` — that sizes the network-operator controller.
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -22,7 +28,7 @@ Maintenance Operator Helm Chart
 | operator.image.tag | string | `nil` | image tag to use for the operator image |
 | operator.nodeSelector | object | `{}` | node selector for the operator |
 | operator.replicas | int | `1` | operator deployment number of repplicas |
-| operator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | specify resource requests and limits for the operator |
+| operator.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"10m","memory":"192Mi"}}` | Resource requests and limits for the operator. Memory scales with node count (Node informer cache); default 256Mi/192Mi is a mid-size baseline. Override via parent `maintenance-operator-chart.operator.resources`, not top-level `operator.resources`. |
 | operator.serviceAccount.annotations | object | `{}` | set annotations for the operator service account |
 | operator.tolerations | list | `[{"effect":"NoSchedule","key":"node-role.kubernetes.io/master","operator":"Exists"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]` | toleration for the operator |
 | operatorConfig | object | `{"logLevel":"info","maxNodeMaintenanceTimeSeconds":null,"maxParallelOperations":null,"maxUnavailable":null}` | operator configuration values. fields here correspond to fields in MaintenanceOperatorConfig CR |
