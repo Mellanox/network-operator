@@ -19,16 +19,19 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -236,5 +239,35 @@ func (r *NicNodePolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog lo
 		builder.WithPredicates(NodeLabelChangePredicate{}),
 	)
 
+	// Watch OFED driver Pods so changes to their status (e.g. becoming ready or
+	// terminating) trigger re-reconciliation of the owning NicNodePolicy, keeping
+	// mofed.wait node labels in sync.
+	bld = bld.Watches(&corev1.Pod{}, handler.EnqueueRequestsFromMapFunc(mapOFEDPodToNicNodePolicy),
+		builder.WithPredicates(predicate.NewPredicateFuncs(isOFEDDriverPod)),
+	)
+
 	return bld.Complete(r)
+}
+
+// isOFEDDriverPod returns true if the object is an OFED driver Pod.
+func isOFEDDriverPod(obj client.Object) bool {
+	_, ok := obj.GetLabels()[consts.OfedDriverLabel]
+	return ok
+}
+
+// mapOFEDPodToNicNodePolicy maps an OFED driver Pod to the reconcile.Request of the
+// NicNodePolicy that owns its DaemonSet, based on the ds-owner label.
+func mapOFEDPodToNicNodePolicy(_ context.Context, obj client.Object) []reconcile.Request {
+	dsOwner, ok := obj.GetLabels()[consts.DSOwnerLabel]
+	if !ok {
+		return nil
+	}
+	prefix := mellanoxv1alpha1.NicNodePolicyShortName + "-"
+	if !strings.HasPrefix(dsOwner, prefix) {
+		return nil
+	}
+	name := strings.TrimPrefix(dsOwner, prefix)
+	return []reconcile.Request{
+		{NamespacedName: types.NamespacedName{Name: name}},
+	}
 }
