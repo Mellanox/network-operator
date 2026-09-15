@@ -193,6 +193,60 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		It("Valid MOFED version (with doca prefix and DOCA-Host build number)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.6.0-26.10-016000-ubuntu24.04-amd64",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid MOFED version (with doca prefix, DOCA-Host build number and kernel-specific suffix)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.6.0-26.10-016000-5.15.0-151-generic-ubuntu22.04-amd64",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("InValid MOFED version (doca prefix with too short build number)", func() {
+			validator := nicClusterPolicyValidator{}
+			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: v1alpha1.NicClusterPolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.6.0-26.10-16000",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			_, err := validator.ValidateCreate(context.TODO(), nicClusterPolicy)
+			Expect(err.Error()).To(ContainSubstring("invalid OFED version"))
+		})
 		It("Valid MOFED version", func() {
 			validator := nicClusterPolicyValidator{}
 			nicClusterPolicy := &v1alpha1.NicClusterPolicy{
@@ -1106,6 +1160,23 @@ var _ = Describe("Validate", func() {
 							Image:            "mofed",
 							Repository:       "ghcr.io/mellanox",
 							Version:          "23.10-0.2.2.0",
+							ImagePullSecrets: []string{},
+						},
+					},
+				},
+			}
+			err := validateNicNodePolicy(policy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("Valid OFED version with DOCA-Host build number in NicNodePolicy", func() {
+			policy := &v1alpha1.NicNodePolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-node-policy"},
+				Spec: v1alpha1.NicNodePolicySpec{
+					OFEDDriver: &v1alpha1.OFEDDriverSpec{
+						ImageSpec: v1alpha1.ImageSpec{
+							Image:            "mofed",
+							Repository:       "ghcr.io/mellanox",
+							Version:          "doca3.6.0-26.10-016000-ubuntu24.04-amd64",
 							ImagePullSecrets: []string{},
 						},
 					},
