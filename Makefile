@@ -450,15 +450,17 @@ bundle-push: ## Push the bundle image.
 
 .PHONY: bundle-coverage
 bundle-coverage: $(OPERATOR_SDK) $(KUSTOMIZE) manifests ## Generate coverage bundle manifests and metadata, then validate generated files.
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/config/manager --outputDir ../config/manager/
-	cd hack && $(GO) run release.go --with-sha256 --templateDir ./templates/samples/ --outputDir ../config/samples/
+	cd hack && $(GO) run release.go --with-sha256 --releaseDefaults $(RELEASE_DEFAULTS) --templateDir ./templates/config/manager --outputDir ../config/manager/
+	cd hack && $(GO) run release.go --with-sha256 --releaseDefaults $(RELEASE_DEFAULTS) --templateDir ./templates/samples/ --outputDir ../config/samples/
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(TAG)
 	$(KUSTOMIZE) build config/manifests-coverage | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS) --output-dir $(BUNDLE_COVERAGE_DIR)
 	git checkout -- config/manager/kustomization.yaml
-	cp bundle.Dockerfile bundle-coverage.Dockerfile
+	# operator-sdk always emits COPY bundle/... in the root Dockerfile; rewrite for the coverage output dir.
+	sed 's|^COPY bundle/|COPY $(BUNDLE_COVERAGE_DIR)/|' bundle.Dockerfile > bundle-coverage.Dockerfile
 	git checkout -- bundle.Dockerfile
-	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) BUNDLE_DIR=$(BUNDLE_COVERAGE_DIR) TAG=$(TAG) hack/scripts/ocp-bundle-postprocess.sh
+	grep -q '^COPY $(BUNDLE_COVERAGE_DIR)/' bundle-coverage.Dockerfile
+	GO=$(GO) BUNDLE_OCP_VERSIONS=$(BUNDLE_OCP_VERSIONS) BUNDLE_DIR=$(BUNDLE_COVERAGE_DIR) TAG=$(TAG) RELEASE_DEFAULTS=$(RELEASE_DEFAULTS) hack/scripts/ocp-bundle-postprocess.sh
 	$(OPERATOR_SDK) bundle validate ./$(BUNDLE_COVERAGE_DIR)
 
 .PHONY: bundle-coverage-build

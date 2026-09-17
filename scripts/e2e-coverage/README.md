@@ -71,7 +71,7 @@ instead:
    go tool cover -func=covdata.out
    ```
 
-Or use the helper script:
+Or use the helper script. It clears prior `covmeta.*` and `covcounters.*` files in the output directory before extracting, so a reused directory cannot merge stale executions:
 
 ```bash
 chmod +x scripts/e2e-coverage/flush-openshift.sh

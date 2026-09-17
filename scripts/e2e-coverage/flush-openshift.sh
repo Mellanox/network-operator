@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+
+#  2026 NVIDIA CORPORATION & AFFILIATES
+#
+#  Licensed under the Apache License, Version 2.0 (the License);
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 # Flush Go integration coverage from a network-operator pod on OpenShift.
 #
 # The operator image is distroless, so coverage cannot be flushed via oc exec.
@@ -34,6 +49,8 @@ CID="$(oc -n "${NS}" get pod "${POD}" -o jsonpath='{.status.containerStatuses[0]
 
 VOL="/var/lib/kubelet/pods/${POD_UID}/volumes/kubernetes.io~empty-dir/go-coverage"
 mkdir -p "${OUT_DIR}"
+# Drop leftover covdata so a reused output dir cannot merge stale executions.
+rm -f "${OUT_DIR}"/covmeta.* "${OUT_DIR}"/covcounters.*
 
 echo "namespace=${NS} pod=${POD} node=${NODE}"
 echo "containerID=${CID}"
