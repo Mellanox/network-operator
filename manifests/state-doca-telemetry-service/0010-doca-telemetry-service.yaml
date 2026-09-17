@@ -17,6 +17,8 @@ spec:
     spec:
       # Required by the sysfs collector only.
       hostNetwork: true
+      # Required to expose telemetry to local clients over IPC.
+      hostIPC: true
       serviceAccount: doca-telemetry-service
       nodeSelector:
         # We need to run it after DOCA driver is started to be able successfully restart driver by a container.
@@ -59,12 +61,24 @@ spec:
         volumeMounts:
         - name: doca-telemetry-service-configmap
           mountPath: /configmap
-        env:
-        - name: PROMETHEUS_XCSET_JOIN_FIELDS
-          value: "hca"
-        - name: PROMETHEUS_XCSET_MANDATORY_TYPES
-          value: "counters"
-        command: [ "/bin/bash", "-c", "rm -rf /config/* && DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
+        - name: telemetry-service-config
+          mountPath: /config
+        - name: telemetry-service-data
+          mountPath: /data
+        # Holds the UNIX domain sockets DTS serves IPC on. Sockets are filesystem objects, so
+        # sharing the host IPC namespace is not enough for host clients to reach them.
+        - name: telemetry-service-ipc-sockets
+          mountPath: /tmp/ipc_sockets
+        # The other half of IPC: short messages go over the sockets above, payloads through shared
+        # memory. DTS always writes it to /dev/shm, only the host directory behind it varies.
+        - name: telemetry-ipc-shm
+          mountPath: /dev/shm
+        - name: telemetry-service-logs
+          mountPath: /var/log
+        # telemetry-init.sh only generates configuration into an empty /config, so the overwrite
+        # is what keeps the ConfigMap authoritative now that /config persists on the host.
+        # Clearing /config instead would discard the node's configuration on every restart.
+        command: [ "/bin/bash", "-c", "FORCE_CONFIG_OVERWRITE=1 DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
         # Required only for the sysfs collector only.
         securityContext:
           privileged: true
@@ -72,6 +86,36 @@ spec:
         - name: doca-telemetry-service-configmap
           configMap:
             name: {{ .ConfigMapName }}
+        - name: telemetry-service-config
+          hostPath:
+            path: /var/opt/doca-telemetry/config
+            type: DirectoryOrCreate
+        - name: telemetry-service-data
+          hostPath:
+            path: /var/opt/doca-telemetry/data
+            type: DirectoryOrCreate
+        # IPC clients must be pointed at this directory. It deliberately departs from the
+        # /opt/mellanox/doca/services default documented for DTS, so that node-local state stays
+        # under /var like the rest of the operator's host paths.
+        - name: telemetry-service-ipc-sockets
+          hostPath:
+            path: /var/opt/doca-telemetry/ipc_sockets
+            type: DirectoryOrCreate
+        # Clients on the node address the shared memory by the host path, so only the host side is
+        # conditional: a client in a container mounts /dev/shm/telemetry at its own /dev/shm, while
+        # one running directly on the node reads it from the host's /dev/shm.
+        - name: telemetry-ipc-shm
+          hostPath:
+            {{- if .CrSpec.ShareHostSharedMemory }}
+            path: /dev/shm
+            {{- else }}
+            path: /dev/shm/telemetry
+            {{- end }}
+            type: DirectoryOrCreate
+        - name: telemetry-service-logs
+          hostPath:
+            path: /var/log/doca/telemetry
+            type: DirectoryOrCreate
 {{ if .DeployConfigMap }}
 ---
 apiVersion: v1
