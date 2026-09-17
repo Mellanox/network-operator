@@ -60,6 +60,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --leader-lease-renew-deadline=60s
         imagePullPolicy: IfNotPresent
         image: controller:latest
         name: manager
