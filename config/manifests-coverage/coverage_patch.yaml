@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nvidia-network-operator-controller-manager
+  namespace: nvidia-network-operator
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: GOCOVERDIR
+          value: "/coverage"
+        - name: COVERAGE_CLEAR_AFTER_FLUSH
+          value: "1"
+        volumeMounts:
+        - name: go-coverage
+          mountPath: /coverage
+      volumes:
+      - name: go-coverage
+        emptyDir: {}

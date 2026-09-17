@@ -30,7 +30,11 @@ bin
 testbin
 test
 build
+bundle-coverage
 hack/manifests
 hack/tmp
+
+# Coverage bundle build artifacts
+bundle-coverage.Dockerfile
 
 Claude.md
