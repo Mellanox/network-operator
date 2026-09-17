@@ -84,6 +84,52 @@ var _ = Describe("Utils tests", func() {
 		})
 	})
 
+	Context("Testing KubeletRootDir retrieval", func() {
+		It("Should return user set directory when configured", func() {
+			userSetDir := "/var/lib/k0s/kubelet"
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: userSetDir})
+			result := GetKubeletRootDir(staticConfigProvider)
+			Expect(result).To(Equal(userSetDir))
+		})
+
+		It("Should normalize a trailing slash on user set directory", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: "/var/lib/k0s/kubelet/"})
+			result := GetKubeletRootDir(staticConfigProvider)
+			Expect(result).To(Equal("/var/lib/k0s/kubelet"))
+		})
+
+		It("Should return default directory when no user set directory is configured", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: ""})
+			result := GetKubeletRootDir(staticConfigProvider)
+			Expect(result).To(Equal(consts.DefaultKubeletRootDir))
+		})
+
+		It("Should return default directory if static config provider is nil", func() {
+			result := GetKubeletRootDir(nil)
+			Expect(result).To(Equal(consts.DefaultKubeletRootDir))
+		})
+
+		It("Should not pass kubelet root dir arg when unset", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: ""})
+			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeFalse())
+			Expect(ShouldPassKubeletRootDirArg(nil)).To(BeFalse())
+		})
+
+		It("Should not pass kubelet root dir arg for default path override", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
+				KubeletRootDir: consts.DefaultKubeletRootDir,
+			})
+			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeFalse())
+		})
+
+		It("Should pass kubelet root dir arg for non-default override", func() {
+			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
+				KubeletRootDir: "/var/lib/k0s/kubelet",
+			})
+			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeTrue())
+		})
+	})
+
 	Context("Testing GetStringHash", func() {
 		It("Should return consistent hash for same input", func() {
 			input := `{"resourceName": "rdma_shared_device_a"}`

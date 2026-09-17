@@ -111,6 +111,10 @@ spec:
             - name: CNI_NETWORK_DIR
               value: "{{ .Values.operator.cniNetworkDirectory }}"
             {{- end }}
+            {{- if .Values.operator.kubeletRootDir }}
+            - name: KUBELET_ROOT_DIR
+              value: "{{ .Values.operator.kubeletRootDir }}"
+            {{- end }}
             {{- if and .Values.operator.ofedDriver.initContainer .Values.operator.ofedDriver.initContainer.enable }}
             - name: OFED_INIT_CONTAINER_IMAGE
               {{- with .Values.operator.ofedDriver.initContainer }}

@@ -305,6 +305,12 @@ operator:
   # Note that the CNI network directory should be aligned with the CNI network
   # directory in the container runtime.
   cniNetworkDirectory: /etc/cni/net.d
+  # -- Directory of the kubelet root on the nodes. Used by the RDMA shared
+  # device plugin for --kubelet-root-dir and for device-plugins /
+  # plugins_registry hostPath mounts. When empty, the operator uses
+  # /var/lib/kubelet and omits --kubelet-root-dir. Set this when kubelet
+  # uses a non-default root (for example /var/lib/k0s/kubelet).
+  kubeletRootDir: ""
   # -- Enable the use of maintenance operator upgrade logic.
   maintenanceOperator:
     # k8s namespace to be used for generated nodeMaintenance objects

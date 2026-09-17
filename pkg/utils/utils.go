@@ -94,6 +94,31 @@ func GetCniNetworkDirectory(staticInfo staticconfig.Provider, _ clustertype.Prov
 	return consts.DefaultCniNetworkDirectory
 }
 
+// GetKubeletRootDir returns the kubelet root directory on the node.
+// An empty or unset static config value falls back to /var/lib/kubelet.
+func GetKubeletRootDir(staticInfo staticconfig.Provider) string {
+	if staticInfo != nil {
+		if userSetDirectory := staticInfo.GetStaticConfig().KubeletRootDir; userSetDirectory != "" {
+			return filepath.Clean(userSetDirectory)
+		}
+	}
+	return consts.DefaultKubeletRootDir
+}
+
+// ShouldPassKubeletRootDirArg reports whether the RDMA shared device plugin
+// should receive --kubelet-root-dir. The flag is only set for a non-empty
+// override that differs from the default kubelet root.
+func ShouldPassKubeletRootDirArg(staticInfo staticconfig.Provider) bool {
+	if staticInfo == nil {
+		return false
+	}
+	userSetDirectory := staticInfo.GetStaticConfig().KubeletRootDir
+	if userSetDirectory == "" {
+		return false
+	}
+	return filepath.Clean(userSetDirectory) != consts.DefaultKubeletRootDir
+}
+
 // GetStringHash returns a base64-encoded SHA256 hash of the input string.
 func GetStringHash(data string) string {
 	hash := sha256.Sum256([]byte(data))

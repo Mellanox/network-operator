@@ -46,6 +46,8 @@ const (
 	DefaultCniNetworkDirectory = "/etc/cni/net.d"
 	// OcpCniBinDirectory is the location of the CNI binaries on an OpenShift host.
 	OcpCniBinDirectory = "/var/lib/cni/bin"
+	// DefaultKubeletRootDir is the default kubelet root directory on a host.
+	DefaultKubeletRootDir = "/var/lib/kubelet"
 	// OfedDriverSkipDrainLabelSelector contains labelselector which is used to indicate
 	// that network-operator pod should be skipped during the drain operation which
 	// is executed by the upgrade controller.

@@ -109,9 +109,11 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 
 	cniBinDir := os.Getenv("CNI_BIN_DIR")
 	cniNetworkDir := os.Getenv("CNI_NETWORK_DIR")
+	kubeletRootDir := os.Getenv("KUBELET_ROOT_DIR")
 	staticInfoProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
 		CniBinDirectory:     cniBinDir,
 		CniNetworkDirectory: cniNetworkDir,
+		KubeletRootDir:      kubeletRootDir,
 	})
 
 	docaImagesProvider := docadriverimages.NewProvider(ctx, c)
@@ -131,6 +133,7 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 		Client:                   mgr.GetClient(),
 		Scheme:                   mgr.GetScheme(),
 		ClusterTypeProvider:      clusterTypeProvider,
+		StaticConfigProvider:     staticInfoProvider,
 		DocaDriverImagesProvider: docaImagesProvider,
 	}).SetupWithManager(mgr, ctrLog.WithName("NicNodePolicy")); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NicNodePolicy")

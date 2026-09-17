@@ -25,6 +25,7 @@ package staticconfig
 type StaticConfig struct {
 	CniBinDirectory     string
 	CniNetworkDirectory string
+	KubeletRootDir      string
 }
 
 // Provider provides static cluster attributes
