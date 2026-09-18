@@ -665,9 +665,11 @@ jobs:
           yq -i         '.Mofed.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
           yq -i '.MofedStigFips.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
 
-          # Update chart versions
+          # Update chart and SOS-report collector versions
           yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
           yq -i '.appVersion = "${{ env.APP_VERSION }}"' deployment/network-operator/Chart.yaml
+          sed -i -e "s/^SCRIPT_VERSION=.*/SCRIPT_VERSION=\"${APP_VERSION}\"/" \
+            scripts/sosreport/kubectl-netop_sosreport
           make release-build
           make generate-sosreport-maps
 
