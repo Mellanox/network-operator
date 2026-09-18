@@ -9,5 +9,8 @@ spec:
   "name":"{{.NetworkName}}",
   "type":"ipoib",
   "master": "{{.Master}}",
+{{- if .Mtu -}}
+  "mtu" : {{.Mtu}},
+{{- end -}}
   {{.Ipam}}
 }'
