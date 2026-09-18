@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -108,6 +109,35 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		got, err := s.GetManifestObjects(ctx, withHostShm, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(getIPCSharedMemoryHostPath(got)).To(Equal("/dev/shm"))
+	})
+	It("should mount the host fwctl device directory", func() {
+		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+
+		foundDaemonSet := false
+		for _, obj := range got {
+			if obj.GetKind() != "DaemonSet" {
+				continue
+			}
+			foundDaemonSet = true
+			ds := &appsv1.DaemonSet{}
+			Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
+
+			container := ds.Spec.Template.Spec.Containers[0]
+			Expect(container.VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "fwctl-devices"),
+				HaveField("MountPath", "/dev/fwctl"),
+				HaveField("ReadOnly", false),
+			)))
+
+			pathType := corev1.HostPathDirectoryOrCreate
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "fwctl-devices"),
+				HaveField("HostPath.Path", "/dev/fwctl"),
+				HaveField("HostPath.Type", &pathType),
+			)))
+		}
+		Expect(foundDaemonSet).To(BeTrue())
 	})
 	It("should test OpenShift specific role and rolebinding rendered when the cluster is OpenShift", func() {
 		withConfig := cr.DeepCopy()
