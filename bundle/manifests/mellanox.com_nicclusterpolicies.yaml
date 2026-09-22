@@ -710,6 +710,17 @@ spec:
                       NIC firmware storage. If not provided, the NIC firmware storage
                       will not be configured.
                     properties:
+                      accessMode:
+                        default: ReadWriteMany
+                        description: |-
+                          AccessMode is the access mode of the PVC to create. Only applies if nicFirmwareStorage.create == true.
+                          ReadWriteMany is required on multi-node clusters, where the firmware storage is mounted by the
+                          configuration daemon on every node. ReadWriteOnce is only valid on single-node clusters (e.g. Single
+                          Node OpenShift with storage that does not support ReadWriteMany). Default value: ReadWriteMany
+                        enum:
+                        - ReadWriteMany
+                        - ReadWriteOnce
+                        type: string
                       availableStorageSize:
                         default: 1Gi
                         description: 'AvailableStorageSize is storage size for the
