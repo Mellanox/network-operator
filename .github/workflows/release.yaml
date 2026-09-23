@@ -44,15 +44,6 @@ jobs:
           # tag for components
           TAG="network-operator-${APP_VERSION}"
           echo "component_tag=${TAG}" >> $GITHUB_OUTPUT
-
-          # whether to sync Dependabot config to the release branch: rc/ga only,
-          # never beta (betas are cut from master, the LTS branch is only real at rc)
-          if $IS_BETA; then
-            SYNC_DEPENDABOT=false
-          else
-            SYNC_DEPENDABOT=true
-          fi
-          echo "sync_dependabot=${SYNC_DEPENDABOT}" >> $GITHUB_OUTPUT
       - id: set-chart-version
         run: |
           CHART_VERSION=$(echo ${APP_VERSION#v})
@@ -98,23 +89,21 @@ jobs:
       is_beta: ${{ steps.set-version.outputs.is_beta }}
       is_rc: ${{ steps.set-version.outputs.is_rc }}
       release_branch: ${{ steps.set-version.outputs.release_branch }}
-      sync_dependabot: ${{ steps.set-version.outputs.sync_dependabot }}
 
   prepare-reusable-workflows-release:
     needs: determine-versions
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-      APP_VERSION: ${{ needs.determine-versions.outputs.app_version }}
       RELEASE_BRANCH: ${{ needs.determine-versions.outputs.release_branch }}
       REUSABLE_WORKFLOWS_REPO: cloud-orchestration-reusable-workflows
     steps:
       - name: Skip reusable workflows release prep for beta releases
-        if: ${{ needs.determine-versions.outputs.sync_dependabot != 'true' }}
+        if: ${{ needs.determine-versions.outputs.is_beta == 'true' }}
         run: echo "Reusable workflows release branch pinning runs only for RC and GA releases"
 
       - name: Ensure reusable workflows release branch exists
-        if: ${{ needs.determine-versions.outputs.sync_dependabot == 'true' }}
+        if: ${{ needs.determine-versions.outputs.is_beta != 'true' }}
         run: |
           REPO="${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}"
           if gh api "repos/${REPO}/branches/${RELEASE_BRANCH}" --silent >/dev/null 2>&1; then
@@ -128,47 +117,6 @@ jobs:
             -f ref="refs/heads/${RELEASE_BRANCH}" \
             -f sha="${DEFAULT_SHA}"
 
-      - name: Sync Dependabot config for reusable workflows release branch
-        if: ${{ needs.determine-versions.outputs.sync_dependabot == 'true' }}
-        continue-on-error: true
-        run: |
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}.git"
-          cd "$REUSABLE_WORKFLOWS_REPO"
-          git config user.name  nvidia-ci-cd
-          git config user.email svc-cloud-orch-gh@nvidia.com
-          DEFAULT_BRANCH=$(gh repo view "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" --json defaultBranchRef -q .defaultBranchRef.name)
-          git checkout "$DEFAULT_BRANCH"
-          git pull origin "$DEFAULT_BRANCH"
-
-          CONFIG=.github/dependabot.yml
-          if yq -e '.updates[] | select(.["target-branch"] == strenv(RELEASE_BRANCH))' "$CONFIG" >/dev/null 2>&1; then
-            echo "$RELEASE_BRANCH already present in $CONFIG; nothing to do"
-            exit 0
-          fi
-          REUSABLE_DEPENDABOT_BRANCH="dependabot-sync-$RELEASE_BRANCH"
-          if [ -n "$(gh pr list --repo "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" --head "$REUSABLE_DEPENDABOT_BRANCH" --state open --json number -q '.[].number')" ]; then
-            echo "dependabot-sync PR for $RELEASE_BRANCH already open; nothing to do"
-            exit 0
-          fi
-
-          yq -i '.updates += [
-            .updates[] | select(has("target-branch") | not)
-            | . + {
-                "target-branch": strenv(RELEASE_BRANCH),
-                "ignore": ((.ignore // []) + [{"dependency-name": "*", "update-types": ["version-update:semver-major", "version-update:semver-minor"]}])
-              }
-          ]' "$CONFIG"
-
-          git checkout -b "$REUSABLE_DEPENDABOT_BRANCH"
-          git commit -sam "ci: add Dependabot config for $RELEASE_BRANCH"
-          git push --force-with-lease -u origin "$REUSABLE_DEPENDABOT_BRANCH"
-          gh pr create \
-            --repo "${{ github.repository_owner }}/${REUSABLE_WORKFLOWS_REPO}" \
-            --base "$DEFAULT_BRANCH" \
-            --head "$REUSABLE_DEPENDABOT_BRANCH" \
-            --title "ci: Dependabot config for $RELEASE_BRANCH" \
-            --body "Adds Docker image version updates for the \`$RELEASE_BRANCH\` reusable-workflows release branch (patch-only). Auto-opened by the network-operator [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) when the GA release branch was cut."
-
   get-managed-components:
     needs: determine-versions
     runs-on: ubuntu-24.04
@@ -176,10 +124,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-versions.outputs.base_branch }}
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          path: workflow-source
       - name: Validate downstreamFork consistency across entries sharing a sourceRepository
         run: |
           inconsistent=$(yq -o=json '.' hack/release.yaml | jq -c 'to_entries
@@ -206,26 +150,8 @@ jobs:
               | add // {}')
           echo "downstream forks map: $forks"
           echo "downstream_forks=$forks" >> $GITHUB_OUTPUT
-      - id: set-dependabot-repos
-        run: |
-          # Repos whose dependabot.yaml we own (dependabotSyncManaged: true).
-          # This ownership metadata is workflow policy, so read it from the
-          # workflow commit rather than the release branch. Older release
-          # branches may not carry the marker fields.
-          release_metadata=workflow-source/hack/release.yaml
-          # Components keyed by sourceRepository; deduped to one entry per repo.
-          sync=$(yq -o=json '.' "$release_metadata" | jq -c 'to_entries | map(select(.value.dependabotSyncManaged == true and .value.sourceRepository != null) | .value.sourceRepository) | unique')
-          # Mofed has no sourceRepository; its image is built from doca-driver-build
-          # (added to the matrix via include), so map its flag to that repo.
-          if [ "$(yq '.Mofed.dependabotSyncManaged // false' "$release_metadata")" = "true" ] || \
-             [ "$(yq '.MofedStigFips.dependabotSyncManaged // false' "$release_metadata")" = "true" ]; then
-            sync=$(echo "$sync" | jq -c '. + ["doca-driver-build"] | unique')
-          fi
-          echo "Dependabot-managed repositories: $sync"
-          echo "dependabot_managed_repos=$(echo $sync)" >> $GITHUB_OUTPUT
     outputs:
       managed_repos: ${{ steps.set-components.outputs.managed_repos }}
-      dependabot_managed_repos: ${{ steps.set-dependabot-repos.outputs.dependabot_managed_repos }}
       downstream_forks: ${{ steps.set-components.outputs.downstream_forks }}
 
   validate-mofed-release-manifest:
@@ -374,7 +300,7 @@ jobs:
           fi
       - name: Pin reusable workflows for selected RC/GA components
         if: >-
-          needs.determine-versions.outputs.sync_dependabot == 'true' &&
+          needs.determine-versions.outputs.is_beta != 'true' &&
           contains(fromJson('["nic-configuration-operator","sriov-network-operator","spectrum-x-operator"]'), matrix.repo)
         run: |
           cd ${{ matrix.repo }}
@@ -405,74 +331,15 @@ jobs:
           git commit -m "ci: pin reusable workflows to $RELEASE_BRANCH"
           git push origin "HEAD:$RELEASE_BRANCH"
 
-      # Preserve the exact commit selected for tagging. This happens after the
-      # optional GA reusable-workflow pinning commit and before Dependabot sync,
-      # which may switch to the repository's default branch.
+      # Preserve the exact commit selected for tagging after the optional
+      # reusable-workflow pinning commit.
       - name: Store release tag commit
         run: |
           cd ${{ matrix.repo }}
           echo "TAG_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      # Add a target-branch Dependabot entry for the new release branch on the
-      # component's default branch, so LTS branches receive version (security
-      # patch) updates. Runs only for owned configs (dependabot_managed_repos)
-      # on rc/ga (sync_dependabot). Non-blocking: a failure here must never hold
-      # up the release tag. Must run BEFORE the tag is cut.
-      - name: Sync Dependabot config for the new release branch
-        if: >-
-          needs.determine-versions.outputs.sync_dependabot == 'true' &&
-          contains(fromJson(needs.get-managed-components.outputs.dependabot_managed_repos), matrix.repo)
-        continue-on-error: true
-        run: |
-          cd ${{ matrix.repo }}
-          DEFAULT_BRANCH=$(gh repo view ${{ github.repository_owner }}/${{ matrix.repo }} --json defaultBranchRef -q .defaultBranchRef.name)
-          git checkout "$DEFAULT_BRANCH"
-          git pull origin "$DEFAULT_BRANCH"
-
-          CONFIG=.github/dependabot.yaml
-          [ -f "$CONFIG" ] || CONFIG=.github/dependabot.yml
-          if [ ! -f "$CONFIG" ]; then
-            echo "::warning::${{ matrix.repo }} is dependabotSyncManaged but has no $CONFIG; $RELEASE_BRANCH left uncovered"
-            exit 0
-          fi
-
-          # (1) already merged into the config on the default branch
-          if yq -e '.updates[] | select(.["target-branch"] == strenv(RELEASE_BRANCH))' "$CONFIG" >/dev/null 2>&1; then
-            echo "$RELEASE_BRANCH already present in $CONFIG; nothing to do"
-            exit 0
-          fi
-          # (2) a sync PR is already open from a prior rc.N run
-          if [ -n "$(gh pr list --repo ${{ github.repository_owner }}/${{ matrix.repo }} --head dependabot-sync-$RELEASE_BRANCH --state open --json number -q '.[].number')" ]; then
-            echo "dependabot-sync PR for $RELEASE_BRANCH already open; nothing to do"
-            exit 0
-          fi
-
-          # Clone every default-branch update entry and retarget it to the
-          # release branch. Default-branch ignore rules are not copied so
-          # release branches receive all Dependabot version updates.
-          yq -i '.updates += [
-            .updates[] | select(has("target-branch") | not)
-            | del(.ignore)
-            | . + {"target-branch": strenv(RELEASE_BRANCH)}
-          ]' "$CONFIG"
-
-          git checkout -b dependabot-sync-$RELEASE_BRANCH
-          git commit -sam "ci: add Dependabot config for $RELEASE_BRANCH"
-          # --force-with-lease: re-cut the CI-owned sync branch if a prior PR was
-          # closed without merging and left the remote branch behind. The lease
-          # (checkout uses fetch-depth: 0, so the remote-tracking ref exists)
-          # still refuses to clobber genuine concurrent pushes.
-          git push --force-with-lease -u origin dependabot-sync-$RELEASE_BRANCH
-          gh pr create \
-            --repo ${{ github.repository_owner }}/${{ matrix.repo }} \
-            --base "$DEFAULT_BRANCH" \
-            --head dependabot-sync-$RELEASE_BRANCH \
-            --title "ci: Dependabot config for $RELEASE_BRANCH" \
-            --body "Adds version updates for the \`$RELEASE_BRANCH\` release branch (patch-only). Auto-opened by the network-operator [*${{ github.job }}* job](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) when the branch was cut."
-
-      # Cut the tag LAST, after the Dependabot PR has been raised. TAG_COMMIT is
-      # the release branch commit, except for NVIDIA-owned beta releases where it
-      # intentionally points at the default branch.
+      # TAG_COMMIT is the release branch commit, except for NVIDIA-owned beta
+      # releases where it intentionally points at the default branch.
       - name: Create release tag
         run: |
           cd ${{ matrix.repo }}
