@@ -85,6 +85,10 @@ spec:
           env:
             - name: LOG_LEVEL
               value: {{ .CrSpec.LogLevel }}
+            {{- if .CrSpec.CertConfig }}
+            - name: SSL_CERT_FILE
+              value: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+            {{- end }}
             {{- if .CrSpec.Env }}
             {{- range .CrSpec.Env }}
               {{ . | yaml | nindentPrefix 14 "- " }}
@@ -123,15 +127,32 @@ spec:
               cpu: 100m
               memory: 256Mi
           {{- end }}
-          {{- if .CrSpec.NicFirmwareStorage }}
+          {{- if or .CrSpec.NicFirmwareStorage .CrSpec.CertConfig }}
           volumeMounts:
+            {{- if .CrSpec.NicFirmwareStorage }}
             - name: firmware-cache
               mountPath: /nic-firmware
               readOnly: false
+            {{- end }}
+            {{- if .CrSpec.CertConfig }}
+            - name: trusted-ca
+              mountPath: /etc/pki/ca-trust/extracted/pem
+              readOnly: true
+            {{- end }}
           {{- end }}
-      {{- if .CrSpec.NicFirmwareStorage }}
+      {{- if or .CrSpec.NicFirmwareStorage .CrSpec.CertConfig }}
       volumes:
+        {{- if .CrSpec.NicFirmwareStorage }}
         - name: firmware-cache
           persistentVolumeClaim:
             claimName: {{ .CrSpec.NicFirmwareStorage.PVCName }}
+        {{- end }}
+        {{- if .CrSpec.CertConfig }}
+        - name: trusted-ca
+          configMap:
+            name: {{ .CrSpec.CertConfig.Name }}
+            items:
+              - key: ca-bundle.crt
+                path: tls-ca-bundle.pem
+        {{- end }}
       {{- end }}

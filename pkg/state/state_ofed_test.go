@@ -203,7 +203,7 @@ var _ = Describe("MOFED state test", func() {
 					NoProxy:    testClusterWideNoProxy,
 				},
 			}
-			stateOfed.setEnvFromClusterWideProxy(cr, clusterProxy)
+			cr.Spec.OFEDDriver.Env = stateOfed.setEnvFromClusterWideProxy(cr.Spec.OFEDDriver.Env, clusterProxy)
 			crEnv := cr.Spec.OFEDDriver.Env
 			Expect(crEnv).To(HaveLen(6))
 			Expect(crEnv).To(ContainElements(
@@ -230,7 +230,7 @@ var _ = Describe("MOFED state test", func() {
 					NoProxy:    testClusterWideNoProxy,
 				},
 			}
-			stateOfed.setEnvFromClusterWideProxy(cr, clusterProxy)
+			cr.Spec.OFEDDriver.Env = stateOfed.setEnvFromClusterWideProxy(cr.Spec.OFEDDriver.Env, clusterProxy)
 			crEnv := cr.Spec.OFEDDriver.Env
 			Expect(crEnv).To(HaveLen(4))
 			Expect(crEnv).To(ContainElements(

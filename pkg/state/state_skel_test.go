@@ -18,16 +18,22 @@ package state
 
 import (
 	"context"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	osconfigv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
 )
 
@@ -77,6 +83,153 @@ var _ = Describe("stateSkel", func() {
 			wait, err := s.handleStaleStateObjects(ctx, []*unstructured.Unstructured{})
 			Expect(err).To(BeNil())
 			Expect(wait).To(BeTrue())
+		})
+	})
+
+	Context("OpenShift cluster-wide proxy", func() {
+		var clusterProxy *osconfigv1.Proxy
+
+		BeforeEach(func() {
+			clusterProxy = &osconfigv1.Proxy{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Spec: osconfigv1.ProxySpec{
+					HTTPProxy:  testClusterWideHTTPProxy,
+					HTTPSProxy: testClusterWideHTTPSProxy,
+					NoProxy:    testClusterWideNoProxy,
+				},
+			}
+		})
+
+		DescribeTable("setEnvFromClusterWideProxy applies to OFED and NIC Configuration Operator env",
+			func(getEnv func(*mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar,
+				setEnv func(*mellanoxv1alpha1.NicClusterPolicy, []corev1.EnvVar)) {
+				cr := &mellanoxv1alpha1.NicClusterPolicy{
+					Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+						OFEDDriver:               &mellanoxv1alpha1.OFEDDriverSpec{},
+						NicConfigurationOperator: &mellanoxv1alpha1.NicConfigurationOperatorSpec{},
+					},
+				}
+				setEnv(cr, s.setEnvFromClusterWideProxy(getEnv(cr), clusterProxy))
+				Expect(getEnv(cr)).To(HaveLen(6))
+				for _, expected := range expectedClusterWideProxyEnv() {
+					Expect(getEnv(cr)).To(ContainElement(expected))
+				}
+			},
+			Entry("OFED driver env",
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar {
+					return cr.Spec.OFEDDriver.Env
+				},
+				func(cr *mellanoxv1alpha1.NicClusterPolicy, env []corev1.EnvVar) {
+					cr.Spec.OFEDDriver.Env = env
+				},
+			),
+			Entry("NIC Configuration Operator env",
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar {
+					return cr.Spec.NicConfigurationOperator.Env
+				},
+				func(cr *mellanoxv1alpha1.NicClusterPolicy, env []corev1.EnvVar) {
+					cr.Spec.NicConfigurationOperator.Env = env
+				},
+			),
+		)
+
+		It("setEnvFromClusterWideProxy keeps existing env and fills only missing proxy vars", func() {
+			env := []corev1.EnvVar{
+				{Name: envVarNameNoProxy, Value: testNicPolicyNoProxy},
+				{Name: strings.ToLower(envVarNameHTTPProxy), Value: testNicPolicyHTTPProxy},
+			}
+			env = s.setEnvFromClusterWideProxy(env, clusterProxy)
+			Expect(env).To(ContainElements(
+				corev1.EnvVar{Name: envVarNameNoProxy, Value: testNicPolicyNoProxy},
+				corev1.EnvVar{Name: strings.ToLower(envVarNameHTTPProxy), Value: testNicPolicyHTTPProxy},
+				corev1.EnvVar{Name: envVarNameHTTPSProxy, Value: testClusterWideHTTPSProxy},
+				corev1.EnvVar{Name: strings.ToLower(envVarNameHTTPSProxy), Value: testClusterWideHTTPSProxy},
+			))
+			Expect(env).NotTo(ContainElement(corev1.EnvVar{
+				Name: envVarNameHTTPProxy, Value: testClusterWideHTTPProxy,
+			}))
+		})
+
+		It("readOpenshiftProxyConfig returns the cluster Proxy object", func() {
+			s.client = fake.NewClientBuilder().WithScheme(openshiftProxyScheme()).WithObjects(clusterProxy).Build()
+			got, err := s.readOpenshiftProxyConfig(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).NotTo(BeNil())
+			Expect(got.Spec.HTTPProxy).To(Equal(testClusterWideHTTPProxy))
+			Expect(got.Spec.HTTPSProxy).To(Equal(testClusterWideHTTPSProxy))
+			Expect(got.Spec.NoProxy).To(Equal(testClusterWideNoProxy))
+		})
+
+		It("readOpenshiftProxyConfig returns nil when the Proxy object is missing", func() {
+			s.client = fake.NewClientBuilder().WithScheme(openshiftProxyScheme()).Build()
+			got, err := s.readOpenshiftProxyConfig(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(BeNil())
+		})
+
+		It("readOpenshiftProxyConfig returns nil when the Proxy API is not registered", func() {
+			s.client = noKindMatchGetClient{}
+			got, err := s.readOpenshiftProxyConfig(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(BeNil())
+		})
+
+		DescribeTable("handleOpenshiftClusterWideProxyConfig injects env for OFED and NIC Configuration Operator",
+			func(getEnv func(*mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar,
+				setEnv func(*mellanoxv1alpha1.NicClusterPolicy, []corev1.EnvVar)) {
+				s.client = fake.NewClientBuilder().WithScheme(openshiftProxyScheme()).WithObjects(clusterProxy).Build()
+				cr := &mellanoxv1alpha1.NicClusterPolicy{
+					Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+						OFEDDriver:               &mellanoxv1alpha1.OFEDDriverSpec{},
+						NicConfigurationOperator: &mellanoxv1alpha1.NicConfigurationOperatorSpec{},
+					},
+				}
+				env, _, err := s.handleOpenshiftClusterWideProxyConfig(ctx, cr, getEnv(cr), nil)
+				Expect(err).NotTo(HaveOccurred())
+				setEnv(cr, env)
+				for _, expected := range expectedClusterWideProxyEnv() {
+					Expect(getEnv(cr)).To(ContainElement(expected))
+				}
+			},
+			Entry("OFED driver env",
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar {
+					return cr.Spec.OFEDDriver.Env
+				},
+				func(cr *mellanoxv1alpha1.NicClusterPolicy, env []corev1.EnvVar) {
+					cr.Spec.OFEDDriver.Env = env
+				},
+			),
+			Entry("NIC Configuration Operator env",
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) []corev1.EnvVar {
+					return cr.Spec.NicConfigurationOperator.Env
+				},
+				func(cr *mellanoxv1alpha1.NicClusterPolicy, env []corev1.EnvVar) {
+					cr.Spec.NicConfigurationOperator.Env = env
+				},
+			),
+		)
+
+		It("handleOpenshiftClusterWideProxyConfig leaves env unchanged when Proxy is absent", func() {
+			s.client = fake.NewClientBuilder().WithScheme(openshiftProxyScheme()).Build()
+			existing := []corev1.EnvVar{{Name: "KEEP", Value: "me"}}
+			env, certConfig, err := s.handleOpenshiftClusterWideProxyConfig(ctx, nil, existing, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(env).To(Equal(existing))
+			Expect(certConfig).To(BeNil())
+		})
+
+		It("handleOpenshiftTrustedCA keeps admin certConfig", func() {
+			existing := &mellanoxv1alpha1.ConfigMapNameReference{Name: "admin-ca"}
+			got, err := s.handleOpenshiftTrustedCA(ctx, nil, clusterProxy, existing)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(existing))
+		})
+
+		It("handleOpenshiftTrustedCA skips when cluster TrustedCA is unset", func() {
+			clusterProxy.Spec.TrustedCA.Name = ""
+			got, err := s.handleOpenshiftTrustedCA(ctx, nil, clusterProxy, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(BeNil())
 		})
 	})
 })
@@ -177,6 +330,33 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 		})
 	})
 })
+
+func expectedClusterWideProxyEnv() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{Name: envVarNameNoProxy, Value: testClusterWideNoProxy},
+		{Name: envVarNameHTTPProxy, Value: testClusterWideHTTPProxy},
+		{Name: envVarNameHTTPSProxy, Value: testClusterWideHTTPSProxy},
+		{Name: strings.ToLower(envVarNameNoProxy), Value: testClusterWideNoProxy},
+		{Name: strings.ToLower(envVarNameHTTPProxy), Value: testClusterWideHTTPProxy},
+		{Name: strings.ToLower(envVarNameHTTPSProxy), Value: testClusterWideHTTPSProxy},
+	}
+}
+
+func openshiftProxyScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	Expect(osconfigv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	return scheme
+}
+
+type noKindMatchGetClient struct {
+	client.Client
+}
+
+func (c noKindMatchGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+	return &meta.NoKindMatchError{
+		GroupKind: schema.GroupKind{Group: "config.openshift.io", Kind: "Proxy"},
+	}
+}
 
 func createTestDaemonSet(name string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
