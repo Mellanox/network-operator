@@ -58,6 +58,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 
 			err := k8sClient.Create(context.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, &cr)
 
 			ncp := &mellanoxv1alpha1.NicClusterPolicy{}
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
@@ -92,13 +93,11 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			}, timeout*3, interval).Should(BeTrue())
 
 			By("Update CR to remove nv-ipam")
-			ncp = &mellanoxv1alpha1.NicClusterPolicy{}
-			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
-			Expect(err).NotTo(HaveOccurred())
-
-			ncp.Spec.NvIpam = nil
-			err = k8sClient.Update(context.TODO(), ncp)
-			Expect(err).NotTo(HaveOccurred())
+			// Patch rather than Update: the reconciler writes the status of this same
+			// object while the spec runs, so a read-modify-write races it for the
+			// resourceVersion and intermittently fails the Update with a conflict.
+			patch := []byte(`{"spec": {"nvIpam": null}}`)
+			Expect(k8sClient.Patch(context.TODO(), &cr, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
 
 			By("Check DS is deleted")
 			Eventually(func() bool {
@@ -113,10 +112,6 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: "nv-ipam-node"}, sa)
 				return apierrors.IsNotFound(err)
 			}, timeout*3, interval).Should(BeTrue())
-
-			By("Delete NicClusterPolicy")
-			err = k8sClient.Delete(context.TODO(), &cr)
-			Expect(err).NotTo(HaveOccurred())
 		})
 		It("Unsupported name", func() {
 			cr := mellanoxv1alpha1.NicClusterPolicy{
@@ -127,15 +122,13 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			}
 			err := k8sClient.Create(context.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, &cr)
 			Eventually(func() string {
 				found := &mellanoxv1alpha1.NicClusterPolicy{}
 				err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
 				Expect(err).NotTo(HaveOccurred())
 				return string(found.Status.State)
 			}, timeout*3, interval).Should(BeEquivalentTo(mellanoxv1alpha1.StateIgnore))
-
-			err = k8sClient.Delete(context.TODO(), &cr)
-			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 	Context("When MOFED precompiled tag does not exists", func() {
@@ -155,6 +148,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			}
 			err := k8sClient.Create(context.TODO(), node)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, node)
 			By("Create NicClusterPolicy with MOFED ForcePrecompiled")
 			cr := mellanoxv1alpha1.NicClusterPolicy{
 				ObjectMeta: metav1.ObjectMeta{
@@ -187,6 +181,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 
 			err = k8sClient.Create(context.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, &cr)
 
 			ncp := &mellanoxv1alpha1.NicClusterPolicy{}
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
@@ -217,14 +212,6 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				Expect(err).NotTo(HaveOccurred())
 				return getAppliedStateMessage(found.Status.AppliedStates, "state-OFED")
 			}, timeout*10, interval).Should(BeEquivalentTo(msg))
-
-			By("Delete NicClusterPolicy")
-			err = k8sClient.Delete(context.TODO(), &cr)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Delete Node")
-			err = k8sClient.Delete(context.TODO(), node)
-			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 	Context("When no NicClusterPolicy exists", func() {
@@ -240,7 +227,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(context.TODO(), node)).To(Succeed())
-			defer func() { _ = k8sClient.Delete(context.TODO(), node) }()
+			DeferCleanup(deleteIgnoreNotFound, node)
 
 			By("Verifying mofed.wait=false is set without any NicClusterPolicy CR")
 			Eventually(func() string {
@@ -266,6 +253,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 			}
 			err := k8sClient.Create(context.TODO(), node)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, node)
 			By("Create NicClusterPolicy")
 			cr := mellanoxv1alpha1.NicClusterPolicy{
 				ObjectMeta: metav1.ObjectMeta{
@@ -300,6 +288,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 
 			err = k8sClient.Create(context.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(deleteIgnoreNotFound, &cr)
 
 			ncp := &mellanoxv1alpha1.NicClusterPolicy{}
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
@@ -356,10 +345,6 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				}
 				return n.ObjectMeta.Labels[nodeinfo.NodeLabelWaitNicConfig] == "false"
 			}, timeout*3, interval).Should(BeTrue())
-
-			By("Delete Node")
-			err = k8sClient.Delete(context.TODO(), node)
-			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
@@ -388,6 +373,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			DeferCleanup(deleteIgnoreNotFound, cr)
 
 			By("Check DaemonSet is correctly created")
 			Eventually(func() bool {
@@ -453,9 +439,6 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceName, Name: "doca-telemetry-service"}, cm)
 				return apierrors.IsNotFound(err)
 			}, timeout*3, interval).Should(BeTrue())
-
-			By("Delete NICClusterPolicy")
-			Expect(k8sClient.Delete(ctx, cr)).To(Succeed())
 		})
 	})
 })
@@ -463,6 +446,16 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 const (
 	stateOFEDName = "state-OFED" // Assuming this is the value for the state label for OFED
 )
+
+// deleteIgnoreNotFound removes an object created by a spec, tolerating an object
+// that the spec already deleted itself. Register it with DeferCleanup right after
+// the object is created: NicClusterPolicy and the test Nodes are cluster scoped and
+// every spec reuses the same names, so an object leaked by a spec that failed
+// midway makes every later spec fail on Create with AlreadyExists.
+func deleteIgnoreNotFound(obj client.Object) {
+	GinkgoHelper()
+	Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), obj))).To(Succeed())
+}
 
 // Helper function to create a new Node for testing
 func newTestNode(name, kernelVersion, osName, osVer, arch string, taints []corev1.Taint) *corev1.Node {
@@ -539,11 +532,11 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			nodeName := fmt.Sprintf("%s%s", testNodeNamePrefix, "test1")
 			node := newTestNode(nodeName, testKernelVersion, testOSName, testOSVer, testArch, nil) // No taints initially
 			Expect(k8sClient.Create(ctx, node)).Should(Succeed())
-			defer func() { Expect(k8sClient.Delete(ctx, node)).Should(Succeed()) }()
+			DeferCleanup(deleteIgnoreNotFound, node)
 
 			ncp := newOfedNicClusterPolicy(nicClusterPolicyName, defaultNodeTolerations)
 			Expect(k8sClient.Create(ctx, ncp)).Should(Succeed())
-			defer func() { Expect(k8sClient.Delete(ctx, ncp)).Should(Succeed()) }()
+			DeferCleanup(deleteIgnoreNotFound, ncp)
 
 			By("Verifying OFED DaemonSet is created for the untainted node")
 			Eventually(func(g Gomega) {
@@ -556,10 +549,13 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			By("Adding a taint to the Node")
 			updatedNode := &corev1.Node{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nodeName}, updatedNode)).Should(Succeed())
+			// Patch rather than Update: the reconciler writes the wait labels of this
+			// same Node, so a read-modify-write races it for the resourceVersion.
+			nodePatch := client.MergeFrom(updatedNode.DeepCopy())
 			updatedNode.Spec.Taints = []corev1.Taint{
 				{Key: customTaintKey, Value: customTaintValue, Effect: customTaintEffect},
 			}
-			Expect(k8sClient.Update(ctx, updatedNode)).Should(Succeed())
+			Expect(k8sClient.Patch(ctx, updatedNode, nodePatch)).Should(Succeed())
 
 			By("Verifying OFED DaemonSet is deleted as NCP does not tolerate the new taint")
 			Eventually(func(g Gomega) {
@@ -579,11 +575,11 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			}
 			node := newTestNode(nodeName, testKernelVersion, testOSName, testOSVer, testArch, nodeTaints)
 			Expect(k8sClient.Create(ctx, node)).Should(Succeed())
-			defer func() { Expect(k8sClient.Delete(ctx, node)).Should(Succeed()) }()
+			DeferCleanup(deleteIgnoreNotFound, node)
 
 			ncp := newOfedNicClusterPolicy(nicClusterPolicyName, defaultNodeTolerations) // Initially no custom toleration
 			Expect(k8sClient.Create(ctx, ncp)).Should(Succeed())
-			defer func() { Expect(k8sClient.Delete(ctx, ncp)).Should(Succeed()) }()
+			DeferCleanup(deleteIgnoreNotFound, ncp)
 
 			By("Verifying no OFED DaemonSet is created for the tainted node without specific toleration")
 			Consistently(func(g Gomega) {
@@ -596,13 +592,16 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			By("Updating NicClusterPolicy to add toleration for the Node's taint")
 			updatedNcp := &mellanoxv1alpha1.NicClusterPolicy{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: nicClusterPolicyName}, updatedNcp)).Should(Succeed())
+			// Patch rather than Update: the reconciler writes the status of this same
+			// object, so a read-modify-write races it for the resourceVersion.
+			ncpPatch := client.MergeFrom(updatedNcp.DeepCopy())
 			updatedNcp.Spec.Tolerations = append(updatedNcp.Spec.Tolerations, corev1.Toleration{
 				Key:      customTaintKey,
 				Operator: corev1.TolerationOpEqual,
 				Value:    customTaintValue,
 				Effect:   customTaintEffect,
 			})
-			Expect(k8sClient.Update(ctx, updatedNcp)).Should(Succeed())
+			Expect(k8sClient.Patch(ctx, updatedNcp, ncpPatch)).Should(Succeed())
 
 			By("Verifying OFED DaemonSet is created after NCP toleration is added")
 			Eventually(func(g Gomega) {
