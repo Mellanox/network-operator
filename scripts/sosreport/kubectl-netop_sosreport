@@ -25,8 +25,9 @@
 
 set -o pipefail
 
-# Script version
-SCRIPT_VERSION="v26.1.0"
+# Collector version. scripts/releases/prepare-release.sh keeps this aligned
+# with the Network Operator chart appVersion for each release.
+SCRIPT_VERSION="v26.7.0-rc.1"
 
 # Default values
 KUBECONFIG_PATH=""
@@ -37,17 +38,23 @@ LOG_LINES=5000
 SKIP_DIAGNOSTICS=false
 SKIP_REPORT=false
 KUBECTL_BIN="kubectl"
+HELM_BIN="${HELM_BIN:-helm}"
 VERBOSE=false
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ERROR_LOG=""
 NODE_SELECTOR=""
 HELM_RELEASE_SELECTOR=""
+HELM_RELEASE_NAME=""
+HELM_CHART=""
+HELM_APP_VERSION=""
+HELM_MANAGED_BY=""
+NETWORK_OPERATOR_VERSION=""
 HELM_RELEASE_DISCOVERED=false
+HELM_RELEASE_INFO_COLLECTED=false
 RESOLVED_COMPONENT_SELECTOR=""
 
-# Track pods and dynamically discovered components so the Helm release
-# catch-all does not duplicate artifacts already collected by a known
-# component selector.
+# Track pods and dynamically discovered components so the Helm and namespace
+# catch-alls do not duplicate artifacts already collected by a known selector.
 declare -A COLLECTED_PODS=()
 declare -A DISCOVERED_COMPONENTS=()
 
@@ -77,7 +84,7 @@ NC='\033[0m' # No Color
 # Usage information
 usage() {
     cat <<EOF
-NVIDIA Network Operator SOS-Report Collection Script v${SCRIPT_VERSION}
+NVIDIA Network Operator SOS-Report Collector ${SCRIPT_VERSION}
 
 Collects comprehensive diagnostic data from a Kubernetes cluster running
 the NVIDIA Network Operator for troubleshooting purposes.
@@ -190,7 +197,7 @@ parse_args() {
                 shift
                 ;;
             --version)
-                echo "NVIDIA Network Operator SOS-Report v${SCRIPT_VERSION}"
+                echo "NVIDIA Network Operator SOS-Report Collector ${SCRIPT_VERSION}"
                 exit 0
                 ;;
             --help|-h)
@@ -384,12 +391,17 @@ collect_metadata() {
 
     local metadata_dir="$OUTPUT_DIR/metadata"
     mkdir -p "$metadata_dir"
+    detect_network_operator_version
+    detect_helm_release_selector
 
     # Collection info
     cat > "$metadata_dir/collection-info.txt" <<EOF
 NVIDIA Network Operator SOS-Report
 ====================================
-Script Version: $SCRIPT_VERSION
+Collector Version: $SCRIPT_VERSION
+Network Operator Version: ${NETWORK_OPERATOR_VERSION:-unknown}
+Helm Release: ${HELM_RELEASE_NAME:-unknown}
+Helm Chart: ${HELM_CHART:-unknown}
 Collection Time: $(date)
 Collection Hostname: $(hostname)
 Kubeconfig: $KUBECONFIG
@@ -714,6 +726,48 @@ collect_pods_and_logs() {
     done
 }
 
+# Discover the deployed Network Operator version from the Deployment label,
+# with its image tag as a fallback for non-Helm installations.
+detect_network_operator_version() {
+    if [ -n "$NETWORK_OPERATOR_VERSION" ]; then
+        return 0
+    fi
+
+    local deployment_metadata
+    deployment_metadata=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+        -l app.kubernetes.io/name=network-operator \
+        -o jsonpath='{.items[0].metadata.labels.app\.kubernetes\.io/version}{"|"}{.items[0].spec.template.spec.containers[0].image}' 2>/dev/null)
+
+    # OLM and raw-manifest installations may use different labels. Fall back
+    # to the deployment name already accepted by namespace auto-detection.
+    if [ -z "$deployment_metadata" ] || [ "$deployment_metadata" = "|" ]; then
+        deployment_metadata=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"|"}{.metadata.labels.app\.kubernetes\.io/version}{"|"}{.spec.template.spec.containers[0].image}{"\n"}{end}' 2>/dev/null \
+            | awk -F'|' 'tolower($1) ~ /network-operator/ { print $2 "|" $3; exit }')
+    fi
+
+    local deployment_version
+    local image_reference
+    IFS='|' read -r deployment_version image_reference <<< "$deployment_metadata"
+    if [ -n "$deployment_version" ]; then
+        NETWORK_OPERATOR_VERSION="$deployment_version"
+    elif [ -n "$image_reference" ]; then
+        case "$image_reference" in
+            *@*)
+                NETWORK_OPERATOR_VERSION="${image_reference##*@}"
+                ;;
+            *)
+                local image_name="${image_reference##*/}"
+                if [[ "$image_name" == *:* ]]; then
+                    NETWORK_OPERATOR_VERSION="${image_name##*:}"
+                else
+                    NETWORK_OPERATOR_VERSION="latest"
+                fi
+                ;;
+        esac
+    fi
+}
+
 # Discover the Helm release that owns the Network Operator deployment. Parent
 # and sub-chart workloads all inherit app.kubernetes.io/instance, which gives
 # the collector a future-proof catch-all without collecting unrelated pods in
@@ -744,10 +798,86 @@ detect_helm_release_selector() {
     fi
 
     if [ -n "$release_name" ]; then
+        HELM_RELEASE_NAME="$release_name"
         HELM_RELEASE_SELECTOR="app.kubernetes.io/instance=$release_name"
+
+        local chart_metadata
+        chart_metadata=$("$KUBECTL_BIN" get deployments -n "$OPERATOR_NAMESPACE" \
+            -l "$HELM_RELEASE_SELECTOR" \
+            -o jsonpath='{range .items[*]}{.metadata.labels.helm\.sh/chart}{"|"}{.metadata.labels.app\.kubernetes\.io/version}{"|"}{.metadata.labels.app\.kubernetes\.io/managed-by}{"\n"}{end}' 2>/dev/null \
+            | awk -F'|' '$1 ~ /^network-operator-/ { print; exit }')
+        if [ -n "$chart_metadata" ]; then
+            IFS='|' read -r HELM_CHART HELM_APP_VERSION HELM_MANAGED_BY <<< "$chart_metadata"
+            if [ -z "$NETWORK_OPERATOR_VERSION" ]; then
+                NETWORK_OPERATOR_VERSION="$HELM_APP_VERSION"
+            fi
+        fi
+
         log_info "Detected Network Operator Helm release: $release_name"
     else
         log_info "Network Operator Helm release label not found"
+    fi
+}
+
+# Collect non-secret Helm release and chart metadata. Kubernetes-derived
+# metadata is always attempted; the Helm CLI adds its release listing when it
+# is available without becoming a collector prerequisite.
+collect_helm_release_info() {
+    if [ "$HELM_RELEASE_INFO_COLLECTED" = true ]; then
+        return 0
+    fi
+
+    detect_helm_release_selector
+    if [ -z "$HELM_RELEASE_NAME" ]; then
+        return 0
+    fi
+    HELM_RELEASE_INFO_COLLECTED=true
+
+    local release_dir="$OUTPUT_DIR/operator/helm-release"
+    mkdir -p "$release_dir"
+
+    {
+        echo "Network Operator Helm Release"
+        echo "============================="
+        echo "Release Name: $HELM_RELEASE_NAME"
+        echo "Namespace: $OPERATOR_NAMESPACE"
+        echo "Chart: ${HELM_CHART:-unknown}"
+        echo "App Version: ${HELM_APP_VERSION:-unknown}"
+        echo "Managed By: ${HELM_MANAGED_BY:-unknown}"
+    } > "$release_dir/chart-info.txt"
+
+    # Helm release Secrets contain the full encoded release payload. Record
+    # only their metadata so credentials or other values are never archived.
+    local release_secrets="$release_dir/revisions.txt"
+    if ! "$KUBECTL_BIN" get secrets -n "$OPERATOR_NAMESPACE" \
+        -l "owner=helm,name=$HELM_RELEASE_NAME" \
+        -o 'custom-columns=SECRET:.metadata.name,STATUS:.metadata.labels.status,REVISION:.metadata.labels.version,CREATED:.metadata.creationTimestamp' \
+        > "$release_secrets" 2>> "$ERROR_LOG"; then
+        rm -f "$release_secrets"
+    fi
+
+    if command -v "$HELM_BIN" &> /dev/null; then
+        local helm_listing="$release_dir/helm-list.yaml"
+        if ! "$HELM_BIN" list --namespace "$OPERATOR_NAMESPACE" --all \
+            --filter "^${HELM_RELEASE_NAME}$" --output yaml \
+            > "$helm_listing" 2>> "$ERROR_LOG"; then
+            rm -f "$helm_listing"
+            log_warn "Failed to collect Helm CLI metadata for release $HELM_RELEASE_NAME"
+        fi
+
+        # helm get metadata is not available in every Helm 3 release. Use it
+        # when supported; helm-list.yaml and chart-info.txt remain the fallback.
+        if "$HELM_BIN" get metadata --help &> /dev/null; then
+            local helm_metadata="$release_dir/helm-metadata.yaml"
+            if ! "$HELM_BIN" get metadata "$HELM_RELEASE_NAME" \
+                --namespace "$OPERATOR_NAMESPACE" --output yaml \
+                > "$helm_metadata" 2>> "$ERROR_LOG"; then
+                rm -f "$helm_metadata"
+                log_warn "Failed to collect detailed Helm metadata for release $HELM_RELEASE_NAME"
+            fi
+        fi
+    else
+        log_info "Helm CLI not found; Kubernetes-derived chart metadata was collected"
     fi
 }
 
@@ -794,6 +924,7 @@ collect_helm_release_components() {
         return 0
     fi
 
+    collect_helm_release_info
     log_info "Collecting complete Helm release workload inventory..."
     local release_dir="$OUTPUT_DIR/operator/helm-release"
     local resource_type
@@ -822,9 +953,10 @@ collect_helm_release_components() {
         workload=$(resolve_pod_workload "$OPERATOR_NAMESPACE" "$pod")
         IFS='|' read -r workload_type workload_name <<< "$workload"
 
-        local component_dir="$OUTPUT_DIR/operator/components/$workload_name"
+        local component_id="${workload_type}-${workload_name}"
+        local component_dir="$OUTPUT_DIR/operator/components/$component_id"
         if [ -z "${DISCOVERED_COMPONENTS[$component_dir]:-}" ]; then
-            log_info "  Discovered Helm component: $workload_name ($workload_type)"
+            log_info "  Discovered Helm component: $component_id"
             DISCOVERED_COMPONENTS["$component_dir"]="true"
             STATS[components_found]=$((STATS[components_found] + 1))
 
@@ -834,6 +966,59 @@ collect_helm_release_components() {
 
         collect_pods_and_logs "$OPERATOR_NAMESPACE" "$component_dir/pods" "$pod"
     done
+}
+
+# Collect a namespace-wide pod inventory and archive any pod that was not
+# discovered through a known component or Helm release label. This guarantees
+# coverage for renamed, custom, and future workloads in the operator namespace.
+collect_operator_namespace_pods() {
+    log_info "Collecting all pods in the Network Operator namespace..."
+
+    local operator_dir="$OUTPUT_DIR/operator"
+    collect_resource "$operator_dir/pods.yaml" \
+        get pods -n "$OPERATOR_NAMESPACE" -o yaml || true
+
+    local pods
+    pods=$("$KUBECTL_BIN" get pods -n "$OPERATOR_NAMESPACE" -o name 2>/dev/null)
+
+    local pod
+    for pod in $pods; do
+        local pod_name
+        pod_name=$(basename "$pod")
+        if [ -n "${COLLECTED_PODS[$OPERATOR_NAMESPACE/$pod_name]:-}" ]; then
+            continue
+        fi
+
+        local workload
+        local workload_type
+        local workload_name
+        workload=$(resolve_pod_workload "$OPERATOR_NAMESPACE" "$pod")
+        IFS='|' read -r workload_type workload_name <<< "$workload"
+
+        case "$workload_type" in
+            cronjob|daemonset|deployment|job|pod|replicaset|statefulset)
+                ;;
+            *)
+                workload_type="pod"
+                workload_name="$pod_name"
+                ;;
+        esac
+
+        local component_id="${workload_type}-${workload_name}"
+        local component_dir="$OUTPUT_DIR/operator/components/$component_id"
+        if [ -z "${DISCOVERED_COMPONENTS[$component_dir]:-}" ]; then
+            log_info "  Discovered namespace component: $component_id"
+            DISCOVERED_COMPONENTS["$component_dir"]="true"
+            STATS[components_found]=$((STATS[components_found] + 1))
+
+            collect_resource "$component_dir/${workload_type}.yaml" \
+                get "$workload_type" -n "$OPERATOR_NAMESPACE" "$workload_name" -o yaml || true
+        fi
+
+        collect_pods_and_logs "$OPERATOR_NAMESPACE" "$component_dir/pods" "$pod"
+    done
+
+    log_success "All Network Operator namespace pods were considered for collection"
 }
 
 # Expand a generated NameSuffix marker into one selector that matches every
@@ -1320,7 +1505,10 @@ generate_summary() {
         echo "===================================="
         echo ""
         echo "Collection Time: $(date)"
-        echo "Script Version: $SCRIPT_VERSION"
+        echo "Collector Version: $SCRIPT_VERSION"
+        echo "Network Operator Version: ${NETWORK_OPERATOR_VERSION:-unknown}"
+        echo "Helm Release: ${HELM_RELEASE_NAME:-unknown}"
+        echo "Helm Chart: ${HELM_CHART:-unknown}"
         echo "Operator Namespace: $OPERATOR_NAMESPACE"
         echo ""
 
@@ -1493,13 +1681,14 @@ create_archive() {
 
 # Main function
 main() {
+    parse_args "$@"
+
     echo "========================================"
     echo "NVIDIA Network Operator SOS-Report Collection"
-    echo "Version: $SCRIPT_VERSION"
+    echo "Collector Version: $SCRIPT_VERSION"
     echo "========================================"
     echo ""
 
-    parse_args "$@"
     check_prerequisites
     detect_operator_namespace
     setup_output_dir
@@ -1510,6 +1699,7 @@ main() {
     collect_crd_instances
     collect_operator_resources
     collect_all_components
+    collect_operator_namespace_pods
     collect_diagnostic_commands
     collect_node_info
     collect_network_info

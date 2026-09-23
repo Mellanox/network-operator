@@ -101,6 +101,8 @@ chart=`echo $release | cut -c 2-`
 sed -e s"/appVersion:.*/appVersion: $release/" \
     -e s"/^version:.*/version: $chart/" \
     -i deployment/network-operator/Chart.yaml
+sed -e s"/SCRIPT_VERSION=.*/SCRIPT_VERSION=\"$release\"/" \
+    -i scripts/sosreport/kubectl-netop_sosreport
 sed -e s"/pullPolicy:.*/pullPolicy: IfNotPresent/" \
     -i deployment/network-operator/values.yaml
 
@@ -132,4 +134,3 @@ cat << EOF
 ***
 *******************************************************************************
 EOF
-
