@@ -1,4 +1,8 @@
 operator:
+  # The address the operator metrics endpoint binds to.
+  # Leave empty to use the default (metrics disabled).
+  # Set to e.g. ":8080" to enable metrics on that address.
+  metricsBindAddress: ""
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Exists"
@@ -143,18 +147,10 @@ images:
   ovsCni: ghcr.io/k8snetworkplumbingwg/ovs-cni-plugin
   rdmaCni: ghcr.io/k8snetworkplumbingwg/rdma-cni
   sriovDevicePlugin: ghcr.io/k8snetworkplumbingwg/sriov-network-device-plugin
-  sriovDraDriver: ghcr.io/k8snetworkplumbingwg/dra-driver-sriov:latest
   resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector
   webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
   metricsExporter: ghcr.io/k8snetworkplumbingwg/sriov-network-metrics-exporter
   metricsExporterKubeRbacProxy: quay.io/brancz/kube-rbac-proxy:v0.21.2
-
-# DRA Driver configuration (used when dynamicResourceAllocation feature gate is enabled)
-draDriver:
-  # CDI root directory for device specification
-  cdiRoot: "/var/run/cdi"
-  # Default interface prefix for VF naming
-  defaultInterfacePrefix: "net"
 
 imagePullSecrets: []
 extraDeploy: []
