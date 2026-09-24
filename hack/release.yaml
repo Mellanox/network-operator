@@ -92,7 +92,7 @@ Multus:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
   downstreamFork: true
-  version: network-operator-v26.7.0
+  version: 830bd19c
   nSpectScope: gov-ready
 Ipoib:
   image: ipoib-cni
