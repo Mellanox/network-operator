@@ -37,7 +37,7 @@ SriovConfigDaemonStigFips:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   downstreamFork: true
-  version: network-operator-v26.7.0-stig-fips
+  version: f4de797
   nSpectScope: fedramp
 SriovCni:
   image: sriov-cni
