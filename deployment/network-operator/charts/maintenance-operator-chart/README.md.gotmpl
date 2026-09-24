@@ -1,0 +1,44 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.versionBadge" . }} {{ template "chart.typeBadge" . }} {{ template "chart.appVersionBadge" . }}
+
+{{ template "chart.description" . }}
+
+## Resource sizing
+
+Operator memory usage is dominated by the Kubernetes **Node informer cache**, so it
+scales primarily with **cluster node count** (and node object size), not with
+NodeMaintenance request volume.
+
+| Approx. nodes | Suggested `operator.resources.limits.memory` |
+|---------------|----------------------------------------------|
+| ≤ ~150 | `256Mi` (chart default; verified stable around this size) |
+| ~250–300 | raise above `256Mi` (default may be exhausted) |
+| ~1000+ | plan for hundreds of MiB to ~1Gi+, depending on node density |
+
+Raise `operator.resources.requests.memory` alongside the limit so the scheduler
+and QoS class stay consistent.
+
+### NVIDIA Network Operator installs
+
+If this chart is deployed as a subchart of [network-operator](https://github.com/Mellanox/network-operator),
+override resources under the **subchart** key:
+
+```yaml
+maintenance-operator-chart:
+  operator:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 10m
+        memory: 192Mi
+```
+
+Do **not** confuse this with the parent chart top-level `operator.resources` —
+that setting applies to the **network-operator** controller, not maintenance-operator.
+
+{{ template "chart.valuesHeader" . }}
+
+{{ template "chart.valuesTable" . }}

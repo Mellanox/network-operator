@@ -1,16 +1,28 @@
-{{- if and .Values.operator.admissionController.enable }}
-{{- if and .Values.operator.admissionController.certificates.certManager.enable
-  .Values.operator.admissionController.certificates.certManager.generateSelfSigned }}
+{{- if .Values.operator.admissionController.enable }}
+{{- $certificates := .Values.operator.admissionController.certificates }}
+{{- $certManager := $certificates.certManager }}
+{{- $issuerRef := $certManager.issuerRef | default dict }}
+{{- $issuerName := printf "%s-selfsigned-issuer" (include "maintenance-operator.fullname" .) }}
+{{- $issuerKind := "Issuer" }}
+{{- $issuerGroup := "cert-manager.io" }}
+{{- if $issuerRef.name }}
+{{- $issuerName = $issuerRef.name }}
+{{- $issuerKind = $issuerRef.kind | default $issuerKind }}
+{{- $issuerGroup = $issuerRef.group | default $issuerGroup }}
+{{- end }}
+{{- if $certManager.enable }}
+{{- if not $issuerRef.name }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ include "maintenance-operator.fullname" . }}-selfsigned-issuer
+  name: {{ $issuerName | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "maintenance-operator.labels" . | nindent 4 }}
 spec:
   selfSigned: {}
 ---
+{{- end }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -25,19 +37,20 @@ spec:
   - '{{ include "maintenance-operator.fullname" . }}-webhook-service.{{ .Release.Namespace
     }}.svc.{{ .Values.kubernetesClusterDomain | default "cluster.local" }}'
   issuerRef:
-    kind: Issuer
-    name: '{{ include "maintenance-operator.fullname" . }}-selfsigned-issuer'
-  secretName: {{ .Values.operator.admissionController.certificates.secretNames.operator }}
-{{- else if and (not .Values.operator.admissionController.certManager.enable) .Values.operator.admissionController.custom.enable }}
+    kind: {{ $issuerKind | quote }}
+    name: {{ $issuerName | quote }}
+    group: {{ $issuerGroup | quote }}
+  secretName: {{ $certificates.secretNames.operator }}
+{{- else if $certificates.custom.enable }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ .Values.operator.admissionController.certificates.secretNames.operator }}
+  name: {{ $certificates.secretNames.operator }}
   namespace: {{ .Release.Namespace }}
 type: Opaque
 data:
-  ca.crt: {{ .Values.operator.admissionController.certificates.custom.operator.caCrt | b64enc | b64enc | quote }}
-  tls.crt: {{ .Values.operator.admissionController.certificates.custom.operator.tlsCrt | b64enc | quote }}
-  tls.key: {{ .Values.operator.admissionController.certificates.custom.operator.tlsKey | b64enc | quote }}
+  ca.crt: {{ $certificates.custom.operator.caCrt | b64enc | quote }}
+  tls.crt: {{ $certificates.custom.operator.tlsCrt | b64enc | quote }}
+  tls.key: {{ $certificates.custom.operator.tlsKey | b64enc | quote }}
 {{- end }}
 {{- end }}

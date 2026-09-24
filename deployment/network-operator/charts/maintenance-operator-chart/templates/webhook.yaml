@@ -1,4 +1,5 @@
 {{- if .Values.operator.admissionController.enable }}
+{{- $certificates := .Values.operator.admissionController.certificates }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -21,14 +22,19 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "maintenance-operator.fullname" . }}-validating-webhook-configuration
+  {{- if $certificates.certManager.enable }}
   annotations:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "maintenance-operator.fullname" . }}-serving-cert
+  {{- end }}
   labels:
   {{- include "maintenance-operator.labels" . | nindent 4 }}
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
+    {{- if and (not $certificates.certManager.enable) $certificates.custom.enable }}
+    caBundle: {{ $certificates.custom.operator.caCrt | b64enc | quote }}
+    {{- end }}
     service:
       name: '{{ include "maintenance-operator.fullname" . }}-webhook-service'
       namespace: {{ .Release.Namespace }}

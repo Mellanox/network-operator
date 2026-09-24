@@ -63,8 +63,14 @@ operator:
       certManager:
         # -- use cert-manager for certificates
         enable: true
-        # -- generate self-signed certificiates with cert-manager
-        generateSelfSigned: true
+        # -- reference to an existing cert-manager issuer that signs the certificate. When `name` is
+        # empty a self-signed issuer is created and used. Set this to chain the admission controller
+        # certificate to a certificate authority you own. `kind` defaults to `Issuer` and `group` to
+        # `cert-manager.io`
+        issuerRef: {}
+        #   name: my-issuer
+        #   kind: ClusterIssuer
+        #   group: cert-manager.io
       custom:
         # -- enable custom certificates using secrets
         enable: false
