@@ -359,6 +359,14 @@ spec:
                     description: Address of the registry that stores the image
                     pattern: '[a-zA-Z0-9\.\-\/]+'
                     type: string
+                  shareHostSharedMemory:
+                    default: false
+                    description: |-
+                      ShareHostSharedMemory backs the shared memory used for IPC with the host's whole /dev/shm,
+                      which is what IPC clients running directly on the node require.
+                      When false the shared memory is confined to /dev/shm/telemetry on the host, which
+                      containerized IPC clients can mount while the rest of the host's shared memory stays isolated.
+                    type: boolean
                   version:
                     description: Version of the image to use
                     type: string
@@ -475,6 +483,14 @@ spec:
                   NicConfigurationOperator provides Kubernetes CRD API to allow FW configuration on NVIDIA NICs in a coordinated manner
                   See: https://github.com/Mellanox/nic-configuration-operator
                 properties:
+                  certConfig:
+                    description: 'Optional: Custom TLS certificates configuration
+                      for NIC Configuration Operator container'
+                    properties:
+                      name:
+                        description: Name of the ConfigMap
+                        type: string
+                    type: object
                   configurationDaemon:
                     description: Image information for nic-configuration-daemon
                     properties:
@@ -1801,6 +1817,18 @@ spec:
                           - name
                           type: object
                         type: array
+                      deploymentType:
+                        default: thin
+                        description: |-
+                          DeploymentType selects the Multus deployment variant.
+                          "thin" (default): Multus runs as an in-process CNI plugin. The config field, if set,
+                          provides the Multus CNI configuration file content.
+                          "thick": Multus runs as a privileged daemon; CNI calls are proxied via a Unix socket shim.
+                          The config field, if set, configures the daemon (daemon-config.json).
+                        enum:
+                        - thin
+                        - thick
+                        type: string
                       image:
                         description: Name of the image
                         pattern: '[a-zA-Z0-9\-]+'
