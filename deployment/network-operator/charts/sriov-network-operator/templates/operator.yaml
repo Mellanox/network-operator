@@ -43,6 +43,10 @@ spec:
           image: {{ .Values.images.operator }}
           command:
             - sriov-network-operator
+          {{- if .Values.operator.metricsBindAddress }}
+          args:
+            - --metrics-bind-address={{ .Values.operator.metricsBindAddress }}
+          {{- end }}
           securityContext:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false

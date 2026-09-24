@@ -1,4 +1,8 @@
 operator:
+  # The address the operator metrics endpoint binds to.
+  # Leave empty to use the default (metrics disabled).
+  # Set to e.g. ":8080" to enable metrics on that address.
+  metricsBindAddress: ""
   tolerations:
     - key: "node-role.kubernetes.io/master"
       operator: "Exists"
