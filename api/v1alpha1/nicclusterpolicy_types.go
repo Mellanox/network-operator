@@ -385,6 +385,13 @@ type NicFirmwareStorageSpec struct {
 	// +kubebuilder:default:="1Gi"
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="availableStorageSize is immutable once set. nicFirmwareStorage should be deleted and created again with a new value."
 	AvailableStorageSize string `json:"availableStorageSize,omitempty"`
+	// AccessMode is the access mode of the PVC to create. Only applies if nicFirmwareStorage.create == true.
+	// ReadWriteMany is required on multi-node clusters, where the firmware storage is mounted by the
+	// configuration daemon on every node. ReadWriteOnce is only valid on single-node clusters (e.g. Single
+	// Node OpenShift with storage that does not support ReadWriteMany). Default value: ReadWriteMany
+	// +kubebuilder:validation:Enum=ReadWriteMany;ReadWriteOnce
+	// +kubebuilder:default:="ReadWriteMany"
+	AccessMode string `json:"accessMode,omitempty"`
 }
 
 // NicConfigurationOperatorSpec is the configuration for NIC Configuration Operator
