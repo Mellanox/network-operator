@@ -22,6 +22,8 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
+BUNDLE_DIR="${BUNDLE_DIR:-bundle}"
+
 # Generate relatedImages
 cd hack
 if ! $GO run release.go --with-sha256 --releaseDefaults "${RELEASE_DEFAULTS:-release.yaml}" --templateDir ./templates/related-images/ --outputDir .; then
@@ -29,11 +31,11 @@ if ! $GO run release.go --with-sha256 --releaseDefaults "${RELEASE_DEFAULTS:-rel
     exit 1
 fi
 cd ..
-cat hack/related_images.yaml >> bundle/manifests/nvidia-network-operator.clusterserviceversion.yaml
+cat hack/related_images.yaml >> "${BUNDLE_DIR}/manifests/nvidia-network-operator.clusterserviceversion.yaml"
 rm hack/related_images.yaml
 # Add containerImage annotation
 # Escape the tag annotation value for sed
 ESCAPED_TAG=$(printf '%s\n' "$TAG" | sed -e 's/[]\/$*.^[]/\\&/g')
-sed -i "0,/annotations:/s/annotations:/annotations:\n    containerImage: $ESCAPED_TAG/" bundle/manifests/nvidia-network-operator.clusterserviceversion.yaml
+sed -i "0,/annotations:/s/annotations:/annotations:\n    containerImage: $ESCAPED_TAG/" "${BUNDLE_DIR}/manifests/nvidia-network-operator.clusterserviceversion.yaml"
 # Add OpenShift versions in metadata/annotations.yaml
-echo "  com.redhat.openshift.versions: $BUNDLE_OCP_VERSIONS" >> bundle/metadata/annotations.yaml
+echo "  com.redhat.openshift.versions: $BUNDLE_OCP_VERSIONS" >> "${BUNDLE_DIR}/metadata/annotations.yaml"
