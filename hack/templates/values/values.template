@@ -245,6 +245,16 @@ operator:
   # ``network.nvidia.com/operator.mofed.wait`` before the node goes down. See
   # https://github.com/Mellanox/network-operator/issues/2954.
   priorityClassName: system-node-critical
+  # -- Leader election settings for the operator controller.
+  # @notationType -- yaml
+  leaderElection:
+    # -- Renew deadline of the leader lease, as a duration such as ``60s``: how long the
+    # leader keeps trying to renew before standing down. The lease duration, which is how
+    # long a standby waits before taking over, is derived as ``renewDeadline`` plus 5s.
+    # Leave empty for the controller-runtime defaults of 10s and 15s. Values below 3s are
+    # rejected at startup, since leader election requires the deadline to exceed its retry
+    # period with jitter.
+    renewDeadline: 60s
   # -- Termination grace period for the operator controller. Must be greater than
   # ``preStopSleepSeconds``.
   terminationGracePeriodSeconds: 30

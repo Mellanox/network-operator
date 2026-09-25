@@ -20,7 +20,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/NVIDIA/k8s-operator-libs/pkg/upgrade"
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
@@ -166,36 +168,103 @@ func setupCRDControllers(ctx context.Context, c client.Client, mgr ctrl.Manager,
 	return nil
 }
 
-func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+const (
+	// leaseDurationMargin is how far the lease duration is kept above the renew deadline. Leader
+	// election refuses to start unless the former exceeds the latter, so deriving one from the other
+	// leaves no way to configure a combination that fails at startup.
+	leaseDurationMargin = 5 * time.Second
+	// minRenewDeadline is the shortest renew deadline leader election accepts, rounded up from the
+	// 2.4s it actually requires: the deadline has to exceed the retry period, 2s by default, scaled
+	// by a jitter factor of 1.2. Neither of those is read from the library, since the retry period
+	// default is unexported, so this is a fixed bound rather than a derived one.
+	//
+	// A smaller deadline is rejected when the elector is built, which happens after the manager has
+	// started, so it is checked up front instead of turning into the CrashLoopBackOff that
+	// configuring a renew deadline is meant to prevent.
+	minRenewDeadline = 3 * time.Second
+)
+
+// managerConfig is the manager configuration given on the command line.
+type managerConfig struct {
+	metricsAddr          string
+	probeAddr            string
+	enableLeaderElection bool
+	renewDeadline        time.Duration
+}
+
+// parseFlags registers the command line flags, the logging ones included, and parses them. The zap
+// options are returned alongside the configuration because the logger they describe can only be
+// installed once the flags they are bound to have been parsed.
+func parseFlags() (managerConfig, zap.Options) {
+	var cfg managerConfig
+
+	flag.StringVar(&cfg.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&cfg.probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&cfg.enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
+	flag.DurationVar(&cfg.renewDeadline, "leader-lease-renew-deadline", 0,
+		"Set the leader lease renew deadline duration (e.g. \"60s\") of the controller manager. "+
+			"Only enabled when the --leader-elect flag is set. "+
+			"If undefined, the renew deadline defaults to the controller-runtime manager's default RenewDeadline. "+
+			"By setting this option, the LeaseDuration is also set as RenewDeadline + 5s. "+
+			"Must be at least 3s.")
+
+	zapOpts := zap.Options{
 		Development: true,
 	}
-	opts.BindFlags(flag.CommandLine)
+	zapOpts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	return cfg, zapOpts
+}
+
+// managerOptions builds the controller manager options. A zero renew deadline leaves the lease
+// durations unset, which keeps the controller-runtime defaults of a 10s renew deadline and a 15s
+// lease duration.
+func managerOptions(cfg managerConfig) (ctrl.Options, error) {
+	opts := ctrl.Options{
+		Scheme:                 scheme,
+		Metrics:                metricsserver.Options{BindAddress: cfg.metricsAddr},
+		HealthProbeBindAddress: cfg.probeAddr,
+		LeaderElection:         cfg.enableLeaderElection,
+		LeaderElectionID:       "12620820.mellanox.com",
+	}
+
+	if cfg.enableLeaderElection && cfg.renewDeadline != 0 {
+		if cfg.renewDeadline < minRenewDeadline {
+			return ctrl.Options{}, fmt.Errorf(
+				"leader lease renew deadline %s is below the minimum of %s: leader election requires it to "+
+					"exceed the retry period scaled by its jitter factor", cfg.renewDeadline, minRenewDeadline)
+		}
+
+		leaseDuration := cfg.renewDeadline + leaseDurationMargin
+
+		opts.RenewDeadline = &cfg.renewDeadline
+		opts.LeaseDuration = &leaseDuration
+	}
+
+	return opts, nil
+}
+
+func main() {
+	cfg, zapOpts := parseFlags()
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
 
 	coverage.SetupSignalHandler()
 
 	stopCtx := ctrl.SetupSignalHandler()
 
+	mgrOpts, err := managerOptions(cfg)
+	if err != nil {
+		setupLog.Error(err, "invalid manager options")
+		os.Exit(1)
+	}
+
 	clientConf := ctrl.GetConfigOrDie()
 
-	mgr, err := ctrl.NewManager(clientConf, ctrl.Options{
-		Scheme:                 scheme,
-		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "12620820.mellanox.com",
-	})
+	mgr, err := ctrl.NewManager(clientConf, mgrOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -212,7 +281,7 @@ func main() {
 	m := migrate.Migrator{
 		K8sClient:      directClient,
 		MigrationCh:    migrationCompletionChan,
-		LeaderElection: enableLeaderElection,
+		LeaderElection: cfg.enableLeaderElection,
 		Logger:         ctrl.Log.WithName("Migrator"),
 	}
 	err = mgr.Add(&m)
