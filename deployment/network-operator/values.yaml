@@ -33,8 +33,8 @@ sriovNetworkOperator:
   enabled: false
 
 maintenanceOperator:
-  # -- Deploy Maintenance Operator.
-  enabled: false
+  # -- Deploy Maintenance Operator. Required by NIC Configuration Operator for NodeMaintenance CRDs.
+  enabled: true
 
 # Set both enableNodeFeatureApi and NodeFeatureAPI feature gate to false to disable.
 node-feature-discovery:

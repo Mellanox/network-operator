@@ -23,6 +23,13 @@ For more information please visit the official [documentation](https://docs.nvid
 
 ## Additional components
 
+### Maintenance Operator
+
+The chart deploys Maintenance Operator by default. It installs the
+`NodeMaintenance` CRD required for NIC Configuration Operator reconciliation.
+Set `maintenanceOperator.enabled=false` only when that CRD is already installed
+and managed separately.
+
 ### Node Feature Discovery
 
 Nvidia Network Operator relies on the existance of specific node labels to operate properly. e.g label a node as having
