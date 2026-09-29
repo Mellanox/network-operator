@@ -85,6 +85,15 @@ spec:
                 description: Number of VFs for each PF
                 minimum: 1
                 type: integer
+              ovsConfig:
+                additionalProperties:
+                  type: string
+                description: |-
+                  OvsConfig is provided for ovs-vswitchd service as other_config option,
+                  in addition to the options set internally by the operator (doca-init,
+                  hw-offload, hw-offload-ct-size, max-idle). Keys matching an internal
+                  option override its value; all other keys are added as-is.
+                type: object
               railTopology:
                 description: Rails topology list
                 items:
@@ -115,6 +124,12 @@ spec:
                       required:
                       - pfNames
                       type: object
+                    swPlane:
+                      description: |-
+                        SwPlane identifies the switch plane this rail topology belongs to.
+                        Only takes effect when multiple devices are specified in nicSelector.pfNames (HW PLB).
+                      minimum: 0
+                      type: integer
                   required:
                   - mtu
                   - name
