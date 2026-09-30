@@ -19,7 +19,8 @@ ARG TARGETARCH
 ARG ARCH=${TARGETARCH}
 
 # Build the manager binary
-FROM golang:1.27 AS builder
+ARG BASE_IMAGE_GO_BUILDER=golang:1.27
+FROM ${BASE_IMAGE_GO_BUILDER} AS builder
 
 WORKDIR /workspace
 

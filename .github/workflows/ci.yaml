@@ -16,7 +16,10 @@ env:
   IMAGE_NAME: network-operator
 
 jobs:
+  go-builder-images:
+    uses: Mellanox/cloud-orchestration-reusable-workflows/.github/workflows/go-builder-images-reusable.yml@main
   docker-build-push:
+    needs: [go-builder-images]
     runs-on: linux-amd64-cpu4
     permissions:
       contents: read
@@ -91,6 +94,8 @@ jobs:
         tags: ${{ steps.docker-tags.outputs.tags }}
         push: ${{ steps.docker-tags.outputs.push }}
         build-args: |
+          BASE_IMAGE_GO_BUILDER=${{ needs.go-builder-images.outputs.standard }}
+          BASE_IMAGE_GO_BUILDER_ALPINE=${{ needs.go-builder-images.outputs.alpine }}
           GOPROXY=${{ env.GOPROXY }}
     - uses: docker/build-push-action@v7
       env:
@@ -102,6 +107,8 @@ jobs:
         tags: ${{ steps.docker-tags.outputs.coverage_tags }}
         push: ${{ steps.docker-tags.outputs.push }}
         build-args: |
+          BASE_IMAGE_GO_BUILDER=${{ needs.go-builder-images.outputs.standard }}
+          BASE_IMAGE_GO_BUILDER_ALPINE=${{ needs.go-builder-images.outputs.alpine }}
           GOPROXY=${{ env.GOPROXY }}
           GO_COVERAGE=1
     outputs:
