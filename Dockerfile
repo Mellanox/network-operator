@@ -20,6 +20,8 @@ ARG ARCH=${TARGETARCH}
 
 # Build the manager binary
 ARG BASE_IMAGE_GO_BUILDER=golang:1.27
+# The image tag comes from the central policy or the standalone ARG default.
+# hadolint ignore=DL3006
 FROM ${BASE_IMAGE_GO_BUILDER} AS builder
 
 WORKDIR /workspace
