@@ -234,8 +234,6 @@ spec:
                   ovsConfig:
                     additionalProperties:
                       type: string
-                    default:
-                      hw-offload: "true"
                     description: OVS config. It will be provided for ovs-vswitchd
                       service as other_config option
                     type: object
@@ -509,8 +507,6 @@ spec:
                   ovsConfig:
                     additionalProperties:
                       type: string
-                    default:
-                      hw-offload: "true"
                     description: OVS config. It will be provided for ovs-vswitchd
                       service as other_config option
                     type: object
