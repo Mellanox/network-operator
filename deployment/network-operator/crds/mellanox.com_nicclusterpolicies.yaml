@@ -721,6 +721,10 @@ spec:
                         - ReadWriteMany
                         - ReadWriteOnce
                         type: string
+                        x-kubernetes-validations:
+                        - message: accessMode is immutable once set. nicFirmwareStorage
+                            should be deleted and created again with a new value.
+                          rule: self == oldSelf
                       availableStorageSize:
                         default: 1Gi
                         description: 'AvailableStorageSize is storage size for the

@@ -364,6 +364,7 @@ type NicFirmwareStorageSpec struct {
 	// Node OpenShift with storage that does not support ReadWriteMany). Default value: ReadWriteMany
 	// +kubebuilder:validation:Enum=ReadWriteMany;ReadWriteOnce
 	// +kubebuilder:default:="ReadWriteMany"
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="accessMode is immutable once set. nicFirmwareStorage should be deleted and created again with a new value."
 	AccessMode string `json:"accessMode,omitempty"`
 }
 

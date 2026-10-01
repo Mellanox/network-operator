@@ -254,6 +254,69 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 		})
 	})
 
+	Context("When nicFirmwareStorage.accessMode is updated", func() {
+		It("should reject changing accessMode once set", func() {
+			By("Create NicClusterPolicy with nicFirmwareStorage")
+			cr := mellanoxv1alpha1.NicClusterPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "nic-cluster-policy",
+				},
+				Spec: mellanoxv1alpha1.NicClusterPolicySpec{
+					NicConfigurationOperator: &mellanoxv1alpha1.NicConfigurationOperatorSpec{
+						Operator: &mellanoxv1alpha1.ImageSpec{
+							Image:            "nic-configuration-operator",
+							Repository:       "nvcr.io/nvidia/mellanox",
+							Version:          "1.0.0",
+							ImagePullSecrets: []string{},
+						},
+						ConfigurationDaemon: &mellanoxv1alpha1.ImageSpec{
+							Image:            "nic-configuration-daemon",
+							Repository:       "nvcr.io/nvidia/mellanox",
+							Version:          "1.0.0",
+							ImagePullSecrets: []string{},
+						},
+						NicFirmwareStorage: &mellanoxv1alpha1.NicFirmwareStorageSpec{
+							Create:               true,
+							PVCName:              "nic-fw-storage-pvc",
+							AvailableStorageSize: "1Gi",
+							AccessMode:           "ReadWriteOnce",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(context.TODO(), &cr)).To(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(context.TODO(), &cr)).To(Succeed())
+				Eventually(func() bool {
+					err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: cr.GetName()},
+						&mellanoxv1alpha1.NicClusterPolicy{})
+					return apierrors.IsNotFound(err)
+				}, timeout*3, interval).Should(BeTrue())
+			}()
+
+			By("Update NicClusterPolicy with a different accessMode")
+			Eventually(func() error {
+				ncp := &mellanoxv1alpha1.NicClusterPolicy{}
+				if err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: cr.GetName()}, ncp); err != nil {
+					return err
+				}
+				ncp.Spec.NicConfigurationOperator.NicFirmwareStorage.AccessMode = "ReadWriteMany"
+				return k8sClient.Update(context.TODO(), ncp)
+			}, timeout, interval).Should(MatchError(ContainSubstring("accessMode is immutable once set")))
+
+			By("Update NicClusterPolicy without changing accessMode")
+			Eventually(func() error {
+				ncp := &mellanoxv1alpha1.NicClusterPolicy{}
+				if err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: cr.GetName()}, ncp); err != nil {
+					return err
+				}
+				Expect(ncp.Spec.NicConfigurationOperator.NicFirmwareStorage.AccessMode).To(Equal("ReadWriteOnce"))
+				ncp.Spec.NicConfigurationOperator.Operator.Version = "1.0.1"
+				return k8sClient.Update(context.TODO(), ncp)
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+
 	Context("When NicClusterPolicy CR is deleted", func() {
 		It("should set mofed.wait and nic-configuration.wait to false", func() {
 			By("Create Node")
