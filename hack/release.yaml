@@ -3,6 +3,9 @@ NetworkOperator:
   repository: nvcr.io/nvstaging/mellanox
   version: v26.10.0-beta.2
   nSpectScope: gov-ready
+# Set both crdSourceLocation and crdTargetLocation to sync a component's CRDs
+# into its existing indexed state manifests when creating a release PR.
+# If either location is absent, CRD sync is skipped for that component.
 NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: nvcr.io/nvstaging/mellanox
@@ -104,6 +107,8 @@ nvIpam:
   image: nvidia-k8s-ipam
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nvidia-k8s-ipam
+  crdSourceLocation: deploy/crds
+  crdTargetLocation: manifests/state-nv-ipam-cni
   version: network-operator-v26.10.0-beta.2
   nSpectScope: gov-ready
 nicFeatureDiscovery:
@@ -134,6 +139,8 @@ nicConfigurationOperator:
   image: nic-configuration-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
+  crdSourceLocation: config/crd/bases
+  crdTargetLocation: manifests/state-nic-configuration-operator
   version: network-operator-v26.10.0-beta.2
   nSpectScope: general
 nicConfigurationConfigDaemon:
@@ -178,6 +185,8 @@ spectrumXOperator:
   image: spectrum-x-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
+  crdSourceLocation: config/crd/bases
+  crdTargetLocation: manifests/state-spectrum-x-operator
   version: network-operator-v26.10.0-beta.2
   nSpectScope: general
 spectrumXOperatorStigFipsRhel:

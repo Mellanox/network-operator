@@ -427,7 +427,7 @@ jobs:
       DOCKER_REGISTRY_MANAGED_COMPONENTS: ${{ needs.determine-versions.outputs.docker_registry_managed_components }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
-      # Chart sources are checked out at the component tag rather than the release branch:
+      # Chart and CRD sources are checked out at the component tag rather than the release branch:
       # NVIDIA-owned chart-providers (e.g. maintenance-operator) have no release branch on
       # beta releases under the downstreamFork-aware tagging logic, but the tag always exists.
       - uses: actions/checkout@v7
@@ -445,6 +445,28 @@ jobs:
           repository: ${{ github.repository_owner }}/maintenance-operator
           path: maintenance-operator
           ref: ${{ needs.determine-versions.outputs.component_tag }}
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/nvidia-k8s-ipam
+          path: nvidia-k8s-ipam
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/nic-configuration-operator
+          path: nic-configuration-operator
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/spectrum-x-operator
+          path: spectrum-x-operator
+          ref: ${{ needs.determine-versions.outputs.component_tag }}
+      # The release base branch may predate this helper; keep the workflow's
+      # implementation available when network-operator is switched to that branch.
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          path: workflow-source
+          ref: ${{ github.sha }}
       - uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/network-operator
@@ -490,40 +512,42 @@ jobs:
             yq -i ".${component}.repository = \"$DOCKER_REGISTRY_MANAGED_COMPONENTS\"" hack/release.yaml
             yq -i ".${component}.version = \"$component_tag\"" hack/release.yaml
 
+            # Sync CRDs only when both locations are configured for this component.
+            CRD_SOURCE_LOCATION=$(yq -r ".${component}.crdSourceLocation // \"\"" hack/release.yaml)
+            CRD_TARGET_LOCATION=$(yq -r ".${component}.crdTargetLocation // \"\"" hack/release.yaml)
+            python3 ../workflow-source/hack/sync-component-crds.py "../$SOURCE_REPO" "$CRD_SOURCE_LOCATION" "." "$CRD_TARGET_LOCATION"
+
             # Pull the component's helm chart
             CHART_LOCATION=$(yq ".${component}.chartLocation" hack/release.yaml)
-            # Skip next steps if component doesn't export a helm chart
-            if [ "$CHART_LOCATION" = "null" ]; then
-              continue
-            fi
+            if [ "$CHART_LOCATION" != "null" ]; then
+              CHART_NAME=$(yq ".${component}.chartName" hack/release.yaml)
+              # Use SOURCE_REPO if chartName is null or empty
+              if [ "$CHART_NAME" = "null" ] || [ -z "$CHART_NAME" ]; then
+                CHART_NAME=$SOURCE_REPO
+              fi
+              CHART_LOCATION_IN_NETWORK_OPERATOR=deployment/network-operator/charts/$CHART_NAME
+              rm -rf $CHART_LOCATION_IN_NETWORK_OPERATOR/*
+              cp -r ../$SOURCE_REPO/$CHART_LOCATION/* $CHART_LOCATION_IN_NETWORK_OPERATOR
 
-            CHART_NAME=$(yq ".${component}.chartName" hack/release.yaml)
-            # Use SOURCE_REPO if chartName is null or empty
-            if [ "$CHART_NAME" = "null" ] || [ -z "$CHART_NAME" ]; then
-              CHART_NAME=$SOURCE_REPO
-            fi
-            CHART_LOCATION_IN_NETWORK_OPERATOR=deployment/network-operator/charts/$CHART_NAME
-            rm -rf $CHART_LOCATION_IN_NETWORK_OPERATOR/*
-            cp -r ../$SOURCE_REPO/$CHART_LOCATION/* $CHART_LOCATION_IN_NETWORK_OPERATOR
+              if ! git diff --color --unified=0 --exit-code; then
+                git add $CHART_LOCATION_IN_NETWORK_OPERATOR
+              fi
 
-            if ! git diff --color --unified=0 --exit-code; then
-              git add $CHART_LOCATION_IN_NETWORK_OPERATOR
-            fi
-
-            # Exclude chart files from update if specified in hack/release.yaml
-            EXCLUDE_CHART_FILES=$(yq ".${component}.excludeChartFiles" hack/release.yaml)
-            if [ -n "$EXCLUDE_CHART_FILES" ] && [ "$EXCLUDE_CHART_FILES" != "null" ]; then
-              echo "$EXCLUDE_CHART_FILES" | jq -r '.[]' | while read -r file_rel; do
-                file="$CHART_LOCATION_IN_NETWORK_OPERATOR/$file_rel"
-                echo "Processing excluded file: $file"
-                git restore --staged "$file" 2>/dev/null || true
-                if ! git checkout HEAD -- "$file" 2>/dev/null; then
-                  echo "File $file not found in HEAD, deleting it."
-                  rm -f "$file"
-                else
-                  echo "Restored $file from HEAD."
-                fi
-              done
+              # Exclude chart files from update if specified in hack/release.yaml
+              EXCLUDE_CHART_FILES=$(yq ".${component}.excludeChartFiles" hack/release.yaml)
+              if [ -n "$EXCLUDE_CHART_FILES" ] && [ "$EXCLUDE_CHART_FILES" != "null" ]; then
+                echo "$EXCLUDE_CHART_FILES" | jq -r '.[]' | while read -r file_rel; do
+                  file="$CHART_LOCATION_IN_NETWORK_OPERATOR/$file_rel"
+                  echo "Processing excluded file: $file"
+                  git restore --staged "$file" 2>/dev/null || true
+                  if ! git checkout HEAD -- "$file" 2>/dev/null; then
+                    echo "File $file not found in HEAD, deleting it."
+                    rm -f "$file"
+                  else
+                    echo "Restored $file from HEAD."
+                  fi
+                done
+              fi
             fi
           done
 
@@ -550,6 +574,7 @@ jobs:
 
           if ! git diff --color --unified=0 --exit-code; then
             git add deployment/network-operator/
+            git add -u -- manifests/
             git add hack/release.yaml
             if ! echo "$APP_VERSION" | grep -q '-'; then
               git add hack/release-nvstaging.yaml
