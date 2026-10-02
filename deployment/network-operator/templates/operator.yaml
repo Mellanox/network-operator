@@ -84,6 +84,11 @@ spec:
           - /manager
           args:
           - --leader-elect
+          {{- with .Values.operator.leaderElection }}
+          {{- if .renewDeadline }}
+          - --leader-lease-renew-deadline={{ .renewDeadline }}
+          {{- end }}
+          {{- end }}
           env:
             - name: STATE_MANIFEST_BASE_DIR
               value: "/manifests"
