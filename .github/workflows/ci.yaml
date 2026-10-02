@@ -260,3 +260,71 @@ jobs:
           --base $BASE_BRANCH \
           --title "task: update bundle to $VERSION_WITH_PREFIX" \
           --body "Created by the *${{ github.job }}* job in [${{ github.repository }} OCP bundle CI](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+
+  # Isolated from ocp-bundle so a coverage-bundle failure cannot fail the production bundle.
+  ocp-bundle-coverage:
+    if: needs.docker-build-push.outputs.publish == 'true'
+    needs:
+    - docker-build-push
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7
+    - name: Determine version
+      env:
+        GITHUB_REF_TYPE: ${{ github.ref_type }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+      run: |
+        if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+          git_tag="$GITHUB_REF_NAME"
+          echo VERSION_WITH_PREFIX=$git_tag | tee -a $GITHUB_ENV
+          echo VERSION_WITHOUT_PREFIX=${git_tag:1} | tee -a $GITHUB_ENV
+        elif [[ "$GITHUB_REF_TYPE" == "branch" ]]; then
+          echo VERSION_WITH_PREFIX=$(git rev-parse --short=12 HEAD) | tee -a $GITHUB_ENV
+        fi
+    - uses: docker/login-action@v4
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.NVCR_USERNAME }}
+        password: ${{ secrets.NVCR_TOKEN }}
+    - name: Lookup coverage image digest
+      run: |
+        coverage_digest=$(skopeo inspect docker://$REGISTRY/$IMAGE_NAME:$VERSION_WITH_PREFIX-coverage | jq -r .Digest)
+        echo $coverage_digest | wc -w | grep 1  # verifies value not empty
+        echo COVERAGE_DIGEST=$coverage_digest | tee -a $GITHUB_ENV
+    - name: Make coverage bundle
+      env:
+        TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.COVERAGE_DIGEST }}
+        BUNDLE_COVERAGE_IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:${{ env.VERSION_WITH_PREFIX }}-coverage
+        NGC_CLI_API_KEY: ${{ secrets.NVCR_TOKEN }}
+        GITHUB_REF_TYPE: ${{ github.ref_type }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+      run: |
+        export NETWORK_OPERATOR_VERSION=$VERSION_WITH_PREFIX-coverage
+        if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+          version_major_minor=$(echo "$VERSION_WITH_PREFIX" | grep -Eo 'v[0-9]+\.[0-9]+')
+          export CHANNELS=stable,$version_major_minor
+          export DEFAULT_CHANNEL=stable
+          export VERSION="$VERSION_WITHOUT_PREFIX"
+          # GA tags: release.yaml points at production, which is empty until NGC
+          # promotion. Resolve related-image SHAs from nvstaging instead.
+          if [[ "$VERSION_WITH_PREFIX" != *-* ]]; then
+            export RELEASE_DEFAULTS=release-nvstaging.yaml
+          fi
+        elif [[ "$GITHUB_REF_TYPE" == "branch" ]]; then
+          export DEFAULT_CHANNEL=stable
+          if [[ "$GITHUB_REF_NAME" == "$DEFAULT_BRANCH" ]]; then
+            export CHANNELS=stable,v1.1  # hard coded for master
+            export VERSION=1.1.0-$VERSION_WITH_PREFIX  # using the commit hash
+          else
+            # release branch vX.Y.x → channels stable,vX.Y and version X.Y.0-<sha>
+            version_major_minor=$(echo "$GITHUB_REF_NAME" | grep -Eo '^v[0-9]+\.[0-9]+')
+            export CHANNELS=stable,$version_major_minor
+            export VERSION=${version_major_minor:1}.0-$VERSION_WITH_PREFIX
+            export NETWORK_OPERATOR_REPO=$REGISTRY
+          fi
+        fi
+        make bundle-coverage bundle-coverage-build bundle-coverage-push
+        if [[ "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" == "$DEFAULT_BRANCH" ]]; then
+          export BUNDLE_COVERAGE_IMG=$REGISTRY/$IMAGE_NAME-bundle:latest-coverage
+          make bundle-coverage-build bundle-coverage-push
+        fi
