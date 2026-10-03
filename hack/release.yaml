@@ -210,7 +210,7 @@ nodeFeatureDiscovery:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: 7a0205ef
   chartLocation: deployment/helm/node-feature-discovery
   nSpectScope: gov-ready
 k8sLaunchKit:
