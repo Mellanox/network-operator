@@ -187,7 +187,7 @@ spectrumXOperator:
   sourceRepository: spectrum-x-operator
   crdSourceLocation: config/crd/bases
   crdTargetLocation: manifests/state-spectrum-x-operator
-  version: network-operator-v26.10.0-beta.2
+  version: b28ffbf
   nSpectScope: general
 spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
