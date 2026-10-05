@@ -203,7 +203,7 @@ spectrumXOperatorStigFipsUbuntu:
   nSpectScope: fedramp
 xPlaneService:
   image: xplane
-  repository: nvcr.io/nvstaging/doca
+  repository: nvcr.io/nvidia/doca
   version: 3.5.0041
 nodeFeatureDiscovery:
   image: node-feature-discovery
