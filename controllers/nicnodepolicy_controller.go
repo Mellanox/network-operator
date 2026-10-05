@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -107,11 +108,12 @@ func (r *NicNodePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	r.updateCrStatus(ctx, instance, managerStatus)
 
 	// Update mofed.wait labels on nodes where this NNP's OFED pods are running
-	if err := r.handleMOFEDWaitLabels(ctx, instance); err != nil {
+	shouldRequeueMofed, err := r.handleMOFEDWaitLabels(ctx, instance)
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	if managerStatus.Status != state.SyncStateReady {
+	if shouldRequeueMofed || managerStatus.Status != state.SyncStateReady {
 		return r.requeue()
 	}
 
@@ -130,10 +132,11 @@ func (r *NicNodePolicyReconciler) updateCrStatus(
 
 // handleMOFEDWaitLabels manages mofed.wait labels on nodes where this NNP's OFED pods run.
 // If this NNP does not have ofedDriver, it is a no-op.
+// Returns true while a pod's node or MOFED container is not ready.
 func (r *NicNodePolicyReconciler) handleMOFEDWaitLabels(
-	ctx context.Context, instance *mellanoxv1alpha1.NicNodePolicy) error {
+	ctx context.Context, instance *mellanoxv1alpha1.NicNodePolicy) (bool, error) {
 	if instance.Spec.OFEDDriver == nil {
-		return nil
+		return false, nil
 	}
 	dsOwner := mellanoxv1alpha1.NicNodePolicyShortName + "-" + instance.Name
 	return handleOFEDWaitLabelsForPods(ctx, r.Client, map[string]string{
@@ -225,8 +228,7 @@ func (r *NicNodePolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog lo
 	bld = watchClusterWideProxy(bld, setupLog, r.ClusterTypeProvider, mgr.GetRESTMapper(),
 		enqueueNicNodePoliciesWithOFED(mgr.GetClient()))
 
-	// Watch Node objects for label changes so re-labeling triggers re-reconciliation
-	// and overlap detection runs again
+	// Watch Node labels for overlap detection and readiness for OFED wait labels.
 	bld = bld.Watches(&corev1.Node{}, handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, _ client.Object) []reconcile.Request {
 			// Re-reconcile all NicNodePolicies when a node changes
@@ -242,7 +244,7 @@ func (r *NicNodePolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog lo
 			}
 			return requests
 		}),
-		builder.WithPredicates(NodeLabelChangePredicate{}),
+		builder.WithPredicates(predicate.Or(NodeLabelChangePredicate{}, NodeReadyChangedPredicate{})),
 	)
 
 	return bld.Complete(r)
