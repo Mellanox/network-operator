@@ -264,6 +264,13 @@ This is regarded as advanced functionallity and generally should not be needed.
 
 check [MOFED Driver Container Environment Variables](docs/mofed-container-env-vars.md)
 
+For nodes running an operator-managed MOFED pod, the operator sets
+`network.nvidia.com/operator.mofed.wait=true` when the node is not Ready,
+even if the driver container still reports ready. It clears the wait label
+to `false` once both the node and `mofed-container` report ready. Both
+NicClusterPolicy and NicNodePolicy react to node readiness changes and
+continue checking at the configured reconciliation interval while waiting.
+
 ## Upgrade
 Check [Upgrade section in Helm Chart documentation](deployment/network-operator/README.md#upgrade) for details.
 
