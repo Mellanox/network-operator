@@ -63,7 +63,7 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create hostdevice network empty state", func() {
+		It("should report notReady for an incomplete hostdevice network", func() {
 			cr := mellanoxv1alpha1.HostDeviceNetwork{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "HostDeviceNetwork",
@@ -83,12 +83,17 @@ var _ = Describe("HostDeviceNetwork Controller", func() {
 			err := k8sClient.Create(goctx.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
 
-			found := &mellanoxv1alpha1.HostDeviceNetwork{}
-			state := mellanoxv1alpha1.State("")
-			err = k8sClient.Get(goctx.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, found)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found.Status.State).To(Equal(state))
-			Expect(found.Status.Reason).To(Equal(""))
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(goctx.TODO(), &cr)).To(Succeed())
+			})
+
+			Eventually(func(g Gomega) {
+				found := &mellanoxv1alpha1.HostDeviceNetwork{}
+				g.Expect(k8sClient.Get(goctx.TODO(),
+					types.NamespacedName{Name: cr.GetName()}, found)).To(Succeed())
+				g.Expect(found.Status.State).To(Equal(mellanoxv1alpha1.State(mellanoxv1alpha1.StateNotReady)))
+				g.Expect(found.Status.Reason).To(BeEmpty())
+			}, timeout, interval).Should(Succeed())
 
 		})
 	})

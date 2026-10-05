@@ -221,13 +221,10 @@ func (r *NicClusterPolicyReconciler) handleMOFEDWaitLabels(
 	// Try NCP-scoped query first (pods with ds-owner label).
 	// Fall back to unscoped query for pods that predate the ds-owner label addition
 	// (OFED DS uses OnDelete strategy, so existing pods won't have the new label until restarted).
-	if err := handleOFEDWaitLabelsForPodsWithFallback(ctx, r.Client,
+	return handleOFEDWaitLabelsForPodsWithFallback(ctx, r.Client,
 		map[string]string{consts.OfedDriverLabel: "",
 			consts.DSOwnerLabel: mellanoxv1alpha1.NicClusterPolicyCRDName},
-		map[string]string{consts.OfedDriverLabel: ""}); err != nil {
-		return false, err
-	}
-	return false, nil
+		map[string]string{consts.OfedDriverLabel: ""})
 }
 
 // handleMOFEDWaitLabelsNoConfig handles mofed.wait labels when OFED is NOT configured in NCP.
@@ -352,6 +349,7 @@ func (r *NicClusterPolicyReconciler) SetupWithManager(mgr ctrl.Manager, setupLog
 	nodeEventPredicates := predicate.Or(
 		MlnxLabelChangedPredicate{},
 		NodeTaintChangedPredicate{},
+		NodeReadyChangedPredicate{},
 	)
 
 	// Add a watch for Node resources with the combined predicates

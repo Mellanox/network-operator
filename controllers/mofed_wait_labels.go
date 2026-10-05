@@ -63,50 +63,69 @@ func setNodeLabel(ctx context.Context, c client.Client, node, label, value strin
 // handleOFEDWaitLabelsForPodsWithFallback tries the primary label selector, and if it matches
 // zero pods, falls back to the fallback selector. This handles the OnDelete upgrade migration
 // where existing OFED pods don't yet have the ds-owner label on the pod template.
+// Returns true while a pod's node or MOFED container is not ready.
 func handleOFEDWaitLabelsForPodsWithFallback(ctx context.Context, c client.Client,
-	primaryLabels, fallbackLabels map[string]string) error {
+	primaryLabels, fallbackLabels map[string]string) (bool, error) {
 	reqLogger := log.FromContext(ctx)
 	pods := &corev1.PodList{}
 	if err := c.List(ctx, pods, client.MatchingLabels(primaryLabels)); err != nil {
-		return errors.Wrap(err, "failed to list OFED pods with primary selector")
+		return false, errors.Wrap(err, "failed to list OFED pods with primary selector")
 	}
 	if len(pods.Items) == 0 && fallbackLabels != nil {
 		reqLogger.V(consts.LogLevelDebug).Info(
 			"no pods matched primary selector, falling back to broader selector")
 		if err := c.List(ctx, pods, client.MatchingLabels(fallbackLabels)); err != nil {
-			return errors.Wrap(err, "failed to list OFED pods with fallback selector")
+			return false, errors.Wrap(err, "failed to list OFED pods with fallback selector")
 		}
 	}
 	return processOFEDPodsForWaitLabels(ctx, c, pods)
 }
 
 // handleOFEDWaitLabelsForPods lists OFED pods matching the given labels,
-// checks container readiness, and sets mofed.wait on each pod's node.
+// checks node and container readiness, and sets mofed.wait on each pod's node.
 // Pods without a NodeName (pending) are skipped.
+// Returns true while a pod's node or MOFED container is not ready.
 func handleOFEDWaitLabelsForPods(ctx context.Context, c client.Client,
-	matchLabels map[string]string) error {
+	matchLabels map[string]string) (bool, error) {
 	pods := &corev1.PodList{}
 	if err := c.List(ctx, pods, client.MatchingLabels(matchLabels)); err != nil {
-		return errors.Wrap(err, "failed to list OFED pods")
+		return false, errors.Wrap(err, "failed to list OFED pods")
 	}
 	return processOFEDPodsForWaitLabels(ctx, c, pods)
 }
 
-// processOFEDPodsForWaitLabels iterates over OFED pods, checks mofed-container readiness,
+// nodeReadyStatus returns the Ready condition status, or an empty status when it is absent.
+func nodeReadyStatus(node *corev1.Node) corev1.ConditionStatus {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady {
+			return condition.Status
+		}
+	}
+	return ""
+}
+
+// processOFEDPodsForWaitLabels iterates over OFED pods, checks node and mofed-container readiness,
 // and sets mofed.wait on each pod's node. Pods without a NodeName (pending) are skipped.
-func processOFEDPodsForWaitLabels(ctx context.Context, c client.Client, pods *corev1.PodList) error {
+// Returns true while any processed node needs to wait so recovery is retried even if
+// the DaemonSet status does not change during a brief readiness transition.
+func processOFEDPodsForWaitLabels(ctx context.Context, c client.Client, pods *corev1.PodList) (bool, error) {
 	reqLogger := log.FromContext(ctx)
+	shouldRequeue := false
 	for i := range pods.Items {
 		pod := &pods.Items[i]
 		if pod.Spec.NodeName == "" {
 			continue
+		}
+		node := &corev1.Node{}
+		if err := c.Get(ctx, types.NamespacedName{Name: pod.Spec.NodeName}, node); err != nil {
+			return false, errors.Wrapf(err, "failed to get node %s for OFED wait label", pod.Spec.NodeName)
 		}
 		labelValue := "true"
 		// Check readiness of the mofed-container specifically.
 		// On OCP, OFED pods may include a DTK (Driver Toolkit) sidecar container.
 		for j := range pod.Status.ContainerStatuses {
 			if pod.Status.ContainerStatuses[j].Name == "mofed-container" {
-				if pod.Status.ContainerStatuses[j].Ready {
+				if pod.Status.ContainerStatuses[j].Ready && nodeReadyStatus(node) == corev1.ConditionTrue {
 					reqLogger.V(consts.LogLevelDebug).Info("OFED Pod is ready on the node",
 						"node", pod.Spec.NodeName)
 					labelValue = "false"
@@ -114,11 +133,14 @@ func processOFEDPodsForWaitLabels(ctx context.Context, c client.Client, pods *co
 				break
 			}
 		}
+		if labelValue == "true" {
+			shouldRequeue = true
+		}
 		if err := setNodeLabel(ctx, c, pod.Spec.NodeName, nodeinfo.NodeLabelWaitOFED, labelValue); err != nil {
-			return err
+			return false, err
 		}
 	}
-	return nil
+	return shouldRequeue, nil
 }
 
 // clearOrphanedMOFEDWaitLabels finds nodes with mofed.wait=true that have no running OFED pods
