@@ -125,6 +125,29 @@ func (p NodeTaintChangedPredicate) Update(e event.UpdateEvent) bool {
 	return !equality.Semantic.DeepEqual(oldNode.Spec.Taints, newNode.Spec.Taints)
 }
 
+// NodeReadyChangedPredicate accepts updates to the Node Ready condition status.
+// Heartbeats and changes to other conditions do not affect OFED wait labels.
+type NodeReadyChangedPredicate struct{}
+
+// Update returns true when the Ready condition is added, removed, or changes status.
+func (p NodeReadyChangedPredicate) Update(e event.UpdateEvent) bool {
+	oldNode, oldOK := e.ObjectOld.(*corev1.Node)
+	newNode, newOK := e.ObjectNew.(*corev1.Node)
+	if !oldOK || !newOK || oldNode == nil || newNode == nil {
+		return false
+	}
+	return nodeReadyStatus(oldNode) != nodeReadyStatus(newNode)
+}
+
+// Create leaves node creation handling to the existing predicates.
+func (p NodeReadyChangedPredicate) Create(_ event.CreateEvent) bool { return false }
+
+// Delete leaves node deletion handling to the existing predicates.
+func (p NodeReadyChangedPredicate) Delete(_ event.DeleteEvent) bool { return false }
+
+// Generic ignores events without a readiness transition.
+func (p NodeReadyChangedPredicate) Generic(_ event.GenericEvent) bool { return false }
+
 // NodeLabelChangePredicate filters if node labels have changed.
 // Used to trigger NicNodePolicy re-reconciliation when node labels change,
 // which may affect node selector overlap detection.
