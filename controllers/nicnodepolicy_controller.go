@@ -115,7 +115,7 @@ func (r *NicNodePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return r.requeue()
 	}
 
-	return ctrl.Result{}, nil
+	return requeueForStates(managerStatus)
 }
 
 // requeue triggers resync with configured requeue delay.

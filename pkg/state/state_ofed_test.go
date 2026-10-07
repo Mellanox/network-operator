@@ -535,6 +535,12 @@ var _ = Describe("MOFED state test", func() {
 				}
 			}
 			Expect(daemonSet).NotTo(BeNil(), "A DaemonSet should have been rendered")
+
+			By("Verifying the pod tolerates everything node filtering assumed it would")
+			Expect(daemonSet.Spec.Template.Spec.Tolerations).To(
+				ConsistOf(driverPodTolerations(cr.Spec.Tolerations)))
+			Expect(schedulableNodeTolerations(cr.Spec.Tolerations)).To(
+				ContainElements(daemonSet.Spec.Template.Spec.Tolerations))
 		})
 	})
 	It("Should Render subscription mounts for SLES", func() {
@@ -1576,12 +1582,12 @@ var _ = Describe("MOFED state test", func() {
 		})
 	})
 
-	Context("addDefaultDaemonSetTolerations", func() {
+	Context("schedulableNodeTolerations", func() {
 		It("Should add all default DaemonSet tolerations to an empty list", func() {
-			result := addDefaultDaemonSetTolerations(nil)
+			result := schedulableNodeTolerations(nil)
 
-			// Should have 8 default tolerations: GPU + 7 DaemonSet defaults
-			Expect(len(result)).To(Equal(8))
+			// GPU + 7 DaemonSet defaults + the not-ready/unreachable NoSchedule pair
+			Expect(len(result)).To(Equal(10))
 
 			// Verify each expected toleration is present
 			expectedKeys := []string{
@@ -1617,10 +1623,10 @@ var _ = Describe("MOFED state test", func() {
 				},
 			}
 
-			result := addDefaultDaemonSetTolerations(existingTolerations)
+			result := schedulableNodeTolerations(existingTolerations)
 
-			// Should have 8 total: 1 existing GPU + 7 new DaemonSet defaults
-			Expect(len(result)).To(Equal(8))
+			// Should have 10 total: 1 existing GPU + 9 new defaults
+			Expect(len(result)).To(Equal(10))
 
 			// Count GPU tolerations - should only be 1
 			gpuCount := 0
@@ -1641,10 +1647,10 @@ var _ = Describe("MOFED state test", func() {
 				},
 			}
 
-			result := addDefaultDaemonSetTolerations(existingTolerations)
+			result := schedulableNodeTolerations(existingTolerations)
 
-			// Should have 8 total: 1 existing unschedulable + 7 new defaults
-			Expect(len(result)).To(Equal(8))
+			// Should have 10 total: 1 existing unschedulable + 9 new defaults
+			Expect(len(result)).To(Equal(10))
 
 			// Count unschedulable tolerations - should only be 1
 			unschedulableCount := 0
@@ -1671,10 +1677,10 @@ var _ = Describe("MOFED state test", func() {
 				},
 			}
 
-			result := addDefaultDaemonSetTolerations(customTolerations)
+			result := schedulableNodeTolerations(customTolerations)
 
-			// Should have 10 total: 2 custom + 8 defaults
-			Expect(len(result)).To(Equal(10))
+			// Should have 12 total: 2 custom + 10 defaults
+			Expect(len(result)).To(Equal(12))
 
 			// Verify custom tolerations are preserved
 			foundCustom1 := false
@@ -1696,21 +1702,13 @@ var _ = Describe("MOFED state test", func() {
 
 		It("Should not add duplicates when all default tolerations already exist", func() {
 			// Start with all default tolerations
-			existingTolerations := []v1.Toleration{
-				{Key: "nvidia.com/gpu", Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeNotReady, Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeUnreachable, Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeDiskPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeMemoryPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodePIDPressure, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeUnschedulable, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-				{Key: v1.TaintNodeNetworkUnavailable, Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
-			}
+			existingTolerations := schedulableNodeTolerations(nil)
+			Expect(len(existingTolerations)).To(Equal(10))
 
-			result := addDefaultDaemonSetTolerations(existingTolerations)
+			result := schedulableNodeTolerations(existingTolerations)
 
-			// Should still have exactly 8 - no duplicates added
-			Expect(len(result)).To(Equal(8))
+			// Should still have exactly 10 - no duplicates added
+			Expect(len(result)).To(Equal(10))
 		})
 
 		It("Should handle mixed scenario with some existing and some new tolerations", func() {
@@ -1723,10 +1721,10 @@ var _ = Describe("MOFED state test", func() {
 				{Key: "another-custom", Effect: v1.TaintEffectNoExecute, Operator: v1.TolerationOpExists},
 			}
 
-			result := addDefaultDaemonSetTolerations(mixedTolerations)
+			result := schedulableNodeTolerations(mixedTolerations)
 
-			// Should have 10 total: 3 existing (2 custom + 1 default) + 7 new defaults
-			Expect(len(result)).To(Equal(10))
+			// Should have 12 total: 3 existing (2 custom + 1 default) + 9 new defaults
+			Expect(len(result)).To(Equal(12))
 
 			// Verify disk pressure toleration appears only once
 			diskPressureCount := 0
@@ -1763,10 +1761,74 @@ var _ = Describe("MOFED state test", func() {
 
 		It("Should handle empty slice input", func() {
 			emptySlice := []v1.Toleration{}
-			result := addDefaultDaemonSetTolerations(emptySlice)
+			result := schedulableNodeTolerations(emptySlice)
 
-			// Should have 8 default tolerations
-			Expect(len(result)).To(Equal(8))
+			// Should have 10 default tolerations
+			Expect(len(result)).To(Equal(10))
+		})
+	})
+
+	Context("driverPodTolerations", func() {
+		It("Should add only the tolerations the operator renders into the pod", func() {
+			// Spelled out rather than compared against operatorDriverPodTolerations: the manifest
+			// interpolates this list unconditionally, so losing an entry renders
+			// "tolerations: null" rather than failing, and an expectation derived from the same
+			// variable would not notice.
+			Expect(driverPodTolerations(nil)).To(ConsistOf(
+				v1.Toleration{
+					Key:      "nvidia.com/gpu",
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpExists,
+				},
+				v1.Toleration{
+					Key:      v1.TaintNodeNotReady,
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpExists,
+				},
+				v1.Toleration{
+					Key:      v1.TaintNodeUnreachable,
+					Effect:   v1.TaintEffectNoSchedule,
+					Operator: v1.TolerationOpExists,
+				},
+			))
+		})
+
+		It("Should preserve the CR tolerations ahead of the operator's own", func() {
+			crToleration := v1.Toleration{
+				Key:      "custom-taint",
+				Effect:   v1.TaintEffectNoSchedule,
+				Operator: v1.TolerationOpEqual,
+				Value:    "true",
+			}
+
+			result := driverPodTolerations([]v1.Toleration{crToleration})
+
+			Expect(result).To(HaveLen(len(operatorDriverPodTolerations) + 1))
+			Expect(result[0]).To(Equal(crToleration))
+		})
+
+		It("Should not append into the CR's backing array", func() {
+			// A slice with spare capacity is what append would scribble into.
+			crTolerations := make([]v1.Toleration, 1, 8)
+			crTolerations[0] = v1.Toleration{Key: "custom-taint", Operator: v1.TolerationOpExists}
+
+			driverPodTolerations(crTolerations)
+
+			Expect(crTolerations).To(HaveLen(1))
+			Expect(crTolerations[:cap(crTolerations)][1]).To(Equal(v1.Toleration{}))
+		})
+
+		It("Should never tolerate more than node pool discovery assumes", func() {
+			// The filter decides which nodes get a DaemonSet, so it has to account for every
+			// toleration the pod ends up with. If the pod could tolerate something the filter
+			// does not, a node would be excluded from its pool and silently lose its driver;
+			// the reverse would hand the pod a node it cannot be scheduled onto.
+			crTolerations := []v1.Toleration{
+				{Key: "custom-taint", Effect: v1.TaintEffectNoSchedule, Operator: v1.TolerationOpExists},
+			}
+
+			Expect(schedulableNodeTolerations(crTolerations)).To(
+				ContainElements(driverPodTolerations(crTolerations)))
 		})
 	})
 })
