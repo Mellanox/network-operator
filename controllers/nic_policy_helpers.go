@@ -56,6 +56,17 @@ func requeueWithDelay() (reconcile.Result, error) {
 	}, nil
 }
 
+// requeueForStates returns the reconcile result for a sync that needs no retry, honoring any
+// deadline a state is waiting on. A state waiting on a deadline gets no event when it passes, and
+// a Ready policy is not reconciled again on its own, so the requeue scheduled here is the only
+// thing that will ever revisit it.
+func requeueForStates(status state.Results) (reconcile.Result, error) {
+	if status.RequeueAfter <= 0 {
+		return reconcile.Result{}, nil
+	}
+	return reconcile.Result{RequeueAfter: status.RequeueAfter}, nil
+}
+
 // updatePolicyCRStatus upserts AppliedStates from sync results and updates CR status via API.
 func updatePolicyCRStatus(ctx context.Context, statusClient client.StatusClient,
 	cr mellanoxv1alpha1.NicPolicyCR, status state.Results) {

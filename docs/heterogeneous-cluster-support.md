@@ -88,6 +88,32 @@ The `ds-owner` label (on both DaemonSet and pod template) tracks which policy ow
 - NCP: `ds-owner: NicClusterPolicy`
 - NNP: `ds-owner: NicNodePolicy-<name>`
 
+## Node Pool Disappearance and Deferred Cleanup
+
+One OFED DaemonSet is rendered per node pool, where a pool is the set of nodes sharing an OS and kernel version. Pool membership is derived from NFD labels every reconciliation, so a pool has no eligible nodes whenever its nodes are temporarily invisible to the operator — NFD labels briefly missing after a reboot, an untolerated taint, or an API server blip. A pool with no nodes renders no DaemonSet, and without special handling the ordinary stale-object cleanup would read that as "no longer wanted" and delete a DaemonSet whose workload is still running and still needed.
+
+The operator therefore never deletes an OFED DaemonSet solely because its pool is empty:
+
+- The pool a DaemonSet belongs to is recomputed from the DaemonSet's own `nodeSelector` (the OS name, OS version, and kernel-version NFD labels), so the check works for DaemonSets rendered by earlier operator versions and needs no stored state.
+- When a DaemonSet is not rendered and its pool is empty, the DaemonSet is kept and annotated with `network.nvidia.com/stale-since`, an RFC3339 UTC timestamp of when it was first observed this way. The annotation lives on the object so the deferral survives operator restarts and leader-election handovers. The shared ServiceAccount, RBAC objects, and init container ConfigMap are kept alongside it so the retained pods can restart.
+- If the pool comes back, the annotation is removed on the next reconciliation and the deferral is canceled.
+- If the pool is still empty 20 minutes after the first observation, the pool is treated as genuinely retired and the DaemonSet is deleted. The grace period is a build-time constant (`staleOFEDGracePeriod`).
+- Deletion that follows from intent is unaffected: removing `ofedDriver` from a policy or deleting the policy deletes the DaemonSet immediately, whether or not the pool has nodes. The deferral only ever applies to a DaemonSet the operator stopped rendering because pool discovery came up empty.
+- Retargeting a `NicNodePolicy` is intent too, and is also exempt. A rendered `nodeSelector` is the policy's own `nodeSelector` laid over the NFD pool labels, so a DaemonSet whose `nodeSelector` no longer covers everything the policy currently asks for was built for different nodes, and it is deleted at once rather than deferred. Holding it would keep its pod on a node for the whole grace period, and because the driver pods are mutually anti-affine per node, a policy that has taken that node over could not start there until the deferral expired. The pool labels are not reserved — a policy is free to select on them, and entries it sets count as the policy's own. Widening a `nodeSelector` is not retargeting, since every node matched before is matched still. Node *labels* changing is not intent either: a label disappearing is indistinguishable from the transient label loss this mechanism exists to absorb, whereas a policy edit is unambiguous.
+
+A driver version change is applied in place, because a DaemonSet is named after its pool and not after the version. While the pool has nodes the new version is written to the DaemonSet on the next reconciliation, as before. While the pool has none, there is no rendered DaemonSet to carry the new version, and deleting the old one would take the driver away from nodes that are still running it — the failure this mechanism exists to prevent. The upgrade therefore waits and is applied the moment the pool reappears; if the pool never does, the DaemonSet is reaped with it at the end of the grace period.
+
+A pending deadline produces no cluster event when it passes, so the OFED state reports the remaining delay up through the state manager and both policy controllers schedule a `RequeueAfter` for it — including on an otherwise ready reconciliation, where nothing else would bring the policy back.
+
+### Tolerations and Pool Eligibility
+
+A node only joins a pool if the driver pod tolerates its taints, so the eligibility filter and the rendered pod have to agree: a filter stricter than scheduling drops nodes that would have run the driver, and a filter looser than scheduling hands the pod a node it can never be placed on. Both are therefore derived from one list in `state_ofed.go`:
+
+- `driverPodTolerations` — the tolerations rendered into the pod template: whatever `tolerations` the policy sets, plus `nvidia.com/gpu:NoSchedule` and the `NoSchedule` halves of `node.kubernetes.io/not-ready` and `node.kubernetes.io/unreachable`. The last two matter because the driver is part of what makes a node ready, and its own `openibd` restart can flip the node `NotReady` for a moment; the DaemonSet controller tolerates only the `NoExecute` halves, which protects a running pod but would leave a restarting one unschedulable exactly when it is needed.
+- `schedulableNodeTolerations` — what pool eligibility is judged against: `driverPodTolerations` plus the tolerations the DaemonSet controller injects at admission (the `NoExecute` not-ready/unreachable pair and the pressure/unschedulable/network-unavailable taints).
+
+Because the second is derived from the first, the filter cannot drift into claiming a node the pod would not be scheduled onto. Anything added to the pod's tolerations must go through `driverPodTolerations` rather than into the DaemonSet manifest directly.
+
 ## OFED Wait Label (`mofed.wait`)
 
 Several downstream DaemonSets (RDMA DP, SR-IOV DP, DOCA telemetry, NIC configuration daemon) use `network.nvidia.com/operator.mofed.wait: "false"` as a nodeSelector. This label gates their scheduling until the OFED driver is ready on a node.

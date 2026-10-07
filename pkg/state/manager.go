@@ -18,6 +18,7 @@ package state
 
 import (
 	"context"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,6 +50,18 @@ type Result struct {
 type Results struct {
 	Status       SyncState
 	StatesStatus []Result
+	// RequeueAfter is the soonest delay any State asked to be synced again after, or 0 when none
+	// did. Controllers must schedule it even on a Ready result, see RequeueProvider.
+	RequeueAfter time.Duration
+}
+
+// RequeueProvider is implemented by States that wait on a deadline rather than on a cluster
+// event. Kubernetes fires nothing when a deadline passes, and a State that reaches Ready is not
+// reconciled again on its own, so such a State would otherwise never be revisited.
+type RequeueProvider interface {
+	// RequeueAfter returns the delay until the State must be synced again, or 0 when it has
+	// nothing pending. It describes the most recent Sync.
+	RequeueAfter() time.Duration
 }
 
 type stateManager struct {
@@ -93,6 +106,12 @@ func (smgr *stateManager) SyncState(ctx context.Context, customResource interfac
 
 		if result.ErrInfo != nil {
 			reqLogger.V(consts.LogLevelWarning).Error(result.ErrInfo, "Error while syncing state")
+		}
+
+		if rp, ok := state.(RequeueProvider); ok {
+			if d := rp.RequeueAfter(); d > 0 && (managerResult.RequeueAfter == 0 || d < managerResult.RequeueAfter) {
+				managerResult.RequeueAfter = d
+			}
 		}
 	}
 

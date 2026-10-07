@@ -67,6 +67,13 @@ const (
 	// sha256ImageFormat is the sha256 DOCA driver container image name format
 	// format: <repo>/<image-name>@<sha256-hash>
 	sha256ImageFormat = "%s/%s@%s"
+
+	// staleOFEDGracePeriod bounds how long a MOFED DaemonSet whose node pool has no eligible
+	// nodes is kept before it is reaped. A pool reaching zero nodes carries no information about
+	// intent: a node that is NotReady, tainted or rebooting leaves pool discovery exactly like a
+	// node whose kernel was upgraded away. The DaemonSet is therefore kept until the pool has
+	// been absent long enough that a retired pool is the only remaining explanation.
+	staleOFEDGracePeriod = 20 * time.Minute
 )
 
 // Openshift cluster-wide Proxy
@@ -229,6 +236,11 @@ func NewStateOFED(
 
 type stateOFED struct {
 	stateSkel
+
+	// staleRequeue is the delay until the soonest pending stale-DaemonSet deadline found by the
+	// last Sync, or 0 when nothing is pending. Like dsOwner it is per-Sync scratch state and
+	// relies on a state never being synced concurrently with itself.
+	staleRequeue time.Duration
 }
 
 type additionalVolumeMounts struct {
@@ -360,6 +372,7 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 		return SyncStateError, fmt.Errorf("unsupported CR type: %T", customResource)
 	}
 	s.dsOwner = dsOwnerValue(cr)
+	s.staleRequeue = 0
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"Sync Custom resource", "State:", s.name, "Name:", cr.GetName(), "Namespace:", cr.GetNamespace())
 
@@ -405,7 +418,13 @@ func (s *stateOFED) Sync(ctx context.Context, customResource interface{}, infoCa
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to create/update objects")
 	}
-	waitForStaleObjectsRemoval, err := s.handleStaleStateObjects(ctx, objs)
+	retention, err := s.planStaleRetention(ctx, cr, objs, poolNameSet(ofedNodePools(nodeInfo, cr)))
+	if err != nil {
+		return SyncStateNotReady, errors.Wrap(err, "failed to evaluate stale OFED DaemonSets")
+	}
+	s.staleRequeue = retention.nextDeadline
+
+	waitForStaleObjectsRemoval, err := s.handleStaleStateObjectsWithRetention(ctx, objs, retention.retain)
 	if err != nil {
 		return SyncStateNotReady, errors.Wrap(err, "failed to handle state stale objects")
 	}
@@ -435,6 +454,262 @@ func (s *stateOFED) GetWatchSources() map[string]client.Object {
 	return wr
 }
 
+// RequeueAfter implements RequeueProvider. A deferred DaemonSet cleanup is the one thing this
+// state waits on that produces no cluster event, so it has to ask to be synced again.
+func (s *stateOFED) RequeueAfter() time.Duration {
+	return s.staleRequeue
+}
+
+// ofedNodePools discovers the node pools the OFED driver should be deployed to.
+//
+// Nodes are filtered against everything the driver pod tolerates at runtime, not just the
+// tolerations the CR asks for: a node excluded here loses its driver, so the filter must not be
+// stricter than scheduling actually is.
+func ofedNodePools(nodeInfo nodeinfo.Provider, cr mellanoxv1alpha1.NicPolicyCR) []nodeinfo.NodePool {
+	labelFilter := nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build()
+	taintFilter := nodeinfo.NewNodeTaintFilterBuilder().
+		WithTolerations(schedulableNodeTolerations(cr.GetTolerations())).Build()
+	return nodeInfo.GetNodePools(labelFilter, taintFilter)
+}
+
+// poolNameSet indexes node pools by name for membership tests.
+func poolNameSet(nodePools []nodeinfo.NodePool) map[string]struct{} {
+	names := make(map[string]struct{}, len(nodePools))
+	for i := range nodePools {
+		names[nodePools[i].Name] = struct{}{}
+	}
+	return names
+}
+
+// ofedPoolNameFromNodeSelector recovers the node pool a rendered OFED DaemonSet belongs to.
+// Its nodeSelector pins the three NFD labels that define a pool, so the pool identity is already
+// on the object. The DaemonSet name encodes the pool too, but only as a hash.
+func ofedPoolNameFromNodeSelector(selector map[string]string) (string, bool) {
+	osName, hasOSName := selector[nodeinfo.NodeLabelOSName]
+	osVersion, hasOSVersion := selector[nodeinfo.NodeLabelOSVer]
+	kernel, hasKernel := selector[nodeinfo.NodeLabelKernelVerFull]
+	if !hasOSName || !hasOSVersion || !hasKernel {
+		return "", false
+	}
+	return nodeinfo.PoolName(osName, osVersion, kernel), true
+}
+
+// ofedSelectorRetargeted reports whether a rendered OFED DaemonSet was built for nodes the policy
+// no longer selects.
+//
+// The manifest renders the policy's nodeSelector over the NFD labels that pin a DaemonSet to one
+// node pool, so a rendered selector always covers the policy's own entries. Asking whether it
+// still covers them keeps the two sources apart without naming the manifest's labels. Subtracting
+// a fixed set of label keys instead would be wrong, because a policy may select on those very
+// labels — targeting one OS version is an ordinary thing to write — and its entries would then be
+// mistaken for the manifest's and read back as an empty selector.
+//
+// Widening a selector is not retargeting and is deliberately not reported: every node matched
+// before is matched still, so no node was taken away from this DaemonSet on purpose.
+func ofedSelectorRetargeted(rendered, policy map[string]string) bool {
+	for key, value := range policy {
+		if renderedValue, ok := rendered[key]; !ok || renderedValue != value {
+			return true
+		}
+	}
+	return false
+}
+
+// staleOFEDRetention is one reconcile's decision about which objects of the OFED state the
+// generic stale cleanup may delete.
+type staleOFEDRetention struct {
+	// protected holds the undesired DaemonSets that are kept because their node pool has no
+	// eligible nodes right now.
+	protected map[types.NamespacedName]struct{}
+	// nextDeadline is the shortest remaining grace period across the protected DaemonSets, or 0
+	// when none are protected.
+	nextDeadline time.Duration
+}
+
+// retain implements retainStaleFunc.
+func (r *staleOFEDRetention) retain(obj *unstructured.Unstructured) bool {
+	if obj.GetKind() == "DaemonSet" {
+		_, protected := r.protected[objectKey(obj)]
+		return protected
+	}
+	// The ServiceAccount, RBAC and init container ConfigMap are shared by every pool, so they
+	// only ever look stale once all pools are gone — which is when a protected DaemonSet still
+	// needs them to be able to restart its pod.
+	return len(r.protected) > 0
+}
+
+// protect keeps the DaemonSet out of the generic stale cleanup for the given remaining grace
+// period, and tracks the soonest deadline the state has to be woken up for.
+func (r *staleOFEDRetention) protect(key types.NamespacedName, remaining time.Duration) {
+	r.protected[key] = struct{}{}
+	if r.nextDeadline == 0 || remaining < r.nextDeadline {
+		r.nextDeadline = remaining
+	}
+}
+
+// objectKey identifies a state object across the retention bookkeeping.
+func objectKey(obj client.Object) types.NamespacedName {
+	return types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
+}
+
+// desiredDaemonSetKeys indexes the DaemonSets the current reconcile rendered. Every other object
+// kind in the state is shared by all pools and so says nothing about an individual pool.
+func desiredDaemonSetKeys(desiredObjs []*unstructured.Unstructured) map[types.NamespacedName]struct{} {
+	desired := make(map[types.NamespacedName]struct{}, len(desiredObjs))
+	for _, obj := range desiredObjs {
+		if obj.GetKind() != "DaemonSet" {
+			continue
+		}
+		desired[objectKey(obj)] = struct{}{}
+	}
+	return desired
+}
+
+// planStaleRetention decides the fate of the OFED DaemonSets the current reconcile did not
+// render, and maintains the marker that bounds how long one can be kept.
+func (s *stateOFED) planStaleRetention(ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR,
+	desiredObjs []*unstructured.Unstructured, livePools map[string]struct{}) (*staleOFEDRetention, error) {
+	retention := &staleOFEDRetention{protected: map[types.NamespacedName]struct{}{}}
+	desired := desiredDaemonSetKeys(desiredObjs)
+
+	daemonSets := &appsv1.DaemonSetList{}
+	if err := s.client.List(ctx, daemonSets, client.MatchingLabels(s.stateLabels())); err != nil {
+		return nil, errors.Wrap(err, "failed to list OFED DaemonSets")
+	}
+
+	now := time.Now().UTC()
+	for i := range daemonSets.Items {
+		ds := &daemonSets.Items[i]
+
+		if _, stillDesired := desired[objectKey(ds)]; stillDesired {
+			// The pool came back. Cancel the pending cleanup: the desired revision is normally
+			// unchanged across a pool outage, so createOrUpdateObjs left the live object alone
+			// and the marker is still on it.
+			if err := s.clearStaleSince(ctx, ds); err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		remaining, err := s.deferralRemaining(ctx, cr, ds, livePools, now)
+		if err != nil {
+			return nil, err
+		}
+		if remaining > 0 {
+			retention.protect(objectKey(ds), remaining)
+		}
+	}
+	return retention, nil
+}
+
+// deferralRemaining reports how much longer an undesired OFED DaemonSet has to be kept, and 0
+// when the generic stale cleanup may delete it now.
+//
+// An undesired DaemonSet has two unrelated causes that the object alone cannot tell apart: it is
+// genuinely unwanted, or pool discovery found no eligible nodes for it. Only the second is
+// recoverable, and it is recognized by asking whether the DaemonSet's own pool is still live —
+// never by looking at node conditions or pod readiness, which say nothing about intent either.
+//
+// Intent the policy states outright needs no such inference and is never deferred: a DaemonSet
+// rendered for a nodeSelector the policy has since changed was retargeted away on purpose.
+func (s *stateOFED) deferralRemaining(ctx context.Context, cr mellanoxv1alpha1.NicPolicyCR,
+	ds *appsv1.DaemonSet, livePools map[string]struct{}, now time.Time) (time.Duration, error) {
+	reqLogger := log.FromContext(ctx)
+
+	poolName, ok := ofedPoolNameFromNodeSelector(ds.Spec.Template.Spec.NodeSelector)
+	if !ok {
+		reqLogger.V(consts.LogLevelWarning).Info(
+			"undesired OFED DaemonSet has no pool in its nodeSelector, leaving it to stale cleanup",
+			"DaemonSet", objectKey(ds).String())
+		return 0, nil
+	}
+	// A policy that no longer selects the nodes this DaemonSet was rendered for was retargeted
+	// on purpose, and unlike an empty pool that is an unambiguous statement of intent. Deferring
+	// it would hold the old driver pod on a node for the whole grace period, and the one-driver-
+	// per-node anti-affinity would keep any policy that took the node over from starting there.
+	if ofedSelectorRetargeted(ds.Spec.Template.Spec.NodeSelector, cr.GetNodeSelector()) {
+		reqLogger.V(consts.LogLevelInfo).Info(
+			"policy no longer selects the nodes of an undesired OFED DaemonSet, leaving it to stale cleanup",
+			"DaemonSet", objectKey(ds).String(), "Pool", poolName,
+			"RenderedNodeSelector", ds.Spec.Template.Spec.NodeSelector,
+			"PolicyNodeSelector", cr.GetNodeSelector())
+		return 0, nil
+	}
+	if _, live := livePools[poolName]; live {
+		// The pool has eligible nodes and still does not want this DaemonSet, so something
+		// changed on purpose.
+		return 0, nil
+	}
+
+	staleSince, err := s.markStaleSince(ctx, ds, now)
+	if err != nil {
+		return 0, err
+	}
+	remaining := staleOFEDGracePeriod - now.Sub(staleSince)
+	if remaining <= 0 {
+		reqLogger.V(consts.LogLevelInfo).Info(
+			"node pool of an OFED DaemonSet stayed absent for the whole grace period, reaping it",
+			"DaemonSet", objectKey(ds).String(), "Pool", poolName, "StaleSince", staleSince)
+		return 0, nil
+	}
+
+	reqLogger.V(consts.LogLevelInfo).Info(
+		"node pool of an undesired OFED DaemonSet has no eligible nodes, deferring cleanup",
+		"DaemonSet", objectKey(ds).String(), "Pool", poolName, "StaleSince", staleSince, "Remaining", remaining)
+	return remaining, nil
+}
+
+// markStaleSince returns the time the DaemonSet was first seen stale, stamping it on the object
+// when this is the first observation. The marker is stored on the object rather than in memory so
+// an operator restart or a leader-election handover continues the same grace period instead of
+// restarting it — which would leave a genuinely retired pool's DaemonSet behind forever.
+//
+// A marker is used in preference to starting a Kubernetes deletion with a finalizer because a
+// deletion cannot be abandoned once deletionTimestamp is set, and recovery must be able to
+// abandon it.
+func (s *stateOFED) markStaleSince(
+	ctx context.Context, ds *appsv1.DaemonSet, now time.Time) (time.Time, error) {
+	if raw, ok := ds.GetAnnotations()[consts.StaleSinceAnnotation]; ok {
+		if since, err := time.Parse(time.RFC3339, raw); err == nil {
+			return since.UTC(), nil
+		}
+		log.FromContext(ctx).V(consts.LogLevelWarning).Info(
+			"OFED DaemonSet has an unparsable stale-since annotation, restarting its grace period",
+			"DaemonSet", ds.GetName(), "Value", raw)
+	}
+
+	patched := ds.DeepCopy()
+	annotations := patched.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[consts.StaleSinceAnnotation] = now.Format(time.RFC3339)
+	patched.SetAnnotations(annotations)
+	if err := s.client.Patch(ctx, patched, client.MergeFrom(ds)); err != nil {
+		return now, errors.Wrapf(err, "failed to mark DaemonSet %s/%s stale", ds.GetNamespace(), ds.GetName())
+	}
+	return now, nil
+}
+
+// clearStaleSince drops the stale marker from a DaemonSet that is desired again.
+func (s *stateOFED) clearStaleSince(ctx context.Context, ds *appsv1.DaemonSet) error {
+	if _, ok := ds.GetAnnotations()[consts.StaleSinceAnnotation]; !ok {
+		return nil
+	}
+	patched := ds.DeepCopy()
+	annotations := patched.GetAnnotations()
+	delete(annotations, consts.StaleSinceAnnotation)
+	patched.SetAnnotations(annotations)
+	if err := s.client.Patch(ctx, patched, client.MergeFrom(ds)); err != nil {
+		return errors.Wrapf(err, "failed to clear the stale marker on DaemonSet %s/%s",
+			ds.GetNamespace(), ds.GetName())
+	}
+	log.FromContext(ctx).V(consts.LogLevelInfo).Info(
+		"node pool of an OFED DaemonSet has eligible nodes again, canceled its deferred cleanup",
+		"DaemonSet", ds.GetName())
+	return nil
+}
+
 // handleAdditionalMounts generates AdditionalVolumeMounts information for the specified ConfigMap
 func (s *stateOFED) handleAdditionalMounts(
 	ctx context.Context, volMounts *additionalVolumeMounts, configMapName, destDir string) error {
@@ -455,76 +730,117 @@ func (s *stateOFED) handleAdditionalMounts(
 	return nil
 }
 
-// addDefaultDaemonSetTolerations adds tolerations that the DaemonSet controller automatically adds at runtime.
-// These tolerations must be included in the filtering logic to avoid incorrectly filtering out nodes
-// that the DaemonSet pods will actually be able to schedule on.
+// operatorDriverPodTolerations are the tolerations the operator always renders into the driver
+// pod, on top of the ones the CR asks for.
+//
+// The NoSchedule halves of the not-ready and unreachable taints are here because the driver is
+// part of what makes a node ready: its own openibd restart can flip the node NotReady for a
+// moment. The DaemonSet controller tolerates only the NoExecute halves, which keeps an already
+// running pod from being evicted but would leave a restarting one unschedulable exactly when it
+// is needed.
+var operatorDriverPodTolerations = []v1.Toleration{
+	{
+		// The taint the GPU Operator puts on GPU nodes, which still need the driver.
+		Key:      "nvidia.com/gpu",
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeNotReady,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeUnreachable,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+}
+
+// daemonSetControllerTolerations are injected into every DaemonSet pod by the DaemonSet
+// controller at admission. They are deliberately absent from the pod template — the pod carries
+// them at runtime either way — but node eligibility has to account for them.
 // See: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/#taints-and-tolerations
-func addDefaultDaemonSetTolerations(tolerations []v1.Toleration) []v1.Toleration {
-	// Define all default tolerations that DaemonSet controller adds automatically
-	defaultTolerations := []v1.Toleration{
-		{
-			Key:      "nvidia.com/gpu",
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodeNotReady,
-			Effect:   v1.TaintEffectNoExecute,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodeUnreachable,
-			Effect:   v1.TaintEffectNoExecute,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodeDiskPressure,
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodeMemoryPressure,
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodePIDPressure,
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			Key:      v1.TaintNodeUnschedulable,
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-		{
-			// Added for DaemonSet Pods that request host networking (which OFED does)
-			Key:      v1.TaintNodeNetworkUnavailable,
-			Effect:   v1.TaintEffectNoSchedule,
-			Operator: v1.TolerationOpExists,
-		},
-	}
+var daemonSetControllerTolerations = []v1.Toleration{
+	{
+		Key:      v1.TaintNodeNotReady,
+		Effect:   v1.TaintEffectNoExecute,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeUnreachable,
+		Effect:   v1.TaintEffectNoExecute,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeDiskPressure,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeMemoryPressure,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodePIDPressure,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		Key:      v1.TaintNodeUnschedulable,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+	{
+		// Added only for DaemonSet pods that request host networking, which the driver does.
+		Key:      v1.TaintNodeNetworkUnavailable,
+		Effect:   v1.TaintEffectNoSchedule,
+		Operator: v1.TolerationOpExists,
+	},
+}
 
-	// Handle nil input gracefully
-	if tolerations == nil {
-		tolerations = make([]v1.Toleration, 0)
-	}
+// driverPodTolerations returns the tolerations rendered into the driver pod template.
+func driverPodTolerations(crTolerations []v1.Toleration) []v1.Toleration {
+	return mergeTolerations(crTolerations, operatorDriverPodTolerations)
+}
 
-	// Add each default toleration if not already present
-	for _, defaultTol := range defaultTolerations {
-		found := false
-		for _, t := range tolerations {
-			if t.Key == defaultTol.Key && t.Effect == defaultTol.Effect && t.Operator == defaultTol.Operator {
-				found = true
-				break
-			}
+// schedulableNodeTolerations returns every toleration the driver pod has in effect once it is
+// running: what the pod template declares plus what the DaemonSet controller injects. A node
+// belongs to a pool only if this set covers its taints.
+//
+// It is derived from driverPodTolerations rather than listed on its own so that the filter
+// cannot come to claim a node the pod would never be scheduled onto.
+func schedulableNodeTolerations(crTolerations []v1.Toleration) []v1.Toleration {
+	return mergeTolerations(driverPodTolerations(crTolerations), daemonSetControllerTolerations)
+}
+
+// mergeTolerations returns base followed by every addition base does not already cover. The
+// result is a fresh slice: base belongs to the CR, and appending onto it in place would write
+// into the CR's backing array whenever it has spare capacity.
+func mergeTolerations(base, additions []v1.Toleration) []v1.Toleration {
+	merged := make([]v1.Toleration, len(base), len(base)+len(additions))
+	copy(merged, base)
+	for _, addition := range additions {
+		if !coversToleration(merged, addition) {
+			merged = append(merged, addition)
 		}
-		if !found {
-			tolerations = append(tolerations, defaultTol)
+	}
+	return merged
+}
+
+// coversToleration reports whether the list already tolerates what the given toleration does.
+// Value is not compared because every toleration added here uses the Exists operator, for which
+// Kubernetes ignores it.
+func coversToleration(tolerations []v1.Toleration, toleration v1.Toleration) bool {
+	for _, existing := range tolerations {
+		if existing.Key == toleration.Key &&
+			existing.Effect == toleration.Effect &&
+			existing.Operator == toleration.Operator {
+			return true
 		}
 	}
-
-	return tolerations
+	return false
 }
 
 //nolint:funlen
@@ -545,16 +861,7 @@ func (s *stateOFED) GetManifestObjects(
 		return nil, err
 	}
 
-	// Add default DaemonSet tolerations to the list of tolerations from CR for filtering purposes.
-	// The DaemonSet controller automatically adds these tolerations at runtime, so we need to include
-	// them in our node filtering logic to avoid incorrectly filtering out eligible nodes.
-	tolerationsForFiltering := addDefaultDaemonSetTolerations(cr.GetTolerations())
-
-	// Create filters for labels and taints
-	labelFilter := nodeinfo.NewNodeLabelFilterBuilder().WithLabel(nodeinfo.NodeLabelMlnxNIC, "true").Build()
-	taintFilter := nodeinfo.NewNodeTaintFilterBuilder().WithTolerations(tolerationsForFiltering).Build()
-
-	nodePools := nodeInfo.GetNodePools(labelFilter, taintFilter) // Apply the filters
+	nodePools := ofedNodePools(nodeInfo, cr)
 
 	if len(nodePools) == 0 {
 		reqLogger.V(consts.LogLevelInfo).Info("No nodes with Mellanox NICs and matching tolerations found")
@@ -669,7 +976,7 @@ func renderObjects(ctx context.Context, nodePool *nodeinfo.NodePool, useDtk bool
 			DtkImageName:       dtkImageName,
 			RhcosVersion:       rhcosVersion,
 		},
-		Tolerations:            cr.GetTolerations(),
+		Tolerations:            driverPodTolerations(cr.GetTolerations()),
 		NodeAffinity:           cr.GetNodeAffinity(),
 		NodeSelector:           cr.GetNodeSelector(),
 		DSOwner:                dsOwnerValue(cr),

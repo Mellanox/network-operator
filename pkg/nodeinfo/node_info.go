@@ -61,6 +61,13 @@ type NodePool struct {
 	ContainerRuntime string
 }
 
+// PoolName builds the identity of the node pool that the given OS and kernel belong to.
+// Callers that only hold the attributes a pool was derived from (for example the nodeSelector of
+// an already rendered workload) use this to recover the pool name without a Node lookup.
+func PoolName(osName, osVersion, kernel string) string {
+	return fmt.Sprintf("%s%s-%s", osName, osVersion, kernel)
+}
+
 // GetNodePools partitions nodes into one or more node pools. The list of nodes to partition
 // is defined by the filters provided as input.
 //
@@ -116,7 +123,7 @@ func (p *provider) GetNodePools(filters ...Filter) []NodePool {
 
 		nodePool.ContainerRuntime = getContainerRuntime(node)
 
-		nodePool.Name = fmt.Sprintf("%s%s-%s", nodePool.OsName, nodePool.OsVersion, nodePool.Kernel)
+		nodePool.Name = PoolName(nodePool.OsName, nodePool.OsVersion, nodePool.Kernel)
 
 		if _, exists := nodePoolMap[nodePool.Name]; !exists {
 			nodePoolMap[nodePool.Name] = nodePool

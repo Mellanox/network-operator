@@ -644,8 +644,33 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 		},
 	}
 
+	// envtest runs no garbage collector, so an OFED DaemonSet the operator deliberately keeps
+	// outlives the policy that owns it. Every spec renders the same DaemonSet name and container
+	// order is randomized, so clear them on both sides of a spec rather than only after it.
+	deleteOFEDDaemonSets := func() {
+		GinkgoHelper()
+		dsList := &appsv1.DaemonSetList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(namespaceName),
+			client.MatchingLabels{consts.StateLabel: stateOFEDName},
+		}
+		Expect(k8sClient.List(ctx, dsList, listOpts...)).Should(Succeed())
+		for i := range dsList.Items {
+			deleteIgnoreNotFound(&dsList.Items[i])
+		}
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.List(ctx, dsList, listOpts...)).Should(Succeed())
+			g.Expect(dsList.Items).To(BeEmpty())
+		}, timeout, interval).Should(Succeed())
+	}
+
+	BeforeEach(func() {
+		deleteOFEDDaemonSets()
+		DeferCleanup(deleteOFEDDaemonSets)
+	})
+
 	Context("When Node taint changes and NicClusterPolicy tolerations are static", func() {
-		It("should create OFED DaemonSet initially and delete it after Node is tainted", func() {
+		It("should keep the OFED DaemonSet after a taint empties its node pool", func() {
 			nodeName := fmt.Sprintf("%s%s", testNodeNamePrefix, "test1")
 			node := newTestNode(nodeName, testKernelVersion, testOSName, testOSVer, testArch, nil) // No taints initially
 			Expect(k8sClient.Create(ctx, node)).Should(Succeed())
@@ -656,11 +681,13 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			DeferCleanup(deleteIgnoreNotFound, ncp)
 
 			By("Verifying OFED DaemonSet is created for the untainted node")
+			var originalUID types.UID
 			Eventually(func(g Gomega) {
 				dsList := &appsv1.DaemonSetList{}
 				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
 					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
 				g.Expect(dsList.Items).To(HaveLen(1), "Expected 1 OFED DaemonSet")
+				originalUID = dsList.Items[0].GetUID()
 			}, timeout*3, interval).Should(Succeed())
 
 			By("Adding a taint to the Node")
@@ -674,12 +701,14 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 			}
 			Expect(k8sClient.Patch(ctx, updatedNode, nodePatch)).Should(Succeed())
 
-			By("Verifying OFED DaemonSet is deleted as NCP does not tolerate the new taint")
+			By("Verifying the DaemonSet is marked stale instead of deleted, since an empty pool says nothing about intent")
 			Eventually(func(g Gomega) {
 				dsList := &appsv1.DaemonSetList{}
 				g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
 					client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
-				g.Expect(dsList.Items).To(BeEmpty(), "Expected 0 OFED DaemonSets after node taint")
+				g.Expect(dsList.Items).To(HaveLen(1), "Expected the OFED DaemonSet to survive the node taint")
+				g.Expect(dsList.Items[0].GetAnnotations()).To(HaveKey(consts.StaleSinceAnnotation))
+				g.Expect(dsList.Items[0].GetUID()).To(Equal(originalUID), "Expected the same DaemonSet, not a replacement")
 			}, timeout*3, interval).Should(Succeed())
 		})
 	})

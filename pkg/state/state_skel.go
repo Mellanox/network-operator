@@ -335,7 +335,7 @@ func (s *stateSkel) handleStateObjectsDeletion(ctx context.Context) (SyncState, 
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"State spec in CR is nil, deleting existing objects if needed", "State:", s.name)
-	found, err := s.deleteStateRelatedObjects(ctx, stateObjects{})
+	found, err := s.deleteStateRelatedObjects(ctx, stateObjects{}, nil)
 	if err != nil {
 		return SyncStateError, errors.Wrap(err, "failed to delete k8s objects")
 	}
@@ -365,10 +365,23 @@ func (s stateObjects) Exist(gvk schema.GroupVersionKind, name types.NamespacedNa
 	return exist
 }
 
+// retainStaleFunc reports whether a state object that the current reconcile did not render must
+// nevertheless be kept. States supply it to veto a deletion they cannot justify, for example when
+// an object is only undesired because the nodes it was rendered for are momentarily invisible.
+type retainStaleFunc func(obj *unstructured.Unstructured) bool
+
 // remove stale object of the state, returns boolean which indicates if removal is in progress and
 // an error if failed to remove an object
 func (s *stateSkel) handleStaleStateObjects(ctx context.Context,
 	desiredObjs []*unstructured.Unstructured) (bool, error) {
+	return s.handleStaleStateObjectsWithRetention(ctx, desiredObjs, nil)
+}
+
+// handleStaleStateObjectsWithRetention is handleStaleStateObjects with a state-supplied veto on
+// deletion. Retained objects are reported as neither stale nor pending removal, so a state that
+// keeps an object does not report itself notReady forever because of it.
+func (s *stateSkel) handleStaleStateObjectsWithRetention(ctx context.Context,
+	desiredObjs []*unstructured.Unstructured, retain retainStaleFunc) (bool, error) {
 	reqLogger := log.FromContext(ctx)
 	reqLogger.V(consts.LogLevelInfo).Info(
 		"check state for stale objects", "State:", s.name)
@@ -376,7 +389,7 @@ func (s *stateSkel) handleStaleStateObjects(ctx context.Context,
 	for _, o := range desiredObjs {
 		objsToKeep.Add(o.GroupVersionKind(), types.NamespacedName{Name: o.GetName(), Namespace: o.GetNamespace()})
 	}
-	found, err := s.deleteStateRelatedObjects(ctx, objsToKeep)
+	found, err := s.deleteStateRelatedObjects(ctx, objsToKeep, retain)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to delete k8s objects")
 	}
@@ -389,14 +402,20 @@ func (s *stateSkel) handleStaleStateObjects(ctx context.Context,
 	return false, nil
 }
 
-func (s *stateSkel) deleteStateRelatedObjects(
-	ctx context.Context, stateObjectsToKeep stateObjects) (bool, error) {
+// stateLabels returns the label selector matching the Kubernetes objects this state owns.
+func (s *stateSkel) stateLabels() map[string]string {
 	stateLabel := map[string]string{
 		consts.StateLabel: s.name,
 	}
 	if s.dsOwner != "" {
 		stateLabel[consts.DSOwnerLabel] = s.dsOwner
 	}
+	return stateLabel
+}
+
+func (s *stateSkel) deleteStateRelatedObjects(
+	ctx context.Context, stateObjectsToKeep stateObjects, retain retainStaleFunc) (bool, error) {
+	stateLabel := s.stateLabels()
 	found := false
 	for _, gvk := range GetSupportedGVKs() {
 		l := &unstructured.UnstructuredList{}
@@ -413,6 +432,9 @@ func (s *stateSkel) deleteStateRelatedObjects(
 				Name:      obj.GetName(),
 				Namespace: obj.GetNamespace()}) {
 				// should keep the object
+				continue
+			}
+			if retain != nil && retain(&obj) {
 				continue
 			}
 			found = true

@@ -36,13 +36,13 @@ spec:
         ds-owner: {{ .DSOwner }}
     spec:
       priorityClassName: system-node-critical
+      # Rendered from driverPodTolerations: the CR's tolerations plus the ones the operator
+      # always adds. Node pool discovery filters against this same set, so nothing may be added
+      # here without going through that function.
       tolerations:
         {{- if .Tolerations }}
         {{- .Tolerations | yaml | nindent 8 }}
         {{- end }}
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

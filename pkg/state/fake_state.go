@@ -18,6 +18,7 @@ package state
 
 import (
 	"context"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,6 +27,7 @@ type fakeState struct {
 	name, description string
 	watchResources    map[string]client.Object
 	syncState         SyncState
+	requeueAfter      time.Duration
 }
 
 // Name provides the State name
@@ -47,4 +49,9 @@ func (s *fakeState) Sync(_ context.Context, _ interface{}, _ InfoCatalog) (SyncS
 // Get a map of source kinds that should be watched for the state keyed by the source kind name
 func (s *fakeState) GetWatchSources() map[string]client.Object {
 	return s.watchResources
+}
+
+// RequeueAfter implements RequeueProvider
+func (s *fakeState) RequeueAfter() time.Duration {
+	return s.requeueAfter
 }
