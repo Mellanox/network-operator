@@ -109,8 +109,8 @@ spec:
     version: network-operator-v26.10.0-beta.2
   docaTelemetryService:
     image: doca_telemetry
-    repository: nvcr.io/nvidia/doca
-    version: 1.26.5-doca3.5.0-host
+    repository: nvcr.io/nvstaging/doca
+    version: 1.27.4-doca3.6.0-host
   nicConfigurationOperator:
     operator:
       image: nic-configuration-operator
