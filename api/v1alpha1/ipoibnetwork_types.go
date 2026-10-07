@@ -31,6 +31,11 @@ type IPoIBNetworkSpec struct {
 	NetworkNamespace string `json:"networkNamespace,omitempty"`
 	// Name of the host interface to enslave. Defaults to default route interface
 	Master string `json:"master,omitempty"`
+	// MTU of the IPoIB child interface. If 0 (default), MTU is not set and the
+	// child keeps the kernel/fabric default, which may differ from the master's MTU.
+	// Set an explicit value to match the master's MTU.
+	// +kubebuilder:validation:Minimum=0
+	Mtu int `json:"mtu,omitempty"`
 	// IPAM configuration to be used for this network.
 	IPAM string `json:"ipam,omitempty"`
 }
