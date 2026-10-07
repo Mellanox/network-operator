@@ -23,7 +23,11 @@ spec:
   storageClassName: {{ .CrSpec.NicFirmwareStorage.StorageClassName }}
   {{- end}}
   accessModes:
+    {{- if .CrSpec.NicFirmwareStorage.AccessMode }}
+    - {{ .CrSpec.NicFirmwareStorage.AccessMode }}
+    {{- else }}
     - ReadWriteMany
+    {{- end }}
   resources:
     requests:
       storage: {{ .CrSpec.NicFirmwareStorage.AvailableStorageSize }}

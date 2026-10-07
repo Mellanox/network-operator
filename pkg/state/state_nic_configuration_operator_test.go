@@ -170,6 +170,7 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(*pvc.Spec.StorageClassName).To(Equal("class"))
 			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("2Gi"))
+			Expect(pvc.Spec.AccessModes).To(Equal([]v1.PersistentVolumeAccessMode{v1.ReadWriteMany}))
 			By("Verify Deployment")
 			d := &appsv1.Deployment{}
 			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
@@ -208,6 +209,26 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 				ReadOnly:  true,
 				MountPath: "/nic-firmware",
 			}))
+		})
+
+		It("should create PVC with ReadWriteOnce access mode when specified in CR", func() {
+			By("Sync")
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.NicConfigurationOperator.NicFirmwareStorage = &mellanoxv1alpha1.NicFirmwareStorageSpec{
+				Create:               true,
+				PVCName:              "pvc",
+				StorageClassName:     "class",
+				AvailableStorageSize: "2Gi",
+				AccessMode:           "ReadWriteOnce",
+			}
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			By("Verify PVC")
+			pvc := &v1.PersistentVolumeClaim{}
+			err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: "pvc"}, pvc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pvc.Spec.AccessModes).To(Equal([]v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}))
 		})
 
 		It("should not create PVC when not specified in CR", func() {
