@@ -197,7 +197,7 @@ maintenance-operator-chart:
     image:
       repository: nvcr.io/nvstaging/mellanox
       name: maintenance-operator
-      tag: network-operator-v26.10.0-beta.2
+      tag: 9fb9199
     # -- Resource requests and limits for the *maintenance-operator* controller.
     # Memory scales with cluster node count (Node informer cache). Defaults match
     # Mellanox/maintenance-operator#225 / PR #243 (256Mi limit / 192Mi request).
