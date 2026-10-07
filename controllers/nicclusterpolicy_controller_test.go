@@ -23,7 +23,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,6 +35,7 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
+	"github.com/Mellanox/network-operator/pkg/state"
 )
 
 var _ = Describe("NicClusterPolicyReconciler Controller", func() {
@@ -272,14 +275,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(context.TODO(), &cr)).To(Succeed())
-			defer func() {
-				Expect(k8sClient.Delete(context.TODO(), &cr)).To(Succeed())
-				Eventually(func() bool {
-					err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: cr.GetName()},
-						&mellanoxv1alpha1.NicClusterPolicy{})
-					return apierrors.IsNotFound(err)
-				}, timeout*3, interval).Should(BeTrue())
-			}()
+			defer cleanupNicClusterPolicy(&cr)
 
 			By("Update NicClusterPolicy with a different accessMode")
 			Eventually(func() error {
@@ -351,7 +347,7 @@ var _ = Describe("NicClusterPolicyReconciler Controller", func() {
 
 			err = k8sClient.Create(context.TODO(), &cr)
 			Expect(err).NotTo(HaveOccurred())
-			DeferCleanup(deleteIgnoreNotFound, &cr)
+			DeferCleanup(cleanupNicClusterPolicy, &cr)
 
 			ncp := &mellanoxv1alpha1.NicClusterPolicy{}
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Namespace: cr.GetNamespace(), Name: cr.GetName()}, ncp)
@@ -518,6 +514,50 @@ const (
 func deleteIgnoreNotFound(obj client.Object) {
 	GinkgoHelper()
 	Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), obj))).To(Succeed())
+}
+
+// cleanupNicClusterPolicy deletes the policy and the NIC Configuration Operator
+// objects it created. envtest has no garbage collector, and its API server keeps
+// a CustomResourceDefinition terminating behind the customresourcecleanup
+// finalizer. While that object remains, a later policy that does not enable the
+// operator stays notReady, because deleting a nil state does not finish.
+func cleanupNicClusterPolicy(cr *mellanoxv1alpha1.NicClusterPolicy) {
+	GinkgoHelper()
+	deleteIgnoreNotFound(cr)
+	Eventually(func(g Gomega) {
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: cr.GetName()},
+			&mellanoxv1alpha1.NicClusterPolicy{})
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		// Repeat until nothing is left. A reconcile that started before the
+		// policy disappeared can recreate an object once.
+		g.Expect(forceDeleteStateObjects(g, "state-nic-configuration-operator")).To(BeZero())
+	}, timeout*3, interval).Should(Succeed())
+}
+
+// forceDeleteStateObjects removes every object a state created, including one
+// that is stuck terminating, and reports how many it found. Clearing finalizers
+// lets the API server drop an object envtest would otherwise keep forever.
+func forceDeleteStateObjects(g Gomega, stateName string) int {
+	found := 0
+	for _, gvk := range state.GetSupportedGVKs() {
+		list := &unstructured.UnstructuredList{}
+		list.SetGroupVersionKind(gvk)
+		err := k8sClient.List(context.TODO(), list, client.MatchingLabels{consts.StateLabel: stateName})
+		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
+			continue
+		}
+		g.Expect(err).NotTo(HaveOccurred())
+		found += len(list.Items)
+		for i := range list.Items {
+			obj := list.Items[i].DeepCopy()
+			if len(obj.GetFinalizers()) > 0 {
+				obj.SetFinalizers(nil)
+				g.Expect(client.IgnoreNotFound(k8sClient.Update(context.TODO(), obj))).To(Succeed())
+			}
+			g.Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), obj))).To(Succeed())
+		}
+	}
+	return found
 }
 
 // Helper function to create a new Node for testing
