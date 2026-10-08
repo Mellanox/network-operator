@@ -155,10 +155,6 @@ spec:
                       enabled:
                         description: Specifies whether to enable PCI performance optimization
                         type: boolean
-                      maxAccOutRead:
-                        description: 'Deprecated: this field is ignored and no longer
-                          maps to MAX_ACC_OUT_READ.'
-                        type: integer
                       maxReadRequest:
                         description: Specifies the size of a single PCI read request
                           in bytes
@@ -365,9 +361,6 @@ spec:
                     like NAME[0..3]; list each index explicitly (NAME[0], NAME[1],
                     ...)
                   rule: '!has(self.rawNvConfig) || self.rawNvConfig.all(p, !p.name.matches(''.*[[][0-9]+[.][.][0-9]+[]].*''))'
-                - message: rawNvConfig cannot currently be combined with spectrumXOptimized
-                  rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
-                    || !has(self.rawNvConfig) || size(self.rawNvConfig) == 0'
                 - message: networkBay cannot currently be combined with spectrumXOptimized
                   rule: '!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled)
                     || !has(self.networkBay)'

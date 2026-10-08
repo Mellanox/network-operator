@@ -1,7 +1,7 @@
 NetworkOperator:
   image: network-operator
   repository: nvcr.io/nvstaging/mellanox
-  version: v26.10.0-beta.2
+  version: v26.10.0-beta.3
   nSpectScope: gov-ready
 # Set both crdSourceLocation and crdTargetLocation to sync a component's CRDs
 # into its existing indexed state manifests when creating a release PR.
@@ -10,14 +10,14 @@ NetworkOperatorInitContainer:
   image: network-operator-init-container
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: network-operator-init-container
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 SriovNetworkOperator:
   image: sriov-network-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   chartLocation: deployment/sriov-network-operator-chart
   excludeChartFiles: ["Chart.yaml", "crds/k8s.cni.cncf.io_networkattachmentdefinitions_crd.yaml"]
   nSpectScope: gov-ready
@@ -26,35 +26,35 @@ SriovNetworkOperatorWebhook:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 SriovConfigDaemon:
   image: sriov-network-operator-config-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: general
 SriovConfigDaemonStigFips:
   image: sriov-network-operator-config-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-operator
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2-stig-fips
+  version: network-operator-v26.10.0-beta.3-stig-fips
   nSpectScope: fedramp
 SriovCni:
   image: sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 SriovIbCni:
   image: ib-sriov-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-sriov-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 Mofed:
   image: doca-driver
@@ -68,40 +68,40 @@ RdmaSharedDevicePlugin:
   image: k8s-rdma-shared-dev-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8s-rdma-shared-dev-plugin
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 SriovDevicePlugin:
   image: sriov-network-device-plugin
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: sriov-network-device-plugin
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-kubernetes
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 CniPlugins:
   image: plugins
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: k8snetworkplumbingwg-plugins
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 Multus:
   image: multus-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: multus-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 nvIpam:
   image: nvidia-k8s-ipam
@@ -109,13 +109,13 @@ nvIpam:
   sourceRepository: nvidia-k8s-ipam
   crdSourceLocation: deploy/crds
   crdTargetLocation: manifests/state-nv-ipam-cni
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 nicFeatureDiscovery:
   image: nic-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-feature-discovery
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 docaTelemetryService:
   image: doca_telemetry
@@ -126,14 +126,14 @@ ovsCni:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 rdmaCni:
   image: rdma-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: rdma-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
 nicConfigurationOperator:
   image: nic-configuration-operator
@@ -141,43 +141,43 @@ nicConfigurationOperator:
   sourceRepository: nic-configuration-operator
   crdSourceLocation: config/crd/bases
   crdTargetLocation: manifests/state-nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: general
 nicConfigurationConfigDaemon:
   image: nic-configuration-operator-daemon
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: general
 nicConfigurationOperatorStigFipsUbuntu:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-ubuntu
+  version: network-operator-v26.10.0-beta.3-stig-fips-ubuntu
   nSpectScope: fedramp
 nicConfigurationConfigDaemonStigFipsUbuntu:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-ubuntu
+  version: network-operator-v26.10.0-beta.3-stig-fips-ubuntu
   nSpectScope: fedramp
 nicConfigurationOperatorStigFipsRhel:
   image: nic-configuration-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-rhel
+  version: network-operator-v26.10.0-beta.3-stig-fips-rhel
   nSpectScope: fedramp
 nicConfigurationConfigDaemonStigFipsRhel:
   image: nic-configuration-operator-daemon-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: nic-configuration-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-rhel
+  version: network-operator-v26.10.0-beta.3-stig-fips-rhel
   nSpectScope: fedramp
 maintenanceOperator:
   image: maintenance-operator
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: maintenance-operator
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   chartLocation: deployment/maintenance-operator-chart
   chartName: maintenance-operator-chart
   nSpectScope: gov-ready
@@ -187,19 +187,19 @@ spectrumXOperator:
   sourceRepository: spectrum-x-operator
   crdSourceLocation: config/crd/bases
   crdTargetLocation: manifests/state-spectrum-x-operator
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: general
 spectrumXOperatorStigFipsRhel:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-rhel
+  version: network-operator-v26.10.0-beta.3-stig-fips-rhel
   nSpectScope: fedramp
 spectrumXOperatorStigFipsUbuntu:
   image: spectrum-x-operator-stig-fips
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: spectrum-x-operator
-  version: network-operator-v26.10.0-beta.2-stig-fips-ubuntu
+  version: network-operator-v26.10.0-beta.3-stig-fips-ubuntu
   nSpectScope: fedramp
 xPlaneService:
   image: xplane
@@ -210,7 +210,7 @@ nodeFeatureDiscovery:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: node-feature-discovery
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   chartLocation: deployment/helm/node-feature-discovery
   nSpectScope: gov-ready
 k8sLaunchKit:
@@ -224,5 +224,5 @@ DraDriverSriov:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: dra-driver-sriov
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.2
+  version: network-operator-v26.10.0-beta.3
   nSpectScope: gov-ready
