@@ -54,7 +54,7 @@ SriovIbCni:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-sriov-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.3
+  version: 06879d3
   nSpectScope: gov-ready
 Mofed:
   image: doca-driver
