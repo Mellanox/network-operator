@@ -183,46 +183,40 @@ spec:
                 - bash
                 - -c
                 - |
-                  ofed_ready_fail() {
+                  fail() {
                     echo "OFED not ready: $*" >&2
                     exit 1
                   }
-                  ofed_ready_module() {
-                    [ -d "/sys/module/$1" ] || ofed_ready_fail "required module $1 is absent"
-                    if [ -e "/sys/module/$1/initstate" ]; then
-                      [ "$(cat "/sys/module/$1/initstate")" = live ] ||
-                        ofed_ready_fail "required module $1 is not live"
-                    fi
-                  }
-                  ofed_ready_optional() {
-                    local enabled="$2" depends
+                  check_module() {
+                    local module=$1 enabled=$2 depends
                     if [ -z "$enabled" ]; then
-                      # Match openibd's defaults for modules supplied by MLNX_OFED.
-                      # Inspection failures must not silently disable a readiness check.
-                      depends=$(modinfo -F depends "$1") ||
-                        ofed_ready_fail "cannot determine whether module $1 is enabled"
-                      case "$depends" in
-                        *mlx_compat*) enabled=yes ;;
-                      esac
+                      # Match openibd defaults, but fail if module inspection fails.
+                      depends=$(modinfo -F depends "$module") ||
+                        fail "cannot determine whether module $module is enabled"
+                      [[ $depends == *mlx_compat* ]] || return 0
+                    elif [ "$enabled" != yes ]; then
+                      return 0
                     fi
-                    if [ "$enabled" = yes ]; then
-                      ofed_ready_module "$1"
+                    [ -d "/sys/module/$module" ] || fail "required module $module is absent"
+                    if [ -e "/sys/module/$module/initstate" ]; then
+                      [ "$(cat "/sys/module/$module/initstate")" = live ] ||
+                        fail "required module $module is not live"
                     fi
                   }
-                  # openib.conf uses shell assignments; Bash matches openibd's interpreter.
-                  ofed_ready_config=${OPENIBD_CONFIG:-/etc/infiniband/openib.conf}
-                  [ -r "$ofed_ready_config" ] || ofed_ready_fail "cannot read $ofed_ready_config"
-                  . "$ofed_ready_config" || ofed_ready_fail "cannot load $ofed_ready_config"
-                  for ofed_ready_name in mlx5_core mlx5_ib ib_core; do
-                    ofed_ready_module "$ofed_ready_name"
+                  # Read the same shell configuration as openibd.
+                  config=${OPENIBD_CONFIG:-/etc/infiniband/openib.conf}
+                  [ -r "$config" ] || fail "cannot read $config"
+                  . "$config" || fail "cannot load $config"
+                  for module in mlx5_core mlx5_ib ib_core; do
+                    check_module "$module" yes
                   done
-                  ofed_ready_optional ib_uverbs "${UVERBS_LOAD:-}"
-                  ofed_ready_optional ib_umad "${UMAD_LOAD:-}"
-                  # openibd also enables IPoIB when the legacy SDP module is requested.
+                  check_module ib_uverbs "${UVERBS_LOAD:-}"
+                  check_module ib_umad "${UMAD_LOAD:-}"
+                  # openibd enables IPoIB when legacy SDP is requested.
                   if [ "${SDP_LOAD:-}" = yes ]; then IPOIB_LOAD=yes; fi
-                  ofed_ready_optional ib_ipoib "${IPOIB_LOAD:-}"
-                  ofed_ready_optional rdma_cm "${RDMA_CM_LOAD:-}"
-                  ofed_ready_optional rdma_ucm "${RDMA_UCM_LOAD:-}"
+                  check_module ib_ipoib "${IPOIB_LOAD:-}"
+                  check_module rdma_cm "${RDMA_CM_LOAD:-}"
+                  check_module rdma_ucm "${RDMA_UCM_LOAD:-}"
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: {{ .CrSpec.ReadinessProbe.FailureThreshold }}
             successThreshold: 1
