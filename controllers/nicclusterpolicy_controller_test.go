@@ -645,23 +645,29 @@ var _ = Describe("NicClusterPolicyReconciler Controller - Taint and Toleration I
 	}
 
 	// envtest runs no garbage collector, so an OFED DaemonSet the operator deliberately keeps
-	// outlives the policy that owns it. Every spec renders the same DaemonSet name and container
-	// order is randomized, so clear them on both sides of a spec rather than only after it.
+	// outlives the policy that owns it. A reconcile that already loaded the policy can also
+	// recreate that DaemonSet after it was deleted, and the next spec then treats the leftover
+	// as its own. Keep deleting until the list stays empty for a full requeue period.
 	deleteOFEDDaemonSets := func() {
 		GinkgoHelper()
-		dsList := &appsv1.DaemonSetList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(namespaceName),
-			client.MatchingLabels{consts.StateLabel: stateOFEDName},
-		}
-		Expect(k8sClient.List(ctx, dsList, listOpts...)).Should(Succeed())
-		for i := range dsList.Items {
-			deleteIgnoreNotFound(&dsList.Items[i])
-		}
+		quietFor := time.Duration(config.FromEnv().Controller.RequeueTimeSeconds) * time.Second
+		var quietSince time.Time
 		Eventually(func(g Gomega) {
-			g.Expect(k8sClient.List(ctx, dsList, listOpts...)).Should(Succeed())
-			g.Expect(dsList.Items).To(BeEmpty())
-		}, timeout, interval).Should(Succeed())
+			dsList := &appsv1.DaemonSetList{}
+			g.Expect(k8sClient.List(ctx, dsList, client.InNamespace(namespaceName),
+				client.MatchingLabels{consts.StateLabel: stateOFEDName})).Should(Succeed())
+			for i := range dsList.Items {
+				deleteIgnoreNotFound(&dsList.Items[i])
+			}
+			if len(dsList.Items) > 0 {
+				quietSince = time.Time{}
+				g.Expect(dsList.Items).To(BeEmpty())
+			}
+			if quietSince.IsZero() {
+				quietSince = time.Now()
+			}
+			g.Expect(time.Since(quietSince)).To(BeNumerically(">=", quietFor))
+		}, timeout*3+quietFor, interval).Should(Succeed())
 	}
 
 	BeforeEach(func() {
