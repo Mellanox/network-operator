@@ -126,7 +126,7 @@ ovsCni:
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ovs-cni
   downstreamFork: true
-  version: network-operator-v26.10.0-beta.4
+  version: 8544993d
   nSpectScope: gov-ready
 rdmaCni:
   image: rdma-cni
