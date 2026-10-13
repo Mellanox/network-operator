@@ -127,12 +127,24 @@ func (f *mofedWaitFixture) setDriverReady(ready bool) {
 }
 
 func (f *mofedWaitFixture) daemonSet(g Gomega) *appsv1.DaemonSet {
+	// Another spec can leave an OFED DaemonSet behind: envtest has no garbage collector, and an
+	// empty node pool keeps the DaemonSet for the stale-cleanup grace period. Match this node's
+	// pool instead of assuming it is the only OFED DaemonSet in the namespace.
 	list := &appsv1.DaemonSetList{}
 	g.Expect(k8sClient.List(ctx, list, client.InNamespace(namespaceName), client.MatchingLabels{
 		consts.OfedDriverLabel: "", consts.DSOwnerLabel: f.dsOwner,
 	})).To(Succeed())
-	g.Expect(list.Items).To(HaveLen(1))
-	return &list.Items[0]
+	matched := make([]*appsv1.DaemonSet, 0, 1)
+	for i := range list.Items {
+		selector := list.Items[i].Spec.Template.Spec.NodeSelector
+		if selector[nodeinfo.NodeLabelOSName] == f.node.Labels[nodeinfo.NodeLabelOSName] &&
+			selector[nodeinfo.NodeLabelOSVer] == f.node.Labels[nodeinfo.NodeLabelOSVer] &&
+			selector[nodeinfo.NodeLabelKernelVerFull] == f.node.Labels[nodeinfo.NodeLabelKernelVerFull] {
+			matched = append(matched, &list.Items[i])
+		}
+	}
+	g.Expect(matched).To(HaveLen(1))
+	return matched[0]
 }
 
 func (f *mofedWaitFixture) markDaemonSetReady() {
