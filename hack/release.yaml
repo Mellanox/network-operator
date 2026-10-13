@@ -101,7 +101,7 @@ Ipoib:
   image: ipoib-cni
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ipoib-cni
-  version: network-operator-v26.10.0-beta.4
+  version: f61b8c5
   nSpectScope: gov-ready
 nvIpam:
   image: nvidia-k8s-ipam
