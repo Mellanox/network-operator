@@ -55,6 +55,10 @@ spec:
             - name: IMAGE_PULL_SECRETS
               value: {{ join .CrSpec.XPlane.ImagePullSecrets "," }}
             {{- end }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

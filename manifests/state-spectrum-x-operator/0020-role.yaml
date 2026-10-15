@@ -4,6 +4,16 @@ metadata:
   name: spectrum-x-operator
 rules:
 - apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - ""
   resources:
   - events

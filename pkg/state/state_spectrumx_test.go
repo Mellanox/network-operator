@@ -19,6 +19,10 @@ package state_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -40,6 +44,42 @@ var _ = Describe("Spectrum X Operator", func() {
 	})
 
 	Context("should render", func() {
+		It("the flowcontroller pod identity for xplane toleration inheritance", func() {
+			cr := getSpectrumXOperator()
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			var ds appsv1.DaemonSet
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &ds)).To(Succeed())
+				}
+			}
+			Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(1))
+			for name, fieldPath := range map[string]string{"POD_NAME": "metadata.name", "POD_NAMESPACE": "metadata.namespace"} {
+				Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
+					Name: name,
+					ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: fieldPath,
+					}},
+				}))
+			}
+		})
+		It("permissions to watch the parent and reconcile the xplane DaemonSet", func() {
+			cr := getSpectrumXOperator()
+			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			var role rbacv1.ClusterRole
+			for _, obj := range objs {
+				if obj.GetKind() == "ClusterRole" {
+					Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &role)).To(Succeed())
+				}
+			}
+			Expect(role.Rules).To(ContainElement(rbacv1.PolicyRule{
+				APIGroups: []string{"apps"},
+				Resources: []string{"daemonsets"},
+				Verbs:     []string{"create", "get", "list", "update", "watch"},
+			}))
+		})
 		It("Kubernetes manifests", func() {
 			cr := getSpectrumXOperator()
 			objs, err := ts.renderer.GetManifestObjects(ts.context, cr, catalog, testLogger)
