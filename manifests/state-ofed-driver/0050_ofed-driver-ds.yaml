@@ -180,7 +180,43 @@ spec:
           readinessProbe:
             exec:
               command:
-                [sh, -c, 'lsmod | grep mlx5_core']
+                - bash
+                - -c
+                - |
+                  fail() {
+                    echo "OFED not ready: $*" >&2
+                    exit 1
+                  }
+                  check_module() {
+                    local module=$1 enabled=$2 depends
+                    if [ -z "$enabled" ]; then
+                      # Match openibd defaults, but fail if module inspection fails.
+                      depends=$(modinfo -F depends "$module") ||
+                        fail "cannot determine whether module $module is enabled"
+                      [[ $depends == *mlx_compat* ]] || return 0
+                    elif [ "$enabled" != yes ]; then
+                      return 0
+                    fi
+                    [ -d "/sys/module/$module" ] || fail "required module $module is absent"
+                    if [ -e "/sys/module/$module/initstate" ]; then
+                      [ "$(cat "/sys/module/$module/initstate")" = live ] ||
+                        fail "required module $module is not live"
+                    fi
+                  }
+                  # Read the same shell configuration as openibd.
+                  config=${OPENIBD_CONFIG:-/etc/infiniband/openib.conf}
+                  [ -r "$config" ] || fail "cannot read $config"
+                  . "$config" || fail "cannot load $config"
+                  for module in mlx5_core mlx5_ib ib_core; do
+                    check_module "$module" yes
+                  done
+                  check_module ib_uverbs "${UVERBS_LOAD:-}"
+                  check_module ib_umad "${UMAD_LOAD:-}"
+                  # openibd enables IPoIB when legacy SDP is requested.
+                  if [ "${SDP_LOAD:-}" = yes ]; then IPOIB_LOAD=yes; fi
+                  check_module ib_ipoib "${IPOIB_LOAD:-}"
+                  check_module rdma_cm "${RDMA_CM_LOAD:-}"
+                  check_module rdma_ucm "${RDMA_UCM_LOAD:-}"
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: {{ .CrSpec.ReadinessProbe.FailureThreshold }}
             successThreshold: 1
