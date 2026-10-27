@@ -22,7 +22,6 @@ import (
 
 	"github.com/Mellanox/network-operator/pkg/clustertype/mocks"
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("Utils tests", func() {
@@ -30,41 +29,39 @@ var _ = Describe("Utils tests", func() {
 	Context("Testing CniBinDirectory retrieval", func() {
 		It("Should return user set directory", func() {
 			userSetDir := "/user/set/directory"
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: userSetDir})
 			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(false)
-			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
+			result := GetCniBinDirectory(userSetDir, &clusterTypeProvider)
 			Expect(result).To(Equal(userSetDir))
 		})
 
 		It("Should return user set directory for OCP cluster", func() {
 			userSetDir := "/user/set/directory"
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: userSetDir})
 			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(true)
-			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
+			result := GetCniBinDirectory(userSetDir, &clusterTypeProvider)
 			Expect(result).To(Equal(userSetDir))
 		})
 
 		It("Should return default Openshift directory for OCP cluster", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: ""})
+			userDirectory := ""
 			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(true)
-			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
+			result := GetCniBinDirectory(userDirectory, &clusterTypeProvider)
 			Expect(result).To(Equal(consts.OcpCniBinDirectory))
 		})
 
 		It("Should return default K8s directory for non-OCP cluster", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: ""})
+			userDirectory := ""
 			clusterTypeProvider := mocks.Provider{}
 			clusterTypeProvider.On("IsOpenshift").Return(false)
-			result := GetCniBinDirectory(staticConfigProvider, &clusterTypeProvider)
+			result := GetCniBinDirectory(userDirectory, &clusterTypeProvider)
 			Expect(result).To(Equal(consts.DefaultCniBinDirectory))
 		})
 
 		It("Should return default K8s directory if cluster info is nil", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: ""})
-			result := GetCniBinDirectory(staticConfigProvider, nil)
+			userDirectory := ""
+			result := GetCniBinDirectory(userDirectory, nil)
 			Expect(result).To(Equal(consts.DefaultCniBinDirectory))
 		})
 	})
@@ -72,14 +69,13 @@ var _ = Describe("Utils tests", func() {
 	Context("Testing CniNetworkDirectory retrieval", func() {
 		It("Should return user set directory when configured", func() {
 			userSetDir := "/user/set/network/directory"
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniNetworkDirectory: userSetDir})
-			result := GetCniNetworkDirectory(staticConfigProvider, nil)
+			result := GetCniNetworkDirectory(userSetDir)
 			Expect(result).To(Equal(userSetDir))
 		})
 
 		It("Should return default directory when no user set directory is configured", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{CniNetworkDirectory: ""})
-			result := GetCniNetworkDirectory(staticConfigProvider, nil)
+			userDirectory := ""
+			result := GetCniNetworkDirectory(userDirectory)
 			Expect(result).To(Equal(consts.DefaultCniNetworkDirectory))
 		})
 	})
@@ -87,46 +83,35 @@ var _ = Describe("Utils tests", func() {
 	Context("Testing KubeletRootDir retrieval", func() {
 		It("Should return user set directory when configured", func() {
 			userSetDir := "/var/lib/k0s/kubelet"
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: userSetDir})
-			result := GetKubeletRootDir(staticConfigProvider)
+			result := GetKubeletRootDir(userSetDir)
 			Expect(result).To(Equal(userSetDir))
 		})
 
 		It("Should normalize a trailing slash on user set directory", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: "/var/lib/k0s/kubelet/"})
-			result := GetKubeletRootDir(staticConfigProvider)
+			userDirectory := "/var/lib/k0s/kubelet/"
+			result := GetKubeletRootDir(userDirectory)
 			Expect(result).To(Equal("/var/lib/k0s/kubelet"))
 		})
 
 		It("Should return default directory when no user set directory is configured", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: ""})
-			result := GetKubeletRootDir(staticConfigProvider)
-			Expect(result).To(Equal(consts.DefaultKubeletRootDir))
-		})
-
-		It("Should return default directory if static config provider is nil", func() {
-			result := GetKubeletRootDir(nil)
+			userDirectory := ""
+			result := GetKubeletRootDir(userDirectory)
 			Expect(result).To(Equal(consts.DefaultKubeletRootDir))
 		})
 
 		It("Should not pass kubelet root dir arg when unset", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: ""})
-			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeFalse())
-			Expect(ShouldPassKubeletRootDirArg(nil)).To(BeFalse())
+			userDirectory := ""
+			Expect(ShouldPassKubeletRootDirArg(userDirectory)).To(BeFalse())
 		})
 
 		It("Should not pass kubelet root dir arg for default path override", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
-				KubeletRootDir: consts.DefaultKubeletRootDir,
-			})
-			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeFalse())
+			userDirectory := consts.DefaultKubeletRootDir
+			Expect(ShouldPassKubeletRootDirArg(userDirectory)).To(BeFalse())
 		})
 
 		It("Should pass kubelet root dir arg for non-default override", func() {
-			staticConfigProvider := staticconfig.NewProvider(staticconfig.StaticConfig{
-				KubeletRootDir: "/var/lib/k0s/kubelet",
-			})
-			Expect(ShouldPassKubeletRootDirArg(staticConfigProvider)).To(BeTrue())
+			userDirectory := "/var/lib/k0s/kubelet"
+			Expect(ShouldPassKubeletRootDirArg(userDirectory)).To(BeTrue())
 		})
 	})
 

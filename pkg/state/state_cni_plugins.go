@@ -87,10 +87,6 @@ func (s *stateCNIPlugins) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
-	staticInfo := infoCatalog.GetStaticConfigProvider()
-	if staticInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
-	}
 
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
@@ -146,10 +142,6 @@ func (s *stateCNIPlugins) GetManifestObjects(
 		return nil, errors.Wrap(err, "failed to validate cniPlugins image spec")
 	}
 
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
-	}
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
@@ -160,8 +152,8 @@ func (s *stateCNIPlugins) GetManifestObjects(
 		NodeAffinity: cr.Spec.NodeAffinity,
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:         runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
-			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
+			CniBinDirectory:     utils.GetCniBinDirectory(config.FromEnv().State.CniBinDirectory, clusterInfo),
+			CniNetworkDirectory: utils.GetCniNetworkDirectory(config.FromEnv().State.CniNetworkDirectory),
 			ContainerResources:  createContainerResourcesMap(cr.Spec.SecondaryNetwork.CniPlugins.ContainerResources),
 		},
 	}

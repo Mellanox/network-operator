@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -29,8 +30,6 @@ import (
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
-	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
@@ -70,6 +69,17 @@ const (
   "type": "sbr"
 }`
 )
+
+// State specs run serially within each Ginkgo process. Restore the cached config
+// after each spec so directory overrides cannot leak into other renderers.
+var _ = BeforeEach(func() {
+	cfg := config.FromEnv()
+	original := cfg.State
+	DeferCleanup(func() { cfg.State = original })
+	cfg.State.CniBinDirectory = ""
+	cfg.State.CniNetworkDirectory = ""
+	cfg.State.KubeletRootDir = ""
+})
 
 var testLogger = log.Log.WithName("testLog")
 
@@ -134,9 +144,6 @@ func getTestCatalogForOpenshift(isOpenshift bool) state.InfoCatalog {
 	catalog := state.NewInfoCatalog()
 	clusterTypeProvider := clustertype_mocks.Provider{}
 	clusterTypeProvider.On("IsOpenshift").Return(isOpenshift)
-	staticConfigProvider := staticconfig_mocks.Provider{}
-	staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
-	catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 	catalog.Add(state.InfoTypeClusterType, &clusterTypeProvider)
 	return catalog
 }

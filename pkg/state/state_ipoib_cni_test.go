@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("IPoIB CNI State tests", func() {
@@ -34,8 +34,7 @@ var _ = Describe("IPoIB CNI State tests", func() {
 		ts = ts.New(state.NewStateIPoIBCNI, "../../manifests/state-ipoib-cni")
 		Expect(ts).NotTo(BeNil())
 
-		ts.catalog.Add(state.InfoTypeStaticConfig,
-			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
+		config.FromEnv().State.CniBinDirectory = "custom-cni-bin-directory"
 	})
 
 	Context("should render", func() {

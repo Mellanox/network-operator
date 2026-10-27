@@ -42,7 +42,6 @@ import (
 	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 // NicClusterPolicyReconciler reconciles a NicClusterPolicy object
@@ -50,7 +49,6 @@ type NicClusterPolicyReconciler struct {
 	client.Client
 	Scheme                   *runtime.Scheme
 	ClusterTypeProvider      clustertype.Provider
-	StaticConfigProvider     staticconfig.Provider
 	MigrationCh              chan struct{}
 	DocaDriverImagesProvider docadriverimages.Provider
 
@@ -166,7 +164,6 @@ func (r *NicClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Create a new State service catalog
 	sc := state.NewInfoCatalog()
 	sc.Add(state.InfoTypeClusterType, r.ClusterTypeProvider)
-	sc.Add(state.InfoTypeStaticConfig, r.StaticConfigProvider)
 
 	if instance.Spec.OFEDDriver != nil {
 		if err := setupOFEDCatalog(ctx, r.Client, instance.Spec.OFEDDriver,

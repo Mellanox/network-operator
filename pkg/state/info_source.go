@@ -20,7 +20,6 @@ import (
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/docadriverimages"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 // InfoType is used to categorize an InfoSource.
@@ -31,8 +30,6 @@ const (
 	InfoTypeNodeInfo = iota
 	// InfoTypeClusterType describes an InfoSource related to a cluster.
 	InfoTypeClusterType
-	// InfoTypeStaticConfig describes an InfoSource related to a static configuration.
-	InfoTypeStaticConfig
 	// InfoTypeDocaDriverImage describes an InfoSource related to DOCA Drivers images
 	InfoTypeDocaDriverImage
 )
@@ -55,8 +52,6 @@ type InfoCatalog interface {
 	GetNodeInfoProvider() nodeinfo.Provider
 	// GetClusterTypeProvider returns a reference clustertype.Provider from catalog or nil if provider does not exist
 	GetClusterTypeProvider() clustertype.Provider
-	// GetStaticConfigProvider returns a reference staticinfo.Provider from catalog or nil if provider does not exist
-	GetStaticConfigProvider() staticconfig.Provider
 	// GetDocaDriverImageProvider returns a reference docadriverimages.Provider from catalog
 	// or nil if provider does not exist
 	GetDocaDriverImageProvider() docadriverimages.Provider
@@ -84,14 +79,6 @@ func (sc *infoCatalog) GetClusterTypeProvider() clustertype.Provider {
 		return nil
 	}
 	return infoSource.(clustertype.Provider)
-}
-
-func (sc *infoCatalog) GetStaticConfigProvider() staticconfig.Provider {
-	infoSource, ok := sc.infoSources[InfoTypeStaticConfig]
-	if !ok {
-		return nil
-	}
-	return infoSource.(staticconfig.Provider)
 }
 
 func (sc *infoCatalog) GetDocaDriverImageProvider() docadriverimages.Provider {

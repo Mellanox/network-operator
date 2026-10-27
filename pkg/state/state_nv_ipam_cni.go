@@ -85,11 +85,6 @@ func (s *stateNVIPAMCNI) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 
-	staticInfo := infoCatalog.GetStaticConfigProvider()
-	if staticInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
-	}
-
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
@@ -156,10 +151,6 @@ func (s *stateNVIPAMCNI) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
-	}
 	renderData := &NVIPAMManifestRenderData{
 		CrSpec:                 cr.Spec.NvIpam,
 		NodeAffinity:           cr.Spec.NodeAffinity,
@@ -169,8 +160,8 @@ func (s *stateNVIPAMCNI) GetManifestObjects(
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:         runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:         clusterInfo.IsOpenshift(),
-			CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
-			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
+			CniBinDirectory:     utils.GetCniBinDirectory(config.FromEnv().State.CniBinDirectory, clusterInfo),
+			CniNetworkDirectory: utils.GetCniNetworkDirectory(config.FromEnv().State.CniNetworkDirectory),
 			ContainerResources:  createContainerResourcesMap(cr.Spec.NvIpam.ContainerResources),
 		},
 	}
