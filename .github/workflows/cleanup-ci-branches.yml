@@ -41,11 +41,8 @@ jobs:
 
             # Find the most recent PR for this branch (head ref)
             pr_state=$(gh api \
-              --paginate \
-              "repos/${REPO}/pulls?head=${REPO%/*}:${branch}&state=all&per_page=10" \
-              --arg branch_name "${branch}" \
-              --jq '[.[] | select(.head.ref == $branch_name)] | first | .state // empty' \
-              2>/dev/null || true)
+              "repos/${REPO}/pulls?head=${REPO%/*}:${branch}&state=all&per_page=1" \
+              --jq '.[0].state // empty')
 
             if [[ -z "$pr_state" ]]; then
               echo "  No PR found for branch '${branch}', skipping."
