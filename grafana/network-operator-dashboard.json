@@ -1,0 +1,539 @@
+{
+  "id": null,
+  "uid": "nvidia-network-operator",
+  "title": "NVIDIA Network Operator",
+  "description": "Component readiness, reconciliation health and optional host RDMA port telemetry. See grafana/README.md for scrape prerequisites and scope.",
+  "tags": [
+    "nvidia",
+    "network-operator",
+    "rdma"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus"
+      },
+      {
+        "name": "ksm_job",
+        "label": "kube-state-metrics job",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(kube_daemonset_status_desired_number_scheduled, job)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "namespace",
+        "label": "Component namespaces",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(kube_daemonset_status_desired_number_scheduled{job=~\"$ksm_job\"}, namespace)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "operator_job",
+        "label": "Operator scrape job",
+        "type": "textbox",
+        "query": "network-operator",
+        "current": {
+          "text": "network-operator",
+          "value": "network-operator"
+        }
+      },
+      {
+        "name": "node_job",
+        "label": "Node exporter scrape job",
+        "type": "textbox",
+        "query": "node-exporter",
+        "current": {
+          "text": "node-exporter",
+          "value": "node-exporter"
+        }
+      },
+      {
+        "name": "instance",
+        "label": "RDMA exporter instances",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(node_infiniband_port_data_received_bytes_total{job=~\"$node_job\"}, instance)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "DaemonSet ready / desired nodes",
+      "description": "Includes all DaemonSets in the selected namespaces, including driver, RDMA and CNI components. A desired count of zero is not proof of a healthy deployment.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, daemonset) (kube_daemonset_status_number_ready{job=~\"$ksm_job\", namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}} / {{daemonset}} ready",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, daemonset) (kube_daemonset_status_desired_number_scheduled{job=~\"$ksm_job\", namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}} / {{daemonset}} desired",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Deployment available / desired replicas",
+      "description": "Includes the operator and other Deployments in the selected namespaces.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, deployment) (kube_deployment_status_replicas_available{job=~\"$ksm_job\", namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}} / {{deployment}} available",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, deployment) (kube_deployment_spec_replicas{job=~\"$ksm_job\", namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}} / {{deployment}} desired",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "DaemonSet unavailable nodes",
+      "description": "Nonzero values can indicate rollout, scheduling, or readiness problems. Missing series are not treated as zero.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, daemonset) (kube_daemonset_status_number_unavailable{job=~\"$ksm_job\", namespace=~\"$namespace\"})",
+          "legendFormat": "{{namespace}} / {{daemonset}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Container restarts in the selected time range",
+      "description": "Regular containers only. Counts are extrapolated by Prometheus; short-lived or deleted pods may be absent.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{job=~\"$ksm_job\", namespace=~\"$namespace\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}} / {{container}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Controller reconciliations",
+      "description": "Optional: select the scrape job for Network Operator only. This job selector is independent of component namespaces.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (controller, result) (rate(controller_runtime_reconcile_total{job=~\"$operator_job\"}[$__rate_interval]))",
+          "legendFormat": "{{controller}} / {{result}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Controller reconciliation errors",
+      "description": "Optional: reconciliation errors per second, not a direct measurement of NicClusterPolicy or NicNodePolicy status.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (controller) (rate(controller_runtime_reconcile_errors_total{job=~\"$operator_job\"}[$__rate_interval]))",
+          "legendFormat": "{{controller}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "RDMA port traffic",
+      "description": "Optional node exporter InfiniBand collector. Host-port counters, not per-pod throughput or a performance qualification. These byte counters already include conversion from hardware data units.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_infiniband_port_data_received_bytes_total{job=~\"$node_job\", instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} / {{device}} / {{port}} RX",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_infiniband_port_data_transmitted_bytes_total{job=~\"$node_job\", instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} / {{device}} / {{port}} TX",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "RDMA receive errors / transmit discards",
+      "description": "Optional node exporter InfiniBand collector. Counter availability depends on the NIC, driver and exporter. Missing counters do not imply zero errors.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_infiniband_port_errors_received_total{job=~\"$node_job\", instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} / {{device}} / {{port}} RX errors",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_infiniband_port_discards_transmitted_total{job=~\"$node_job\", instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} / {{device}} / {{port}} TX discards",
+          "range": true
+        }
+      ]
+    }
+  ]
+}
