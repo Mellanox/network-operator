@@ -2,9 +2,10 @@
 
 Import [network-operator-dashboard.json](network-operator-dashboard.json) into
 Grafana to inspect component readiness, container restarts, controller activity,
-and optional host RDMA port traffic and errors. The dashboard uses built-in
-Grafana time-series panels and a Prometheus data source; it does not install
-exporters, configure scraping, or create alerts.
+and optional host RDMA port traffic and errors. The restart chart shows a rolling
+five-minute count at each point, including events just before the displayed range.
+The dashboard uses built-in Grafana time-series panels and a Prometheus data
+source; it does not install exporters, configure scraping, or create alerts.
 
 ## Prerequisites and import
 

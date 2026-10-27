@@ -33,7 +33,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "query": "label_values(kube_daemonset_status_desired_number_scheduled, job)",
+        "query": "label_values({__name__=~\"kube_daemonset_status_desired_number_scheduled|kube_deployment_spec_replicas\"}, job)",
         "refresh": 1,
         "sort": 1,
         "multi": false,
@@ -47,7 +47,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "query": "label_values(kube_daemonset_status_desired_number_scheduled{job=~\"$ksm_job\"}, namespace)",
+        "query": "label_values({__name__=~\"kube_daemonset_status_desired_number_scheduled|kube_deployment_spec_replicas\", job=~\"$ksm_job\"}, namespace)",
         "refresh": 1,
         "sort": 1,
         "multi": true,
@@ -267,8 +267,8 @@
     },
     {
       "id": 4,
-      "title": "Container restarts in the selected time range",
-      "description": "Regular containers only. Counts are extrapolated by Prometheus; short-lived or deleted pods may be absent.",
+      "title": "Container restarts in rolling 5 minutes",
+      "description": "Each point counts restarts during its preceding five minutes, including at the start of the displayed time range. Regular containers only. Counts are extrapolated by Prometheus; short-lived or deleted pods may be absent.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -309,7 +309,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{job=~\"$ksm_job\", namespace=~\"$namespace\"}[$__range]))",
+          "expr": "max by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{job=~\"$ksm_job\", namespace=~\"$namespace\"}[5m]))",
           "legendFormat": "{{namespace}} / {{pod}} / {{container}}",
           "range": true
         }
