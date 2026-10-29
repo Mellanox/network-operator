@@ -107,10 +107,6 @@ func (s *stateRDMASharedDevicePlugin) Sync(
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
 	}
-	staticInfo := infoCatalog.GetStaticConfigProvider()
-	if staticInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
-	}
 
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
 	if err != nil {
@@ -170,10 +166,6 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
-	}
 
 	renderData := &stateRDMASharedDevicePluginManifestRenderData{
 		CrSpec:              cr.GetRdmaSharedDevicePluginSpec(),
@@ -187,8 +179,8 @@ func (s *stateRDMASharedDevicePlugin) GetManifestObjects(
 			runtimeSpec:           runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:           clusterInfo.IsOpenshift(),
 			ContainerResources:    createContainerResourcesMap(cr.GetRdmaSharedDevicePluginSpec().ContainerResources),
-			KubeletRootDir:        utils.GetKubeletRootDir(staticConfig),
-			PassKubeletRootDirArg: utils.ShouldPassKubeletRootDirArg(staticConfig),
+			KubeletRootDir:        utils.GetKubeletRootDir(config.FromEnv().State.KubeletRootDir),
+			PassKubeletRootDirArg: utils.ShouldPassKubeletRootDirArg(config.FromEnv().State.KubeletRootDir),
 		},
 	}
 	// render objects

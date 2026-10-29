@@ -116,11 +116,6 @@ func (s *stateNicConfigurationOperator) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 
-	staticInfo := infoCatalog.GetStaticConfigProvider()
-	if staticInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
-	}
-
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
@@ -209,10 +204,6 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 	clusterInfo := catalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
-	}
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
 	}
 	renderData := &NicConfigurationOperatorManifestRenderData{
 		CrSpec:                 cr.Spec.NicConfigurationOperator,

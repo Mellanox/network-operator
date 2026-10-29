@@ -154,10 +154,6 @@ func (s *stateSpectrumXOperator) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
-	}
 	renderData := &spectrumXOperatorRenderData{
 		CrSpec:       cr.Spec.SpectrumXOperator,
 		NodeAffinity: cr.Spec.NodeAffinity,
@@ -165,7 +161,7 @@ func (s *stateSpectrumXOperator) GetManifestObjects(
 		RuntimeSpec: &spectrumXRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
-			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			CniBinDirectory:    utils.GetCniBinDirectory(config.FromEnv().State.CniBinDirectory, clusterInfo),
 			ContainerResources: createContainerResourcesMap(cr.Spec.SpectrumXOperator.ContainerResources),
 		},
 	}

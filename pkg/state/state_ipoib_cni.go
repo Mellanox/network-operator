@@ -83,10 +83,6 @@ func (s *stateIPoIBCNI) Sync(
 		return s.handleStateObjectsDeletion(ctx)
 	}
 	// Fill ManifestRenderData and render objects
-	staticInfo := infoCatalog.GetStaticConfigProvider()
-	if staticInfo == nil {
-		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
-	}
 
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
@@ -150,10 +146,6 @@ func (s *stateIPoIBCNI) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
-	staticConfig := catalog.GetStaticConfigProvider()
-	if staticConfig == nil {
-		return nil, errors.New("staticConfig provider required")
-	}
 	renderData := &IPoIBManifestRenderData{
 		CrSpec:       cr.Spec.SecondaryNetwork.IPoIB,
 		Tolerations:  cr.Spec.Tolerations,
@@ -161,7 +153,7 @@ func (s *stateIPoIBCNI) GetManifestObjects(
 		RuntimeSpec: &cniRuntimeSpec{
 			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift:        clusterInfo.IsOpenshift(),
-			CniBinDirectory:    utils.GetCniBinDirectory(staticConfig, clusterInfo),
+			CniBinDirectory:    utils.GetCniBinDirectory(config.FromEnv().State.CniBinDirectory, clusterInfo),
 			ContainerResources: createContainerResourcesMap(cr.Spec.SecondaryNetwork.IPoIB.ContainerResources),
 		},
 	}
