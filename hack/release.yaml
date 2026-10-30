@@ -204,7 +204,7 @@ spectrumXOperatorStigFipsUbuntu:
 xPlaneService:
   image: xplane
   repository: nvcr.io/nvstaging/doca
-  version: 3.6.0057
+  version: 3.6.0060
 nodeFeatureDiscovery:
   image: node-feature-discovery
   repository: nvcr.io/nvstaging/mellanox
