@@ -155,6 +155,9 @@ data:
     runtime-configuration-folder=/config/clx_last_runtime_conf
     idle-time-limit=0
 
+    # Raise the open-files soft limit for cases of dense setups. Containers default is usually 1024
+    nofile-limit=8192
+
     ################################### PROVIDERS #################################
     enable-explicitly=true
 
