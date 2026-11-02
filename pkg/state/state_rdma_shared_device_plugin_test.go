@@ -29,9 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
-	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 )
 
 var _ = Describe("RDMA Shared Device Plugin", func() {
@@ -70,6 +69,17 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 		})
 	})
 	Context("When rendering a NicNodePolicy", func() {
+		It("uses the operator kubelet directory override", func() {
+			config.FromEnv().State.KubeletRootDir = "/custom/kubelet/"
+			ds := renderRdmaSharedDevicePluginDaemonSet(
+				&ts, getMinimalNicNodePolicyWithRdmaSharedDevicePlugin("pool-a"))
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("--kubelet-root-dir=/custom/kubelet"))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "device-plugin"),
+				HaveField("HostPath.Path", "/custom/kubelet/device-plugins"),
+			)))
+		})
+
 		DescribeTable("should use a deterministic policy name hash only in the DaemonSet name",
 			func(policyName, expectedHash string) {
 				expectedName := "rdma-shared-dp-ds-" + expectedHash
@@ -104,11 +114,7 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 	})
 	Context("KubeletRootDir", func() {
 		setKubeletRootDir := func(kubeletRootDir string) {
-			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
-				KubeletRootDir: kubeletRootDir,
-			})
-			ts.catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			config.FromEnv().State.KubeletRootDir = kubeletRootDir
 		}
 
 		It("should use default kubelet paths and omit the flag when unset", func() {
@@ -132,7 +138,7 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 				HaveField("HostPath.Path", "/var/lib/kubelet/plugins_registry"),
 			)))
 		})
-		It("should pass --kubelet-root-dir and derive mounts when set via static config", func() {
+		It("should pass --kubelet-root-dir and derive mounts when set via operator config", func() {
 			setKubeletRootDir("/var/lib/k0s/kubelet")
 			cr := getRDMASharedDevicePlugin()
 			ds := renderRdmaSharedDevicePluginDaemonSet(&ts, cr)

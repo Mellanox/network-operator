@@ -36,6 +36,10 @@ type OperatorConfig struct {
 
 // StateConfig holds configuration for Operator State.
 type StateConfig struct {
+	// Empty directory overrides select the platform defaults in pkg/utils.
+	CniBinDirectory                  string `env:"CNI_BIN_DIR"`
+	CniNetworkDirectory              string `env:"CNI_NETWORK_DIR"`
+	KubeletRootDir                   string `env:"KUBELET_ROOT_DIR"`
 	NetworkOperatorResourceNamespace string `env:"POD_NAMESPACE" envDefault:"nvidia-network-operator"`
 	ManifestBaseDir                  string `env:"STATE_MANIFEST_BASE_DIR" envDefault:"./manifests"`
 	OFEDState                        OFEDStateConfig

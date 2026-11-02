@@ -20,7 +20,6 @@ import (
 	"github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/nodeinfo"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 type dummyProvider struct {
@@ -36,10 +35,6 @@ func (d *dummyProvider) IsKubernetes() bool {
 
 func (d *dummyProvider) IsOpenshift() bool {
 	return false
-}
-
-func (d *dummyProvider) GetStaticConfig() staticconfig.StaticConfig {
-	return staticconfig.StaticConfig{CniBinDirectory: ""}
 }
 
 func (d *dummyProvider) GetNodePools(...nodeinfo.Filter) []nodeinfo.NodePool {
@@ -61,7 +56,6 @@ func (d *dummyProvider) SetImageSpec(_ *v1alpha1.ImageSpec) {}
 func getDummyCatalog() InfoCatalog {
 	catalog := NewInfoCatalog()
 	catalog.Add(InfoTypeNodeInfo, &dummyProvider{})
-	catalog.Add(InfoTypeStaticConfig, &dummyProvider{})
 	catalog.Add(InfoTypeClusterType, &dummyProvider{})
 	catalog.Add(InfoTypeDocaDriverImage, &dummyProvider{})
 

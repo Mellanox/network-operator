@@ -30,7 +30,6 @@ import (
 
 	"github.com/Mellanox/network-operator/pkg/clustertype"
 	"github.com/Mellanox/network-operator/pkg/consts"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 // GetFilesWithSuffix returns all files under a given base directory that have a specific suffix
@@ -71,10 +70,9 @@ func GetNetworkAttachmentDefLink(netAttDef *netattdefv1.NetworkAttachmentDefinit
 }
 
 // GetCniBinDirectory returns the location where the CNI binaries are stored on the node.
-func GetCniBinDirectory(staticInfo staticconfig.Provider,
+func GetCniBinDirectory(userSetDirectory string,
 	clusterInfo clustertype.Provider) string {
 	// First we try to set the user-set value, then fallback to defaults for Openshift / K8s
-	userSetDirectory := staticInfo.GetStaticConfig().CniBinDirectory
 	if userSetDirectory != "" {
 		return userSetDirectory
 	} else if clusterInfo != nil && clusterInfo.IsOpenshift() {
@@ -85,9 +83,8 @@ func GetCniBinDirectory(staticInfo staticconfig.Provider,
 }
 
 // GetCniNetworkDirectory returns the location where the CNI network configuration is stored on the node.
-func GetCniNetworkDirectory(staticInfo staticconfig.Provider, _ clustertype.Provider) string {
+func GetCniNetworkDirectory(userSetDirectory string) string {
 	// First we try to set the user-set value, then fallback to defaults
-	userSetDirectory := staticInfo.GetStaticConfig().CniNetworkDirectory
 	if userSetDirectory != "" {
 		return userSetDirectory
 	}
@@ -95,12 +92,10 @@ func GetCniNetworkDirectory(staticInfo staticconfig.Provider, _ clustertype.Prov
 }
 
 // GetKubeletRootDir returns the kubelet root directory on the node.
-// An empty or unset static config value falls back to /var/lib/kubelet.
-func GetKubeletRootDir(staticInfo staticconfig.Provider) string {
-	if staticInfo != nil {
-		if userSetDirectory := staticInfo.GetStaticConfig().KubeletRootDir; userSetDirectory != "" {
-			return filepath.Clean(userSetDirectory)
-		}
+// An empty directory override falls back to /var/lib/kubelet.
+func GetKubeletRootDir(userSetDirectory string) string {
+	if userSetDirectory != "" {
+		return filepath.Clean(userSetDirectory)
 	}
 	return consts.DefaultKubeletRootDir
 }
@@ -108,11 +103,7 @@ func GetKubeletRootDir(staticInfo staticconfig.Provider) string {
 // ShouldPassKubeletRootDirArg reports whether the RDMA shared device plugin
 // should receive --kubelet-root-dir. The flag is only set for a non-empty
 // override that differs from the default kubelet root.
-func ShouldPassKubeletRootDirArg(staticInfo staticconfig.Provider) bool {
-	if staticInfo == nil {
-		return false
-	}
-	userSetDirectory := staticInfo.GetStaticConfig().KubeletRootDir
+func ShouldPassKubeletRootDirArg(userSetDirectory string) bool {
 	if userSetDirectory == "" {
 		return false
 	}

@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("Multus CNI state", func() {
@@ -40,11 +40,8 @@ var _ = Describe("Multus CNI state", func() {
 		ts = ts.New(state.NewStateMultusCNI, "../../manifests/state-multus-cni")
 		Expect(ts).NotTo(BeNil())
 
-		ts.catalog.Add(state.InfoTypeStaticConfig,
-			staticconfig.NewProvider(staticconfig.StaticConfig{
-				CniBinDirectory:     "custom-cni-bin-directory",
-				CniNetworkDirectory: "custom-cni-network-directory",
-			}))
+		config.FromEnv().State.CniBinDirectory = "custom-cni-bin-directory"
+		config.FromEnv().State.CniNetworkDirectory = "custom-cni-network-directory"
 	})
 
 	It("should render ServiceAccount", func() {

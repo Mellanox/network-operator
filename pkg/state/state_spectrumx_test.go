@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 //nolint:dupl
@@ -39,8 +39,7 @@ var _ = Describe("Spectrum X Operator", func() {
 		ts = ts.New(state.NewStateSpectrumXOperator, "../../manifests/state-spectrum-x-operator")
 		Expect(ts).NotTo(BeNil())
 		catalog = getTestCatalog()
-		catalog.Add(state.InfoTypeStaticConfig,
-			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
+		config.FromEnv().State.CniBinDirectory = "custom-cni-bin-directory"
 	})
 
 	Context("should render", func() {

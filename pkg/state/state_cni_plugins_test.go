@@ -26,9 +26,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
-	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -100,12 +99,8 @@ var _ = Describe("CNI plugins state", func() {
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			testCniBinDir := "/opt/mydir/cni"
 			testCniNetworkDir := "/etc/mydir/cni/net.d"
-			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
-				CniBinDirectory:     testCniBinDir,
-				CniNetworkDirectory: testCniNetworkDir,
-			})
-			ts.catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
+			config.FromEnv().State.CniBinDirectory = testCniBinDir
+			config.FromEnv().State.CniNetworkDirectory = testCniNetworkDir
 			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
@@ -122,11 +117,6 @@ var _ = Describe("CNI plugins state", func() {
 		It("should create Daemonset with Openshift CNI bin dir", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{
-				CniBinDirectory: "",
-			})
-			ts.openshiftCatalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			status, err := ts.state.Sync(context.Background(), cr, ts.openshiftCatalog)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
@@ -261,21 +251,9 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 		})
 
-		It("should fail if static config provider not set in catalog", func() {
-			By("Sync")
-			cr := getMinimalNicClusterPolicyWithCNIPlugins()
-			noCatalog := state.NewInfoCatalog()
-			status, err := ts.state.Sync(context.Background(), cr, noCatalog)
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateError))
-		})
-
 		It("should fail if clustertype provider not set in catalog", func() {
 			By("Sync")
 			catalog := state.NewInfoCatalog()
-			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
-			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			cr := getMinimalNicClusterPolicyWithCNIPlugins()
 			status, err := ts.state.Sync(context.Background(), cr, catalog)
 			Expect(err).To(HaveOccurred())

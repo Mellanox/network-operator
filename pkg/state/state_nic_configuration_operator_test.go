@@ -36,8 +36,6 @@ import (
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
-	"github.com/Mellanox/network-operator/pkg/staticconfig"
-	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
 )
 
 var _ = Describe("NIC Configuration Operator Controller", func() {
@@ -68,8 +66,7 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 		nicConfigurationOperatorState = s
 		renderer = r
 		catalog = getTestCatalog()
-		catalog.Add(state.InfoTypeStaticConfig,
-			staticconfig.NewProvider(staticconfig.StaticConfig{CniBinDirectory: "custom-cni-bin-directory"}))
+		config.FromEnv().State.CniBinDirectory = "custom-cni-bin-directory"
 		namespace = config.FromEnv().State.NetworkOperatorResourceNamespace
 	})
 
@@ -726,21 +723,9 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})
 
-		It("should fail if static config provider not set in catalog", func() {
-			By("Sync")
-			catalog := state.NewInfoCatalog()
-			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
-			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateError))
-		})
-
 		It("should fail if clustertype provider not set in catalog", func() {
 			By("Sync")
 			catalog := state.NewInfoCatalog()
-			staticConfigProvider := staticconfig_mocks.Provider{}
-			staticConfigProvider.On("GetStaticConfig").Return(staticconfig.StaticConfig{CniBinDirectory: ""})
-			catalog.Add(state.InfoTypeStaticConfig, &staticConfigProvider)
 			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
 			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
 			Expect(err).To(HaveOccurred())

@@ -100,3 +100,22 @@ With VSCode your launch.json should look similar to the below. Note that `remote
   ]
 }
 ```
+
+## State configuration in Go
+
+States read deployment-time settings from `config.FromEnv().State`. The config
+package loads and caches the startup environment once; production code should
+not mutate that snapshot. Add new deployment-time settings to `StateConfig`
+instead of introducing a separate environment reader or catalog provider.
+
+`CNI_BIN_DIR`, `CNI_NETWORK_DIR`, and `KUBELET_ROOT_DIR` are optional directory
+overrides. Empty values remain empty in the configuration so `pkg/utils` can
+apply platform defaults (including the OpenShift CNI binary directory).
+Directory helpers take explicit string inputs; `GetCniBinDirectory` also takes
+the cluster-type provider. The state information catalog supplies runtime
+cluster, node, and driver-image information, not static configuration.
+
+State rendering tests override the cached configuration in serial Ginkgo specs;
+the common `BeforeEach` hook clears directory overrides and registers cleanup
+that restores the previous state configuration after each spec. Environment
+loading and caching are tested separately in `pkg/config`.
