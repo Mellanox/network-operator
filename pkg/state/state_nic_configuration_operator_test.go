@@ -533,6 +533,68 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			Expect(expr.Values).To(ContainElements("deployment-value"))
 		})
 
+		DescribeTable("should default the daemon MFT config path and preserve explicit environment settings",
+			func(env []v1.EnvVar, expected v1.EnvVar) {
+				cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+				cr.Spec.NicConfigurationOperator.Env = env
+				originalEnv := cr.Spec.NicConfigurationOperator.DeepCopy().Env
+				for range 2 {
+					_, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(cr.Spec.NicConfigurationOperator.Env).To(Equal(originalEnv))
+
+					ds := &appsv1.DaemonSet{}
+					err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: daemonSetName}, ds)
+					Expect(err).NotTo(HaveOccurred())
+					var mftEnv []v1.EnvVar
+					for _, variable := range ds.Spec.Template.Spec.Containers[0].Env {
+						if variable.Name == "MFT_CONFIG_PATH" {
+							mftEnv = append(mftEnv, variable)
+						}
+					}
+					Expect(mftEnv).To(ConsistOf(expected))
+
+					d := &appsv1.Deployment{}
+					err = client.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: deploymentName}, d)
+					Expect(err).NotTo(HaveOccurred())
+					userMFTConfig := false
+					for _, variable := range env {
+						Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ContainElement(variable))
+						Expect(d.Spec.Template.Spec.Containers[0].Env).To(ContainElement(variable))
+						if variable.Name == "MFT_CONFIG_PATH" {
+							userMFTConfig = true
+						}
+					}
+					if !userMFTConfig {
+						Expect(d.Spec.Template.Spec.Containers[0].Env).NotTo(ContainElement(HaveField("Name", "MFT_CONFIG_PATH")))
+					}
+				}
+			},
+			Entry("without user env", []v1.EnvVar(nil),
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"}),
+			Entry("with empty user env", []v1.EnvVar{},
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"}),
+			Entry("with unrelated user env", []v1.EnvVar{{Name: "TEST_ENV", Value: "test-value"}},
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"}),
+			Entry("with a custom path", []v1.EnvVar{{Name: "MFT_CONFIG_PATH", Value: "/custom/mft.conf"}},
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/custom/mft.conf"}),
+			Entry("with the default path already supplied", []v1.EnvVar{{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"}},
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"}),
+			Entry("with an explicit empty value", []v1.EnvVar{{Name: "MFT_CONFIG_PATH", Value: ""}},
+				v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: ""}),
+			Entry("with a value source", []v1.EnvVar{{Name: "MFT_CONFIG_PATH", ValueFrom: &v1.EnvVarSource{
+				ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{Name: "mft-config"},
+					Key:                  "path",
+				},
+			}}}, v1.EnvVar{Name: "MFT_CONFIG_PATH", ValueFrom: &v1.EnvVarSource{
+				ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{Name: "mft-config"},
+					Key:                  "path",
+				},
+			}}),
+		)
+
 		It("should pass env variables when specified in CR", func() {
 			By("Sync")
 			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)

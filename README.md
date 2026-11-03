@@ -101,6 +101,9 @@ and related configurations.
 
 >__NOTE__: Any sub-state may be omitted if it is not required for the cluster.
 
+The NIC configuration daemon defaults `MFT_CONFIG_PATH` to `/etc/mft/mft.conf`.
+Override it through `spec.nicConfigurationOperator.env` when using a different MFT configuration path.
+
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
 It contains a per sub-state and a global state `status`.
