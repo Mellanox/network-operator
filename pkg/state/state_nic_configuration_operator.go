@@ -18,6 +18,7 @@ package state //nolint:dupl
 
 import (
 	"context"
+	"slices"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -64,6 +65,7 @@ type nicConfigurationOperatorRuntimeSpec struct {
 	runtimeSpec
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	DaemonEnv          []v1.EnvVar
 }
 
 type stateNicConfigurationOperator struct {
@@ -214,6 +216,13 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 	if staticConfig == nil {
 		return nil, errors.New("staticConfig provider required")
 	}
+
+	daemonEnv := slices.Clone(cr.Spec.NicConfigurationOperator.Env)
+	if envVarsWithGet(daemonEnv).Get("MFT_CONFIG_PATH") == nil {
+		// Keep the MFT SDK from selecting its private config for external MFT tools.
+		daemonEnv = append(daemonEnv, v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"})
+	}
+
 	renderData := &NicConfigurationOperatorManifestRenderData{
 		CrSpec:                 cr.Spec.NicConfigurationOperator,
 		NodeAffinity:           cr.Spec.NodeAffinity,
@@ -223,6 +232,7 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		RuntimeSpec: &nicConfigurationOperatorRuntimeSpec{
 			runtimeSpec: runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
 			IsOpenshift: clusterInfo.IsOpenshift(),
+			DaemonEnv:   daemonEnv,
 			ContainerResources: createContainerResourcesMap(append(
 				cr.Spec.NicConfigurationOperator.Operator.ContainerResources,
 				cr.Spec.NicConfigurationOperator.ConfigurationDaemon.ContainerResources...)),
