@@ -474,6 +474,32 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
+	It("should mount a custom kubelet root dir at /var/lib/kubelet in thick mode", func() {
+		ts.catalog.Add(state.InfoTypeStaticConfig,
+			staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: "/var/lib/k0s/kubelet/"}))
+		cr := getMinimalNicClusterPolicyWithMultus()
+		cr.Spec.SecondaryNetwork.Multus.DeploymentType = mellanoxv1alpha1.MultusDeploymentTypeThick
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(daemonSet.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{Name: "host-var-lib-kubelet", MountPath: "/var/lib/kubelet",
+					MountPropagation: mountPropagationPtr(corev1.MountPropagationHostToContainer)},
+			))
+			Expect(daemonSet.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{Name: "host-var-lib-kubelet", VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/k0s/kubelet"},
+				}},
+			))
+		})).To(BeTrue())
+	})
+
 	It("should render thin DaemonSet with correct structure when DeploymentType is thin", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 
