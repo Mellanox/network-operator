@@ -104,6 +104,27 @@ and related configurations.
 The NIC configuration daemon defaults `MFT_CONFIG_PATH` to `/etc/mft/mft.conf`.
 Override it through `spec.nicConfigurationOperator.env` when using a different MFT configuration path.
 
+The daemon resolves digest-pinned `NicFirmwareTemplate.spec.template.firmwareImages` into a
+configurable ephemeral cache (4 GiB by default) without a PVC or Pod replacement. Use compatible NIC Configuration
+Operator and daemon images and the current firmware CRDs. Registry requests start only for
+firmware images selected by the existing node/NIC template matching.
+
+For private registries, explicitly list credential Secret names in
+`spec.nicConfigurationOperator.firmwareImagePullSecrets`. These optional read-only mounts
+accept `.dockerconfigjson` or `.dockercfg`; missing credentials are reported for the firmware
+source without blocking daemon startup. Component `imagePullSecrets` remain kubelet-only.
+`certConfig` supplies a `ca-bundle.crt` ConfigMap for operator and daemon TLS requests;
+existing proxy environment variables also apply to registry requests. Credential and CA
+files can rotate without replacing daemon Pods. `FIRMWARE_IMAGE_CACHE_DIR`,
+`FIRMWARE_IMAGE_AUTH_DIR`, `FIRMWARE_IMAGE_CACHE_SIZE`, and `FIRMWARE_IMAGE_CA_FILE` are managed paths and cannot be
+overridden through `env`.
+Set `firmwareImageCacheSize` to a Kubernetes quantity of at least `2Gi` to size the shared
+cache and download staging budget. Ensure node and Pod ephemeral-storage limits accommodate
+the chosen size. Large inventories require space for desired payloads plus staging.
+Use explicit internal registry references in air-gapped environments; node-only runtime
+credentials, mirror configuration, signature policies, and preloaded image caches are not
+inherited by the daemon resolver. Existing `NicFirmwareSource` PVC storage remains available.
+
 #### NICClusterPolicy status
 NICClusterPolicy `status` field reflects the current state of the system.
 It contains a per sub-state and a global state `status`.

@@ -83,6 +83,18 @@ spec:
               {{ . | yaml | nindentPrefix 14 "- " }}
             {{- end }}
           volumeMounts:
+            - name: firmware-images
+              mountPath: /nic-firmware-images
+            {{- range $index, $secret := .CrSpec.FirmwareImagePullSecrets }}
+            - name: firmware-auth-{{ $index }}
+              mountPath: /var/run/nic-firmware-auth/{{ $secret }}
+              readOnly: true
+            {{- end }}
+            {{- if .CrSpec.CertConfig }}
+            - name: trusted-ca
+              mountPath: /etc/pki/ca-trust/extracted/pem
+              readOnly: true
+            {{- end }}
             - name: sys
               mountPath: /sys
               readOnly: false
@@ -99,6 +111,24 @@ spec:
               readOnly: true
           {{- end }}
       volumes:
+        - name: firmware-images
+          emptyDir:
+            sizeLimit: {{ .RuntimeSpec.FirmwareImageCacheSize }}
+        {{- range $index, $secret := .CrSpec.FirmwareImagePullSecrets }}
+        - name: firmware-auth-{{ $index }}
+          secret:
+            secretName: {{ $secret }}
+            optional: true
+        {{- end }}
+        {{- if .CrSpec.CertConfig }}
+        - name: trusted-ca
+          configMap:
+            name: {{ .CrSpec.CertConfig.Name }}
+            optional: true
+            items:
+              - key: ca-bundle.crt
+                path: tls-ca-bundle.pem
+        {{- end }}
         - name: sys
           hostPath:
             path: /sys
