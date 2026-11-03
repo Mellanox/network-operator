@@ -78,10 +78,34 @@ spec:
         # Required by providers that access firmware through the fwctl interface.
         - name: fwctl-devices
           mountPath: /dev/fwctl
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # The node topology labels are exported for the env() references in the DTS configuration.
+        # A failed lookup leaves them empty rather than keeping DTS from starting.
+        # The API server is addressed by IP: with hostNetwork, cluster DNS names do not resolve.
         # telemetry-init.sh only generates configuration into an empty /config, so the overwrite
         # is what keeps the ConfigMap authoritative now that /config persists on the host.
         # Clearing /config instead would discard the node's configuration on every restart.
-        command: [ "/bin/bash", "-c", "FORCE_CONFIG_OVERWRITE=1 DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh" ]
+        command:
+        - /bin/bash
+        - -c
+        - |
+          sa=/var/run/secrets/kubernetes.io/serviceaccount
+          api_host=${KUBERNETES_SERVICE_HOST}
+          [[ ${api_host} == *:* ]] && api_host="[${api_host}]"
+          node=$(curl -sf --cacert "${sa}/ca.crt" -H "Authorization: Bearer $(cat "${sa}/token")" \
+            "https://${api_host}:${KUBERNETES_SERVICE_PORT}/api/v1/nodes/${NODE_NAME}") \
+            || echo "failed to read node ${NODE_NAME}, node topology fields are left empty" >&2
+          node_label() {
+            python3 -c 'import json, sys; print(json.loads(sys.stdin.read() or "{}").get("metadata", {}).get("labels", {}).get(sys.argv[1], ""))' "$1" <<<"${node}"
+          }
+          export POD_ID=$(node_label example.com/superpod)
+          export SU_ID=$(node_label example.com/su)
+          export RACK=$(node_label example.com/rack)
+          FORCE_CONFIG_OVERWRITE=1 DTS_CONFIG_DIR=host /usr/bin/telemetry-init.sh && /usr/bin/telemetry-run.sh
         # Required only for the sysfs collector only.
         securityContext:
           privileged: true
@@ -157,6 +181,13 @@ data:
 
     # Raise the open-files soft limit for cases of dense setups. Containers default is usually 1024
     nofile-limit=8192
+
+    # Node identity attached to the exported data. HOSTNAME is set by the container runtime, the
+    # others are read from the node labels at container start.
+    hostname=env(HOSTNAME)
+    pod=env(POD_ID)
+    su=env(SU_ID)
+    rack=env(RACK)
 
     ################################### PROVIDERS #################################
     enable-explicitly=true
