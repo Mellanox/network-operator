@@ -117,7 +117,7 @@ spec:
         {{- range $index, $secret := .CrSpec.FirmwareImagePullSecrets }}
         - name: firmware-auth-{{ $index }}
           secret:
-            secretName: {{ $secret }}
+            secretName: {{ $secret | quote }}
             optional: true
         {{- end }}
         {{- if .CrSpec.CertConfig }}

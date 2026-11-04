@@ -28,6 +28,17 @@ import (
 )
 
 var _ = Describe("NIC firmware OCI schema integration", func() {
+	DescribeTable("ships matching OCI settings in every installation schema", func(filename string) {
+		canonical := nicConfigurationSchema("../../config/crd/bases/mellanox.com_nicclusterpolicies.yaml")
+		shipped := nicConfigurationSchema(filename)
+		for _, field := range []string{"firmwareImageCacheSize", "firmwareImagePullSecrets"} {
+			Expect(canonical.Properties).To(HaveKey(field))
+			Expect(shipped.Properties).To(HaveKey(field))
+			Expect(shipped.Properties[field]).To(Equal(canonical.Properties[field]), "field=%s", field)
+		}
+	}, Entry("Helm", "../../deployment/network-operator/crds/mellanox.com_nicclusterpolicies.yaml"),
+		Entry("OLM", "../../bundle/manifests/mellanox.com_nicclusterpolicies.yaml"))
+
 	It("ships matching firmware schemas for NicDevice and NicFirmwareTemplate", func() {
 		device := firmwareSchema("002-configuration.net.nvidia.com_nicdevices.yaml", "firmware")
 		template := firmwareSchema("004-configuration.net.nvidia.com_nicfirmwaretemplates.yaml", "template")
@@ -43,11 +54,7 @@ var _ = Describe("NIC firmware OCI schema integration", func() {
 	})
 
 	DescribeTable("validates explicit firmware credential Secret names", func(name string, valid bool) {
-		data, err := os.ReadFile("../../config/crd/bases/mellanox.com_nicclusterpolicies.yaml")
-		Expect(err).NotTo(HaveOccurred())
-		crd := &apiextensionsv1.CustomResourceDefinition{}
-		Expect(yaml.UnmarshalStrict(data, crd)).To(Succeed())
-		configuration := crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["nicConfigurationOperator"]
+		configuration := nicConfigurationSchema("../../config/crd/bases/mellanox.com_nicclusterpolicies.yaml")
 		schema := configuration.Properties["firmwareImagePullSecrets"]
 		Expect(*schema.XListType).To(Equal("set"))
 		Expect(*schema.MaxItems).To(Equal(int64(32)))
@@ -76,6 +83,25 @@ var _ = Describe("NIC firmware OCI schema integration", func() {
 		Entry("empty list", []interface{}{}, false),
 		Entry("invalid digest", []interface{}{"registry.example/fw/cx7@sha256:bad"}, false))
 })
+
+func nicConfigurationSchema(filename string) apiextensionsv1.JSONSchemaProps {
+	data, err := os.ReadFile(filename)
+	Expect(err).NotTo(HaveOccurred())
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	Expect(yaml.UnmarshalStrict(data, crd)).To(Succeed())
+	for _, version := range crd.Spec.Versions {
+		if version.Name != "v1alpha1" || !version.Served {
+			continue
+		}
+		Expect(version.Schema).NotTo(BeNil())
+		Expect(version.Schema.OpenAPIV3Schema).NotTo(BeNil())
+		spec := version.Schema.OpenAPIV3Schema.Properties["spec"]
+		Expect(spec.Properties).To(HaveKey("nicConfigurationOperator"))
+		return spec.Properties["nicConfigurationOperator"]
+	}
+	Fail("CRD has no served v1alpha1 schema: " + filename)
+	return apiextensionsv1.JSONSchemaProps{}
+}
 
 func firmwareSchema(filename, name string) apiextensionsv1.JSONSchemaProps {
 	data, err := os.ReadFile("../../manifests/state-nic-configuration-operator/" + filename)

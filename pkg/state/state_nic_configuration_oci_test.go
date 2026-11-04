@@ -134,6 +134,21 @@ var _ = Describe("NIC Configuration Operator OCI deployment", func() {
 		}
 	})
 
+	DescribeTable("preserves YAML-ambiguous firmware Secret names as strings", func(name string) {
+		cr := getMinimalNicClusterPolicyWithNicConfigurationOperator("operator", "daemon")
+		cr.Spec.NicConfigurationOperator.FirmwareImagePullSecrets = []string{name}
+		ds, _ := renderOCIDeployment(&ts, cr)
+		Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+			HaveField("Name", "firmware-auth-0"),
+			HaveField("Secret.SecretName", name),
+		)))
+		Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{
+			Name: "firmware-auth-0", MountPath: "/var/run/nic-firmware-auth/" + name, ReadOnly: true,
+		}))
+	}, Entry("integer", "123"), Entry("boolean true", "true"), Entry("boolean false", "false"),
+		Entry("null", "null"), Entry("exponent", "1e3"), Entry("decimal", "1.2"),
+		Entry("leading zero", "0123"), Entry("YAML boolean", "on"))
+
 	DescribeTable("preserves administrator TLS settings without duplicate env entries", func(customCert bool) {
 		cr := getMinimalNicClusterPolicyWithNicConfigurationOperator("operator", "daemon")
 		cr.Spec.NicConfigurationOperator.CertConfig = &mellanoxv1alpha1.ConfigMapNameReference{Name: "registry-ca"}
