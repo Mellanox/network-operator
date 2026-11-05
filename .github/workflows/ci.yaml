@@ -82,6 +82,7 @@ jobs:
         username: ${{ secrets.NVCR_USERNAME }}
         password: ${{ secrets.NVCR_TOKEN }}
     - uses: docker/build-push-action@v7
+      id: operator-image
       env:
         GOPROXY: ${{ steps.setup-go-proxy.outputs.goproxy-url || 'direct' }}
       with:
@@ -93,6 +94,7 @@ jobs:
         build-args: |
           GOPROXY=${{ env.GOPROXY }}
     - uses: docker/build-push-action@v7
+      id: coverage-image
       env:
         GOPROXY: ${{ steps.setup-go-proxy.outputs.goproxy-url || 'direct' }}
       with:
@@ -104,6 +106,18 @@ jobs:
         build-args: |
           GOPROXY=${{ env.GOPROXY }}
           GO_COVERAGE=1
+    - name: Attest operator image
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      uses: ./.github/actions/image-attestations
+      with:
+        digest: ${{ steps.operator-image.outputs.digest }}
+        variant: operator
+    - name: Attest coverage image
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      uses: ./.github/actions/image-attestations
+      with:
+        digest: ${{ steps.coverage-image.outputs.digest }}
+        variant: coverage
     outputs:
       default_branch: ${{ env.DEFAULT_BRANCH }}  # we output this here, to use in the following job's conditioning (due to github actions environment variable scope limitations).
       publish: ${{ steps.docker-tags.outputs.publish }}
@@ -170,6 +184,9 @@ jobs:
     needs:
     - docker-build-push
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
       DOWNSTREAM_REPO_OWNER: nvidia-ci-cd
@@ -240,6 +257,23 @@ jobs:
           export BUNDLE_IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:latest  # hard coded
           make bundle-build bundle-push
         fi
+    - name: Record pushed bundle digest
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      id: bundle-digest
+      env:
+        IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:${{ env.VERSION_WITH_PREFIX }}
+      run: |
+        # RepoDigests comes from the image just pushed, not a second lookup of a mutable tag.
+        pushed_ref=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+        echo "digest=${pushed_ref##*@}" >> "$GITHUB_OUTPUT"
+    - uses: docker/setup-buildx-action@v4
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+    - name: Attest bundle image
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      uses: ./.github/actions/image-attestations
+      with:
+        digest: ${{ steps.bundle-digest.outputs.digest }}
+        variant: bundle
     - name: Create PR with bundle to Network Operator
       if: github.ref_type == 'tag'
       env:
@@ -267,6 +301,9 @@ jobs:
     needs:
     - docker-build-push
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
     - uses: actions/checkout@v7
     - name: Determine version
@@ -328,3 +365,21 @@ jobs:
           export BUNDLE_COVERAGE_IMG=$REGISTRY/$IMAGE_NAME-bundle:latest-coverage
           make bundle-coverage-build bundle-coverage-push
         fi
+
+    - name: Record pushed bundle-coverage digest
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      id: bundle-digest
+      env:
+        IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-bundle:${{ env.VERSION_WITH_PREFIX }}-coverage
+      run: |
+        # RepoDigests comes from the image just pushed, not a second lookup of a mutable tag.
+        pushed_ref=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+        echo "digest=${pushed_ref##*@}" >> "$GITHUB_OUTPUT"
+    - uses: docker/setup-buildx-action@v4
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+    - name: Attest bundle-coverage image
+      if: github.repository == 'Mellanox/network-operator' && github.ref_type == 'tag'
+      uses: ./.github/actions/image-attestations
+      with:
+        digest: ${{ steps.bundle-digest.outputs.digest }}
+        variant: bundle-coverage
