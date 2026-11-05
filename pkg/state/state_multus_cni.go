@@ -63,7 +63,15 @@ type MultusManifestRenderData struct {
 	CrSpec       *mellanoxv1alpha1.MultusSpec
 	Tolerations  []v1.Toleration
 	NodeAffinity *v1.NodeAffinity
-	RuntimeSpec  *cniRuntimeSpec
+	RuntimeSpec  *multusRuntimeSpec
+}
+
+type multusRuntimeSpec struct {
+	cniRuntimeSpec
+	// KubeletRootDir is the effective kubelet root directory mounted into the thick Multus daemon
+	// at /var/lib/kubelet, where Multus reads the kubelet pod-resources socket.
+	// Defaults to /var/lib/kubelet when operator.kubeletRootDir / KUBELET_ROOT_DIR is unset.
+	KubeletRootDir string
 }
 
 // Sync attempt to get the system to match the desired state which State represent.
@@ -155,11 +163,14 @@ func (s *stateMultusCNI) GetManifestObjects(
 		CrSpec:       cr.Spec.SecondaryNetwork.Multus,
 		Tolerations:  cr.Spec.Tolerations,
 		NodeAffinity: cr.Spec.NodeAffinity,
-		RuntimeSpec: &cniRuntimeSpec{
-			runtimeSpec:         runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
-			CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
-			ContainerResources:  createContainerResourcesMap(cr.Spec.SecondaryNetwork.Multus.ContainerResources),
+		RuntimeSpec: &multusRuntimeSpec{
+			cniRuntimeSpec: cniRuntimeSpec{
+				runtimeSpec:         runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+				CniBinDirectory:     utils.GetCniBinDirectory(staticConfig, clusterInfo),
+				CniNetworkDirectory: utils.GetCniNetworkDirectory(staticConfig, clusterInfo),
+				ContainerResources:  createContainerResourcesMap(cr.Spec.SecondaryNetwork.Multus.ContainerResources),
+			},
+			KubeletRootDir: utils.GetKubeletRootDir(staticConfig),
 		},
 	}
 
