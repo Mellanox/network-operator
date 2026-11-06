@@ -53,6 +53,16 @@ var _ = Describe("NIC firmware OCI schema integration", func() {
 		}))
 	})
 
+	It("keeps the status.node field selector required by running daemon caches", func() {
+		crd := nicConfigurationCRD("002-configuration.net.nvidia.com_nicdevices.yaml")
+		Expect(crd.Spec.Versions).To(HaveLen(1))
+		version := crd.Spec.Versions[0]
+		Expect(version.Served).To(BeTrue())
+		Expect(version.SelectableFields).To(ContainElement(apiextensionsv1.SelectableField{JSONPath: ".status.node"}))
+		node := version.Schema.OpenAPIV3Schema.Properties["status"].Properties["node"]
+		Expect(node.Type).To(Equal("string"))
+	})
+
 	DescribeTable("validates explicit firmware credential Secret names", func(name string, valid bool) {
 		configuration := nicConfigurationSchema("../../config/crd/bases/mellanox.com_nicclusterpolicies.yaml")
 		schema := configuration.Properties["firmwareImagePullSecrets"]
@@ -104,10 +114,15 @@ func nicConfigurationSchema(filename string) apiextensionsv1.JSONSchemaProps {
 }
 
 func firmwareSchema(filename, name string) apiextensionsv1.JSONSchemaProps {
+	crd := nicConfigurationCRD(filename)
+	Expect(crd.Spec.Versions).To(HaveLen(1))
+	return crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties[name]
+}
+
+func nicConfigurationCRD(filename string) *apiextensionsv1.CustomResourceDefinition {
 	data, err := os.ReadFile("../../manifests/state-nic-configuration-operator/" + filename)
 	Expect(err).NotTo(HaveOccurred())
 	crd := &apiextensionsv1.CustomResourceDefinition{}
 	Expect(yaml.UnmarshalStrict(data, crd)).To(Succeed())
-	Expect(crd.Spec.Versions).To(HaveLen(1))
-	return crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties[name]
+	return crd
 }
