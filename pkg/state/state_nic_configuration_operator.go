@@ -18,6 +18,7 @@ package state //nolint:dupl
 
 import (
 	"context"
+	"math"
 	"slices"
 
 	"github.com/go-logr/logr"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,9 +65,10 @@ func NewStateNicConfigurationOperator(
 
 type nicConfigurationOperatorRuntimeSpec struct {
 	runtimeSpec
-	IsOpenshift        bool
-	ContainerResources ContainerResourcesMap
-	DaemonEnv          []v1.EnvVar
+	IsOpenshift            bool
+	ContainerResources     ContainerResourcesMap
+	DaemonEnv              []v1.EnvVar
+	FirmwareImageCacheSize string
 }
 
 type stateNicConfigurationOperator struct {
@@ -217,10 +220,13 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		return nil, errors.New("staticConfig provider required")
 	}
 
-	daemonEnv := slices.Clone(cr.Spec.NicConfigurationOperator.Env)
-	if envVarsWithGet(daemonEnv).Get("MFT_CONFIG_PATH") == nil {
-		// Keep the MFT SDK from selecting its private config for external MFT tools.
-		daemonEnv = append(daemonEnv, v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"})
+	cacheSize, err := nicConfigurationFirmwareImageCacheSize(cr.Spec.NicConfigurationOperator.FirmwareImageCacheSize)
+	if err != nil {
+		return nil, err
+	}
+	daemonEnv, err := nicConfigurationDaemonEnv(cr.Spec.NicConfigurationOperator, cacheSize)
+	if err != nil {
+		return nil, err
 	}
 
 	renderData := &NicConfigurationOperatorManifestRenderData{
@@ -230,9 +236,10 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 		DeploymentNodeAffinity: cr.Spec.DeploymentNodeAffinity,
 		DeploymentTolerations:  cr.Spec.DeploymentTolerations,
 		RuntimeSpec: &nicConfigurationOperatorRuntimeSpec{
-			runtimeSpec: runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift: clusterInfo.IsOpenshift(),
-			DaemonEnv:   daemonEnv,
+			runtimeSpec:            runtimeSpec{Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:            clusterInfo.IsOpenshift(),
+			DaemonEnv:              daemonEnv,
+			FirmwareImageCacheSize: cacheSize,
 			ContainerResources: createContainerResourcesMap(append(
 				cr.Spec.NicConfigurationOperator.Operator.ContainerResources,
 				cr.Spec.NicConfigurationOperator.ConfigurationDaemon.ContainerResources...)),
@@ -249,4 +256,47 @@ func (s *stateNicConfigurationOperator) GetManifestObjects(
 
 	reqLogger.V(consts.LogLevelDebug).Info("Rendered", "objects:", objs)
 	return objs, nil
+}
+
+// nicConfigurationDaemonEnv keeps deployment-owned paths unambiguous while
+// preserving explicit administrator settings for existing environment variables.
+func nicConfigurationDaemonEnv(
+	spec *mellanoxv1alpha1.NicConfigurationOperatorSpec, cacheSize string) ([]v1.EnvVar, error) {
+	env := slices.Clone(spec.Env)
+	for _, variable := range env {
+		if variable.Name == "FIRMWARE_IMAGE_CACHE_DIR" || variable.Name == "FIRMWARE_IMAGE_AUTH_DIR" ||
+			variable.Name == "FIRMWARE_IMAGE_CA_FILE" || variable.Name == "FIRMWARE_IMAGE_CACHE_SIZE" {
+			return nil, errors.Errorf("nicConfigurationOperator.env %s is managed by the operator", variable.Name)
+		}
+	}
+	if envVarsWithGet(env).Get("MFT_CONFIG_PATH") == nil {
+		// Keep the MFT SDK from selecting its private config for external MFT tools.
+		env = append(env, v1.EnvVar{Name: "MFT_CONFIG_PATH", Value: "/etc/mft/mft.conf"})
+	}
+	env = append(env,
+		v1.EnvVar{Name: "FIRMWARE_IMAGE_CACHE_DIR", Value: "/nic-firmware-images"},
+		v1.EnvVar{Name: "FIRMWARE_IMAGE_CACHE_SIZE", Value: cacheSize})
+	if len(spec.FirmwareImagePullSecrets) > 0 {
+		env = append(env, v1.EnvVar{Name: "FIRMWARE_IMAGE_AUTH_DIR", Value: "/var/run/nic-firmware-auth"})
+	}
+	if spec.CertConfig != nil {
+		env = append(env, v1.EnvVar{
+			Name: "FIRMWARE_IMAGE_CA_FILE", Value: "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"})
+	}
+	return env, nil
+}
+
+func nicConfigurationFirmwareImageCacheSize(size string) (string, error) {
+	if size == "" {
+		size = "4Gi"
+	}
+	quantity, err := resource.ParseQuantity(size)
+	if err != nil {
+		return "", errors.Wrap(err, "invalid nicConfigurationOperator.firmwareImageCacheSize")
+	}
+	if quantity.Cmp(resource.MustParse("2Gi")) < 0 ||
+		quantity.Cmp(*resource.NewQuantity(math.MaxInt64, resource.DecimalSI)) > 0 {
+		return "", errors.New("nicConfigurationOperator.firmwareImageCacheSize must be at least 2Gi and fit in int64 bytes")
+	}
+	return quantity.String(), nil
 }
