@@ -63,9 +63,11 @@ jobs:
           if echo $APP_VERSION | grep -q '-'; then
             echo "docker_registry_network_operator=nvcr.io/nvstaging/mellanox" >> $GITHUB_OUTPUT
             echo "docker_registry_managed_components=nvcr.io/nvstaging/mellanox" >> $GITHUB_OUTPUT
+            echo "docker_registry_doca=nvcr.io/nvstaging/doca" >> $GITHUB_OUTPUT
           else
             echo "docker_registry_network_operator=nvcr.io/nvidia/cloud-native" >> $GITHUB_OUTPUT
             echo "docker_registry_managed_components=nvcr.io/nvidia/mellanox" >> $GITHUB_OUTPUT
+            echo "docker_registry_doca=nvcr.io/nvidia/doca" >> $GITHUB_OUTPUT
           fi
       - name: Verify release branch exists if "rc" version
         run: |
@@ -85,6 +87,7 @@ jobs:
       component_tag: ${{ steps.set-version.outputs.component_tag }}
       docker_registry_network_operator: ${{ steps.determine-docker-registry.outputs.docker_registry_network_operator }}
       docker_registry_managed_components: ${{ steps.determine-docker-registry.outputs.docker_registry_managed_components }}
+      docker_registry_doca: ${{ steps.determine-docker-registry.outputs.docker_registry_doca }}
       docker_registry_staging: nvcr.io/nvstaging/mellanox
       is_beta: ${{ steps.set-version.outputs.is_beta }}
       is_rc: ${{ steps.set-version.outputs.is_rc }}
@@ -425,6 +428,7 @@ jobs:
       CHART_VERSION: ${{ needs.determine-versions.outputs.chart_version }}
       DOCKER_REGISTRY_NETWORK_OPERATOR: ${{ needs.determine-versions.outputs.docker_registry_network_operator }}
       DOCKER_REGISTRY_MANAGED_COMPONENTS: ${{ needs.determine-versions.outputs.docker_registry_managed_components }}
+      DOCKER_REGISTRY_DOCA: ${{ needs.determine-versions.outputs.docker_registry_doca }}
       COMPONENT_TAG: ${{ needs.determine-versions.outputs.component_tag }}
     steps:
       # Chart and CRD sources are checked out at the component tag rather than the release branch:
@@ -556,6 +560,12 @@ jobs:
           yq -i         '.Mofed.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
           yq -i '.MofedStigFips.repository = "${{ env.DOCKER_REGISTRY_MANAGED_COMPONENTS }}"' hack/release.yaml
 
+          # DOCA Telemetry Service and XPlane are published under a separate (doca) registry path
+          # and have no sourceRepository: update registry only, the version is managed manually.
+          echo "Updating DTS and XPlane registry for release"
+          yq -i '.docaTelemetryService.repository = "${{ env.DOCKER_REGISTRY_DOCA }}"' hack/release.yaml
+          yq -i '.xPlaneService.repository = "${{ env.DOCKER_REGISTRY_DOCA }}"' hack/release.yaml
+
           # Update chart and SOS-report collector versions
           yq -i '.version = "${{ env.CHART_VERSION }}"'  deployment/network-operator/Chart.yaml
           yq -i '.appVersion = "${{ env.APP_VERSION }}"' deployment/network-operator/Chart.yaml
@@ -569,6 +579,7 @@ jobs:
             sed \
               -e 's|nvcr.io/nvidia/mellanox|nvcr.io/nvstaging/mellanox|g' \
               -e 's|nvcr.io/nvidia/cloud-native|nvcr.io/nvstaging/mellanox|g' \
+              -e 's|nvcr.io/nvidia/doca|nvcr.io/nvstaging/doca|g' \
               hack/release.yaml > hack/release-nvstaging.yaml
           fi
 

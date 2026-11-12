@@ -158,6 +158,7 @@ jobs:
         sed -i \
           -e 's|nvcr.io/nvidia/mellanox|nvcr.io/nvstaging/mellanox|g' \
           -e 's|nvcr.io/nvidia/cloud-native|nvcr.io/nvstaging/mellanox|g' \
+          -e 's|nvcr.io/nvidia/doca|nvcr.io/nvstaging/doca|g' \
           deployment/network-operator/values.yaml
 
         APP_VERSION=$git_tag VERSION=${git_tag:1}-pre-ga hack/scripts/publish-chart.sh
