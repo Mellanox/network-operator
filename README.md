@@ -45,6 +45,9 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 ## Documentation
 For more information please visit the official [documentation](https://docs.nvidia.com/networking/software/cloud-orchestration/index.html).
 
+An importable [Grafana dashboard](grafana/README.md) shows component readiness,
+controller health, and optional host RDMA port telemetry.
+
 
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
