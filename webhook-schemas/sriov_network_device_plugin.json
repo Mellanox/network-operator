@@ -37,11 +37,11 @@
               }
             ]
           }
-        }
-      },
-      "required": [
-        "resourceName"
-      ]
+        },
+        "required": [
+          "resourceName"
+        ]
+      }
     }
   },
   "required": [
