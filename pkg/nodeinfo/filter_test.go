@@ -571,5 +571,31 @@ var _ = Describe("Combined filtering tests", func() {
 
 			Expect(len(filteredNodes)).To(Equal(0), "Node should be filtered out when not all taints are tolerated")
 		})
+
+		It("Should not filter out nodes whose only untolerated taints are PreferNoSchedule", func() {
+			nodeWithSoftTaint := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "soft-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						{Key: "dedicated", Value: "gpu", Effect: corev1.TaintEffectPreferNoSchedule},
+					},
+				},
+			}
+			nodeWithSoftAndHardTaint := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: "soft-and-hard-taint-node", Labels: commonLabel},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						{Key: "dedicated", Value: "gpu", Effect: corev1.TaintEffectPreferNoSchedule},
+						{Key: "dedicated", Value: "gpu", Effect: corev1.TaintEffectNoSchedule},
+					},
+				},
+			}
+
+			taintFilter := NewNodeTaintFilterBuilder().WithTolerations([]corev1.Toleration{}).Build()
+			filteredNodes := taintFilter.Apply([]*corev1.Node{nodeWithSoftTaint, nodeWithSoftAndHardTaint})
+
+			Expect(filteredNodes).To(HaveLen(1))
+			Expect(filteredNodes[0].Name).To(Equal("soft-taint-node"))
+		})
 	})
 })
