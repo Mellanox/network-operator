@@ -47,8 +47,8 @@ node-feature-discovery:
   postDeleteCleanup: false
 
   image:
-    repository: nvcr.io/nvstaging/mellanox/node-feature-discovery
-    tag: network-operator-v26.10.0-rc.7
+    repository: nvcr.io/nvidia/mellanox/node-feature-discovery
+    tag: network-operator-v26.10.0
     pullPolicy: IfNotPresent
   # imagePullSecrest for node-feature-discovery Network Operator related images
   #imagePullSecrets: []
@@ -160,16 +160,16 @@ sriov-network-operator:
 
   # Image URIs for sriov-network-operator components.
   images:
-    operator: nvcr.io/nvstaging/mellanox/sriov-network-operator:network-operator-v26.10.0-rc.7
-    sriovConfigDaemon: nvcr.io/nvstaging/mellanox/sriov-network-operator-config-daemon:network-operator-v26.10.0-rc.7
-    sriovCni: nvcr.io/nvstaging/mellanox/sriov-cni:network-operator-v26.10.0-rc.7
-    ibSriovCni: nvcr.io/nvstaging/mellanox/ib-sriov-cni:network-operator-v26.10.0-rc.7
-    ovsCni: nvcr.io/nvstaging/mellanox/ovs-cni-plugin:network-operator-v26.10.0-rc.7
-    rdmaCni: nvcr.io/nvstaging/mellanox/rdma-cni:network-operator-v26.10.0-rc.7
-    sriovDevicePlugin: nvcr.io/nvstaging/mellanox/sriov-network-device-plugin:network-operator-v26.10.0-rc.7
-    sriovDraDriver: nvcr.io/nvstaging/mellanox/dra-driver-sriov:network-operator-v26.10.0-rc.7
+    operator: nvcr.io/nvidia/mellanox/sriov-network-operator:network-operator-v26.10.0
+    sriovConfigDaemon: nvcr.io/nvidia/mellanox/sriov-network-operator-config-daemon:network-operator-v26.10.0
+    sriovCni: nvcr.io/nvidia/mellanox/sriov-cni:network-operator-v26.10.0
+    ibSriovCni: nvcr.io/nvidia/mellanox/ib-sriov-cni:network-operator-v26.10.0
+    ovsCni: nvcr.io/nvidia/mellanox/ovs-cni-plugin:network-operator-v26.10.0
+    rdmaCni: nvcr.io/nvidia/mellanox/rdma-cni:network-operator-v26.10.0
+    sriovDevicePlugin: nvcr.io/nvidia/mellanox/sriov-network-device-plugin:network-operator-v26.10.0
+    sriovDraDriver: nvcr.io/nvidia/mellanox/dra-driver-sriov:network-operator-v26.10.0
     resourcesInjector: ghcr.io/k8snetworkplumbingwg/network-resources-injector:v1.10.0
-    webhook: nvcr.io/nvstaging/mellanox/sriov-network-operator-webhook:network-operator-v26.10.0-rc.7
+    webhook: nvcr.io/nvidia/mellanox/sriov-network-operator-webhook:network-operator-v26.10.0
   # imagePullSecrest for SR-IOV Network Operator related images
   # imagePullSecrets: []
   sriovOperatorConfig:
@@ -195,9 +195,9 @@ maintenance-operator-chart:
   #imagePullSecrets: []
   operator:
     image:
-      repository: nvcr.io/nvstaging/mellanox
+      repository: nvcr.io/nvidia/mellanox
       name: maintenance-operator
-      tag: network-operator-v26.10.0-rc.7
+      tag: network-operator-v26.10.0
     # -- Resource requests and limits for the *maintenance-operator* controller.
     # Memory scales with cluster node count (Node informer cache). Defaults match
     # Mellanox/maintenance-operator#225 / PR #243 (256Mi limit / 192Mi request).
@@ -293,7 +293,7 @@ operator:
                 operator: In
                 values: [ "" ]
   # -- Network Operator image repository.
-  repository: nvcr.io/nvstaging/mellanox
+  repository: nvcr.io/nvidia/cloud-native
   # -- Network Operator image name
   image: network-operator
   # -- Enable Go integration coverage collection (GOCOVERDIR, coverage volume, instrumented image tag).
@@ -363,11 +363,11 @@ operator:
       # -- Deploy init container.
       enable: true
       # -- Init container image repository.
-      repository: nvcr.io/nvstaging/mellanox
+      repository: nvcr.io/nvidia/mellanox
       # -- Init container image name.
       image: network-operator-init-container
       # -- Init container image version.
-      version: network-operator-v26.10.0-rc.7
+      version: network-operator-v26.10.0
 
 # -- An optional list of references to secrets to use for pulling any of the
 # Network Operator images.
