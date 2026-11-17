@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:bed839d5a644f5975373260e1a58afb7761aea139762ea1f7aead8339d8103e8
+    containerImage: nvcr.io/nvstaging/mellanox/network-operator@sha256:9ab1ec42326587241b45f08d452dc44224c0bc5bdb881210b6fca06d12b682bf
     alm-examples: |-
       [
         {
@@ -136,7 +136,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-11-12T14:02:37Z"
+    createdAt: "2026-11-17T09:33:55Z"
     description: Deploy and manage NVIDIA networking resources in Kubernetes
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "true"
@@ -620,7 +620,7 @@ spec:
                   value: "true"
                 - name: OFED_INIT_CONTAINER_IMAGE
                   value: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:29b373af1654cfff9f9024dc5cd7191f9db9af1f4e25290c14b927ed91360d88
-                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:bed839d5a644f5975373260e1a58afb7761aea139762ea1f7aead8339d8103e8
+                image: nvcr.io/nvstaging/mellanox/network-operator@sha256:9ab1ec42326587241b45f08d452dc44224c0bc5bdb881210b6fca06d12b682bf
                 imagePullPolicy: IfNotPresent
                 lifecycle:
                   preStop:
@@ -796,7 +796,7 @@ spec:
     webhookPath: /validate-mellanox-com-v1alpha1-nicnodepolicy
   relatedImages:
     - name: nvidia-network-operator
-      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:bed839d5a644f5975373260e1a58afb7761aea139762ea1f7aead8339d8103e8
+      image: nvcr.io/nvstaging/mellanox/network-operator@sha256:9ab1ec42326587241b45f08d452dc44224c0bc5bdb881210b6fca06d12b682bf
     - name: nvidia-network-operator-init-container
       image: nvcr.io/nvstaging/mellanox/network-operator-init-container@sha256:29b373af1654cfff9f9024dc5cd7191f9db9af1f4e25290c14b927ed91360d88
     - name: rdma-shared-device-plugin
@@ -814,9 +814,9 @@ spec:
     - name: doca-telemetry-service
       image: nvcr.io/nvstaging/doca/doca_telemetry@sha256:a53ace5699cd16c9e8ea62d1938f5b9cd52b4abdec0b9ef0eae34da032ccd10a
     - name: nic-configuration-operator
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:61f9934159bbbcf6f6e0356e68f0e2e3ded089ccf8730e78b0273ce678203d57
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator@sha256:b0d815e7d09a89d7130e0a6c1240bfd9065bd025d685c4c8e1e9bd38e200a1dd
     - name: nic-configuration-operator-daemon
-      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:c01af4f23cb62519f16e4270c1d78146c32da5331d21a457afac6f5cbaf77695
+      image: nvcr.io/nvstaging/mellanox/nic-configuration-operator-daemon@sha256:3773d685d96bb65095eec4fd89ca2d389045dd9669c5b4ff8d3fa900a1349010
     - name: spectrum-x-operator
       image: nvcr.io/nvstaging/mellanox/spectrum-x-operator@sha256:19e113821ed07e6fb0ba8fd34559d4e47aad1ad758e10ea4d9fdbe2dcfff8db0
     - name: doca-driver-0
