@@ -109,7 +109,7 @@ nvIpam:
   sourceRepository: nvidia-k8s-ipam
   crdSourceLocation: deploy/crds
   crdTargetLocation: manifests/state-nv-ipam-cni
-  version: network-operator-v26.10.0
+  version: b71a242
   nSpectScope: gov-ready
 nicFeatureDiscovery:
   image: nic-feature-discovery
