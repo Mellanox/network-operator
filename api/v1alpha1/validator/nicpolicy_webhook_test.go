@@ -661,6 +661,18 @@ var _ = Describe("Validate", func() {
 			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
 			Expect(err.Error()).To(ContainSubstring("resourceList is required"))
 		})
+		It("Invalid SriovDevicePlugin config JSON schema, resourceName missing", func() {
+			invalidSriovConfigJSON := `{
+				"resourceList": [{
+					"selectors": {
+						"vendors": ["15b3"],
+						"devices": ["101b"]}}]}`
+			nicClusterPolicy := sriovDPNicClusterPolicy(&invalidSriovConfigJSON)
+			validator := nicClusterPolicyValidator{}
+			_, err := validator.ValidateCreate(context.TODO(), &nicClusterPolicy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("resourceName is required"))
+		})
 		It("Invalid SriovDevicePlugin config JSON schema, none of the selectors are provided", func() {
 			invalidSriovConfigJSON := `{
 				"resourceList": [{
