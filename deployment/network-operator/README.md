@@ -21,6 +21,18 @@ RDMA workloads in a kubernetes cluster including:
 
 For more information please visit the official [documentation](https://docs.nvidia.com/networking/software/cloud-orchestration/index.html).
 
+## Operator permissions
+
+The operator ClusterRole is bound only to the operator ServiceAccount. Operand
+ServiceAccounts use their own component permissions instead of inheriting the
+operator role. The operator can only `get` Secrets in its deployment namespace,
+where it reads the DOCA driver image pull credentials named in the policy.
+Secret mounts and image pull references for operands are handled by Kubernetes.
+
+Upgrading the chart updates the existing ClusterRoleBinding in place and removes
+its namespace-wide ServiceAccount grant. Custom workloads that relied on that
+grant need their own RBAC bindings.
+
 ## Additional components
 
 ### Node Feature Discovery
