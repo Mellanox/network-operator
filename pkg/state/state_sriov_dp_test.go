@@ -35,6 +35,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
+	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
 
 var _ = Describe("SR-IOV Device Plugin State tests", func() {
@@ -122,6 +123,47 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			Entry("for a readable policy name", "pool-a", "779d97f8c7"),
 			Entry("for the maximum admitted policy name length", strings.Repeat("a", 30), "84bb999775"),
 		)
+	})
+	Context("KubeletRootDir", func() {
+		setKubeletRootDir := func(kubeletRootDir string) {
+			ts.catalog.Add(state.InfoTypeStaticConfig,
+				staticconfig.NewProvider(staticconfig.StaticConfig{KubeletRootDir: kubeletRootDir}))
+		}
+
+		It("should use the default kubelet paths when unset", func() {
+			ds := renderSriovDpDaemonSet(&ts, getMinimalNicClusterPolicyWithSriovDp(false))
+			assertSriovDpPodTemplatesVolumeFields(&ds.Spec.Template, false)
+			assertSriovDpPodTemplatesVolumeMountFields(&ds.Spec.Template, false)
+		})
+		It("should mount the custom device-plugins dir and skip plugins_registry when set", func() {
+			setKubeletRootDir("/var/lib/k0s/kubelet")
+			ds := renderSriovDpDaemonSet(&ts, getMinimalNicClusterPolicyWithSriovDp(false))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "devicesock"),
+				HaveField("HostPath.Path", "/var/lib/k0s/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+				HaveField("Name", "devicesock"),
+				HaveField("MountPath", "/var/lib/kubelet/device-plugins"),
+			)))
+			Expect(ds.Spec.Template.Spec.Volumes).NotTo(ContainElement(HaveField("Name", "plugins-registry")))
+			Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).NotTo(
+				ContainElement(HaveField("Name", "plugins-registry")))
+		})
+		It("should normalize a trailing slash on a non-default kubeletRootDir", func() {
+			setKubeletRootDir("/var/lib/k0s/kubelet/")
+			ds := renderSriovDpDaemonSet(&ts, getMinimalNicClusterPolicyWithSriovDp(false))
+			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", "devicesock"),
+				HaveField("HostPath.Path", "/var/lib/k0s/kubelet/device-plugins"),
+			)))
+		})
+		It("should keep the default kubelet paths when override equals the default path", func() {
+			setKubeletRootDir("/var/lib/kubelet/")
+			ds := renderSriovDpDaemonSet(&ts, getMinimalNicClusterPolicyWithSriovDp(false))
+			assertSriovDpPodTemplatesVolumeFields(&ds.Spec.Template, false)
+			assertSriovDpPodTemplatesVolumeMountFields(&ds.Spec.Template, false)
+		})
 	})
 	Context("Verify Sync flows", func() {
 		It("should create Daemonset, update state to Ready", func() {
