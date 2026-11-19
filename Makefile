@@ -249,6 +249,7 @@ lint-helm: $(HELM) ; $(info  running lint for helm charts...) @ ## Run helm lint
 .PHONY: test-helm
 test-helm: $(HELM) ; $(info  running helm chart tests...) @ ## Test Helm chart value combinations
 	$Q $(CURDIR)/hack/scripts/test-helm-hook-values.sh $(HELM) $(CHART_PATH)
+	$Q HELM_BIN=$(HELM) $(GO) test ./hack/helm/... -v
 
 .PHONY: check-manifests
 check-manifests: generate manifests
