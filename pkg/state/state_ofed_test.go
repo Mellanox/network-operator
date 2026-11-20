@@ -1245,8 +1245,10 @@ var _ = Describe("MOFED state test", func() {
 					// Verify probe commands
 					Expect(container.StartupProbe.Exec.Command).To(
 						Equal([]string{"sh", "-c", "ls /run/mellanox/drivers/.driver-ready"}))
-					Expect(container.LivenessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
-					Expect(container.ReadinessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
+					Expect(container.LivenessProbe.Exec.Command).To(
+						Equal([]string{"sh", "-c", `read -r state < /sys/module/mlx5_core/initstate && [ "$state" = live ]`}))
+					Expect(container.ReadinessProbe.Exec.Command).To(
+						Equal([]string{"sh", "-c", `read -r state < /sys/module/mlx5_core/initstate && [ "$state" = live ]`}))
 
 					break
 				}
