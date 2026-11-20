@@ -403,13 +403,32 @@ type NicConfigurationOperatorSpec struct {
 	ConfigurationDaemon *ImageSpec `json:"configurationDaemon"`
 	// List of environment variables to set in the NIC Configuration Operator and NIC Configuration Daemon containers.
 	Env []v1.EnvVar `json:"env,omitempty"`
+	// FirmwareImageCacheSize bounds the daemon's ephemeral OCI firmware cache, including acquisition staging.
+	// Must be a Kubernetes quantity of at least 2Gi and no more than the maximum int64 byte value.
+	// The node and Pod ephemeral-storage limits must accommodate this budget.
+	// +optional
+	// +kubebuilder:default:="4Gi"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
+	// +kubebuilder:validation:Pattern=`^[+]?(?:[0-9]+(?:[.][0-9]*)?|[.][0-9]+)(?:[eE][+-]?[0-9]+|[numkMGTPE]|[KMGTPE]i)?$`
+	FirmwareImageCacheSize string `json:"firmwareImageCacheSize,omitempty"`
+	// FirmwareImagePullSecrets names registry credential Secrets mounted read-only in the daemon.
+	// These Secrets must be in the operator namespace and contain .dockerconfigjson or .dockercfg.
+	// Component imagePullSecrets are not exposed to the daemon unless explicitly listed here.
+	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=253
+	// +kubebuilder:validation:items:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	FirmwareImagePullSecrets []string `json:"firmwareImagePullSecrets,omitempty"`
 	// NicFirmwareStorage contains configuration for the NIC firmware storage. If not provided, the NIC firmware storage will not be configured.
 	NicFirmwareStorage *NicFirmwareStorageSpec `json:"nicFirmwareStorage,omitempty"`
 	// LogLevel sets the verbosity level of the logs. info|debug
 	// +kubebuilder:validation:Enum={"info", "debug"}
 	// +kubebuilder:default:="info"
 	LogLevel string `json:"logLevel,omitempty"`
-	// Optional: Custom TLS certificates configuration for NIC Configuration Operator container
+	// Optional: Custom TLS certificates for the NIC Configuration Operator and daemon registry requests
 	CertConfig *ConfigMapNameReference `json:"certConfig,omitempty"`
 }
 

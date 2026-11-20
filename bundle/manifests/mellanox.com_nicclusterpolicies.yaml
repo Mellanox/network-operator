@@ -484,8 +484,8 @@ spec:
                   See: https://github.com/Mellanox/nic-configuration-operator
                 properties:
                   certConfig:
-                    description: 'Optional: Custom TLS certificates configuration
-                      for NIC Configuration Operator container'
+                    description: 'Optional: Custom TLS certificates for the NIC Configuration
+                      Operator and daemon registry requests'
                     properties:
                       name:
                         description: Name of the ConfigMap
@@ -714,6 +714,29 @@ spec:
                       - name
                       type: object
                     type: array
+                  firmwareImageCacheSize:
+                    default: 4Gi
+                    description: |-
+                      FirmwareImageCacheSize bounds the daemon's ephemeral OCI firmware cache, including acquisition staging.
+                      Must be a Kubernetes quantity of at least 2Gi and no more than the maximum int64 byte value.
+                      The node and Pod ephemeral-storage limits must accommodate this budget.
+                    maxLength: 64
+                    minLength: 1
+                    pattern: ^[+]?(?:[0-9]+(?:[.][0-9]*)?|[.][0-9]+)(?:[eE][+-]?[0-9]+|[numkMGTPE]|[KMGTPE]i)?$
+                    type: string
+                  firmwareImagePullSecrets:
+                    description: |-
+                      FirmwareImagePullSecrets names registry credential Secrets mounted read-only in the daemon.
+                      These Secrets must be in the operator namespace and contain .dockerconfigjson or .dockercfg.
+                      Component imagePullSecrets are not exposed to the daemon unless explicitly listed here.
+                    items:
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    maxItems: 32
+                    type: array
+                    x-kubernetes-list-type: set
                   logLevel:
                     default: info
                     description: LogLevel sets the verbosity level of the logs. info|debug
