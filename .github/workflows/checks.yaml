@@ -78,6 +78,8 @@ jobs:
           go-version: '1.26.x'
       - name: checkout
         uses: actions/checkout@v7
+      - name: Test DOCA driver manifest selection
+        run: python3 -B -m unittest discover -s hack -p test_doca_driver_manifest.py -v
       - name: check release-build
         run: make check-release-build
   unit-tests:
