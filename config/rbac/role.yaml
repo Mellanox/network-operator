@@ -16,7 +16,6 @@ rules:
   - pods/eviction
   - pods/finalizers
   - pods/status
-  - secrets
   - serviceaccounts
   - services
   - services/finalizers
@@ -370,3 +369,16 @@ rules:
   - list
   - patch
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: manager-secret-reader
+  namespace: system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
