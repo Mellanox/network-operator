@@ -171,7 +171,7 @@ spec:
           livenessProbe:
             exec:
               command:
-                [sh, -c, 'lsmod | grep mlx5_core']
+                [sh, -c, 'read -r state < /sys/module/mlx5_core/initstate && [ "$state" = live ]']
             initialDelaySeconds: {{ .CrSpec.LivenessProbe.InitialDelaySeconds }}
             failureThreshold: {{ .CrSpec.LivenessProbe.FailureThreshold }}
             successThreshold: 1
@@ -180,7 +180,7 @@ spec:
           readinessProbe:
             exec:
               command:
-                [sh, -c, 'lsmod | grep mlx5_core']
+                [sh, -c, 'read -r state < /sys/module/mlx5_core/initstate && [ "$state" = live ]']
             initialDelaySeconds: {{ .CrSpec.ReadinessProbe.InitialDelaySeconds }}
             failureThreshold: {{ .CrSpec.ReadinessProbe.FailureThreshold }}
             successThreshold: 1
