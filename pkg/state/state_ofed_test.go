@@ -920,6 +920,7 @@ var _ = Describe("MOFED state test", func() {
 				Expect(len(ds.Spec.Template.Spec.Containers)).To(Equal(2))
 				dtkContainer := ds.Spec.Template.Spec.Containers[1]
 				Expect(dtkContainer.Image).To(Equal(dtkImageName))
+				Expect(ds.Spec.Template.Spec.Containers[0].ReadinessProbe.Exec.Command).To(Equal(renderedOFEDReadiness(false)))
 				verifyAdditionalMounts(ds.Spec.Template.Spec.Containers[0].VolumeMounts)
 				verifyAdditionalMounts(ds.Spec.Template.Spec.Containers[1].VolumeMounts)
 				verifyAdditionalVolumes(ds.Spec.Template.Spec.Volumes)
@@ -1246,7 +1247,8 @@ var _ = Describe("MOFED state test", func() {
 					Expect(container.StartupProbe.Exec.Command).To(
 						Equal([]string{"sh", "-c", "ls /run/mellanox/drivers/.driver-ready"}))
 					Expect(container.LivenessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
-					Expect(container.ReadinessProbe.Exec.Command).To(Equal([]string{"sh", "-c", "lsmod | grep mlx5_core"}))
+					Expect(container.ReadinessProbe.Exec.Command).To(HaveLen(3))
+					Expect(container.ReadinessProbe.Exec.Command[:2]).To(Equal([]string{"bash", "-c"}))
 
 					break
 				}
