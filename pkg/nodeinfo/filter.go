@@ -161,6 +161,8 @@ func (ntf *nodeTaintFilter) Apply(nodes []*corev1.Node) (filtered []*corev1.Node
 }
 
 // toleratesTaints checks if the network-operator pod can tolerate all taints on the node
+// that keep a pod off it. PreferNoSchedule taints are skipped: neither the scheduler nor the
+// DaemonSet controller refuses a node because of them.
 func (ntf *nodeTaintFilter) toleratesTaints(taints []corev1.Taint) bool {
 	if len(taints) == 0 {
 		return true // No taints -> don't filter
@@ -168,6 +170,9 @@ func (ntf *nodeTaintFilter) toleratesTaints(taints []corev1.Taint) bool {
 
 	// All taints must be tolerated by the provided tolerations
 	for _, taint := range taints {
+		if taint.Effect == corev1.TaintEffectPreferNoSchedule {
+			continue
+		}
 		if !ntf.toleratesTaint(taint) {
 			return false // At least one taint is not tolerated -> filter the node
 		}

@@ -542,6 +542,54 @@ var _ = Describe("MOFED state test", func() {
 			Expect(schedulableNodeTolerations(cr.Spec.Tolerations)).To(
 				ContainElements(daemonSet.Spec.Template.Spec.Tolerations))
 		})
+		It("Should render DaemonSet for a node pool whose nodes only have PreferNoSchedule taints", func() {
+			client := mocks.ControllerRuntimeClient{}
+			manifestBaseDir := "../../manifests/state-ofed-driver"
+
+			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
+			Expect(err).NotTo(HaveOccurred())
+			renderer := render.NewRenderer(files)
+
+			ofedState := stateOFED{
+				stateSkel: stateSkel{
+					name:        stateOFEDName,
+					description: stateOFEDDescription,
+					client:      &client,
+					renderer:    renderer,
+				},
+			}
+
+			cr := &v1alpha1.NicClusterPolicy{}
+			cr.Name = "nic-cluster-policy-soft-taint-test"
+			cr.Spec.OFEDDriver = &v1alpha1.OFEDDriverSpec{
+				ImageSpec: v1alpha1.ImageSpec{
+					Image:      "mofed",
+					Repository: "nvcr.io/mellanox",
+					Version:    "23.10-0.5.5.0",
+				},
+			}
+
+			node := getNode("node-soft-taint", kernelFull1)
+			node.Spec.Taints = []v1.Taint{
+				{Key: "dedicated", Value: "gpu", Effect: v1.TaintEffectPreferNoSchedule},
+			}
+
+			catalog := NewInfoCatalog()
+			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			catalog.Add(InfoTypeNodeInfo, nodeinfo.NewProvider([]*v1.Node{node}))
+			catalog.Add(InfoTypeDocaDriverImage, &dummyOfedImageProvider{tagExists: true})
+
+			objs, err := ofedState.GetManifestObjects(ctx, cr, catalog, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			var daemonSets int
+			for _, obj := range objs {
+				if obj.GetKind() == "DaemonSet" {
+					daemonSets++
+				}
+			}
+			Expect(daemonSets).To(Equal(1), "PreferNoSchedule taints do not keep a DaemonSet pod off a node")
+		})
 	})
 	It("Should Render subscription mounts for SLES", func() {
 		client := mocks.ControllerRuntimeClient{}
