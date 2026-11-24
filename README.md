@@ -45,6 +45,9 @@ RDMA and GPUDirect RDMA workloads in a kubernetes cluster including:
 ## Documentation
 For more information please visit the official [documentation](https://docs.nvidia.com/networking/software/cloud-orchestration/index.html).
 
+See [release image verification](docs/image-verification.md) for image signatures,
+SBOMs, provenance, and production publication requirements.
+
 
 ## Prerequisites
 ### Kubernetes Node Feature Discovery (NFD)
