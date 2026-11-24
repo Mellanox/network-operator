@@ -752,6 +752,11 @@ func (in *NicConfigurationOperatorSpec) DeepCopyInto(out *NicConfigurationOperat
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.FirmwareImagePullSecrets != nil {
+		in, out := &in.FirmwareImagePullSecrets, &out.FirmwareImagePullSecrets
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.NicFirmwareStorage != nil {
 		in, out := &in.NicFirmwareStorage, &out.NicFirmwareStorage
 		*out = new(NicFirmwareStorageSpec)
