@@ -23,11 +23,13 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/state"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -47,7 +49,7 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		defaultConfigMapName := "doca-telemetry-service"
 		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
-		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap"}
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "ClusterRole", "ClusterRoleBinding"}
 		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 
 		for _, obj := range got {
@@ -77,7 +79,7 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		}
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
-		expectedKinds := []string{"ServiceAccount", "DaemonSet"}
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ClusterRole", "ClusterRoleBinding"}
 		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 
 		for _, obj := range got {
@@ -139,11 +141,50 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		}
 		Expect(foundDaemonSet).To(BeTrue())
 	})
+	It("should give DTS what it needs to read the labels of its node", func() {
+		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+
+		found := map[string]bool{}
+		for _, obj := range got {
+			switch obj.GetKind() {
+			case "DaemonSet":
+				ds := &appsv1.DaemonSet{}
+				Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
+				Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ContainElement(And(
+					HaveField("Name", "NODE_NAME"),
+					HaveField("ValueFrom.FieldRef.FieldPath", "spec.nodeName"),
+				)))
+			case "ClusterRole":
+				role := &rbacv1.ClusterRole{}
+				Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), role)).To(Succeed())
+				Expect(role.Rules).To(ConsistOf(rbacv1.PolicyRule{
+					APIGroups: []string{""},
+					Resources: []string{"nodes"},
+					Verbs:     []string{"get"},
+				}))
+			case "ClusterRoleBinding":
+				binding := &rbacv1.ClusterRoleBinding{}
+				Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), binding)).To(Succeed())
+				Expect(binding.RoleRef.Name).To(Equal("doca-telemetry-service"))
+				Expect(binding.Subjects).To(ConsistOf(rbacv1.Subject{
+					Kind:      "ServiceAccount",
+					Name:      "doca-telemetry-service",
+					Namespace: config.FromEnv().State.NetworkOperatorResourceNamespace,
+				}))
+			default:
+				continue
+			}
+			found[obj.GetKind()] = true
+		}
+		Expect(found).To(HaveLen(3))
+	})
 	It("should test OpenShift specific role and rolebinding rendered when the cluster is OpenShift", func() {
 		withConfig := cr.DeepCopy()
 		got, err := s.GetManifestObjects(ctx, withConfig, getTestCatalogForOpenshift(true), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
-		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "Role", "RoleBinding"}
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "ClusterRole", "ClusterRoleBinding",
+			"Role", "RoleBinding"}
 		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 	})
 	It("should use SHA256 format", func() {
@@ -151,7 +192,7 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		withSha256.Spec.DOCATelemetryService.Version = defaultTestVersionSha256
 		got, err := s.GetManifestObjects(ctx, withSha256, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
-		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap"}
+		expectedKinds := []string{"ServiceAccount", "DaemonSet", "ConfigMap", "ClusterRole", "ClusterRoleBinding"}
 		assertUnstructuredListHasExactKinds(got, expectedKinds...)
 
 		for _, obj := range got {
