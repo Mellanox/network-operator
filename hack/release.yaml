@@ -81,7 +81,7 @@ IbKubernetes:
   image: ib-kubernetes
   repository: nvcr.io/nvstaging/mellanox
   sourceRepository: ib-kubernetes
-  version: network-operator-v26.10.0
+  version: 71240af
   nSpectScope: gov-ready
 CniPlugins:
   image: plugins
