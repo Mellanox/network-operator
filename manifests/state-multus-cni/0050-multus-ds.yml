@@ -182,9 +182,11 @@ spec:
         - name: host-var-lib-cni-multus
           hostPath:
             path: /var/lib/cni/multus
+        # Multus hardcodes /var/lib/kubelet inside the container, so only the hostPath follows
+        # the kubelet root directory.
         - name: host-var-lib-kubelet
           hostPath:
-            path: /var/lib/kubelet
+            path: {{ .RuntimeSpec.KubeletRootDir | quote }}
         - name: host-run-k8s-cni-cncf-io
           hostPath:
             path: /run/k8s.cni.cncf.io

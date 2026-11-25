@@ -72,12 +72,16 @@ spec:
           securityContext:
             privileged: true
           volumeMounts:
+            # The device plugin hardcodes /var/lib/kubelet inside the container, so only the
+            # hostPath follows the kubelet root directory.
             - name: devicesock
               mountPath: /var/lib/kubelet/device-plugins
               readOnly: false
+            {{- if .RuntimeSpec.UseKubeletPluginsRegistry }}
             - name: plugins-registry
               mountPath: /var/lib/kubelet/plugins_registry
               readOnly: false
+            {{- end }}
             - name: log
               mountPath: /var/log
             - name: config-volume
@@ -106,10 +110,12 @@ spec:
       volumes:
         - name: devicesock
           hostPath:
-            path: /var/lib/kubelet/device-plugins
+            path: {{ printf "%s/device-plugins" .RuntimeSpec.KubeletRootDir | quote }}
+        {{- if .RuntimeSpec.UseKubeletPluginsRegistry }}
         - name: plugins-registry
           hostPath:
             path: /var/lib/kubelet/plugins_registry
+        {{- end }}
         - name: log
           hostPath:
             path: /var/log

@@ -69,6 +69,14 @@ type sriovDpRuntimeSpec struct {
 	// is true if cluster type is Openshift
 	IsOpenshift        bool
 	ContainerResources ContainerResourcesMap
+	// KubeletRootDir is the effective kubelet root directory used for the device-plugins hostPath.
+	// Defaults to /var/lib/kubelet when operator.kubeletRootDir / KUBELET_ROOT_DIR is unset.
+	KubeletRootDir string
+	// UseKubeletPluginsRegistry is true when kubelet runs from the default root. In plugin watcher
+	// mode the SR-IOV device plugin advertises a hardcoded /var/lib/kubelet/plugins_registry endpoint,
+	// so for a custom root plugins_registry is not mounted and the plugin falls back to registering
+	// through <kubelet root>/device-plugins/kubelet.sock.
+	UseKubeletPluginsRegistry bool
 }
 
 type sriovDpManifestRenderData struct {
@@ -118,6 +126,10 @@ func (s *stateSriovDp) Sync(
 	clusterInfo := infoCatalog.GetClusterTypeProvider()
 	if clusterInfo == nil {
 		return SyncStateError, errors.New("unexpected state, catalog does not provide cluster type info")
+	}
+	staticInfo := infoCatalog.GetStaticConfigProvider()
+	if staticInfo == nil {
+		return SyncStateError, errors.New("unexpected state, catalog does not provide static info")
 	}
 
 	objs, err := s.GetManifestObjects(ctx, cr, infoCatalog, reqLogger)
@@ -178,6 +190,11 @@ func (s *stateSriovDp) GetManifestObjects(
 	if clusterInfo == nil {
 		return nil, errors.New("clusterInfo provider required")
 	}
+	staticConfig := catalog.GetStaticConfigProvider()
+	if staticConfig == nil {
+		return nil, errors.New("staticConfig provider required")
+	}
+	kubeletRootDir := utils.GetKubeletRootDir(staticConfig)
 
 	renderData := &sriovDpManifestRenderData{
 		CrSpec:        cr.GetSriovDevicePluginSpec(),
@@ -188,9 +205,11 @@ func (s *stateSriovDp) GetManifestObjects(
 		NameSuffix:    nameSuffix(cr),
 		DaemonSetName: sriovDpDaemonSetName(cr),
 		RuntimeSpec: &sriovDpRuntimeSpec{
-			runtimeSpec:        runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
-			IsOpenshift:        clusterInfo.IsOpenshift(),
-			ContainerResources: createContainerResourcesMap(cr.GetSriovDevicePluginSpec().ContainerResources),
+			runtimeSpec:               runtimeSpec{config.FromEnv().State.NetworkOperatorResourceNamespace},
+			IsOpenshift:               clusterInfo.IsOpenshift(),
+			ContainerResources:        createContainerResourcesMap(cr.GetSriovDevicePluginSpec().ContainerResources),
+			KubeletRootDir:            kubeletRootDir,
+			UseKubeletPluginsRegistry: kubeletRootDir == consts.DefaultKubeletRootDir,
 		},
 	}
 	// render objects
