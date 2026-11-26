@@ -78,6 +78,8 @@ spec:
         # Required by providers that access firmware through the fwctl interface.
         - name: fwctl-devices
           mountPath: /dev/fwctl
+        - name: mst-devices
+          mountPath: /dev/mst
         # telemetry-init.sh only generates configuration into an empty /config, so the overwrite
         # is what keeps the ConfigMap authoritative now that /config persists on the host.
         # Clearing /config instead would discard the node's configuration on every restart.
@@ -122,6 +124,10 @@ spec:
         - name: fwctl-devices
           hostPath:
             path: /dev/fwctl
+            type: DirectoryOrCreate
+        - name: mst-devices
+          hostPath:
+            path: /dev/mst
             type: DirectoryOrCreate
 {{ if .DeployConfigMap }}
 ---

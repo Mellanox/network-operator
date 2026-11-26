@@ -113,31 +113,12 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 	It("should mount the host fwctl device directory", func() {
 		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
 		Expect(err).ToNot(HaveOccurred())
-
-		foundDaemonSet := false
-		for _, obj := range got {
-			if obj.GetKind() != "DaemonSet" {
-				continue
-			}
-			foundDaemonSet = true
-			ds := &appsv1.DaemonSet{}
-			Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
-
-			container := ds.Spec.Template.Spec.Containers[0]
-			Expect(container.VolumeMounts).To(ContainElement(And(
-				HaveField("Name", "fwctl-devices"),
-				HaveField("MountPath", "/dev/fwctl"),
-				HaveField("ReadOnly", false),
-			)))
-
-			pathType := corev1.HostPathDirectoryOrCreate
-			Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
-				HaveField("Name", "fwctl-devices"),
-				HaveField("HostPath.Path", "/dev/fwctl"),
-				HaveField("HostPath.Type", &pathType),
-			)))
-		}
-		Expect(foundDaemonSet).To(BeTrue())
+		assertHostDeviceDirectoryMounted(got, "fwctl-devices", "/dev/fwctl")
+	})
+	It("should mount the host MST device directory", func() {
+		got, err := s.GetManifestObjects(ctx, cr, getTestCatalog(), log.FromContext(ctx))
+		Expect(err).ToNot(HaveOccurred())
+		assertHostDeviceDirectoryMounted(got, "mst-devices", "/dev/mst")
 	})
 	It("should test OpenShift specific role and rolebinding rendered when the cluster is OpenShift", func() {
 		withConfig := cr.DeepCopy()
@@ -165,6 +146,35 @@ var _ = Describe("DOCATelemetryService Controller", func() {
 		}
 	})
 })
+
+// assertHostDeviceDirectoryMounted asserts that the rendered DTS container mounts the named host
+// device directory writably at the given path, and that the volume behind it is a host path of the
+// same name which is created when the node does not have it.
+func assertHostDeviceDirectoryMounted(objects []*unstructured.Unstructured, volumeName, path string) {
+	foundDaemonSet := false
+	for _, obj := range objects {
+		if obj.GetKind() != "DaemonSet" {
+			continue
+		}
+		foundDaemonSet = true
+		ds := &appsv1.DaemonSet{}
+		Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), ds)).To(Succeed())
+
+		Expect(ds.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(And(
+			HaveField("Name", volumeName),
+			HaveField("MountPath", path),
+			HaveField("ReadOnly", false),
+		)))
+
+		pathType := corev1.HostPathDirectoryOrCreate
+		Expect(ds.Spec.Template.Spec.Volumes).To(ContainElement(And(
+			HaveField("Name", volumeName),
+			HaveField("HostPath.Path", path),
+			HaveField("HostPath.Type", &pathType),
+		)))
+	}
+	Expect(foundDaemonSet).To(BeTrue())
+}
 
 // getIPCSharedMemoryHostPath returns the host path backing the /dev/shm mount of the DTS container,
 // failing if the mount and the volume it refers to do not line up.
