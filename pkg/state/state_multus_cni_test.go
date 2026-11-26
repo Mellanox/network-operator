@@ -509,6 +509,26 @@ var _ = Describe("Multus CNI state", func() {
 		})).To(BeTrue())
 	})
 
+	It("should keep the thin entrypoint refreshing its kubeconfig", func() {
+		cr := getMinimalNicClusterPolicyWithMultus()
+
+		objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.catalog, testLogger)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(runFuncForObjectInSlice(objs, "DaemonSet", func(obj *unstructured.Unstructured) {
+			var daemonSet appsv1.DaemonSet
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			// The thin entrypoint rewrites the host kubeconfig with the rotated ServiceAccount
+			// token only inside its watch loop, which --skip-config-watch disables.
+			mainContainer := daemonSet.Spec.Template.Spec.Containers[0]
+			Expect(mainContainer.Args).To(ContainElement("--multus-conf-file=auto"))
+			Expect(mainContainer.Args).To(ContainElement("--cleanup-config-on-exit"))
+			Expect(mainContainer.Args).NotTo(ContainElement("--skip-config-watch"))
+		})).To(BeTrue())
+	})
+
 	It("should render Daemonset with custom CNI directories", func() {
 		cr := getMinimalNicClusterPolicyWithMultus()
 

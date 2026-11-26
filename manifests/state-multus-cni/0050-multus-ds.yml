@@ -89,7 +89,6 @@ spec:
             - "--multus-autoconfig-dir=/host/etc/cni/net.d"
             - "--cni-conf-dir=/host/etc/cni/net.d"
             - "--cleanup-config-on-exit"
-            - "--skip-config-watch"
             - "--cni-bin-dir=/host/opt/cni/bin"
             - "--multus-kubeconfig-file-host={{ .RuntimeSpec.CniNetworkDirectory }}/multus.d/multus.kubeconfig"
           {{- end }}
