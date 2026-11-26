@@ -365,12 +365,16 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 			secrets, found, err := unstructured.NestedSlice(updated.Object, "secrets")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(secrets).To(HaveLen(1))
+			Expect(secrets).To(Equal([]interface{}{
+				map[string]interface{}{"name": "sa-token"},
+			}))
 
 			pullSecrets, found, err := unstructured.NestedSlice(updated.Object, "imagePullSecrets")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(pullSecrets).To(HaveLen(1))
+			Expect(pullSecrets).To(Equal([]interface{}{
+				map[string]interface{}{"name": "pull-secret"},
+			}))
 		})
 
 		It("should return existing TrustedCAConfigMap in getOrCreateTrustedCAConfigMap", func() {
