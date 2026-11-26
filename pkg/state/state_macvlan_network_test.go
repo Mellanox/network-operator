@@ -155,6 +155,40 @@ var _ = Describe("MacVlan Network State rendering tests", func() {
 
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
+		It("Should update NetworkAttachmentDefinition in same namespace when IPAM changes", func() {
+			cr := getMacvlanNetwork(testName, testNamespace, testMaster, testBridgeMode, testMtu)
+			Expect(ts.client.Create(context.Background(), cr)).NotTo(HaveOccurred())
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			ipam := nadConfigIPAM{
+				Type:     "nv-ipam",
+				PoolName: "updated-pool",
+			}
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig.IPAM = ipam
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
+		})
+		It("Should fail NewStateMacvlanNetwork when manifestDir does not exist", func() {
+			_, _, err := state.NewStateMacvlanNetwork(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+	Context("Verify GetWatchSources", func() {
+		It("should return MacvlanNetwork and NetworkAttachmentDefinition watch sources", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(2))
+			Expect(ws).To(HaveKey("MacvlanNetwork"))
+			Expect(ws).To(HaveKey("NetworkAttachmentDefinition"))
+			Expect(ws["MacvlanNetwork"]).To(BeAssignableToTypeOf(&mellanoxv1alpha1.MacvlanNetwork{}))
+			Expect(ws["NetworkAttachmentDefinition"]).To(BeAssignableToTypeOf(&netattdefv1.NetworkAttachmentDefinition{}))
+		})
 	})
 })
 

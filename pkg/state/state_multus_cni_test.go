@@ -24,11 +24,15 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 )
@@ -568,6 +572,128 @@ var _ = Describe("Multus CNI state", func() {
 				"--cni-conf-dir=/host/etc/cni/net.d",
 			))
 		})).To(BeTrue())
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return DaemonSet and ConfigMap watch sources", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(2))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws).To(HaveKey("ConfigMap"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+			Expect(ws["ConfigMap"]).To(BeAssignableToTypeOf(&corev1.ConfigMap{}))
+		})
+	})
+
+	Context("Verify Sync lifecycle and error paths", func() {
+		It("should fail NewStateMultusCNI when manifestDir does not exist", func() {
+			_, _, err := state.NewStateMultusCNI(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should create DaemonSet and transition from NotReady to Ready", func() {
+			cr := getMinimalNicClusterPolicyWithMultus()
+
+			By("Initial Sync creates DaemonSet and returns SyncStateNotReady")
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			ds := &appsv1.DaemonSet{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "kube-multus-ds"}, ds)).NotTo(HaveOccurred())
+
+			By("Mark DaemonSet as ready and Sync again")
+			ds.Status = appsv1.DaemonSetStatus{
+				DesiredNumberScheduled: 1,
+				NumberAvailable:        1,
+				UpdatedNumberScheduled: 1,
+			}
+			Expect(ts.client.Status().Update(context.Background(), ds)).NotTo(HaveOccurred())
+
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+		})
+
+		It("should delete objects when Multus spec is set to nil", func() {
+			cr := getMinimalNicClusterPolicyWithMultus()
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			By("Set Multus spec to nil and Sync")
+			cr.Spec.SecondaryNetwork.Multus = nil
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			ds := &appsv1.DaemonSet{}
+			err = ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "kube-multus-ds"}, ds)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+			By("Sync again when no objects remain")
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+		})
+
+		It("should delete stale objects labeled with state-multus-cni", func() {
+			staleCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "stale-multus-cm",
+					Namespace: ts.namespace,
+					Labels: map[string]string{
+						consts.StateLabel: ts.state.Name(),
+					},
+				},
+			}
+			Expect(ts.client.Create(context.Background(), staleCM)).NotTo(HaveOccurred())
+
+			cr := getMinimalNicClusterPolicyWithMultus()
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			err = ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "stale-multus-cm"}, &corev1.ConfigMap{})
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should return SyncStateError when StaticConfigProvider is missing", func() {
+			cr := getMinimalNicClusterPolicyWithMultus()
+			emptyCatalog := state.NewInfoCatalog()
+
+			status, err := ts.state.Sync(context.Background(), cr, emptyCatalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+		})
+
+		It("should return SyncStateNotReady and error when ClusterTypeProvider is missing", func() {
+			cr := getMinimalNicClusterPolicyWithMultus()
+			catalogNoCluster := state.NewInfoCatalog()
+			catalogNoCluster.Add(state.InfoTypeStaticConfig, ts.catalog.GetStaticConfigProvider())
+
+			status, err := ts.state.Sync(context.Background(), cr, catalogNoCluster)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getMinimalNicClusterPolicyWithMultus()
+			cr.Spec.SecondaryNetwork.Multus.Repository = ""
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := ts.renderer.GetManifestObjects(context.Background(), cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 })

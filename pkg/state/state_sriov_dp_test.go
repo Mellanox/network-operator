@@ -34,6 +34,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
@@ -179,6 +180,81 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			err = ts.client.Get(context.Background(), types.NamespacedName{Namespace: ts.namespace,
 				Name: "network-operator-sriov-device-plugin"}, ds)
 			Expect(errors.IsNotFound(err)).To(BeTrue())
+
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+		})
+		It("should fail NewStateSriovDp when manifestDir does not exist", func() {
+			_, _, err := state.NewStateSriovDp(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+		It("should create OpenShift objects when IsOpenshift is true", func() {
+			cr := getMinimalNicClusterPolicyWithSriovDp(false)
+			status, err := ts.state.Sync(context.Background(), cr, ts.openshiftCatalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			sa := &v1.ServiceAccount{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, sa)).NotTo(HaveOccurred())
+		})
+		It("should delete stale objects labeled with state-SRIOV-device-plugin", func() {
+			staleCM := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "stale-sriov-dp-cm",
+					Namespace: ts.namespace,
+					Labels: map[string]string{
+						consts.StateLabel:   ts.state.Name(),
+						consts.DSOwnerLabel: mellanoxv1alpha1.NicClusterPolicyCRDName,
+					},
+				},
+			}
+			Expect(ts.client.Create(context.Background(), staleCM)).NotTo(HaveOccurred())
+
+			cr := getMinimalNicClusterPolicyWithSriovDp(false)
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			err = ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "stale-sriov-dp-cm"}, &v1.ConfigMap{})
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+		})
+		It("should return SyncStateError on unsupported CR type", func() {
+			status, err := ts.state.Sync(context.Background(), &v1.ConfigMap{}, ts.catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+		})
+		It("should return SyncStateError when ClusterTypeProvider is missing", func() {
+			cr := getMinimalNicClusterPolicyWithSriovDp(false)
+			status, err := ts.state.Sync(context.Background(), cr, state.NewInfoCatalog())
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+		})
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getMinimalNicClusterPolicyWithSriovDp(false)
+			cr.Spec.SriovDevicePlugin.Repository = ""
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := ts.renderer.GetManifestObjects(context.Background(), cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return DaemonSet and ConfigMap watch sources", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(2))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws).To(HaveKey("ConfigMap"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+			Expect(ws["ConfigMap"]).To(BeAssignableToTypeOf(&v1.ConfigMap{}))
 		})
 	})
 })

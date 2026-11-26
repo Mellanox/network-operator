@@ -475,6 +475,30 @@ var _ = Describe("NVIPAM Controller", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateError))
 		})
+
+		It("should fail NewStateNVIPAMCNI when manifestDir does not exist", func() {
+			_, _, err := state.NewStateNVIPAMCNI(client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := renderer.GetManifestObjects(context.Background(), cr, catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return DaemonSet, Deployment, and ConfigMap watch sources", func() {
+			ws := nvIpamState.GetWatchSources()
+			Expect(ws).To(HaveLen(3))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws).To(HaveKey("Deployment"))
+			Expect(ws).To(HaveKey("ConfigMap"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+			Expect(ws["Deployment"]).To(BeAssignableToTypeOf(&appsv1.Deployment{}))
+			Expect(ws["ConfigMap"]).To(BeAssignableToTypeOf(&v1.ConfigMap{}))
+		})
 	})
 })
 

@@ -281,6 +281,26 @@ var _ = Describe("CNI plugins state", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 		})
+
+		It("should fail NewStateCNIPlugins when manifestDir does not exist", func() {
+			_, _, err := state.NewStateCNIPlugins(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := ts.renderer.GetManifestObjects(context.Background(), cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return DaemonSet watch source", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(1))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+		})
 	})
 })
 

@@ -1833,6 +1833,26 @@ var _ = Describe("MOFED state test", func() {
 				ContainElements(driverPodTolerations(crTolerations)))
 		})
 	})
+
+	Context("Constructor and GetWatchSources", func() {
+		It("Should create NewStateOFED and fail on invalid manifestDir", func() {
+			s, r, err := NewStateOFED(fake.NewClientBuilder().Build(), "../../manifests/state-ofed-driver")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(s).NotTo(BeNil())
+			Expect(r).NotTo(BeNil())
+
+			_, _, err = NewStateOFED(fake.NewClientBuilder().Build(), "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("Should return DaemonSet watch source", func() {
+			s := getOfedState()
+			ws := s.GetWatchSources()
+			Expect(ws).To(HaveLen(1))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+		})
+	})
 })
 
 func getOfedState() *stateOFED {
