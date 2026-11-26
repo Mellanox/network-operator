@@ -47,7 +47,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 
 			By("Sync")
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 
 			By("Verify ServiceAccount, ClusterRole, ClusterRoleBinding are created")
 			sa := &corev1.ServiceAccount{}
@@ -100,7 +100,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 		It("should render fieldRef env vars", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(1))
 
 			expectedFieldRefs := map[string]string{
@@ -128,7 +128,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				Limits:   corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			resources := dep.Spec.Template.Spec.Containers[0].Resources
 			Expect(resources.Requests.Cpu().String()).To(Equal(quantity.String()))
 			Expect(resources.Limits.Cpu().String()).To(Equal(quantity.String()))
@@ -143,7 +143,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				Limits:   corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			resources := dep.Spec.Template.Spec.Containers[0].Resources
 			Expect(resources.Requests).To(BeEmpty())
 			Expect(resources.Limits).To(BeEmpty())
@@ -157,7 +157,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				Requests: corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			resources := dep.Spec.Template.Spec.Containers[0].Resources
 			Expect(resources.Requests.Cpu().String()).To(Equal(quantity.String()))
 			Expect(resources.Limits).To(BeEmpty())
@@ -167,7 +167,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 			cr.Spec.IBKubernetes.Version = defaultTestVersionSha256
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			Expect(dep.Spec.Template.Spec.Containers[0].Image).To(Equal(getImagePathWithSha256()))
 		})
 
@@ -189,7 +189,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				},
 			}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			nodeAffinity := dep.Spec.Template.Spec.Affinity.NodeAffinity
 			Expect(nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution).To(HaveLen(2))
 			Expect(nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution).NotTo(BeNil())
@@ -219,7 +219,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				},
 			}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			tolerations := dep.Spec.Template.Spec.Tolerations
 			Expect(tolerations).To(HaveLen(5)) // 3 default + 2 custom
 			Expect(tolerations).To(ContainElements(
@@ -264,7 +264,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				},
 			}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			nodeAffinity := dep.Spec.Template.Spec.Affinity.NodeAffinity
 			Expect(nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution).To(HaveLen(3)) // 2 default + 1 custom
 
@@ -282,7 +282,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 			cr.Spec.IBKubernetes.ImagePullSecrets = []string{"secret1", "secret2", "secret3"}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(
 				corev1.LocalObjectReference{Name: "secret1"},
 				corev1.LocalObjectReference{Name: "secret2"},
@@ -294,7 +294,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 			cr.Spec.IBKubernetes.ImagePullSecrets = []string{}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
 
@@ -310,7 +310,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 				},
 			}
 
-			dep := syncAndGetIBKubernetesDeployment(ts, cr)
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(Equal([]corev1.LocalObjectReference{
 				{Name: "my-secret"},
 			}))
@@ -359,7 +359,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 
 		It("should delete objects when IBKubernetes spec is set to nil", func() {
 			cr := getMinimalNicClusterPolicyWithIBKubernetes()
-			syncAndGetIBKubernetesDeployment(ts, cr)
+			syncAndGetIBKubernetesDeployment(&ts, cr)
 
 			By("Set IBKubernetes spec to nil and Sync")
 			cr.Spec.IBKubernetes = nil
@@ -427,7 +427,7 @@ var _ = Describe("IB Kubernetes state sync tests", func() {
 	})
 })
 
-func syncAndGetIBKubernetesDeployment(ts testScope, cr *mellanoxv1alpha1.NicClusterPolicy) *appsv1.Deployment {
+func syncAndGetIBKubernetesDeployment(ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy) *appsv1.Deployment {
 	status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(status).To(BeEquivalentTo(state.SyncStateReady))

@@ -24,13 +24,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 )
 
@@ -80,31 +77,11 @@ var _ = Describe("NIC Feature Discovery state sync tests", func() {
 		})
 
 		It("should create DaemonSet and transition from NotReady to Ready", func() {
-			cr := getMinimalNicClusterPolicyWithNFD()
-
-			By("Initial Sync creates DaemonSet and returns SyncStateNotReady")
-			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			ds := &appsv1.DaemonSet{}
-			Expect(ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "nic-feature-discovery-ds"}, ds)).NotTo(HaveOccurred())
+			ds := assertSyncCreatesDaemonSetAndTransitionsToReady(
+				&ts, getMinimalNicClusterPolicyWithNFD(), "nic-feature-discovery-ds")
 			Expect(ds.Spec.Template.Spec.Containers).To(HaveLen(1))
 			Expect(ds.Spec.Template.Spec.Containers[0].Image).To(
 				Equal(defaultTestRepository + "/" + defaultTestImage + ":" + defaultTestVersion))
-
-			By("Mark DaemonSet as ready and Sync again")
-			ds.Status = appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberAvailable:        1,
-				UpdatedNumberScheduled: 1,
-			}
-			Expect(ts.client.Status().Update(context.Background(), ds)).NotTo(HaveOccurred())
-
-			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 		})
 
 		It("should create OpenShift ServiceAccount, Role, RoleBinding, and DaemonSet", func() {
@@ -132,72 +109,28 @@ var _ = Describe("NIC Feature Discovery state sync tests", func() {
 		})
 
 		It("should delete objects when NicFeatureDiscovery spec is set to nil", func() {
-			cr := getMinimalNicClusterPolicyWithNFD()
-			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			By("Set NicFeatureDiscovery spec to nil and Sync")
-			cr.Spec.NicFeatureDiscovery = nil
-			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			ds := &appsv1.DaemonSet{}
-			err = ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "nic-feature-discovery-ds"}, ds)
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
-
-			By("Sync again when no objects remain")
-			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+			assertSyncDeletesObjectsWhenSpecNil(&ts, getMinimalNicClusterPolicyWithNFD(),
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) { cr.Spec.NicFeatureDiscovery = nil },
+				"nic-feature-discovery-ds")
 		})
 
 		It("should delete stale objects labeled with state-nic-feature-discovery", func() {
-			staleCM := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "stale-nfd-cm",
-					Namespace: ts.namespace,
-					Labels: map[string]string{
-						consts.StateLabel: ts.state.Name(),
-					},
-				},
-			}
-			Expect(ts.client.Create(context.Background(), staleCM)).NotTo(HaveOccurred())
-
-			cr := getMinimalNicClusterPolicyWithNFD()
-			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			err = ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "stale-nfd-cm"}, &corev1.ConfigMap{})
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			assertSyncDeletesStaleObject(&ts, getMinimalNicClusterPolicyWithNFD(), "stale-nfd-cm", nil)
 		})
 
 		It("should return SyncStateError when ClusterTypeProvider is missing", func() {
-			cr := getMinimalNicClusterPolicyWithNFD()
-			emptyCatalog := state.NewInfoCatalog()
-
-			status, err := ts.state.Sync(context.Background(), cr, emptyCatalog)
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+			assertSyncFailsWithCatalog(&ts, getMinimalNicClusterPolicyWithNFD(),
+				state.NewInfoCatalog(), state.SyncStateError)
 		})
 
 		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
 			cr := getMinimalNicClusterPolicyWithNFD()
 			cr.Spec.NicFeatureDiscovery.Repository = ""
-
-			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			assertSyncFailsWithCatalog(&ts, cr, ts.catalog, state.SyncStateNotReady)
 		})
 
 		It("should return error from GetManifestObjects when spec is nil", func() {
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			_, err := ts.renderer.GetManifestObjects(context.Background(), cr, ts.catalog, testLogger)
-			Expect(err).To(HaveOccurred())
+			assertGetManifestObjectsErrorsOnNilSpec(&ts)
 		})
 	})
 })

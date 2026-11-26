@@ -23,11 +23,9 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/utils/ptr"
 
@@ -107,28 +105,8 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 	Context("should sync", func() {
 		It("without any errors and transition to Ready", func() {
 			cr := getRDMASharedDevicePlugin()
-			err := ts.client.Create(ts.context, cr)
-			Expect(err).NotTo(HaveOccurred())
-			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			// We do not expect that the sync state (i.e. the DaemonSet) will be ready.
-			// There is no real Kubernetes cluster in the unit tests and thus the Pods cannot be scheduled.
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			ds := &appsv1.DaemonSet{}
-			Expect(ts.client.Get(ts.context,
-				types.NamespacedName{Namespace: ts.namespace, Name: "rdma-shared-dp-ds"}, ds)).NotTo(HaveOccurred())
-
-			ds.Status = appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberAvailable:        1,
-				UpdatedNumberScheduled: 1,
-			}
-			Expect(ts.client.Status().Update(ts.context, ds)).NotTo(HaveOccurred())
-
-			status, err = ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+			Expect(ts.client.Create(ts.context, cr)).NotTo(HaveOccurred())
+			assertSyncCreatesDaemonSetAndTransitionsToReady(&ts, cr, "rdma-shared-dp-ds")
 		})
 		It("should fail NewStateRDMASharedDevicePlugin when manifestDir does not exist", func() {
 			_, _, err := state.NewStateRDMASharedDevicePlugin(ts.client, "/non-existent-manifest-dir")
@@ -137,45 +115,13 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 		It("should delete objects when RdmaSharedDevicePlugin spec is set to nil", func() {
 			cr := getRDMASharedDevicePlugin()
 			cr.Spec.RdmaSharedDevicePlugin.Config = ptr.To(`{"configList":[]}`)
-			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			cr.Spec.RdmaSharedDevicePlugin = nil
-			status, err = ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			ds := &appsv1.DaemonSet{}
-			err = ts.client.Get(ts.context,
-				types.NamespacedName{Namespace: ts.namespace, Name: "rdma-shared-dp-ds"}, ds)
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
-
-			status, err = ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+			assertSyncDeletesObjectsWhenSpecNil(&ts, cr,
+				func(c *mellanoxv1alpha1.NicClusterPolicy) { c.Spec.RdmaSharedDevicePlugin = nil },
+				"rdma-shared-dp-ds")
 		})
 		It("should delete stale objects labeled with state-RDMA-device-plugin", func() {
-			staleCM := &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "stale-rdma-dp-cm",
-					Namespace: ts.namespace,
-					Labels: map[string]string{
-						consts.StateLabel:   ts.state.Name(),
-						consts.DSOwnerLabel: mellanoxv1alpha1.NicClusterPolicyCRDName,
-					},
-				},
-			}
-			Expect(ts.client.Create(ts.context, staleCM)).NotTo(HaveOccurred())
-
-			cr := getRDMASharedDevicePlugin()
-			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
-
-			err = ts.client.Get(ts.context,
-				types.NamespacedName{Namespace: ts.namespace, Name: "stale-rdma-dp-cm"}, &v1.ConfigMap{})
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			assertSyncDeletesStaleObject(&ts, getRDMASharedDevicePlugin(), "stale-rdma-dp-cm",
+				map[string]string{consts.DSOwnerLabel: mellanoxv1alpha1.NicClusterPolicyCRDName})
 		})
 		It("should return SyncStateError on unsupported CR type", func() {
 			status, err := ts.state.Sync(ts.context, &v1.ConfigMap{}, ts.catalog)
@@ -183,24 +129,15 @@ var _ = Describe("RDMA Shared Device Plugin", func() {
 			Expect(status).To(BeEquivalentTo(state.SyncStateError))
 		})
 		It("should return SyncStateError when ClusterTypeProvider is missing", func() {
-			cr := getRDMASharedDevicePlugin()
-			status, err := ts.state.Sync(ts.context, cr, state.NewInfoCatalog())
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+			assertSyncFailsWithCatalog(&ts, getRDMASharedDevicePlugin(), state.NewInfoCatalog(), state.SyncStateError)
 		})
 		It("should return SyncStateError when StaticConfigProvider is missing", func() {
-			cr := getRDMASharedDevicePlugin()
 			catalogNoStatic := state.NewInfoCatalog()
 			catalogNoStatic.Add(state.InfoTypeClusterType, ts.catalog.GetClusterTypeProvider())
-
-			status, err := ts.state.Sync(ts.context, cr, catalogNoStatic)
-			Expect(err).To(HaveOccurred())
-			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+			assertSyncFailsWithCatalog(&ts, getRDMASharedDevicePlugin(), catalogNoStatic, state.SyncStateError)
 		})
 		It("should return error from GetManifestObjects when spec is nil", func() {
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			_, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
-			Expect(err).To(HaveOccurred())
+			assertGetManifestObjectsErrorsOnNilSpec(&ts)
 		})
 	})
 	Context("KubeletRootDir", func() {

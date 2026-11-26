@@ -196,17 +196,15 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 
+			nn := types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}
 			sa := &v1.ServiceAccount{}
-			Expect(ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, sa)).NotTo(HaveOccurred())
+			Expect(ts.client.Get(context.Background(), nn, sa)).NotTo(HaveOccurred())
 
 			role := &rbacv1.Role{}
-			Expect(ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, role)).NotTo(HaveOccurred())
+			Expect(ts.client.Get(context.Background(), nn, role)).NotTo(HaveOccurred())
 
 			rb := &rbacv1.RoleBinding{}
-			Expect(ts.client.Get(context.Background(),
-				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, rb)).NotTo(HaveOccurred())
+			Expect(ts.client.Get(context.Background(), nn, rb)).NotTo(HaveOccurred())
 		})
 		It("should delete stale objects labeled with state-SRIOV-device-plugin", func() {
 			staleCM := &v1.ConfigMap{
