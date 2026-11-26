@@ -26,6 +26,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -198,6 +199,14 @@ var _ = Describe("SR-IOV Device Plugin State tests", func() {
 			sa := &v1.ServiceAccount{}
 			Expect(ts.client.Get(context.Background(),
 				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, sa)).NotTo(HaveOccurred())
+
+			role := &rbacv1.Role{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, role)).NotTo(HaveOccurred())
+
+			rb := &rbacv1.RoleBinding{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "network-operator-sriov-device-plugin"}, rb)).NotTo(HaveOccurred())
 		})
 		It("should delete stale objects labeled with state-SRIOV-device-plugin", func() {
 			staleCM := &v1.ConfigMap{
