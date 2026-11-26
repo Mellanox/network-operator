@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
@@ -195,4 +196,80 @@ func getIPCSharedMemoryHostPath(objects []*unstructured.Unstructured) string {
 	}
 	Fail("no DaemonSet was rendered")
 	return ""
+}
+
+var _ = Describe("DOCATelemetryService state sync tests", func() {
+	var ts testScope
+
+	BeforeEach(func() {
+		ts = ts.New(state.NewStateDOCATelemetryService, "../../manifests/state-doca-telemetry-service")
+		Expect(ts).NotTo(BeNil())
+	})
+
+	Context("Verify metadata and GetWatchSources", func() {
+		It("should return expected Name, Description, and GetWatchSources", func() {
+			Expect(ts.state.Name()).To(Equal("state-doca-telemetry-service"))
+			Expect(ts.state.Description()).To(Equal("DOCA Telemetry Service deployed in the cluster"))
+
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(1))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+		})
+	})
+
+	Context("Verify Sync lifecycle and error paths", func() {
+		It("should fail NewStateDOCATelemetryService when manifestDir does not exist", func() {
+			_, _, err := state.NewStateDOCATelemetryService(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should create objects and transition from NotReady to Ready", func() {
+			cr := getMinimalNicClusterPolicyWithDTS()
+
+			assertSyncCreatesDaemonSetAndTransitionsToReady(&ts, cr, "doca-telemetry-service")
+
+			sa := &corev1.ServiceAccount{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "doca-telemetry-service"}, sa)).NotTo(HaveOccurred())
+
+			cm := &corev1.ConfigMap{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "doca-telemetry-service"}, cm)).NotTo(HaveOccurred())
+		})
+
+		It("should delete objects when DOCATelemetryService spec is set to nil", func() {
+			assertSyncDeletesObjectsWhenSpecNil(&ts, getMinimalNicClusterPolicyWithDTS(),
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) { cr.Spec.DOCATelemetryService = nil },
+				"doca-telemetry-service")
+		})
+
+		It("should delete stale objects labeled with state-doca-telemetry-service", func() {
+			assertSyncDeletesStaleObject(&ts, getMinimalNicClusterPolicyWithDTS(), "stale-dts-cm", nil)
+		})
+
+		It("should return SyncStateNotReady and error when ClusterTypeProvider is missing", func() {
+			assertSyncFailsWithCatalog(&ts, getMinimalNicClusterPolicyWithDTS(),
+				state.NewInfoCatalog(), state.SyncStateNotReady)
+		})
+
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getMinimalNicClusterPolicyWithDTS()
+			cr.Spec.DOCATelemetryService.Repository = ""
+			assertSyncFailsWithCatalog(&ts, cr, ts.catalog, state.SyncStateNotReady)
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			assertGetManifestObjectsErrorsOnNilSpec(&ts)
+		})
+	})
+})
+
+func getMinimalNicClusterPolicyWithDTS() *mellanoxv1alpha1.NicClusterPolicy {
+	cr := &mellanoxv1alpha1.NicClusterPolicy{}
+	cr.Name = "nic-cluster-policy"
+	cr.Spec.DOCATelemetryService = &mellanoxv1alpha1.DOCATelemetryServiceSpec{
+		ImageSpec: *getTestImageSpec(),
+	}
+	return cr
 }

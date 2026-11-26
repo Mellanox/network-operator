@@ -35,6 +35,7 @@ import (
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/config"
+	"github.com/Mellanox/network-operator/pkg/consts"
 	"github.com/Mellanox/network-operator/pkg/state"
 	"github.com/Mellanox/network-operator/pkg/staticconfig"
 	staticconfig_mocks "github.com/Mellanox/network-operator/pkg/staticconfig/mocks"
@@ -807,6 +808,61 @@ var _ = Describe("NIC Configuration Operator Controller", func() {
 			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
 			Expect(err).To(HaveOccurred())
 			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+		})
+
+		It("should fail NewStateNicConfigurationOperator when manifestDir does not exist", func() {
+			_, _, err := state.NewStateNicConfigurationOperator(fake.NewClientBuilder().Build(), "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return DaemonSet, Deployment, and ConfigMap watch sources", func() {
+			ws := nicConfigurationOperatorState.GetWatchSources()
+			Expect(ws).To(HaveLen(3))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws).To(HaveKey("Deployment"))
+			Expect(ws).To(HaveKey("ConfigMap"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
+			Expect(ws["Deployment"]).To(BeAssignableToTypeOf(&appsv1.Deployment{}))
+			Expect(ws["ConfigMap"]).To(BeAssignableToTypeOf(&v1.ConfigMap{}))
+		})
+
+		It("should delete stale objects labeled with state-nic-configuration-operator", func() {
+			staleCM := &v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "stale-nic-config-cm",
+					Namespace: namespace,
+					Labels: map[string]string{
+						consts.StateLabel: nicConfigurationOperatorState.Name(),
+					},
+				},
+			}
+			Expect(client.Create(context.Background(), staleCM)).NotTo(HaveOccurred())
+
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			err = client.Get(context.Background(), types.NamespacedName{
+				Namespace: namespace,
+				Name:      "stale-nic-config-cm",
+			}, &v1.ConfigMap{})
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getMinimalNicClusterPolicyWithNicConfigurationOperator(deploymentName, daemonSetName)
+			cr.Spec.NicConfigurationOperator.Operator.Repository = ""
+
+			status, err := nicConfigurationOperatorState.Sync(context.Background(), cr, catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := renderer.GetManifestObjects(context.Background(), cr, catalog, testLogger)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

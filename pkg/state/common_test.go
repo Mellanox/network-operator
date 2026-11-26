@@ -40,6 +40,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -494,4 +495,92 @@ func assertUnstructuredListHasExactKinds(objects []*unstructured.Unstructured, k
 		actualKinds = append(actualKinds, obj.Object["kind"].(string))
 	}
 	Expect(actualKinds).To(ConsistOf(kinds))
+}
+
+// assertSyncCreatesDaemonSetAndTransitionsToReady verifies that an initial Sync creates the named
+// DaemonSet with SyncStateNotReady and transitions to SyncStateReady once the DaemonSet is ready.
+func assertSyncCreatesDaemonSetAndTransitionsToReady(
+	ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy, dsName string) *appsv1.DaemonSet {
+	status, err := ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+	ds := &appsv1.DaemonSet{}
+	Expect(ts.client.Get(ts.context,
+		types.NamespacedName{Namespace: ts.namespace, Name: dsName}, ds)).NotTo(HaveOccurred())
+
+	ds.Status = appsv1.DaemonSetStatus{
+		DesiredNumberScheduled: 1,
+		NumberAvailable:        1,
+		UpdatedNumberScheduled: 1,
+	}
+	Expect(ts.client.Status().Update(ts.context, ds)).NotTo(HaveOccurred())
+
+	status, err = ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+	return ds
+}
+
+// assertSyncDeletesObjectsWhenSpecNil verifies that Sync deletes previously created objects when
+// clearSpec clears the component spec, then returns SyncStateIgnore on a subsequent Sync.
+func assertSyncDeletesObjectsWhenSpecNil(
+	ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy,
+	clearSpec func(*mellanoxv1alpha1.NicClusterPolicy), dsName string) {
+	status, err := ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+	clearSpec(cr)
+	status, err = ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+	ds := &appsv1.DaemonSet{}
+	err = ts.client.Get(ts.context, types.NamespacedName{Namespace: ts.namespace, Name: dsName}, ds)
+	Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+	status, err = ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+}
+
+// assertSyncDeletesStaleObject verifies that Sync removes a stale ConfigMap labeled with the state name.
+func assertSyncDeletesStaleObject(
+	ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy, staleName string, extraLabels map[string]string) {
+	labels := map[string]string{consts.StateLabel: ts.state.Name()}
+	for k, v := range extraLabels {
+		labels[k] = v
+	}
+	staleCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      staleName,
+			Namespace: ts.namespace,
+			Labels:    labels,
+		},
+	}
+	Expect(ts.client.Create(ts.context, staleCM)).NotTo(HaveOccurred())
+
+	status, err := ts.state.Sync(ts.context, cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+	err = ts.client.Get(ts.context, types.NamespacedName{Namespace: ts.namespace, Name: staleName}, &corev1.ConfigMap{})
+	Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+}
+
+// assertSyncFailsWithCatalog verifies that Sync returns an error and the expected state with the given catalog.
+func assertSyncFailsWithCatalog(
+	ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy,
+	catalog state.InfoCatalog, expectedStatus state.SyncState) {
+	status, err := ts.state.Sync(ts.context, cr, catalog)
+	Expect(err).To(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(expectedStatus))
+}
+
+// assertGetManifestObjectsErrorsOnNilSpec verifies that GetManifestObjects errors when the component spec is nil.
+func assertGetManifestObjectsErrorsOnNilSpec(ts *testScope) {
+	cr := &mellanoxv1alpha1.NicClusterPolicy{}
+	_, err := ts.renderer.GetManifestObjects(ts.context, cr, ts.catalog, testLogger)
+	Expect(err).To(HaveOccurred())
 }

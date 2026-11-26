@@ -1,5 +1,5 @@
 /*
-2022 NVIDIA CORPORATION & AFFILIATES
+2026 NVIDIA CORPORATION & AFFILIATES
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,357 +14,173 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package state
+package state_test
 
 import (
 	"context"
-	"strconv"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
-	"github.com/Mellanox/network-operator/pkg/render"
-	"github.com/Mellanox/network-operator/pkg/testing/mocks"
-	"github.com/Mellanox/network-operator/pkg/utils"
+	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/state"
 )
 
-var _ = Describe("IB Kubernetes state rendering tests", func() {
+var _ = Describe("IB Kubernetes state sync tests", func() {
+	var ts testScope
 
-	Context("IB Kubernetes state", func() {
-		It("Should Render NetworkAttachmentDefinition", func() {
-			client := mocks.ControllerRuntimeClient{}
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
+	BeforeEach(func() {
+		ts = ts.New(state.NewStateIBKubernetes, "../../manifests/state-ib-kubernetes")
+		Expect(ts).NotTo(BeNil())
+	})
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
+	Context("Verify objects rendering and creation via Sync", func() {
+		It("should create base 4 objects with env vars and UFM secret", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 
-			stateName := "state-ib-kubernetes"
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					name:        stateName,
-					description: "ib-kubernetes deployed in the cluster",
-					client:      &client,
-					renderer:    renderer,
-				},
-			}
+			By("Sync")
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ibKubernetesState.Name()).To(Equal(stateName))
+			By("Verify ServiceAccount, ClusterRole, ClusterRoleBinding are created")
+			sa := &corev1.ServiceAccount{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "ib-kubernetes"}, sa)).NotTo(HaveOccurred())
 
-			envValues := map[string]string{
+			clusterRole := &rbacv1.ClusterRole{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Name: "ib-kubernetes"}, clusterRole)).NotTo(HaveOccurred())
+
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Name: "ib-kubernetes"}, clusterRoleBinding)).NotTo(HaveOccurred())
+
+			By("Verify Deployment container image, env vars, and UFM secret")
+			Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(1))
+			container := dep.Spec.Template.Spec.Containers[0]
+			Expect(container.Image).To(Equal(defaultTestRepository + "/" + defaultTestImage + ":" + defaultTestVersion))
+
+			expectedEnvValues := map[string]string{
 				"DAEMON_SM_PLUGIN":       "ufm",
 				"DAEMON_PERIODIC_UPDATE": "6",
 				"GUID_POOL_RANGE_START":  "rangestart",
 				"GUID_POOL_RANGE_END":    "rangeend",
 			}
-			ufmSecret := "secret"
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.PeriodicUpdateSeconds, _ = strconv.Atoi(envValues["DAEMON_PERIODIC_UPDATE"])
-			ibKubernetesSpec.PKeyGUIDPoolRangeStart = envValues["GUID_POOL_RANGE_START"]
-			ibKubernetesSpec.PKeyGUIDPoolRangeEnd = envValues["GUID_POOL_RANGE_END"]
-			ibKubernetesSpec.UfmSecret = ufmSecret
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Name = "nic-cluster-policy"
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			containers := templateSpec["containers"].([]interface{})
-			env := containers[0].(map[string]interface{})["env"].([]interface{})
-
-			for _, envVar := range env {
-				if _, ok := envVar.(map[string]interface{})["value"]; ok {
-					value := envVar.(map[string]interface{})["value"].(string)
-					name := envVar.(map[string]interface{})["name"].(string)
-					Expect(value).To(Equal(envValues[name]))
+			expectedSecretVars := map[string]struct{}{
+				"UFM_USERNAME":    {},
+				"UFM_PASSWORD":    {},
+				"UFM_ADDRESS":     {},
+				"UFM_HTTP_SCHEMA": {},
+				"UFM_PORT":        {},
+				"UFM_CERTIFICATE": {},
+			}
+			for _, envVar := range container.Env {
+				if expectedVal, ok := expectedEnvValues[envVar.Name]; ok {
+					Expect(envVar.Value).To(Equal(expectedVal))
+					delete(expectedEnvValues, envVar.Name)
+				}
+				if _, ok := expectedSecretVars[envVar.Name]; ok {
+					Expect(envVar.ValueFrom).NotTo(BeNil())
+					Expect(envVar.ValueFrom.SecretKeyRef).NotTo(BeNil())
+					Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal("secret"))
+					delete(expectedSecretVars, envVar.Name)
 				}
 			}
+			Expect(expectedEnvValues).To(BeEmpty(), "missing env vars: %v", expectedEnvValues)
+			Expect(expectedSecretVars).To(BeEmpty(), "missing UFM secret env vars: %v", expectedSecretVars)
 		})
-		It("Should Render fieldRef env vars", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
+		It("should render fieldRef env vars", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
 
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-
-			deploySpec := objs[3].Object["spec"].(map[string]interface{})
-			podSpec := deploySpec["template"].(map[string]interface{})["spec"].(map[string]interface{})
-			containers := podSpec["containers"].([]interface{})
-			env := containers[0].(map[string]interface{})["env"].([]interface{})
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(1))
 
 			expectedFieldRefs := map[string]string{
 				"K8S_NODE":      "spec.nodeName",
 				"POD_NAMESPACE": "metadata.namespace",
 				"POD_UID":       "metadata.uid",
 			}
-
-			for _, envVar := range env {
-				envMap := envVar.(map[string]interface{})
-				name, _ := envMap["name"].(string)
-				if expectedPath, ok := expectedFieldRefs[name]; ok {
-					valueFrom := envMap["valueFrom"].(map[string]interface{})
-					fieldRef := valueFrom["fieldRef"].(map[string]interface{})
-					Expect(fieldRef["fieldPath"]).To(Equal(expectedPath), "fieldPath for %s", name)
-					delete(expectedFieldRefs, name)
+			for _, envVar := range dep.Spec.Template.Spec.Containers[0].Env {
+				if expectedPath, ok := expectedFieldRefs[envVar.Name]; ok {
+					Expect(envVar.ValueFrom).NotTo(BeNil())
+					Expect(envVar.ValueFrom.FieldRef).NotTo(BeNil())
+					Expect(envVar.ValueFrom.FieldRef.FieldPath).To(Equal(expectedPath), "fieldPath for %s", envVar.Name)
+					delete(expectedFieldRefs, envVar.Name)
 				}
 			}
 			Expect(expectedFieldRefs).To(BeEmpty(), "missing fieldRef env vars: %v", expectedFieldRefs)
 		})
-		It("Should Render ContainerResources", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			quantity, _ := resource.ParseQuantity("150Mi")
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
-				Name: "ib-kubernetes",
-				Requests: v1.ResourceList{
-					"cpu": quantity,
-				},
-				Limits: v1.ResourceList{
-					"cpu": quantity,
-				},
+		It("should render ContainerResources", func() {
+			quantity := resource.MustParse("150Mi")
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name:     "ib-kubernetes",
+				Requests: corev1.ResourceList{corev1.ResourceCPU: quantity},
+				Limits:   corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			containers := templateSpec["containers"].([]interface{})
-			resources := containers[0].(map[string]interface{})["resources"].(map[string]interface{})
-			requests := resources["requests"].(map[string]interface{})
-			cpuRequest := requests["cpu"].(string)
-			Expect(cpuRequest).To(Equal(quantity.String()))
-			limits := resources["limits"].(map[string]interface{})
-			cpuLimit := limits["cpu"].(string)
-			Expect(cpuLimit).To(Equal(quantity.String()))
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			resources := dep.Spec.Template.Spec.Containers[0].Resources
+			Expect(resources.Requests.Cpu().String()).To(Equal(quantity.String()))
+			Expect(resources.Limits.Cpu().String()).To(Equal(quantity.String()))
 		})
-		It("Should NOT Render ContainerResources with the wrong container name", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			quantity, _ := resource.ParseQuantity("150Mi")
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
-				Name: "ib-kubernetes-wrong",
-				Requests: v1.ResourceList{
-					"cpu": quantity,
-				},
-				Limits: v1.ResourceList{
-					"cpu": quantity,
-				},
+		It("should NOT render ContainerResources with the wrong container name", func() {
+			quantity := resource.MustParse("150Mi")
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name:     "ib-kubernetes-wrong",
+				Requests: corev1.ResourceList{corev1.ResourceCPU: quantity},
+				Limits:   corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			containers := templateSpec["containers"].([]interface{})
-			resources := containers[0].(map[string]interface{})["resources"]
-			Expect(resources).To(BeNil())
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			resources := dep.Spec.Template.Spec.Containers[0].Resources
+			Expect(resources.Requests).To(BeEmpty())
+			Expect(resources.Limits).To(BeEmpty())
 		})
-		It("Should not render limits if nil", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			quantity, _ := resource.ParseQuantity("150Mi")
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
-				Name: "ib-kubernetes",
-				Requests: v1.ResourceList{
-					"cpu": quantity,
-				},
+		It("should not render limits if nil", func() {
+			quantity := resource.MustParse("150Mi")
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ContainerResources = []mellanoxv1alpha1.ResourceRequirements{{
+				Name:     "ib-kubernetes",
+				Requests: corev1.ResourceList{corev1.ResourceCPU: quantity},
 			}}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			containers := templateSpec["containers"].([]interface{})
-			resources := containers[0].(map[string]interface{})["resources"].(map[string]interface{})
-			requests := resources["requests"].(map[string]interface{})
-			cpuRequest := requests["cpu"].(string)
-			Expect(cpuRequest).To(Equal(quantity.String()))
-			limits := resources["limits"]
-			Expect(limits).To(BeNil())
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			resources := dep.Spec.Template.Spec.Containers[0].Resources
+			Expect(resources.Requests.Cpu().String()).To(Equal(quantity.String()))
+			Expect(resources.Limits).To(BeEmpty())
 		})
-		It("Should have image in SHA256 format", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
+		It("should have image in SHA256 format", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.Version = defaultTestVersionSha256
 
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "myImage"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "sha256:1699d23027ea30c9fa"
-			ibKubernetesSpec.Repository = "myRepo"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			containers := templateSpec["containers"].([]interface{})
-			image := containers[0].(map[string]interface{})["image"]
-			Expect(image).To(Equal("myRepo/myImage@sha256:1699d23027ea30c9fa"))
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			Expect(dep.Spec.Template.Spec.Containers[0].Image).To(Equal(getImagePathWithSha256()))
 		})
-		It("Should Render DeploymentNodeAffinity", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			// Add custom deployment node affinity
-			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
+		It("should render DeploymentNodeAffinity", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.DeploymentNodeAffinity = &corev1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+					NodeSelectorTerms: []corev1.NodeSelectorTerm{
 						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
+							MatchExpressions: []corev1.NodeSelectorRequirement{
 								{
 									Key:      "custom-label",
-									Operator: v1.NodeSelectorOpIn,
+									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"value1", "value2"},
 								},
 							},
@@ -373,148 +189,65 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 				},
 			}
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			nodeAffinity := dep.Spec.Template.Spec.Affinity.NodeAffinity
+			Expect(nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution).To(HaveLen(2))
+			Expect(nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution).NotTo(BeNil())
 
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			affinity := templateSpec["affinity"].(map[string]interface{})
-			nodeAffinity := affinity["nodeAffinity"].(map[string]interface{})
-
-			// Check that the default preferredDuringSchedulingIgnoredDuringExecution is present
-			preferred := nodeAffinity["preferredDuringSchedulingIgnoredDuringExecution"].([]interface{})
-			Expect(len(preferred)).To(Equal(2))
-
-			// Check that the custom requiredDuringSchedulingIgnoredDuringExecution is present
-			required := nodeAffinity["requiredDuringSchedulingIgnoredDuringExecution"].(map[string]interface{})
-			nodeSelectorTerms := required["nodeSelectorTerms"].([]interface{})
-			Expect(len(nodeSelectorTerms)).To(Equal(1))
-
-			term := nodeSelectorTerms[0].(map[string]interface{})
-			matchExpressions := term["matchExpressions"].([]interface{})
-			Expect(len(matchExpressions)).To(Equal(1))
-
-			expr := matchExpressions[0].(map[string]interface{})
-			Expect(expr["key"]).To(Equal("custom-label"))
-			Expect(expr["operator"]).To(Equal("In"))
-			values := expr["values"].([]interface{})
-			Expect(values).To(ContainElements("value1", "value2"))
+			terms := nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms
+			Expect(terms).To(HaveLen(1))
+			Expect(terms[0].MatchExpressions).To(HaveLen(1))
+			expr := terms[0].MatchExpressions[0]
+			Expect(expr.Key).To(Equal("custom-label"))
+			Expect(expr.Operator).To(Equal(corev1.NodeSelectorOpIn))
+			Expect(expr.Values).To(ContainElements("value1", "value2"))
 		})
-		It("Should Render DeploymentTolerations", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			// Add custom deployment tolerations
-			cr.Spec.DeploymentTolerations = []v1.Toleration{
+		It("should render DeploymentTolerations", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.DeploymentTolerations = []corev1.Toleration{
 				{
 					Key:      "custom-taint",
-					Operator: v1.TolerationOpEqual,
+					Operator: corev1.TolerationOpEqual,
 					Value:    "custom-value",
-					Effect:   v1.TaintEffectNoSchedule,
+					Effect:   corev1.TaintEffectNoSchedule,
 				},
 				{
 					Key:      "another-taint",
-					Operator: v1.TolerationOpExists,
-					Effect:   v1.TaintEffectPreferNoSchedule,
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectPreferNoSchedule,
 				},
 			}
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-			tolerations := templateSpec["tolerations"].([]interface{})
-
-			// Check that default tolerations are present (3 default + 2 custom = 5 total)
-			Expect(len(tolerations)).To(Equal(5))
-
-			// Check that custom tolerations are present
-			foundCustomTaint := false
-			foundAnotherTaint := false
-
-			for _, tol := range tolerations {
-				tolMap := tol.(map[string]interface{})
-				if key, exists := tolMap["key"]; exists && key == "custom-taint" {
-					foundCustomTaint = true
-					Expect(tolMap["operator"]).To(Equal("Equal"))
-					Expect(tolMap["value"]).To(Equal("custom-value"))
-					Expect(tolMap["effect"]).To(Equal("NoSchedule"))
-				}
-				if key, exists := tolMap["key"]; exists && key == "another-taint" {
-					foundAnotherTaint = true
-					Expect(tolMap["operator"]).To(Equal("Exists"))
-					Expect(tolMap["effect"]).To(Equal("PreferNoSchedule"))
-				}
-			}
-
-			Expect(foundCustomTaint).To(BeTrue())
-			Expect(foundAnotherTaint).To(BeTrue())
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			tolerations := dep.Spec.Template.Spec.Tolerations
+			Expect(tolerations).To(HaveLen(5)) // 3 default + 2 custom
+			Expect(tolerations).To(ContainElements(
+				corev1.Toleration{
+					Key:      "custom-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "custom-value",
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				corev1.Toleration{
+					Key:      "another-taint",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectPreferNoSchedule,
+				},
+			))
 		})
-		It("Should Render both DeploymentNodeAffinity and DeploymentTolerations together", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			// Add both custom deployment node affinity and tolerations
-			cr.Spec.DeploymentNodeAffinity = &v1.NodeAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+		It("should render both DeploymentNodeAffinity and DeploymentTolerations together", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.DeploymentNodeAffinity = &corev1.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []corev1.PreferredSchedulingTerm{
 					{
 						Weight: 10,
-						Preference: v1.NodeSelectorTerm{
-							MatchExpressions: []v1.NodeSelectorRequirement{
+						Preference: corev1.NodeSelectorTerm{
+							MatchExpressions: []corev1.NodeSelectorRequirement{
 								{
 									Key:      "preferred-label",
-									Operator: v1.NodeSelectorOpIn,
+									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"preferred-value"},
 								},
 							},
@@ -522,219 +255,204 @@ var _ = Describe("IB Kubernetes state rendering tests", func() {
 					},
 				},
 			}
-
-			cr.Spec.DeploymentTolerations = []v1.Toleration{
+			cr.Spec.DeploymentTolerations = []corev1.Toleration{
 				{
 					Key:      "combined-taint",
-					Operator: v1.TolerationOpEqual,
+					Operator: corev1.TolerationOpEqual,
 					Value:    "combined-value",
-					Effect:   v1.TaintEffectNoExecute,
+					Effect:   corev1.TaintEffectNoExecute,
 				},
 			}
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			nodeAffinity := dep.Spec.Template.Spec.Affinity.NodeAffinity
+			Expect(nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution).To(HaveLen(3)) // 2 default + 1 custom
 
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-
-			// Check affinity
-			affinity := templateSpec["affinity"].(map[string]interface{})
-			nodeAffinity := affinity["nodeAffinity"].(map[string]interface{})
-
-			// Check that both default and custom preferredDuringSchedulingIgnoredDuringExecution are present
-			preferred := nodeAffinity["preferredDuringSchedulingIgnoredDuringExecution"].([]interface{})
-			Expect(len(preferred)).To(Equal(3)) // 2 default + 1 custom
-
-			// Check tolerations
-			tolerations := templateSpec["tolerations"].([]interface{})
-			Expect(len(tolerations)).To(Equal(4)) // 3 default + 1 custom
-
-			// Verify custom toleration is present
-			foundCombinedTaint := false
-			for _, tol := range tolerations {
-				tolMap := tol.(map[string]interface{})
-				if key, exists := tolMap["key"]; exists && key == "combined-taint" {
-					foundCombinedTaint = true
-					Expect(tolMap["operator"]).To(Equal("Equal"))
-					Expect(tolMap["value"]).To(Equal("combined-value"))
-					Expect(tolMap["effect"]).To(Equal("NoExecute"))
-				}
-			}
-			Expect(foundCombinedTaint).To(BeTrue())
+			tolerations := dep.Spec.Template.Spec.Tolerations
+			Expect(tolerations).To(HaveLen(4)) // 3 default + 1 custom
+			Expect(tolerations).To(ContainElement(corev1.Toleration{
+				Key:      "combined-taint",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "combined-value",
+				Effect:   corev1.TaintEffectNoExecute,
+			}))
 		})
-		It("Should Render ImagePullSecrets", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
+		It("should render ImagePullSecrets", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ImagePullSecrets = []string{"secret1", "secret2", "secret3"}
 
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{"secret1", "secret2", "secret3"}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-
-			// Check that imagePullSecrets is present
-			imagePullSecrets, exists := templateSpec["imagePullSecrets"]
-			Expect(exists).To(BeTrue())
-
-			// Check that it's a slice
-			imagePullSecretsSlice := imagePullSecrets.([]interface{})
-			Expect(len(imagePullSecretsSlice)).To(Equal(3))
-
-			// Check each secret name
-			secretNames := make([]string, 0, len(imagePullSecretsSlice))
-			for _, secret := range imagePullSecretsSlice {
-				secretMap := secret.(map[string]interface{})
-				name, exists := secretMap["name"]
-				Expect(exists).To(BeTrue())
-				secretNames = append(secretNames, name.(string))
-			}
-
-			Expect(secretNames).To(ContainElements("secret1", "secret2", "secret3"))
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(ConsistOf(
+				corev1.LocalObjectReference{Name: "secret1"},
+				corev1.LocalObjectReference{Name: "secret2"},
+				corev1.LocalObjectReference{Name: "secret3"},
+			))
 		})
-		It("Should NOT Render ImagePullSecrets when empty", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
+		It("should NOT render ImagePullSecrets when empty", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ImagePullSecrets = []string{}
 
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
-
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
-
-			// Check that imagePullSecrets is NOT present when empty
-			_, exists := templateSpec["imagePullSecrets"]
-			Expect(exists).To(BeFalse())
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(BeEmpty())
 		})
-		It("Should Render ImagePullSecrets with other configurations", func() {
-			manifestBaseDir := "../../manifests/state-ib-kubernetes"
 
-			files, err := utils.GetFilesWithSuffix(manifestBaseDir, render.ManifestFileSuffix...)
-			Expect(err).NotTo(HaveOccurred())
-			renderer := render.NewRenderer(files)
-
-			ibKubernetesState := stateIBKubernetes{
-				stateSkel: stateSkel{
-					renderer: renderer,
-				},
-			}
-
-			Expect(err).NotTo(HaveOccurred())
-
-			ibKubernetesSpec := &mellanoxv1alpha1.IBKubernetesSpec{}
-			ibKubernetesSpec.Image = "image"
-			ibKubernetesSpec.Repository = "repository"
-			ibKubernetesSpec.ImagePullSecrets = []string{"my-secret"}
-			ibKubernetesSpec.Version = "version"
-			cr := &mellanoxv1alpha1.NicClusterPolicy{}
-			cr.Spec.IBKubernetes = ibKubernetesSpec
-
-			// Add custom deployment tolerations to test combination
-			cr.Spec.DeploymentTolerations = []v1.Toleration{
+		It("should render ImagePullSecrets with other configurations", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.ImagePullSecrets = []string{"my-secret"}
+			cr.Spec.DeploymentTolerations = []corev1.Toleration{
 				{
 					Key:      "test-taint",
-					Operator: v1.TolerationOpEqual,
+					Operator: corev1.TolerationOpEqual,
 					Value:    "test-value",
-					Effect:   v1.TaintEffectNoSchedule,
+					Effect:   corev1.TaintEffectNoSchedule,
 				},
 			}
 
-			catalog := NewInfoCatalog()
-			catalog.Add(InfoTypeClusterType, &dummyProvider{})
+			dep := syncAndGetIBKubernetesDeployment(&ts, cr)
+			Expect(dep.Spec.Template.Spec.ImagePullSecrets).To(Equal([]corev1.LocalObjectReference{
+				{Name: "my-secret"},
+			}))
 
-			objs, err := ibKubernetesState.GetManifestObjects(context.TODO(), cr, catalog, testLogger)
+			tolerations := dep.Spec.Template.Spec.Tolerations
+			Expect(tolerations).To(HaveLen(4)) // 3 default + 1 custom
+			Expect(tolerations).To(ContainElement(corev1.Toleration{
+				Key:      "test-taint",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "test-value",
+				Effect:   corev1.TaintEffectNoSchedule,
+			}))
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return Deployment watch source", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(1))
+			Expect(ws).To(HaveKey("Deployment"))
+			Expect(ws["Deployment"]).To(BeAssignableToTypeOf(&appsv1.Deployment{}))
+		})
+	})
+
+	Context("Verify Sync lifecycle, OpenShift, and error paths", func() {
+		It("should fail NewStateIBKubernetes when manifestDir does not exist", func() {
+			_, _, err := state.NewStateIBKubernetes(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should create OpenShift Role and RoleBinding when IsOpenshift is true", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.openshiftCatalog)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			ds := objs[3]
-			Expect(ds.GetKind()).To(Equal("Deployment"))
-			spec := ds.Object["spec"].(map[string]interface{})
-			template := spec["template"].(map[string]interface{})
-			templateSpec := template["spec"].(map[string]interface{})
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
 
-			// Check that imagePullSecrets is present
-			imagePullSecrets, exists := templateSpec["imagePullSecrets"]
-			Expect(exists).To(BeTrue())
+			role := &rbacv1.Role{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "ib-kubernetes"}, role)).NotTo(HaveOccurred())
 
-			imagePullSecretsSlice := imagePullSecrets.([]interface{})
-			Expect(len(imagePullSecretsSlice)).To(Equal(1))
+			roleBinding := &rbacv1.RoleBinding{}
+			Expect(ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "ib-kubernetes"}, roleBinding)).NotTo(HaveOccurred())
+		})
 
-			secretMap := imagePullSecretsSlice[0].(map[string]interface{})
-			name, exists := secretMap["name"]
-			Expect(exists).To(BeTrue())
-			Expect(name).To(Equal("my-secret"))
+		It("should delete objects when IBKubernetes spec is set to nil", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			syncAndGetIBKubernetesDeployment(&ts, cr)
 
-			// Check that tolerations are also present (4 total: 3 default + 1 custom)
-			tolerations := templateSpec["tolerations"].([]interface{})
-			Expect(len(tolerations)).To(Equal(4))
+			By("Set IBKubernetes spec to nil and Sync")
+			cr.Spec.IBKubernetes = nil
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
 
-			// Verify custom toleration is present
-			foundTestTaint := false
-			for _, tol := range tolerations {
-				tolMap := tol.(map[string]interface{})
-				if key, exists := tolMap["key"]; exists && key == "test-taint" {
-					foundTestTaint = true
-					Expect(tolMap["operator"]).To(Equal("Equal"))
-					Expect(tolMap["value"]).To(Equal("test-value"))
-					Expect(tolMap["effect"]).To(Equal("NoSchedule"))
-				}
+			By("Verify Deployment is deleted")
+			dep := &appsv1.Deployment{}
+			err = ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "ib-kubernetes"}, dep)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+			By("Sync again when no objects remain")
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateIgnore))
+		})
+
+		It("should delete stale objects labeled with state-ib-kubernetes", func() {
+			staleCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "stale-ib-cm",
+					Namespace: ts.namespace,
+					Labels: map[string]string{
+						consts.StateLabel: ts.state.Name(),
+					},
+				},
 			}
-			Expect(foundTestTaint).To(BeTrue())
+			Expect(ts.client.Create(context.Background(), staleCM)).NotTo(HaveOccurred())
+
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+
+			err = ts.client.Get(context.Background(),
+				types.NamespacedName{Namespace: ts.namespace, Name: "stale-ib-cm"}, &corev1.ConfigMap{})
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should return SyncStateError when ClusterTypeProvider is missing", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			emptyCatalog := state.NewInfoCatalog()
+
+			status, err := ts.state.Sync(context.Background(), cr, emptyCatalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateError))
+		})
+
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getMinimalNicClusterPolicyWithIBKubernetes()
+			cr.Spec.IBKubernetes.Repository = ""
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).To(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			cr := &mellanoxv1alpha1.NicClusterPolicy{}
+			_, err := ts.renderer.GetManifestObjects(context.Background(), cr, ts.catalog, testLogger)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
+
+func syncAndGetIBKubernetesDeployment(ts *testScope, cr *mellanoxv1alpha1.NicClusterPolicy) *appsv1.Deployment {
+	status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+	dep := &appsv1.Deployment{}
+	err = ts.client.Get(context.Background(),
+		types.NamespacedName{Namespace: ts.namespace, Name: "ib-kubernetes"}, dep)
+	Expect(err).NotTo(HaveOccurred())
+	return dep
+}
+
+func getMinimalNicClusterPolicyWithIBKubernetes() *mellanoxv1alpha1.NicClusterPolicy {
+	cr := &mellanoxv1alpha1.NicClusterPolicy{}
+	cr.Name = "nic-cluster-policy"
+	cr.Spec.IBKubernetes = &mellanoxv1alpha1.IBKubernetesSpec{
+		ImageSpec: mellanoxv1alpha1.ImageSpec{
+			Image:            defaultTestImage,
+			Repository:       defaultTestRepository,
+			Version:          defaultTestVersion,
+			ImagePullSecrets: []string{},
+		},
+		PeriodicUpdateSeconds:  6,
+		PKeyGUIDPoolRangeStart: "rangestart",
+		PKeyGUIDPoolRangeEnd:   "rangeend",
+		UfmSecret:              "secret",
+	}
+	return cr
+}

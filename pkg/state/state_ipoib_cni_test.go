@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
 	"github.com/Mellanox/network-operator/pkg/state"
@@ -59,21 +60,64 @@ var _ = Describe("IPoIB CNI State tests", func() {
 			cr := getNICForIPoIBCNI()
 			objs, err := ts.renderer.GetManifestObjects(context.TODO(), cr, ts.openshiftCatalog, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(objs)).To(Equal(4))
-			GetManifestObjectsTest(ts.context, cr, ts.catalog, cr.Spec.SecondaryNetwork.IPoIB, ts.renderer)
+			// Validate the 4 rendered OpenShift objects directly: GetManifestObjectsTest hardcodes
+			// custom-cni-bin-directory (which ts.openshiftCatalog does not set) and ignores RBAC/SA kinds.
+			assertUnstructuredListHasExactKinds(objs, "ServiceAccount", "Role", "RoleBinding", "DaemonSet")
+			for _, obj := range objs {
+				Expect(obj.GetNamespace()).To(Equal(ts.namespace))
+			}
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return DaemonSet watch source", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(1))
+			Expect(ws).To(HaveKey("DaemonSet"))
+			Expect(ws["DaemonSet"]).To(BeAssignableToTypeOf(&appsv1.DaemonSet{}))
 		})
 	})
 
 	Context("should sync", func() {
-		It("without any errors", func() {
+		It("without any errors and transition to Ready", func() {
 			cr := getNICForIPoIBCNI()
-			err := ts.client.Create(ts.context, cr)
-			Expect(err).NotTo(HaveOccurred())
-			status, err := ts.state.Sync(ts.context, cr, ts.catalog)
-			Expect(err).NotTo(HaveOccurred())
-			// We do not expect that the sync state (i.e. the DaemonSet) will be ready.
-			// There is no real Kubernetes cluster in the unit tests and thus the Pods cannot be scheduled.
-			Expect(status).To(BeEquivalentTo(state.SyncStateNotReady))
+			Expect(ts.client.Create(ts.context, cr)).NotTo(HaveOccurred())
+			assertSyncCreatesDaemonSetAndTransitionsToReady(&ts, cr, "kube-ipoib-cni-ds")
+		})
+
+		It("should fail NewStateIPoIBCNI when manifestDir does not exist", func() {
+			_, _, err := state.NewStateIPoIBCNI(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should delete objects when IPoIB spec is set to nil", func() {
+			assertSyncDeletesObjectsWhenSpecNil(&ts, getNICForIPoIBCNI(),
+				func(cr *mellanoxv1alpha1.NicClusterPolicy) { cr.Spec.SecondaryNetwork.IPoIB = nil },
+				"kube-ipoib-cni-ds")
+		})
+
+		It("should delete stale objects labeled with state-ipoib-cni", func() {
+			assertSyncDeletesStaleObject(&ts, getNICForIPoIBCNI(), "stale-ipoib-cm", nil)
+		})
+
+		It("should return SyncStateError when StaticConfigProvider is missing", func() {
+			assertSyncFailsWithCatalog(&ts, getNICForIPoIBCNI(), state.NewInfoCatalog(), state.SyncStateError)
+		})
+
+		It("should return SyncStateError when ClusterTypeProvider is missing", func() {
+			catalogNoCluster := state.NewInfoCatalog()
+			catalogNoCluster.Add(state.InfoTypeStaticConfig, ts.catalog.GetStaticConfigProvider())
+			assertSyncFailsWithCatalog(&ts, getNICForIPoIBCNI(), catalogNoCluster, state.SyncStateError)
+		})
+
+		It("should return SyncStateNotReady and error when ImageSpec is invalid", func() {
+			cr := getNICForIPoIBCNI()
+			cr.Spec.SecondaryNetwork.IPoIB.Repository = ""
+			assertSyncFailsWithCatalog(&ts, cr, ts.catalog, state.SyncStateNotReady)
+		})
+
+		It("should return error from GetManifestObjects when spec is nil", func() {
+			assertGetManifestObjectsErrorsOnNilSpec(&ts)
 		})
 	})
 })

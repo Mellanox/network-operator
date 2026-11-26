@@ -19,6 +19,7 @@ package state_test
 import (
 	"context"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -122,6 +123,43 @@ var _ = Describe("HostDevice Network State rendering tests", func() {
 				Sysctl: nil,
 			})
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
+		})
+		It("Should update NetworkAttachmentDefinition when HostDeviceNetwork spec changes", func() {
+			testResourceName := "test"
+			cr := getHostDeviceNetwork(testResourceName)
+			Expect(ts.client.Create(context.Background(), cr)).NotTo(HaveOccurred())
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			By("Update IPAM in HostDeviceNetwork and Sync again")
+			ipam := nadConfigIPAM{
+				Type:     "nv-ipam",
+				PoolName: "updated-pool",
+			}
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig.IPAM = ipam
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, testResourceName)
+		})
+		It("Should fail NewStateHostDeviceNetwork when manifestDir does not exist", func() {
+			_, _, err := state.NewStateHostDeviceNetwork(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("Verify GetWatchSources", func() {
+		It("should return HostDeviceNetwork and NetworkAttachmentDefinition watch sources", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(2))
+			Expect(ws).To(HaveKey("HostDeviceNetwork"))
+			Expect(ws).To(HaveKey("NetworkAttachmentDefinition"))
+			Expect(ws["HostDeviceNetwork"]).To(BeAssignableToTypeOf(&mellanoxv1alpha1.HostDeviceNetwork{}))
+			Expect(ws["NetworkAttachmentDefinition"]).To(BeAssignableToTypeOf(&netattdefv1.NetworkAttachmentDefinition{}))
 		})
 	})
 })

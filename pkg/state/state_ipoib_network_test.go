@@ -137,6 +137,40 @@ var _ = Describe("IPoIBNetwork Network state rendering tests", func() {
 
 			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
 		})
+		It("Should update NetworkAttachmentDefinition in same namespace when IPAM changes", func() {
+			cr := getIPoIBNetwork(testName, testNamespace, testMaster)
+			Expect(ts.client.Create(context.Background(), cr)).NotTo(HaveOccurred())
+
+			status, err := ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			ipam := nadConfigIPAM{
+				Type:     "nv-ipam",
+				PoolName: "updated-pool",
+			}
+			cr.Spec.IPAM = getNADConfigIPAMJSON(ipam)
+			status, err = ts.state.Sync(context.Background(), cr, ts.catalog)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(BeEquivalentTo(state.SyncStateReady))
+
+			expectedNadConfig.IPAM = ipam
+			assertNetworkAttachmentDefinition(ts.client, &expectedNadConfig, testName, testNamespace, "")
+		})
+		It("Should fail NewStateIPoIBNetwork when manifestDir does not exist", func() {
+			_, _, err := state.NewStateIPoIBNetwork(ts.client, "/non-existent-manifest-dir")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+	Context("Verify GetWatchSources", func() {
+		It("should return IPoIBNetwork and NetworkAttachmentDefinition watch sources", func() {
+			ws := ts.state.GetWatchSources()
+			Expect(ws).To(HaveLen(2))
+			Expect(ws).To(HaveKey("IPoIBNetwork"))
+			Expect(ws).To(HaveKey("NetworkAttachmentDefinition"))
+			Expect(ws["IPoIBNetwork"]).To(BeAssignableToTypeOf(&mellanoxv1alpha1.IPoIBNetwork{}))
+			Expect(ws["NetworkAttachmentDefinition"]).To(BeAssignableToTypeOf(&netattdefv1.NetworkAttachmentDefinition{}))
+		})
 	})
 })
 

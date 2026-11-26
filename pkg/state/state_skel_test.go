@@ -34,7 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	mellanoxv1alpha1 "github.com/Mellanox/network-operator/api/v1alpha1"
+	"github.com/Mellanox/network-operator/pkg/config"
 	"github.com/Mellanox/network-operator/pkg/consts"
+	"github.com/Mellanox/network-operator/pkg/render"
 )
 
 const (
@@ -327,6 +329,75 @@ var _ = Describe("SetConfigHashAnnotation", func() {
 				Expect(found).To(BeTrue())
 				Expect(annotations[consts.ConfigHashAnnotation]).To(Equal(configHash))
 			}
+		})
+	})
+
+	Context("Metadata, SetRenderer, mergeServiceAccount, and TrustedCA", func() {
+		It("should return Description and allow SetRenderer", func() {
+			s := &stateSkel{name: "s-name", description: "s-desc"}
+			Expect(s.Description()).To(Equal("s-desc"))
+			r := render.NewRenderer(nil)
+			s.SetRenderer(r)
+			Expect(s.renderer).To(Equal(r))
+		})
+
+		It("should preserve secrets and imagePullSecrets in mergeServiceAccount", func() {
+			s := &stateSkel{}
+			current := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ServiceAccount",
+					"secrets": []interface{}{
+						map[string]interface{}{"name": "sa-token"},
+					},
+					"imagePullSecrets": []interface{}{
+						map[string]interface{}{"name": "pull-secret"},
+					},
+				},
+			}
+			updated := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ServiceAccount",
+				},
+			}
+			Expect(s.mergeObjects(updated, current)).To(Succeed())
+			secrets, found, err := unstructured.NestedSlice(updated.Object, "secrets")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(secrets).To(Equal([]interface{}{
+				map[string]interface{}{"name": "sa-token"},
+			}))
+
+			pullSecrets, found, err := unstructured.NestedSlice(updated.Object, "imagePullSecrets")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pullSecrets).To(Equal([]interface{}{
+				map[string]interface{}{"name": "pull-secret"},
+			}))
+		})
+
+		It("should return existing TrustedCAConfigMap in getOrCreateTrustedCAConfigMap", func() {
+			scheme := runtime.NewScheme()
+			Expect(corev1.AddToScheme(scheme)).NotTo(HaveOccurred())
+			Expect(mellanoxv1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
+
+			ns := config.FromEnv().State.NetworkOperatorResourceNamespace
+			existingCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ocpTrustedCAConfigMapName,
+					Namespace: ns,
+				},
+				Data: map[string]string{
+					ocpTrustedCABundleFileName: "cert-data",
+				},
+			}
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingCM).Build()
+			s := &stateSkel{client: c}
+
+			cm, err := s.getOrCreateTrustedCAConfigMap(context.Background(), &mellanoxv1alpha1.NicClusterPolicy{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cm.Data[ocpTrustedCABundleFileName]).To(Equal("cert-data"))
 		})
 	})
 })

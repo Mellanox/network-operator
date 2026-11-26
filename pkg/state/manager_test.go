@@ -22,6 +22,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Mellanox/network-operator/pkg/testing/mocks"
 )
@@ -89,6 +92,32 @@ var _ = Describe("Manager tests", func() {
 				client: &client,
 			}
 			Expect(manager.SyncState(context.TODO(), nil, nil).RequeueAfter).To(BeZero())
+		})
+	})
+
+	Context("GetWatchSources", func() {
+		It("Should aggregate and deduplicate watch sources across states", func() {
+			manager := &stateManager{
+				states: []State{
+					&fakeState{
+						name: "state-1",
+						watchResources: map[string]client.Object{
+							"DaemonSet": &appsv1.DaemonSet{},
+							"ConfigMap": &corev1.ConfigMap{},
+						},
+					},
+					&fakeState{
+						name: "state-2",
+						watchResources: map[string]client.Object{
+							"DaemonSet":  &appsv1.DaemonSet{},
+							"Deployment": &appsv1.Deployment{},
+						},
+					},
+				},
+			}
+			ws := manager.GetWatchSources()
+			Expect(ws).To(HaveLen(3))
+			Expect(ws).To(And(HaveKey("DaemonSet"), HaveKey("ConfigMap"), HaveKey("Deployment")))
 		})
 	})
 })
